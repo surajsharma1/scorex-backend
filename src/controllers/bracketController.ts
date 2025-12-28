@@ -1,16 +1,21 @@
 import { Request, Response } from 'express';
 import Bracket from '../models/Bracket';
 import Tournament from '../models/Tournament';
+import { Types } from 'mongoose'; // For ObjectId
 
-// Define interfaces for type safety
+// Define interfaces to match your Bracket model schema
 interface Match {
-  team1: any; // Replace with proper Team type if available
-  team2: any;
-  score1: number;
-  score2: number;
+  id: string;
+  team1?: Types.ObjectId;
+  team2?: Types.ObjectId;
+  winner?: Types.ObjectId;
+  score1?: number;
+  score2?: number;
+  status: 'pending' | 'in-progress' | 'completed';
 }
 
 interface Round {
+  roundNumber: number;
   matches: Match[];
 }
 
@@ -50,15 +55,20 @@ export const generateBracket = async (req: Request, res: Response) => {
     const numRounds = Math.ceil(Math.log2(teams.length));
 
     for (let i = 0; i < numRounds; i++) {
-      const round: Round = { matches: [] };
+      const round: Round = {
+        roundNumber: i + 1,
+        matches: []
+      };
       const numMatches = Math.pow(2, numRounds - 1 - i);
 
       for (let j = 0; j < numMatches; j++) {
         const match: Match = {
-          team1: teams[j * 2] || null,
-          team2: teams[j * 2 + 1] || null,
+          id: `${i}-${j}`, // Simple ID generation
+          team1: teams[j * 2]?._id,
+          team2: teams[j * 2 + 1]?._id,
           score1: 0,
           score2: 0,
+          status: 'pending',
         };
         round.matches.push(match);
       }
