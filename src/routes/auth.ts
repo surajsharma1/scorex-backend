@@ -8,3 +8,7 @@ router.post('/register', register);
 router.post('/login', login);
 
 export default router;
+
+router.get('/test', (req, res) => {
+  res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
+});
