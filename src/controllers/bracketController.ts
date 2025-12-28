@@ -2,6 +2,18 @@ import { Request, Response } from 'express';
 import Bracket from '../models/Bracket';
 import Tournament from '../models/Tournament';
 
+// Define interfaces for type safety
+interface Match {
+  team1: any; // Replace with proper Team type if available
+  team2: any;
+  score1: number;
+  score2: number;
+}
+
+interface Round {
+  matches: Match[];
+}
+
 export const getBrackets = async (req: Request, res: Response) => {
   try {
     const brackets = await Bracket.find().populate('tournament');
@@ -11,24 +23,53 @@ export const getBrackets = async (req: Request, res: Response) => {
   }
 };
 
-export const getBracket = async (req: Request, res: Response) => {
+export const createBracket = async (req: Request, res: Response) => {
   try {
-    const bracket = await Bracket.findById(req.params.id).populate('tournament');
-    if (!bracket) {
-      return res.status(404).json({ message: 'Bracket not found' });
-    }
-    res.json(bracket);
+    const { tournament, type, numberOfTeams } = req.body;
+    const bracket = await Bracket.create({ tournament, type, numberOfTeams });
+    res.status(201).json(bracket);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-export const createBracket = async (req: Request, res: Response) => {
+export const generateBracket = async (req: Request, res: Response) => {
   try {
-    const bracket = await Bracket.create(req.body);
-    await Tournament.findByIdAndUpdate(req.body.tournament, { bracket: bracket._id });
-    res.status(201).json(bracket);
+    const { teams } = req.body;
+    if (!teams || teams.length === 0) {
+      return res.status(400).json({ message: 'Teams are required' });
+    }
+
+    const bracket = await Bracket.findById(req.params.id);
+    if (!bracket) {
+      return res.status(404).json({ message: 'Bracket not found' });
+    }
+
+    // Explicitly type rounds as Round[]
+    const rounds: Round[] = [];
+    const numRounds = Math.ceil(Math.log2(teams.length));
+
+    for (let i = 0; i < numRounds; i++) {
+      const round: Round = { matches: [] };
+      const numMatches = Math.pow(2, numRounds - 1 - i);
+
+      for (let j = 0; j < numMatches; j++) {
+        const match: Match = {
+          team1: teams[j * 2] || null,
+          team2: teams[j * 2 + 1] || null,
+          score1: 0,
+          score2: 0,
+        };
+        round.matches.push(match);
+      }
+      rounds.push(round);
+    }
+
+    bracket.rounds = rounds;
+    await bracket.save();
+    res.json(bracket);
   } catch (error) {
+    console.error('Bracket generation error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -45,29 +86,14 @@ export const updateBracket = async (req: Request, res: Response) => {
   }
 };
 
-// Fixed: Added error handling in generateBracket
-export const generateBracket = async (req: Request, res: Response) => {
+export const deleteBracket = async (req: Request, res: Response) => {
   try {
-    const { teams } = req.body;
-    if (!teams || teams.length === 0) {
-      return res.status(400).json({ message: 'Teams are required' });
-    }
-
-    // Your existing logic...
-    const bracket = await Bracket.findById(req.params.id);
+    const bracket = await Bracket.findByIdAndDelete(req.params.id);
     if (!bracket) {
       return res.status(404).json({ message: 'Bracket not found' });
     }
-
-    // Generate rounds (simplified)
-    const rounds = [];
-    // ... (rest of your code)
-
-    bracket.rounds = rounds;
-    await bracket.save();
-    res.json(bracket);
+    res.json({ message: 'Bracket deleted' });
   } catch (error) {
-    console.error('Bracket generation error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
