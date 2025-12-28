@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2022",  // Updated for better performance
+    "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2022"],
+    "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,  // Enabled for better type safety
+    "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
