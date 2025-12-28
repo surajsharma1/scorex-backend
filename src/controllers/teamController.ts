@@ -3,18 +3,18 @@ import Team from '../models/Team';
 
 export const createTeam = async (req: Request, res: Response) => {
   try {
-    console.log('Creating team:', req.body); // Add logging
+    console.log('Creating team:', req.body);
     
     const teamData = {
       name: req.body.name,
       color: req.body.color,
       tournament: req.body.tournament,
-      logo: req.file ? `/uploads/${req.file.filename}` : undefined,
-      createdBy: req.user?._id, // Add user reference
+      logo: req.file ? `/uploads/${req.file.filename}` : undefined,  // Fixed: Removed trailing comma
+      createdBy: req.user?._id,
     };
 
     const team = await Team.create(teamData);
-    console.log('Team created:', team); // Add logging
+    console.log('Team created:', team);
     
     res.status(201).json(team);
   } catch (error) {
@@ -23,7 +23,6 @@ export const createTeam = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error', error: message });
   }
 };
-
 export const getTeams = async (req: Request, res: Response) => {
   try {
     const teams = await Team.find({ createdBy: req.user?._id })

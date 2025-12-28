@@ -28,10 +28,21 @@ try {
 }
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
-  credentials: true
+  origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 console.log('CORS configured for:', process.env.FRONTEND_URL);
@@ -51,8 +62,10 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files
-app.use('/uploads', express.static('uploads'));
+// Static files with caching
+app.use('/uploads', express.static('uploads', {
+  maxAge: '1d',  // Cache for 1 day
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
