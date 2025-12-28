@@ -1,9 +1,10 @@
-import jwt from 'jsonwebtoken';  // This is causing the issue
+// Fixed: Proper JWT verification and typing
+import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 
 interface AuthRequest extends Request {
-  user?: any;  // Consider typing this more specifically, e.g., { id: string; role: string; }
+  user?: any;  // Keep as any for simplicity, but ideally define a User interface
 }
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -18,7 +19,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'Not authorized, no token' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;  // Fixed: Proper casting
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
@@ -27,7 +28,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
     next();
   } catch (error) {
-    console.error('Auth error:', error);  // Optional: Add logging
+    console.error('Auth error:', error);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };

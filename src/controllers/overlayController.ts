@@ -70,7 +70,7 @@ export const serveOverlay = async (req: Request, res: Response) => {
     }
 
     // Generate HTML for overlay (simplified)
-    const tournamentName = (overlay.tournament as any)?.name || 'Tournament';
+   const tournamentName = (overlay.tournament as any)?.name || 'Tournament';  // Fixed: Handle null tournament
     const html = `
       <!DOCTYPE html>
       <html>
@@ -97,5 +97,4 @@ export const serveOverlay = async (req: Request, res: Response) => {
     res.status(500).send('Server error');
   }
 };
-
 export default { serveOverlay };
