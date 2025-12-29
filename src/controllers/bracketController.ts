@@ -21,10 +21,13 @@ interface Round {
 
 export const getBrackets = async (req: Request, res: Response) => {
   try {
-    const brackets = await Bracket.find().populate('tournament');
+    const brackets = await Bracket.find({ createdBy: req.user?._id })
+      .populate('tournament');
     res.json(brackets);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get brackets error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: 'Server error', error: message });
   }
 };
 

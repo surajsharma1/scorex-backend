@@ -1,13 +1,24 @@
-// Fixed: Proper JWT verification and typing
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 
-interface AuthRequest extends Request {
-  user?: any;  // Keep as any for simplicity, but ideally define a User interface
+interface JwtPayload {
+  _id: string;
+  email: string;
+  iat?: number;
+  exp?: number;
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// Extend Request interface to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let token;
 
@@ -19,25 +30,14 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'Not authorized, no token' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;  // Fixed: Proper casting
-    req.user = await User.findById(decoded.id).select('-password');
-
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' });
-    }
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    
+    // Add user to request
+    req.user = await User.findById(decoded._id).select('-password');
+    
     next();
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error(error);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
-};
-
-export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'User role not authorized' });
-    }
-    next();
-  };
 };
