@@ -1,9 +1,10 @@
 {
   "name": "cricket-tournament-backend",
   "version": "1.0.0",
+  "description": "Backend for cricket tournament overlay platform",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
   },
@@ -31,7 +32,7 @@
     "@types/jsonwebtoken": "^9.0.2",
     "@types/multer": "^1.4.7",
     "@types/node": "^20.5.7",
-    "@types/uuid": "^9.0.8",
+    "@types/uuid": "^9.0.7",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"
   }
