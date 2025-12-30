@@ -48,9 +48,9 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// CORS configuration
+// CORS configuration - ADD IT RIGHT HERE
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',  // Make sure this matches your frontend URL
   credentials: true
 }));
 
