@@ -27,7 +27,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "data:"],
-      connectSrc: ["'self'", "https://scorex-backend-git-main-suraj-sharmas-projects-3413126b.vercel.app"],
+      connectSrc: ["'self'", "https://scorex-backend-live.vercel.app"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
@@ -35,7 +35,8 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false
 }));
-// Add this RIGHT HERE - Additional security headers
+
+// Additional security headers
 app.use(helmet({
   hsts: {
     maxAge: 31536000,
