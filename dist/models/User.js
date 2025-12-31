@@ -45,7 +45,6 @@ const UserSchema = new mongoose_1.Schema({
     role: { type: String, enum: ['admin', 'organizer'], default: 'organizer' },
     createdAt: { type: Date, default: Date.now }
 });
-// Hash password before saving
 UserSchema.pre('save', async function (next) {
     if (!this.isModified('password'))
         return next();
@@ -53,7 +52,6 @@ UserSchema.pre('save', async function (next) {
     this.password = await bcryptjs_1.default.hash(this.password, salt);
     next();
 });
-// Compare password method
 UserSchema.methods.comparePassword = async function (candidatePassword) {
     return bcryptjs_1.default.compare(candidatePassword, this.password);
 };

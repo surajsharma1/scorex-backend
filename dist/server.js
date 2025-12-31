@@ -36,7 +36,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// Fixed: Improved CORS and error handling
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -51,51 +50,73 @@ const overlays_1 = __importDefault(require("./routes/overlays"));
 const errorHandler_1 = require("./middleware/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// Connect to database
 (0, database_1.default)();
-// Security middleware
-app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app', // Fixed: Use env var
-    credentials: true,
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            fontSrc: ["'self'", "data:"],
+            connectSrc: ["'self'", "https://scorex-backend-live.vercel.app"],
+            frameAncestors: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false
 }));
-// Rate limiting
+app.use((0, helmet_1.default)({
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+}));
+app.use((0, cors_1.default)({
+    origin: process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
+    credentials: true
+}));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 100,
+    message: 'Too many requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 app.use(limiter);
-// Body parsing
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
-// Static files
+app.use(express_1.default.json({ limit: '10mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express_1.default.static('uploads'));
-// Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/tournaments', tournaments_1.default);
 app.use('/api/teams', teams_1.default);
 app.use('/api/brackets', brackets_1.default);
 app.use('/api/overlays', overlays_1.default);
-// Overlay serving
 app.get('/overlay/:id', async (req, res) => {
     try {
         const overlayController = (await Promise.resolve().then(() => __importStar(require('./controllers/overlayController')))).default;
         await overlayController.serveOverlay(req, res);
     }
     catch (error) {
-        console.error('Overlay route error:', error);
+        console.error('Overlay error:', error);
         res.status(500).json({ message: 'Error serving overlay' });
     }
 });
-// Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        mongodb: !!process.env.MONGODB_URI
+    });
 });
-// Error handling
 app.use(errorHandler_1.errorHandler);
-// Export for Vercel
 exports.default = app;
-// For local dev
 if (require.main === module) {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {

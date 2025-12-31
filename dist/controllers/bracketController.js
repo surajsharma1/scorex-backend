@@ -39,7 +39,6 @@ const generateBracket = async (req, res) => {
         if (!bracket) {
             return res.status(404).json({ message: 'Bracket not found' });
         }
-        // Explicitly type rounds as Round[]
         const rounds = [];
         const numRounds = Math.ceil(Math.log2(teams.length));
         for (let i = 0; i < numRounds; i++) {
@@ -50,7 +49,7 @@ const generateBracket = async (req, res) => {
             const numMatches = Math.pow(2, numRounds - 1 - i);
             for (let j = 0; j < numMatches; j++) {
                 const match = {
-                    id: `${i}-${j}`, // Simple ID generation
+                    id: `${i}-${j}`,
                     team1: teams[j * 2]?._id,
                     team2: teams[j * 2 + 1]?._id,
                     score1: 0,

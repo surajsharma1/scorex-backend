@@ -7,9 +7,8 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const bracketController_1 = require("../controllers/bracketController");
 const router = express_1.default.Router();
-// Routes
 router.route('/')
-    .get(auth_1.protect, bracketController_1.getBrackets) // Changed from getBracket to getBrackets
+    .get(auth_1.protect, bracketController_1.getBrackets)
     .post(auth_1.protect, bracketController_1.createBracket);
 router.route('/:id')
     .put(auth_1.protect, bracketController_1.updateBracket)

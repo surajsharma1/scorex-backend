@@ -8,7 +8,6 @@ const multer_1 = __importDefault(require("multer"));
 const teamController_1 = require("../controllers/teamController");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
-// Configure multer for file uploads
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -20,7 +19,7 @@ const storage = multer_1.default.diskStorage({
 const upload = (0, multer_1.default)({
     storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 5 * 1024 * 1024,
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {

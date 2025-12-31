@@ -12,7 +12,7 @@ const createTeam = async (req, res) => {
             name: req.body.name,
             color: req.body.color,
             tournament: req.body.tournament,
-            logo: req.file ? `/uploads/${req.file.filename}` : undefined, // No trailing comma
+            logo: req.file ? `/uploads/${req.file.filename}` : undefined,
             createdBy: req.user?._id,
         };
         const team = await Team_1.default.create(teamData);

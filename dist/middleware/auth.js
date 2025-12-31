@@ -16,7 +16,6 @@ const protect = async (req, res, next) => {
             return res.status(401).json({ message: 'Not authorized, no token' });
         }
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        // Add user to request
         req.user = await User_1.default.findById(decoded._id).select('-password');
         next();
     }

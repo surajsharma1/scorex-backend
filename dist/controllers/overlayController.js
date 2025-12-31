@@ -77,8 +77,7 @@ const serveOverlay = async (req, res) => {
         if (!overlay) {
             return res.status(404).send('Overlay not found');
         }
-        // Generate HTML for overlay (simplified)
-        const tournamentName = overlay.tournament?.name || 'Tournament'; // Fixed: Handle null tournament
+        const tournamentName = overlay.tournament?.name || 'Tournament';
         const html = `
       <!DOCTYPE html>
       <html>
