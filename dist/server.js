@@ -99,11 +99,11 @@ app.use('/api/brackets', brackets_1.default);
 app.use('/api/overlays', overlays_1.default);
 app.get('/overlay/:id', async (req, res) => {
     try {
-        const overlayController = (await Promise.resolve().then(() => __importStar(require('./controllers/overlayController')))).default;
-        await overlayController.serveOverlay(req, res);
+        const { serveOverlay } = await Promise.resolve().then(() => __importStar(require('./controllers/overlayController')));
+        await serveOverlay(req, res);
     }
     catch (error) {
-        console.error('Overlay error:', error);
+        console.error('Overlay route error:', error);
         res.status(500).json({ message: 'Error serving overlay' });
     }
 });

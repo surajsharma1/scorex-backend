@@ -50,7 +50,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
   credentials: true
 }));
 
@@ -79,16 +79,17 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/brackets', bracketRoutes);
 app.use('/api/overlays', overlayRoutes);
 
-// Overlay serving route
+
 app.get('/overlay/:id', async (req, res) => {
   try {
-    const overlayController = (await import('./controllers/overlayController')).default;
-    await overlayController.serveOverlay(req, res);
+    const { serveOverlay } = await import('./controllers/overlayController');  // Fixed: Use named import
+    await serveOverlay(req, res);
   } catch (error) {
-    console.error('Overlay error:', error);
+    console.error('Overlay route error:', error);
     res.status(500).json({ message: 'Error serving overlay' });
   }
 });
+
 
 // Health check
 app.get('/health', (req, res) => {
