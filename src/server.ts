@@ -50,8 +50,10 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
-  credentials: true
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL || 'https://scorex-live.vercel.app/'
+    : 'http://localhost:3000',  // Allow local frontend
+  credentials: true,
 }));
 
 // Rate limiting
