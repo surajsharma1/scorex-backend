@@ -1,18 +1,21 @@
-// seed.js (or seed.ts if using TypeScript)
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import User from './src/models/User.js';  // Adjust path if needed
-import Tournament from './src/models/Tournament.js';
-import Team from './src/models/Team.js';
-import Bracket from './src/models/Bracket.js';
-import Overlay from './src/models/Overlay.js';
+import User from './src/models/User';
+import Tournament from './src/models/Tournament';
+import Team from './src/models/Team';
+import Bracket from './src/models/Bracket';
+import Overlay from './src/models/Overlay';
 import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI is not defined in .env');
+    }
+    await mongoose.connect(mongoUri);
     console.log('MongoDB connected');
   } catch (error) {
     console.error('MongoDB connection error:', error);
@@ -40,22 +43,26 @@ const seedData = async () => {
     console.log('User created:', user.username);
 
     // Create sample tournaments
-    const tournament1 = await Tournament.create({
-      name: 'Cricket World Cup 2024',
-      description: 'International cricket tournament',
-      status: 'upcoming',
-      startDate: new Date('2024-10-01'),
-      endDate: new Date('2024-11-15'),
-      createdBy: user._id,
-    });
-    const tournament2 = await Tournament.create({
-      name: 'Local League 2024',
-      description: 'Local cricket league',
-      status: 'ongoing',
-      startDate: new Date('2024-09-01'),
-      endDate: new Date('2024-12-01'),
-      createdBy: user._id,
-    });
+   const tournament1 = await Tournament.create({
+  name: 'Cricket World Cup 2024',
+  description: 'International cricket tournament',
+  status: 'upcoming',
+  startDate: new Date('2024-10-01'),
+  endDate: new Date('2024-11-15'),
+  numberOfTeams: 16,  // Add this
+  format: 'ODI',  // Add this
+  createdBy: user._id,
+});
+const tournament2 = await Tournament.create({
+  name: 'Local League 2024',
+  description: 'Local cricket league',
+  status: 'ongoing',
+  startDate: new Date('2024-09-01'),
+  endDate: new Date('2024-12-01'),
+  numberOfTeams: 8,  // Add this
+  format: 'T20',  // Add this
+  createdBy: user._id,
+});
     console.log('Tournaments created');
 
     // Create sample teams
@@ -63,7 +70,7 @@ const seedData = async () => {
       name: 'Team India',
       color: '#FF9933',
       tournament: tournament1._id,
-      logo: '/uploads/india-logo.png',  // Placeholder
+      logo: '/uploads/india-logo.png',
       createdBy: user._id,
       players: [
         { name: 'Virat Kohli', role: 'Batsman' },
