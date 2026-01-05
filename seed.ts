@@ -43,26 +43,26 @@ const seedData = async () => {
     console.log('User created:', user.username);
 
     // Create sample tournaments
-   const tournament1 = await Tournament.create({
-  name: 'Cricket World Cup 2024',
-  description: 'International cricket tournament',
-  status: 'upcoming',
-  startDate: new Date('2024-10-01'),
-  endDate: new Date('2024-11-15'),
-  numberOfTeams: 16,  // Add this
-  format: 'ODI',  // Add this
-  createdBy: user._id,
-});
-const tournament2 = await Tournament.create({
-  name: 'Local League 2024',
-  description: 'Local cricket league',
-  status: 'ongoing',
-  startDate: new Date('2024-09-01'),
-  endDate: new Date('2024-12-01'),
-  numberOfTeams: 8,  // Add this
-  format: 'T20',  // Add this
-  createdBy: user._id,
-});
+    const tournament1 = await Tournament.create({
+      name: 'Cricket World Cup 2024',
+      description: 'International cricket tournament',
+      status: 'upcoming',
+      startDate: new Date('2024-10-01'),
+      endDate: new Date('2024-11-15'),
+      numberOfTeams: 16,
+      format: 'ODI',
+      createdBy: user._id,
+    });
+    const tournament2 = await Tournament.create({
+      name: 'Local League 2024',
+      description: 'Local cricket league',
+      status: 'active',
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2024-12-01'),
+      numberOfTeams: 8,
+      format: 'T20',
+      createdBy: user._id,
+    });
     console.log('Tournaments created');
 
     // Create sample teams
@@ -73,9 +73,9 @@ const tournament2 = await Tournament.create({
       logo: '/uploads/india-logo.png',
       createdBy: user._id,
       players: [
-        { name: 'Virat Kohli', role: 'Batsman' },
-        { name: 'Rohit Sharma', role: 'Batsman' },
-        { name: 'Jasprit Bumrah', role: 'Bowler' },
+        { name: 'Virat Kohli', role: 'Batsman', jerseyNumber: 18 },
+        { name: 'Rohit Sharma', role: 'Batsman', jerseyNumber: 45 },
+        { name: 'Jasprit Bumrah', role: 'Bowler', jerseyNumber: 93 },
       ],
     });
     const team2 = await Team.create({
@@ -85,8 +85,8 @@ const tournament2 = await Tournament.create({
       logo: '/uploads/australia-logo.png',
       createdBy: user._id,
       players: [
-        { name: 'Steve Smith', role: 'Batsman' },
-        { name: 'Pat Cummins', role: 'Bowler' },
+        { name: 'Steve Smith', role: 'Batsman', jerseyNumber: 49 },
+        { name: 'Pat Cummins', role: 'Bowler', jerseyNumber: 30 },
       ],
     });
     const team3 = await Team.create({
@@ -96,32 +96,37 @@ const tournament2 = await Tournament.create({
       logo: '/uploads/eagles-logo.png',
       createdBy: user._id,
       players: [
-        { name: 'John Doe', role: 'All-rounder' },
+        { name: 'John Doe', role: 'All-rounder', jerseyNumber: 7 },
       ],
     });
     console.log('Teams created');
 
-    // Create sample brackets
-    const bracket1 = await Bracket.create({
-      tournament: tournament1._id,
-      type: 'single-elimination',
-      numberOfTeams: 8,
-      rounds: [
-        {
-          roundNumber: 1,
-          matches: [
-            { id: '1-1', team1: team1._id, team2: team2._id, status: 'pending' },
-          ],
-        },
-      ],
-    });
-    console.log('Brackets created');
+    // Create brackets and overlays
+    const teams = await Team.find({ tournament: tournament1._id });
+    if (teams.length >= 2) {
+      const bracket1 = await Bracket.create({
+        tournament: tournament1._id,
+        type: 'single-elimination',
+        numberOfTeams: 8,
+        rounds: [
+          {
+            roundNumber: 1,
+            matches: [
+              { id: '1-1', team1: teams[0]!._id, team2: teams[1]!._id, status: 'pending' },
+            ],
+          },
+        ],
+      });
+      console.log('Brackets created');
+    } else {
+      console.log('Not enough teams for bracket');
+    }
 
-    // Create sample overlays
     const overlay1 = await Overlay.create({
       name: 'Live Score Overlay',
       tournament: tournament1._id,
-      template: 'score-template',
+      template: 'classic',  // Changed to a valid enum value from your model
+      createdBy: user._id,  // Already added
       config: {
         backgroundColor: '#16a34a',
         opacity: 90,

@@ -55,7 +55,7 @@ app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            scriptSrc: ["'self'", "'unsafe-inline'",],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "data:"],
@@ -78,8 +78,10 @@ app.use((0, helmet_1.default)({
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
-    credentials: true
+    origin: process.env.NODE_ENV === 'production'
+        ? process.env.FRONTEND_URL || 'https://scorex-live.vercel.app/'
+        : 'http://localhost:3000',
+    credentials: true,
 }));
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
