@@ -49,10 +49,11 @@ app.use(helmet({
 }));
 
 // CORS configuration
+
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL || 'https://scorex-live.vercel.app/'
-    : 'http://localhost:3000',  // Allow local frontend
+    ? 'https://scorex-frontend-83m01phry-suraj-sharmas-projects-3413126b.vercel.app'
+    : 'http://localhost:3000',
   credentials: true,
 }));
 
