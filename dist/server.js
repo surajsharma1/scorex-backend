@@ -50,6 +50,7 @@ const overlays_1 = __importDefault(require("./routes/overlays"));
 const errorHandler_1 = require("./middleware/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+app.set('trust proxy', 1);
 (0, database_1.default)();
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
@@ -79,7 +80,7 @@ app.use((0, helmet_1.default)({
 }));
 app.use((0, cors_1.default)({
     origin: process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL || 'https://scorex-live.vercel.app/'
+        ? 'https://scorex-frontend-fh96l8xmi-suraj-sharmas-projects-3413126b.vercel.app/'
         : 'http://localhost:3000',
     credentials: true,
 }));
@@ -124,5 +125,6 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
+    app.get('/', (req, res) => res.json({ message: 'Backend is running' }));
 }
 //# sourceMappingURL=server.js.map
