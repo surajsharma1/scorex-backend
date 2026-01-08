@@ -15,6 +15,9 @@ dotenv.config();
 
 const app = express();
 
+app.set('trust proxy', 1); 
+
+
 // Connect to database
 connectDB();
 
@@ -116,4 +119,6 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
+
+  app.get('/', (req, res) => res.json({ message: 'Backend is running' }));
 }
