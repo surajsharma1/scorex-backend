@@ -34,43 +34,14 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const OverlaySchema = new mongoose_1.Schema({
+const overlaySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    template: {
-        type: String,
-        enum: ['classic', 'modern', 'broadcast', 'ipl'],
-        default: 'classic'
-    },
-    config: {
-        backgroundColor: { type: String, default: '#16a34a' },
-        opacity: { type: Number, default: 90 },
-        fontFamily: { type: String, default: 'Inter' },
-        position: {
-            type: String,
-            enum: ['top', 'center', 'bottom'],
-            default: 'top'
-        },
-        showAnimations: { type: Boolean, default: true },
-        autoUpdate: { type: Boolean, default: true }
-    },
-    elements: [{
-            type: {
-                type: String,
-                enum: ['text', 'image', 'scoreboard', 'widget'],
-                required: true
-            },
-            content: { type: mongoose_1.Schema.Types.Mixed },
-            position: {
-                x: { type: Number, required: true },
-                y: { type: Number, required: true }
-            },
-            style: { type: mongoose_1.Schema.Types.Mixed }
-        }],
+    template: { type: String, required: true },
+    config: { type: mongoose_1.Schema.Types.Mixed, required: true },
+    elements: [{ type: mongoose_1.Schema.Types.Mixed }],
     publicId: { type: String, required: true, unique: true },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
-}, {
-    timestamps: true
-});
-exports.default = mongoose_1.default.model('Overlay', OverlaySchema);
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+}, { timestamps: true });
+exports.default = mongoose_1.default.model('Overlay', overlaySchema);
 //# sourceMappingURL=Overlay.js.map

@@ -38,24 +38,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const UserSchema = new mongoose_1.Schema({
-    username: { type: String, required: true, unique: true },
+const userSchema = new mongoose_1.Schema({
+    username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['admin', 'organizer'], default: 'organizer' },
-    createdAt: { type: Date, default: Date.now }
-});
-// Hash password before saving
-UserSchema.pre('save', async function (next) {
+}, { timestamps: true });
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password'))
         return next();
     const salt = await bcryptjs_1.default.genSalt(10);
     this.password = await bcryptjs_1.default.hash(this.password, salt);
     next();
 });
-// Compare password method
-UserSchema.methods.comparePassword = async function (candidatePassword) {
-    return bcryptjs_1.default.compare(candidatePassword, this.password);
+userSchema.methods.matchPassword = async function (enteredPassword) {
+    return await bcryptjs_1.default.compare(enteredPassword, this.password);
 };
-exports.default = mongoose_1.default.model('User', UserSchema);
+exports.default = mongoose_1.default.model('User', userSchema);
 //# sourceMappingURL=User.js.map

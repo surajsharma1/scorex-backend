@@ -7,13 +7,11 @@ const express_1 = __importDefault(require("express"));
 const tournamentController_1 = require("../controllers/tournamentController");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
-router.route('/')
-    .get(auth_1.protect, tournamentController_1.getTournaments)
-    .post(auth_1.protect, tournamentController_1.createTournament);
-router.route('/:id')
-    .get(auth_1.protect, tournamentController_1.getTournament)
-    .put(auth_1.protect, tournamentController_1.updateTournament)
-    .delete(auth_1.protect, tournamentController_1.deleteTournament);
+router.get('/', auth_1.protect, tournamentController_1.getTournaments);
+router.get('/:id', auth_1.protect, tournamentController_1.getTournament);
+router.post('/', auth_1.protect, tournamentController_1.createTournament);
+router.put('/:id', auth_1.protect, tournamentController_1.updateTournament);
+router.delete('/:id', auth_1.protect, tournamentController_1.deleteTournament);
 router.post('/:id/live', auth_1.protect, tournamentController_1.goLive);
 router.put('/:id/scores', auth_1.protect, tournamentController_1.updateLiveScores);
 exports.default = router;

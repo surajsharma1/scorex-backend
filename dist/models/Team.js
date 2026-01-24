@@ -38,17 +38,15 @@ const playerSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     role: { type: String, required: true },
     jerseyNumber: { type: String, required: true },
-    image: { type: String },
+    image: String,
 });
 const teamSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     color: { type: String, required: true },
-    logo: { type: String },
+    logo: String,
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
     players: [playerSchema],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-}, {
-    timestamps: true,
-});
+}, { timestamps: true });
 exports.default = mongoose_1.default.model('Team', teamSchema);
 //# sourceMappingURL=Team.js.map

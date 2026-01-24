@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorize = exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const User_1 = __importDefault(require("../models/User")); // Import IUser interface
+const User_1 = __importDefault(require("../models/User"));
 const protect = async (req, res, next) => {
     try {
         let token;
@@ -16,7 +16,7 @@ const protect = async (req, res, next) => {
             res.status(401).json({ message: 'Not authorized, no token' });
             return;
         }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET); // Use any instead of JwtPayload
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
         const user = await User_1.default.findById(decoded.id).select('-password');
         if (!user) {
             res.status(401).json({ message: 'Not authorized, user not found' });

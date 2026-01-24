@@ -4,11 +4,12 @@ export interface IUser extends Document {
     email: string;
     password: string;
     role: 'admin' | 'organizer';
-    createdAt: Date;
-    comparePassword(candidatePassword: string): Promise<boolean>;
+    matchPassword: (enteredPassword: string) => Promise<boolean>;
 }
-declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
+declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser, {}, {}> & IUser & Required<{
     _id: mongoose.Types.ObjectId;
+}> & {
+    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=User.d.ts.map

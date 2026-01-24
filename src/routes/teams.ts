@@ -1,41 +1,20 @@
 import express from 'express';
-import multer from 'multer';
-import { createTeam, getTeams, updateTeam, deleteTeam, addPlayer } from '../controllers/teamController';
+import {
+  getTeams,
+  createTeam,
+  updateTeam,
+  deleteTeam,
+  addPlayer,
+} from '../controllers/teamController';
 import { protect } from '../middleware/auth';
+import upload from '../middleware/upload';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
-});
-
-const upload = multer({ 
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'));
-    }
-  }
-});
-
-router.route('/')
-  .get(protect, getTeams)
-  .post(protect, upload.single('logo'), createTeam);
-
-router.route('/:id')
-  .put(protect, upload.single('logo'), updateTeam)
-  .delete(protect, deleteTeam);
-
-router.post('/:id/players', protect, upload.single('image'), addPlayer);
+router.get('/', protect, getTeams);
+router.post('/', protect, upload.single('logo'), createTeam);
+router.put('/:id', protect, upload.single('logo'), updateTeam);
+router.delete('/:id', protect, deleteTeam);
+router.post('/:teamId/players', protect, upload.single('image'), addPlayer);
 
 export default router;

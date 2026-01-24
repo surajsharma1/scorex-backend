@@ -24,8 +24,8 @@ const createTeam = async (req, res) => {
             name: req.body.name,
             color: req.body.color,
             tournament: req.body.tournament,
-            logo: req.file ? `/uploads/${req.file.filename}` : undefined, // Fixed: Removed trailing comma
-            createdBy: req.user?._id,
+            logo: req.file ? `/uploads/${req.file.filename}` : undefined,
+            createdBy: req.user?._id, // Type assertion
         };
         const team = await Team_1.default.create(teamData);
         console.log('Team created:', team);
@@ -83,7 +83,7 @@ const addPlayer = async (req, res) => {
             name: req.body.name,
             role: req.body.role,
             jerseyNumber: req.body.jerseyNumber,
-            ...(req.file && { image: `/uploads/${req.file.filename}` }), // Fixed: Only include image if file exists
+            ...(req.file && { image: `/uploads/${req.file.filename}` }),
         };
         team.players.push(playerData);
         await team.save();

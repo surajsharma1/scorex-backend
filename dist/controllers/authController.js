@@ -18,13 +18,12 @@ const register = async (req, res) => {
             res.status(400).json({ message: 'User already exists' });
             return;
         }
-        // Remove manual hashing; let the pre-save hook in User model handle it
         const user = await User_1.default.create({ username, email, password });
         res.status(201).json({
             _id: user._id,
             username: user.username,
             email: user.email,
-            token: generateToken(user._id),
+            token: generateToken(user._id.toString()), // Fixed: Convert ObjectId to string
         });
     }
     catch (error) {
@@ -41,7 +40,7 @@ const login = async (req, res) => {
                 _id: user._id,
                 username: user.username,
                 email: user.email,
-                token: generateToken(user._id),
+                token: generateToken(user._id.toString()), // Fixed: Convert ObjectId to string
             });
         }
         else {

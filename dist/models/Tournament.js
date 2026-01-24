@@ -36,33 +36,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const tournamentSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    description: { type: String },
+    description: String,
     format: { type: String, required: true },
     startDate: { type: Date, required: true },
     numberOfTeams: { type: Number, required: true },
     status: { type: String, enum: ['upcoming', 'active', 'completed'], default: 'upcoming' },
     isLive: { type: Boolean, default: false },
     liveScores: {
-        team1: {
-            name: String,
-            score: { type: Number, default: 0 },
-            wickets: { type: Number, default: 0 },
-            overs: { type: Number, default: 0 },
-        },
-        team2: {
-            name: String,
-            score: { type: Number, default: 0 },
-            wickets: { type: Number, default: 0 },
-            overs: { type: Number, default: 0 },
-        },
-        currentRunRate: { type: Number, default: 0 },
-        requiredRunRate: { type: Number, default: 0 },
-        target: { type: Number, default: 0 },
-        lastFiveOvers: { type: String, default: '' },
+        team1: { name: String, score: Number, wickets: Number, overs: Number },
+        team2: { name: String, score: Number, wickets: Number, overs: Number },
+        currentRunRate: Number,
+        requiredRunRate: Number,
+        target: Number,
+        lastFiveOvers: String,
     },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-}, {
-    timestamps: true,
-});
+}, { timestamps: true });
 exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
 //# sourceMappingURL=Tournament.js.map

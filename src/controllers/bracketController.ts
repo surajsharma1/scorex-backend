@@ -4,7 +4,7 @@ import Tournament from '../models/Tournament';
 
 export const getBrackets = async (req: Request, res: Response): Promise<void> => {
   try {
-    const brackets = await Bracket.find({ createdBy: req.user?._id })
+    const brackets = await Bracket.find({ createdBy: (req as any).user?._id })  // Type assertion
       .populate('tournament');
     res.json(brackets);
   } catch (error) {
@@ -17,7 +17,7 @@ export const createBracket = async (req: Request, res: Response): Promise<void> 
   try {
     const bracket = await Bracket.create({
       ...req.body,
-      createdBy: req.user?._id,
+      createdBy: (req as any).user?._id,  // Type assertion
     });
     res.status(201).json(bracket);
   } catch (error) {

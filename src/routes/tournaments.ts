@@ -1,8 +1,8 @@
 import express from 'express';
 import {
-  createTournament,
   getTournaments,
   getTournament,
+  createTournament,
   updateTournament,
   deleteTournament,
   goLive,
@@ -12,15 +12,11 @@ import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-router.route('/')
-  .get(protect, getTournaments)
-  .post(protect, createTournament);
-
-router.route('/:id')
-  .get(protect, getTournament)
-  .put(protect, updateTournament)
-  .delete(protect, deleteTournament);
-
+router.get('/', protect, getTournaments);
+router.get('/:id', protect, getTournament);
+router.post('/', protect, createTournament);
+router.put('/:id', protect, updateTournament);
+router.delete('/:id', protect, deleteTournament);
 router.post('/:id/live', protect, goLive);
 router.put('/:id/scores', protect, updateLiveScores);
 

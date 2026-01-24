@@ -11,7 +11,7 @@ const createOverlay = async (req, res) => {
         const overlayData = {
             ...req.body,
             publicId: (0, uuid_1.v4)(),
-            createdBy: req.user?._id,
+            createdBy: req.user?._id, // Type assertion
         };
         const overlay = await Overlay_1.default.create(overlayData);
         res.status(201).json(overlay);
@@ -24,7 +24,7 @@ const createOverlay = async (req, res) => {
 exports.createOverlay = createOverlay;
 const getOverlays = async (req, res) => {
     try {
-        const overlays = await Overlay_1.default.find({ createdBy: req.user?._id })
+        const overlays = await Overlay_1.default.find({ createdBy: req.user?._id }) // Type assertion
             .populate('tournament');
         res.json(overlays);
     }

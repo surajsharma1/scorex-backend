@@ -33,7 +33,7 @@ const createTournament = async (req, res) => {
     try {
         const tournament = await Tournament_1.default.create({
             ...req.body,
-            createdBy: req.user?._id,
+            createdBy: req.user?._id, // Type assertion to fix TypeScript
         });
         res.status(201).json(tournament);
     }

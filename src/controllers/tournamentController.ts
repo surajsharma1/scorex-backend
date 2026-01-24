@@ -27,7 +27,7 @@ export const createTournament = async (req: Request, res: Response): Promise<voi
   try {
     const tournament = await Tournament.create({
       ...req.body,
-      createdBy: req.user?._id,
+      createdBy: (req as any).user?._id,  // Type assertion to fix TypeScript
     });
     res.status(201).json(tournament);
   } catch (error) {

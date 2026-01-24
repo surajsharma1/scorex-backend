@@ -8,7 +8,7 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
     const overlayData = {
       ...req.body,
       publicId: uuidv4(),
-      createdBy: req.user?._id,
+      createdBy: (req as any).user?._id,  // Type assertion
     };
     const overlay = await Overlay.create(overlayData);
     res.status(201).json(overlay);
@@ -20,7 +20,7 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
 
 export const getOverlays = async (req: Request, res: Response): Promise<void> => {
   try {
-    const overlays = await Overlay.find({ createdBy: req.user?._id })
+    const overlays = await Overlay.find({ createdBy: (req as any).user?._id })  // Type assertion
       .populate('tournament');
     res.json(overlays);
   } catch (error) {

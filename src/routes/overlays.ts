@@ -1,22 +1,21 @@
 import express from 'express';
 import {
+  createOverlay,
   getOverlays,
   getOverlay,
-  createOverlay,
   updateOverlay,
-  deleteOverlay
+  deleteOverlay,
+  serveOverlay,
 } from '../controllers/overlayController';
 import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-router.route('/')
-  .get(protect, getOverlays)
-  .post(protect, createOverlay);
-
-router.route('/:id')
-  .get(protect, getOverlay)
-  .put(protect, updateOverlay)
-  .delete(protect, deleteOverlay);
+router.post('/', protect, createOverlay);
+router.get('/', protect, getOverlays);
+router.get('/:id', protect, getOverlay);
+router.put('/:id', protect, updateOverlay);
+router.delete('/:id', protect, deleteOverlay);
+router.get('/public/:id', serveOverlay); // Public route for overlays
 
 export default router;

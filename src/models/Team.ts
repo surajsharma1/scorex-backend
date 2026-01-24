@@ -14,26 +14,25 @@ export interface ITeam extends Document {
   tournament: mongoose.Types.ObjectId;
   players: IPlayer[];
   createdBy: mongoose.Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const playerSchema = new Schema({
+const playerSchema = new Schema<IPlayer>({
   name: { type: String, required: true },
   role: { type: String, required: true },
   jerseyNumber: { type: String, required: true },
-  image: { type: String },
+  image: String,
 });
 
-const teamSchema = new Schema({
-  name: { type: String, required: true },
-  color: { type: String, required: true },
-  logo: { type: String },
-  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-  players: [playerSchema],
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-}, {
-  timestamps: true,
-});
+const teamSchema = new Schema<ITeam>(
+  {
+    name: { type: String, required: true },
+    color: { type: String, required: true },
+    logo: String,
+    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
+    players: [playerSchema],
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model<ITeam>('Team', teamSchema);
