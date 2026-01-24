@@ -6,7 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const connectDB = async () => {
     try {
-        await mongoose_1.default.connect(process.env.MONGODB_URI);
+        console.log('MONGODB_URI:', process.env.MONGODB_URI); // Debug log
+        await mongoose_1.default.connect(process.env.MONGODB_URI, {
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 5000,
+        });
         console.log('MongoDB connected');
     }
     catch (error) {

@@ -7,6 +7,9 @@ exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
+const generateToken = (id) => {
+    return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+};
 const register = async (req, res) => {
     const { username, email, password } = req.body;
     try {
@@ -15,27 +18,16 @@ const register = async (req, res) => {
             res.status(400).json({ message: 'User already exists' });
             return;
         }
-        const salt = await bcryptjs_1.default.genSalt(10);
-        const hashedPassword = await bcryptjs_1.default.hash(password, salt);
-        const user = await User_1.default.create({
-            username,
-            email,
-            password: hashedPassword,
+        // Remove manual hashing; let the pre-save hook in User model handle it
+        const user = await User_1.default.create({ username, email, password });
+        res.status(201).json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            token: generateToken(user._id),
         });
-        if (user) {
-            res.status(201).json({
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                token: generateToken(user._id),
-            });
-        }
-        else {
-            res.status(400).json({ message: 'Invalid user data' });
-        }
     }
     catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -57,14 +49,8 @@ const login = async (req, res) => {
         }
     }
     catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 exports.login = login;
-const generateToken = (id) => {
-    return jsonwebtoken_1.default.sign({ _id: id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
-    });
-};
 //# sourceMappingURL=authController.js.map

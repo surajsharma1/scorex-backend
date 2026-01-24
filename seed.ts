@@ -25,14 +25,12 @@ const connectDB = async () => {
 
 const seedData = async () => {
   try {
-    // Clear existing data (optional, for fresh start)
     await User.deleteMany();
     await Tournament.deleteMany();
     await Team.deleteMany();
     await Bracket.deleteMany();
     await Overlay.deleteMany();
 
-    // Create a sample user
     const hashedPassword = await bcrypt.hash('password123', 10);
     const user = await User.create({
       username: 'admin',
@@ -42,7 +40,6 @@ const seedData = async () => {
     });
     console.log('User created:', user.username);
 
-    // Create sample tournaments
     const tournament1 = await Tournament.create({
       name: 'Cricket World Cup 2024',
       description: 'International cricket tournament',
@@ -65,7 +62,6 @@ const seedData = async () => {
     });
     console.log('Tournaments created');
 
-    // Create sample teams
     const team1 = await Team.create({
       name: 'Team India',
       color: '#FF9933',
@@ -101,9 +97,7 @@ const seedData = async () => {
     });
     console.log('Teams created');
 
-    // Create brackets and overlays
-    const teams = await Team.find({ tournament: tournament1._id });
-    if (teams.length >= 2) {
+    if (team1 && team2) {
       const bracket1 = await Bracket.create({
         tournament: tournament1._id,
         type: 'single-elimination',
@@ -112,7 +106,7 @@ const seedData = async () => {
           {
             roundNumber: 1,
             matches: [
-              { id: '1-1', team1: teams[0]!._id, team2: teams[1]!._id, status: 'pending' },
+              { id: '1-1', team1: team1._id, team2: team2._id, status: 'pending' },
             ],
           },
         ],
@@ -125,8 +119,8 @@ const seedData = async () => {
     const overlay1 = await Overlay.create({
       name: 'Live Score Overlay',
       tournament: tournament1._id,
-      template: 'classic',  // Changed to a valid enum value from your model
-      createdBy: user._id,  // Already added
+      template: 'classic',
+      createdBy: user._id,
       config: {
         backgroundColor: '#16a34a',
         opacity: 90,

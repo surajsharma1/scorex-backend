@@ -19,18 +19,22 @@ const getTournament = async (req, res) => {
     try {
         const tournament = await Tournament_1.default.findById(req.params.id).populate('createdBy', 'username');
         if (!tournament) {
-            return res.status(404).json({ message: 'Tournament not found' });
+            res.status(404).json({ message: 'Tournament not found' });
+            return;
         }
-        return res.json(tournament);
+        res.json(tournament);
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.getTournament = getTournament;
 const createTournament = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.create(req.body);
+        const tournament = await Tournament_1.default.create({
+            ...req.body,
+            createdBy: req.user?._id,
+        });
         res.status(201).json(tournament);
     }
     catch (error) {
@@ -42,12 +46,13 @@ const updateTournament = async (req, res) => {
     try {
         const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!tournament) {
-            return res.status(404).json({ message: 'Tournament not found' });
+            res.status(404).json({ message: 'Tournament not found' });
+            return;
         }
-        return res.json(tournament);
+        res.json(tournament);
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.updateTournament = updateTournament;
@@ -55,25 +60,27 @@ const deleteTournament = async (req, res) => {
     try {
         const tournament = await Tournament_1.default.findByIdAndDelete(req.params.id);
         if (!tournament) {
-            return res.status(404).json({ message: 'Tournament not found' });
+            res.status(404).json({ message: 'Tournament not found' });
+            return;
         }
-        return res.json({ message: 'Tournament deleted' });
+        res.json({ message: 'Tournament deleted' });
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.deleteTournament = deleteTournament;
 const goLive = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { status: 'live' }, { new: true });
+        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { isLive: true }, { new: true });
         if (!tournament) {
-            return res.status(404).json({ message: 'Tournament not found' });
+            res.status(404).json({ message: 'Tournament not found' });
+            return;
         }
-        return res.json(tournament);
+        res.json(tournament);
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.goLive = goLive;
@@ -82,12 +89,13 @@ const updateLiveScores = async (req, res) => {
         const { scores } = req.body;
         const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { liveScores: scores }, { new: true });
         if (!tournament) {
-            return res.status(404).json({ message: 'Tournament not found' });
+            res.status(404).json({ message: 'Tournament not found' });
+            return;
         }
-        return res.json(tournament);
+        res.json(tournament);
     }
     catch (error) {
-        return res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.updateLiveScores = updateLiveScores;

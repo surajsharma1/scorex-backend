@@ -10,12 +10,11 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
       publicId: uuidv4(),
       createdBy: req.user?._id,
     };
-
     const overlay = await Overlay.create(overlayData);
     res.status(201).json(overlay);
   } catch (error) {
     console.error('Overlay creation error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -26,7 +25,7 @@ export const getOverlays = async (req: Request, res: Response): Promise<void> =>
     res.json(overlays);
   } catch (error) {
     console.error('Get overlays error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -40,7 +39,7 @@ export const getOverlay = async (req: Request, res: Response): Promise<void> => 
     res.json(overlay);
   } catch (error) {
     console.error('Get overlay error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -54,7 +53,7 @@ export const updateOverlay = async (req: Request, res: Response): Promise<void> 
     res.json(overlay);
   } catch (error) {
     console.error('Update overlay error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -68,7 +67,7 @@ export const deleteOverlay = async (req: Request, res: Response): Promise<void> 
     res.json({ message: 'Overlay deleted' });
   } catch (error) {
     console.error('Delete overlay error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -76,14 +75,11 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
   try {
     const overlay = await Overlay.findOne({ publicId: req.params.id })
       .populate('tournament') as any;
-
     if (!overlay) {
       res.status(404).send('Overlay not found');
       return;
     }
-
     const liveScores = overlay.tournament?.liveScores || {};
-
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -92,74 +88,18 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${overlay.name}</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: ${overlay.config.fontFamily}, sans-serif;
-            background: transparent;
-            overflow: hidden;
-        }
-        .overlay-container {
-            position: absolute;
-            top: ${overlay.config.position === 'top' ? '20px' : overlay.config.position === 'bottom' ? 'auto' : '50%'};
-            bottom: ${overlay.config.position === 'bottom' ? '20px' : 'auto'};
-            left: 20px;
-            right: 20px;
-            transform: ${overlay.config.position === 'center' ? 'translateY(-50%)' : 'none'};
-            background: ${overlay.config.backgroundColor};
-            opacity: ${overlay.config.opacity / 100};
-            border-radius: 8px;
-            padding: 16px;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .score-section {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 16px;
-            align-items: center;
-        }
-        .team-info {
-            text-align: center;
-        }
-        .team-name {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .score {
-            font-size: 1.25rem;
-        }
-        .overs {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-        .vs-text {
-            font-size: 1.125rem;
-            font-weight: bold;
-            color: #fbbf24;
-        }
-        .stats-section {
-            margin-top: 16px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            text-align: center;
-        }
-        .stat-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 4px;
-        }
-        .stat-label {
-            font-size: 0.75rem;
-            opacity: 0.8;
-            margin-bottom: 2px;
-        }
-        .stat-value {
-            font-size: 1rem;
-            font-weight: bold;
-        }
+        body { margin: 0; padding: 0; font-family: ${overlay.config.fontFamily}, sans-serif; background: transparent; overflow: hidden; }
+        .overlay-container { position: absolute; top: ${overlay.config.position === 'top' ? '20px' : overlay.config.position === 'bottom' ? 'auto' : '50%'}; bottom: ${overlay.config.position === 'bottom' ? '20px' : 'auto'}; left: 20px; right: 20px; transform: ${overlay.config.position === 'center' ? 'translateY(-50%)' : 'none'}; background: ${overlay.config.backgroundColor}; opacity: ${overlay.config.opacity / 100}; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .score-section { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+        .team-info { text-align: center; }
+        .team-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; }
+        .score { font-size: 1.25rem; }
+        .overs { font-size: 0.875rem; opacity: 0.8; }
+        .vs-text { font-size: 1.125rem; font-weight: bold; color: #fbbf24; }
+        .stats-section { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+        .stat-item { background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 4px; }
+        .stat-label { font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px; }
+        .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -198,7 +138,6 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     </div>
 </body>
 </html>`;
-
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) {

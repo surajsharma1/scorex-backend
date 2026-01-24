@@ -13,7 +13,7 @@ const getBrackets = async (req, res) => {
     }
     catch (error) {
         console.error('Get brackets error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.getBrackets = getBrackets;
@@ -27,7 +27,7 @@ const createBracket = async (req, res) => {
     }
     catch (error) {
         console.error('Create bracket error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.createBracket = createBracket;
@@ -47,7 +47,7 @@ const generateBracket = async (req, res) => {
     }
     catch (error) {
         console.error('Generate bracket error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.generateBracket = generateBracket;
@@ -62,7 +62,7 @@ const updateBracket = async (req, res) => {
     }
     catch (error) {
         console.error('Update bracket error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.updateBracket = updateBracket;
@@ -77,7 +77,7 @@ const deleteBracket = async (req, res) => {
     }
     catch (error) {
         console.error('Delete bracket error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.deleteBracket = deleteBracket;

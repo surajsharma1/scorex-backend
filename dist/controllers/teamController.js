@@ -13,23 +13,28 @@ const getTeams = async (req, res) => {
     }
     catch (error) {
         console.error('Get teams error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.getTeams = getTeams;
 const createTeam = async (req, res) => {
     try {
+        console.log('Creating team:', req.body);
         const teamData = {
-            ...req.body,
-            logo: req.file ? `/uploads/${req.file.filename}` : undefined,
+            name: req.body.name,
+            color: req.body.color,
+            tournament: req.body.tournament,
+            logo: req.file ? `/uploads/${req.file.filename}` : undefined, // Fixed: Removed trailing comma
             createdBy: req.user?._id,
         };
         const team = await Team_1.default.create(teamData);
+        console.log('Team created:', team);
         res.status(201).json(team);
     }
     catch (error) {
-        console.error('Create team error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        console.error('Team creation error:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ message: 'Server error', error: message });
     }
 };
 exports.createTeam = createTeam;
@@ -48,7 +53,7 @@ const updateTeam = async (req, res) => {
     }
     catch (error) {
         console.error('Update team error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.updateTeam = updateTeam;
@@ -63,7 +68,7 @@ const deleteTeam = async (req, res) => {
     }
     catch (error) {
         console.error('Delete team error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.deleteTeam = deleteTeam;
@@ -78,7 +83,7 @@ const addPlayer = async (req, res) => {
             name: req.body.name,
             role: req.body.role,
             jerseyNumber: req.body.jerseyNumber,
-            image: req.file ? `/uploads/${req.file.filename}` : '',
+            ...(req.file && { image: `/uploads/${req.file.filename}` }), // Fixed: Only include image if file exists
         };
         team.players.push(playerData);
         await team.save();
@@ -86,7 +91,7 @@ const addPlayer = async (req, res) => {
     }
     catch (error) {
         console.error('Add player error:', error);
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.addPlayer = addPlayer;

@@ -49,41 +49,37 @@ const brackets_1 = __importDefault(require("./routes/brackets"));
 const overlays_1 = __importDefault(require("./routes/overlays"));
 const errorHandler_1 = require("./middleware/errorHandler");
 dotenv_1.default.config();
+console.log('Starting server...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
 const app = (0, express_1.default)();
-app.set('trust proxy', 1);
-(0, database_1.default)();
+// Connect to database
+try {
+    (0, database_1.default)();
+    console.log('Database connection initialized');
+}
+catch (error) {
+    console.error('Database connection failed:', error);
+}
+// Security middleware
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'",],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
-            fontSrc: ["'self'", "data:"],
-            connectSrc: ["'self'", "https://scorex-backend-live.vercel.app"],
-            frameAncestors: ["'none'"],
-            baseUri: ["'self'"],
-            formAction: ["'self'"],
         },
     },
-    crossOriginEmbedderPolicy: false
-}));
-app.use((0, helmet_1.default)({
-    hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-    },
-    noSniff: true,
-    xssFilter: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use((0, cors_1.default)({
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://scorex-frontend-fh96l8xmi-suraj-sharmas-projects-3413126b.vercel.app/'
-        : 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+console.log('CORS configured for:', process.env.FRONTEND_URL);
+// Rate limiting
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -92,17 +88,23 @@ const limiter = (0, express_rate_limit_1.default)({
     legacyHeaders: false,
 });
 app.use(limiter);
+// Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
-app.use('/uploads', express_1.default.static('uploads'));
+// Static files with caching
+app.use('/uploads', express_1.default.static('uploads', {
+    maxAge: '1d', // Cache for 1 day
+}));
+// Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/tournaments', tournaments_1.default);
 app.use('/api/teams', teams_1.default);
 app.use('/api/brackets', brackets_1.default);
 app.use('/api/overlays', overlays_1.default);
+// Overlay serving route
 app.get('/overlay/:id', async (req, res) => {
     try {
-        const { serveOverlay } = await Promise.resolve().then(() => __importStar(require('./controllers/overlayController')));
+        const { serveOverlay } = await Promise.resolve().then(() => __importStar(require('./controllers/overlayController'))); // Named import
         await serveOverlay(req, res);
     }
     catch (error) {
@@ -110,6 +112,7 @@ app.get('/overlay/:id', async (req, res) => {
         res.status(500).json({ message: 'Error serving overlay' });
     }
 });
+// Health check
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -118,13 +121,15 @@ app.get('/health', (req, res) => {
         mongodb: !!process.env.MONGODB_URI
     });
 });
+// Error handling middleware
 app.use(errorHandler_1.errorHandler);
+// Export for Vercel
 exports.default = app;
+// For local development
 if (require.main === module) {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
-    app.get('/', (req, res) => res.json({ message: 'Backend is running' }));
 }
 //# sourceMappingURL=server.js.map

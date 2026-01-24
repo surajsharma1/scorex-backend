@@ -9,7 +9,7 @@ export const getBrackets = async (req: Request, res: Response): Promise<void> =>
     res.json(brackets);
   } catch (error) {
     console.error('Get brackets error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -22,15 +22,13 @@ export const createBracket = async (req: Request, res: Response): Promise<void> 
     res.status(201).json(bracket);
   } catch (error) {
     console.error('Create bracket error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
 export const generateBracket = async (req: Request, res: Response): Promise<void> => {
   try {
     const { tournamentId, teams } = req.body;
-    
-    // Generate bracket logic here
     const bracket = await Bracket.findByIdAndUpdate(
       req.params.id,
       { 
@@ -40,16 +38,14 @@ export const generateBracket = async (req: Request, res: Response): Promise<void
       },
       { new: true }
     );
-    
     if (!bracket) {
       res.status(404).json({ message: 'Bracket not found' });
       return;
     }
-    
     res.json(bracket);
   } catch (error) {
     console.error('Generate bracket error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -63,7 +59,7 @@ export const updateBracket = async (req: Request, res: Response): Promise<void> 
     res.json(bracket);
   } catch (error) {
     console.error('Update bracket error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -77,6 +73,6 @@ export const deleteBracket = async (req: Request, res: Response): Promise<void> 
     res.json({ message: 'Bracket deleted' });
   } catch (error) {
     console.error('Delete bracket error:', error);
-    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };

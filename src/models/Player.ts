@@ -36,4 +36,4 @@ const PlayerSchema: Schema = new Schema({
   timestamps: true
 });
 
-export default mongoose.model<IPlayer>('Player', PlayerSchema);
+export default mongoose.model<IPlayer>('Player', PlayerSchema); 
