@@ -28,20 +28,23 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
-    if (user && (await bcrypt.compare(password, user.password))) {
+    console.log('Login attempt:', req.body);  // Debug
+    const user = await User.findOne({ email: req.body.email });
+    console.log('User found:', !!user);  // Debug
+    if (user && (await bcrypt.compare(req.body.password, user.password))) {
       res.json({
         _id: user._id,
         username: user.username,
         email: user.email,
-        token: generateToken(user._id.toString()),  // Fixed: Convert ObjectId to string
+        token: generateToken(user._id.toString()),
       });
     } else {
+      console.log('Invalid credentials');  // Debug
       res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
+    console.error('Login error:', error);  // Debug
     res.status(500).json({ message: 'Server error' });
   }
 };
