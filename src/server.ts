@@ -4,6 +4,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import connectDB from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
@@ -16,6 +18,14 @@ import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 
 const app = express();
+const server = createServer(app);
+const PORT = process.env.PORT || 5000;
+const io = new Server(server, {
+  cors: {
+    origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+  },
+});
 
 // Connect to database
 connectDB();
@@ -23,7 +33,7 @@ connectDB();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'], // Allow frontend origins
+  origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,8 +43,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
 app.use(limiter);
 
@@ -59,10 +69,19 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;  // Use Render's assigned port
+// Socket.io connection
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
 
-app.listen(PORT, () => {
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Export io for use in controllers
+export { io };
+
+// For Railway: Start server
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-// For Vercel: Export the app as default
-export default app;

@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "Backend for cricket tournament management platform",
   "main": "dist/server.js",
-  "scripts": {
-    "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts",
-    "build": "tsc",
-    "seed": "ts-node seed.ts"
-  },
+ "scripts": {
+  "start": "node dist/server.js",
+  "dev": "ts-node src/server.ts",
+  "build": "npx tsc",  
+  "seed": "ts-node seed.ts"
+},
+
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
