@@ -14,10 +14,8 @@ export interface IPlayer extends Document {
     createdAt: Date;
     updatedAt: Date;
 }
-declare const _default: mongoose.Model<IPlayer, {}, {}, {}, mongoose.Document<unknown, {}, IPlayer, {}, {}> & IPlayer & Required<{
+declare const _default: mongoose.Model<IPlayer, {}, {}, {}, mongoose.Document<unknown, {}, IPlayer> & IPlayer & {
     _id: mongoose.Types.ObjectId;
-}> & {
-    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=Player.d.ts.map

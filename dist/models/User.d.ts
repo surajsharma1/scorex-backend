@@ -6,10 +6,8 @@ export interface IUser extends Document {
     role: 'admin' | 'organizer';
     matchPassword: (enteredPassword: string) => Promise<boolean>;
 }
-declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser, {}, {}> & IUser & Required<{
+declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
     _id: mongoose.Types.ObjectId;
-}> & {
-    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=User.d.ts.map
