@@ -59,5 +59,10 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
+const PORT = process.env.PORT || 5000;  // Use Render's assigned port
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 // For Vercel: Export the app as default
 export default app;
