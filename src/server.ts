@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
-import { createServer } from 'http';  // Changed to http for local dev (use https for production)
+import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/database';
 import { errorHandler } from './middleware/errorHandler';
@@ -18,8 +18,8 @@ import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 
 const app = express();
-const server = createServer(app);  // Use http for local dev
-const PORT = process.env.PORT || 5001;  // Changed to 5001 to avoid conflicts
+const server = createServer(app);
+const PORT = process.env.PORT || 5001;
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost:3000',
@@ -79,7 +79,12 @@ io.on('connection', (socket) => {
 // Export io for use in controllers
 export { io };
 
-// Start server (only one listen call)
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// For Vercel: Export the app as default
+export default app;
+
+// For local dev: Start server only if run directly
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
