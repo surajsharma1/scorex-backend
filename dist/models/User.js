@@ -42,7 +42,7 @@ const userSchema = new mongoose_1.Schema({
     username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'organizer'], default: 'organizer' },
+    role: { type: String, enum: ['admin', 'organizer', 'viewer'], default: 'viewer' },
 }, { timestamps: true });
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password'))

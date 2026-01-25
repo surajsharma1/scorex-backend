@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.resetPassword = exports.forgotPassword = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
+const email_1 = require("../utils/email");
 const generateToken = (id) => {
     return jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
@@ -23,7 +24,7 @@ const register = async (req, res) => {
             _id: user._id,
             username: user.username,
             email: user.email,
-            token: generateToken(user._id.toString()), // Fixed: Convert ObjectId to string
+            token: generateToken(user._id.toString()),
         });
     }
     catch (error) {
@@ -55,4 +56,37 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
+const forgotPassword = async (req, res) => {
+    try {
+        const user = await User_1.default.findOne({ email: req.body.email });
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '10m' });
+        await (0, email_1.sendResetEmail)(user.email, token);
+        res.json({ message: 'Reset email sent' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.forgotPassword = forgotPassword;
+const resetPassword = async (req, res) => {
+    try {
+        const decoded = jsonwebtoken_1.default.verify(req.params.token, process.env.JWT_SECRET);
+        const user = await User_1.default.findById(decoded.id);
+        if (!user) {
+            res.status(404).json({ message: 'Invalid token' });
+            return;
+        }
+        user.password = req.body.password;
+        await user.save();
+        res.json({ message: 'Password reset successful' });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.resetPassword = resetPassword;
 //# sourceMappingURL=authController.js.map
