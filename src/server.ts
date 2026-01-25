@@ -4,8 +4,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import connectDB from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
@@ -18,14 +16,6 @@ import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 
 const app = express();
-const server = createServer(app);
-const PORT = process.env.PORT || 5001;
-const io = new Server(server, {
-  cors: {
-    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-  },
-});
 
 // Connect to database
 connectDB();
@@ -33,8 +23,10 @@ connectDB();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost:3000',
+  origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'], // Allow frontend origins
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -67,24 +59,5 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-// Socket.io connection
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
-
-// Export io for use in controllers
-export { io };
-
 // For Vercel: Export the app as default
 export default app;
-
-// For local dev: Start server only if run directly
-if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
