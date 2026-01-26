@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
 
+interface AuthRequest extends Request {
+  user?: any;
+}
+
 export const getTournaments = async (req: Request, res: Response): Promise<void> => {
   try {
     const tournaments = await Tournament.find().populate('createdBy', 'username');
@@ -22,19 +26,19 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: 'Server error' });
   }
 };
-interface AuthRequest extends Request {
-  user?: any;
-}
+
 export const createTournament = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('Creating tournament with data:', req.body); // Debug log
     const tournament = await Tournament.create({
       ...req.body,
       createdBy: req.user._id,
     });
+    console.log('Tournament created:', tournament); // Debug log
     res.status(201).json(tournament);
-  } catch (error) {
-    console.error('Create tournament error:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (error: any) {
+    console.error('Create tournament error:', error.message); // Detailed error
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
