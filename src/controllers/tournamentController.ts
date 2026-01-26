@@ -22,15 +22,18 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-export const createTournament = async (req: Request, res: Response): Promise<void> => {
+interface AuthRequest extends Request {
+  user?: any;
+}
+export const createTournament = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const tournament = await Tournament.create({
       ...req.body,
-      createdBy: (req as any).user?._id,  // Type assertion to fix TypeScript
+      createdBy: req.user._id,
     });
     res.status(201).json(tournament);
   } catch (error) {
+    console.error('Create tournament error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
