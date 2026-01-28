@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import session from 'express-session'; // Ensure this is added
+import session from 'express-session'; // Added
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
@@ -34,7 +34,7 @@ export const io = new Server(server, {
 // Connect to MongoDB
 connectDB();
 
-// Passport configuration for Google OAuth
+// Passport config
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -57,7 +57,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }
   }));
 } else {
-  console.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
+  console.warn('Google OAuth not configured.');
 }
 
 passport.serializeUser((user: any, done) => done(null, user._id));
@@ -75,7 +75,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Session middleware (add this block here)
+// Session middleware added here
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
   resave: false,
@@ -108,27 +108,24 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stats', statsRoutes);
 
-// Serve overlays publicly
+// Serve overlays
 app.use('/overlay', express.static('public/overlays'));
 
-// Socket.io for real-time updates
+// Socket.io
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-
   socket.on('joinTournament', (tournamentId: string) => {
     socket.join(tournamentId);
   });
-
   socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
     io.to(data.tournamentId).emit('scoreUpdate', data);
   });
-
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
