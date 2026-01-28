@@ -13,6 +13,7 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
+const express_session_1 = __importDefault(require("express-session"));
 const database_1 = __importDefault(require("./config/database"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
@@ -35,28 +36,33 @@ exports.io = new socket_io_1.Server(server, {
 });
 // Connect to MongoDB
 (0, database_1.default)();
-// Passport configuration for Google OAuth
-passport_1.default.use(new passport_google_oauth20_1.Strategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        let user = await User_1.default.findOne({ googleId: profile.id });
-        if (!user) {
-            user = await User_1.default.create({
-                username: profile.displayName,
-                email: profile.emails?.[0].value,
-                googleId: profile.id,
-                role: 'viewer', // Default role
-            });
+// Passport config
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport_1.default.use(new passport_google_oauth20_1.Strategy({
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
+    }, async (accessToken, refreshToken, profile, done) => {
+        try {
+            let user = await User_1.default.findOne({ googleId: profile.id });
+            if (!user) {
+                user = await User_1.default.create({
+                    username: profile.displayName,
+                    email: profile.emails?.[0].value,
+                    googleId: profile.id,
+                    role: 'viewer',
+                });
+            }
+            done(null, user);
         }
-        done(null, user);
-    }
-    catch (error) {
-        done(error, undefined); // Fixed: Use undefined instead of null
-    }
-}));
+        catch (error) {
+            done(error, undefined);
+        }
+    }));
+}
+else {
+    console.warn('Google OAuth not configured.');
+}
 passport_1.default.serializeUser((user, done) => done(null, user._id));
 passport_1.default.deserializeUser(async (id, done) => {
     const user = await User_1.default.findById(id);
@@ -70,10 +76,21 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
+app.set('trust proxy', 1); // For rate limiting behind proxies
+// Session middleware added here
+app.use((0, express_session_1.default)({
+    secret: process.env.SESSION_SECRET || 'scorex-lllleaqeqwdadq212312eqe12341e5da',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000,
+    },
+}));
 // Rate limiting
 const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100,
 });
 app.use('/api/', limiter);
 // Passport middleware
@@ -89,9 +106,9 @@ app.use('/api/matches', matches_1.default);
 app.use('/api/users', users_1.default);
 app.use('/api/notifications', notifications_1.default);
 app.use('/api/stats', stats_1.default);
-// Serve overlays publicly
+// Serve overlays
 app.use('/overlay', express_1.default.static('public/overlays'));
-// Socket.io for real-time updates
+// Socket.io
 exports.io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     socket.on('joinTournament', (tournamentId) => {
@@ -104,7 +121,7 @@ exports.io.on('connection', (socket) => {
         console.log('User disconnected:', socket.id);
     });
 });
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!' });

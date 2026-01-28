@@ -15,10 +15,8 @@ export interface IMatch extends Document {
     winner?: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
 }
-declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch, {}, {}> & IMatch & Required<{
+declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch> & IMatch & {
     _id: mongoose.Types.ObjectId;
-}> & {
-    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=Match.d.ts.map

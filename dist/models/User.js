@@ -41,11 +41,10 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const userSchema = new mongoose_1.Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String }, // Optional for Google users
+    password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
-    googleId: { type: String, unique: true }, // For Google OAuth
+    googleId: { type: String, unique: true },
 }, { timestamps: true });
-// Hash password before saving (only if password exists)
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password') || !this.password)
         return next();
@@ -53,10 +52,9 @@ userSchema.pre('save', async function (next) {
     this.password = await bcryptjs_1.default.hash(this.password, salt);
     next();
 });
-// Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
     if (!this.password)
-        return false; // For Google users without password
+        return false;
     return bcryptjs_1.default.compare(candidatePassword, this.password);
 };
 exports.default = mongoose_1.default.model('User', userSchema);

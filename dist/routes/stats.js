@@ -7,7 +7,6 @@ const express_1 = __importDefault(require("express"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
-// Get tournament stats
 router.get('/tournaments', async (req, res) => {
     try {
         const totalTournaments = await Tournament_1.default.countDocuments();
@@ -19,7 +18,6 @@ router.get('/tournaments', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-// Get user stats
 router.get('/users', async (req, res) => {
     try {
         const totalUsers = await User_1.default.countDocuments();

@@ -9,6 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const register = async (req, res) => {
     try {
+        console.log('Register attempt:', req.body);
         const { username, email, password } = req.body;
         const userExists = await User_1.default.findOne({ email });
         if (userExists) {
@@ -20,15 +21,21 @@ const register = async (req, res) => {
         res.status(201).json({ token });
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Register error:', error.message, error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 exports.register = register;
 const login = async (req, res) => {
     try {
+        console.log('Login attempt for email:', req.body.email);
         const { email, password } = req.body;
+        if (!email || !password) {
+            res.status(400).json({ message: 'Email and password required' });
+            return;
+        }
         const user = await User_1.default.findOne({ email });
-        // Fixed: Check if user.password exists before comparing
+        console.log('User found:', user ? 'Yes' : 'No');
         if (user && user.password && (await bcryptjs_1.default.compare(password, user.password))) {
             const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
             res.json({ token });
@@ -38,7 +45,8 @@ const login = async (req, res) => {
         }
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Login error:', error.message, error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 exports.login = login;
