@@ -4,7 +4,6 @@ import User from '../models/User';
 
 const router = express.Router();
 
-// Get tournament stats
 router.get('/tournaments', async (req, res) => {
   try {
     const totalTournaments = await Tournament.countDocuments();
@@ -16,7 +15,6 @@ router.get('/tournaments', async (req, res) => {
   }
 });
 
-// Get user stats
 router.get('/users', async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
