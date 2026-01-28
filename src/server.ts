@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import session from 'express-session'; // Add this import
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
@@ -18,13 +19,12 @@ import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
 import User from './models/User';
-import session from 'express-session'; 
 
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
-export const io = new Server(server, { // Export io for use in controllers
+export const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: ['GET', 'POST'],
@@ -35,26 +35,30 @@ export const io = new Server(server, { // Export io for use in controllers
 connectDB();
 
 // Passport configuration for Google OAuth
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID!,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-  callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await User.findOne({ googleId: profile.id });
-    if (!user) {
-      user = await User.create({
-        username: profile.displayName,
-        email: profile.emails?.[0].value,
-        googleId: profile.id,
-        role: 'viewer', // Default role
-      });
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      let user = await User.findOne({ googleId: profile.id });
+      if (!user) {
+        user = await User.create({
+          username: profile.displayName,
+          email: profile.emails?.[0].value,
+          googleId: profile.id,
+          role: 'viewer',
+        });
+      }
+      done(null, user);
+    } catch (error) {
+      done(error, undefined);
     }
-    done(null, user);
-  } catch (error) {
-    done(error, undefined); // Fixed: Use undefined instead of null
-  }
-}));
+  }));
+} else {
+  console.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
+}
 
 passport.serializeUser((user: any, done) => done(null, user._id));
 passport.deserializeUser(async (id, done) => {
@@ -70,14 +74,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Add session middleware here (after express.urlencoded)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_random_secret_key_here', // Add to .env
+  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod', // Add to .env
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
 }));
 
 // Rate limiting
@@ -87,7 +93,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Passport middleware
+// Passport middleware (after session)
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -132,30 +138,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      let user = await User.findOne({ googleId: profile.id });
-      if (!user) {
-        user = await User.create({
-          username: profile.displayName,
-          email: profile.emails?.[0].value,
-          googleId: profile.id,
-          role: 'viewer',
-        });
-      }
-      done(null, user);
-    } catch (error) {
-      done(error, undefined);
-    }
-  }));
-} else {
-  console.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
-}
 
 export default app;
