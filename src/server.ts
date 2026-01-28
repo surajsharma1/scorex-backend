@@ -77,9 +77,9 @@ app.use(express.urlencoded({ extended: true }));
 
 app.set('trust proxy', 1); // For rate limiting behind proxies
 
-// Session middleware
+// Session middleware added here
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
+  secret: process.env.SESSION_SECRET || 'scorex-lllleaqeqwdadq212312eqe12341e5da',
   resave: false,
   saveUninitialized: false,
   cookie: {
