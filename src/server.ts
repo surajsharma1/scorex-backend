@@ -7,7 +7,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import session from 'express-session'; // Add this import
+import session from 'express-session'; // Ensure this is added
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
@@ -75,25 +75,25 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Add session middleware here (after express.urlencoded)
+// Session middleware (add this block here)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod', // Add to .env
+  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS in production
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000,
   },
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
 app.use('/api/', limiter);
 
-// Passport middleware (after session)
+// Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
 
