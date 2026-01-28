@@ -27,8 +27,10 @@ export interface ITournament extends Document {
     };
     createdBy: mongoose.Types.ObjectId;
 }
-declare const _default: mongoose.Model<ITournament, {}, {}, {}, mongoose.Document<unknown, {}, ITournament> & ITournament & {
+declare const _default: mongoose.Model<ITournament, {}, {}, {}, mongoose.Document<unknown, {}, ITournament, {}, {}> & ITournament & Required<{
     _id: mongoose.Types.ObjectId;
+}> & {
+    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=Tournament.d.ts.map

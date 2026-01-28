@@ -3,42 +3,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.protectOrganizer = exports.protectAdmin = exports.protect = void 0;
+exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const protect = (req, res, next) => {
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
+const User_1 = __importDefault(require("../models/User"));
+const protect = async (req, res, next) => {
+    try {
+        let token;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-            req.user = decoded;
-            next();
         }
-        catch (error) {
-            res.status(401).json({ message: 'Not authorized, token failed' });
+        if (!token) {
+            res.status(401).json({ message: 'Not authorized, no token' });
+            return;
         }
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const user = await User_1.default.findById(decoded.id).select('-password');
+        if (!user) {
+            res.status(401).json({ message: 'Not authorized, user not found' });
+            return;
+        }
+        req.user = user;
+        next();
     }
-    if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
+    catch (error) {
+        res.status(401).json({ message: 'Not authorized, token failed' });
     }
 };
 exports.protect = protect;
-const protectAdmin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            res.status(403).json({ message: 'User role not authorized' });
+            return;
+        }
         next();
-    }
-    else {
-        res.status(403).json({ message: 'Access denied: Admin role required' });
-    }
+    };
 };
-exports.protectAdmin = protectAdmin;
-const protectOrganizer = (req, res, next) => {
-    if (req.user && ['admin', 'organizer'].includes(req.user.role)) {
-        next();
-    }
-    else {
-        res.status(403).json({ message: 'Access denied: Organizer or Admin role required' });
-    }
-};
-exports.protectOrganizer = protectOrganizer;
+exports.authorize = authorize;
+exports.protectOrganizer = [exports.protect, (0, exports.authorize)('organizer')]; // For organizers
+exports.protectAdmin = [exports.protect, (0, exports.authorize)('admin')]; // Added: For admins
 //# sourceMappingURL=auth.js.map

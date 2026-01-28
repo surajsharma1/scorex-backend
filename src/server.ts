@@ -1,13 +1,13 @@
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
+import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import connectDB from './config/database';
-import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
@@ -16,40 +16,70 @@ import overlayRoutes from './routes/overlays';
 import matchRoutes from './routes/matches';
 import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
+import statsRoutes from './routes/stats';
+import User from './models/User';
+
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
-const PORT = process.env.PORT || 5000;
-const io = new Server(server, {
+export const io = new Server(server, { // Export io for use in controllers
   cors: {
-    origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
 });
 
-// Connect to database
+// Connect to MongoDB
 connectDB();
+
+// Passport configuration for Google OAuth
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID!,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    let user = await User.findOne({ googleId: profile.id });
+    if (!user) {
+      user = await User.create({
+        username: profile.displayName,
+        email: profile.emails?.[0].value,
+        googleId: profile.id,
+        role: 'viewer', // Default role
+      });
+    }
+    done(null, user);
+  } catch (error) {
+    done(error, undefined); // Fixed: Use undefined instead of null
+  }
+}));
+
+passport.serializeUser((user: any, done) => done(null, user._id));
+passport.deserializeUser(async (id, done) => {
+  const user = await User.findById(id);
+  done(null, user);
+});
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['https://scorex-live.vercel.app', 'http://localhost:3000'],
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
 });
-app.use(limiter);
+app.use('/api/', limiter);
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -60,28 +90,62 @@ app.use('/api/overlays', overlayRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/stats', statsRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+// Serve overlays publicly
+app.use('/overlay', express.static('public/overlays'));
 
-// Error handling
-app.use(errorHandler);
-
-// Socket.io connection
+// Socket.io for real-time updates
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  socket.on('joinTournament', (tournamentId: string) => {
+    socket.join(tournamentId);
+  });
+
+  socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
+    io.to(data.tournamentId).emit('scoreUpdate', data);
+  });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
 });
 
-// Export io for use in controllers
-export { io };
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
 
-// For Railway: Start server
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      let user = await User.findOne({ googleId: profile.id });
+      if (!user) {
+        user = await User.create({
+          username: profile.displayName,
+          email: profile.emails?.[0].value,
+          googleId: profile.id,
+          role: 'viewer',
+        });
+      }
+      done(null, user);
+    } catch (error) {
+      done(error, undefined);
+    }
+  }));
+} else {
+  console.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
+}
+
+export default app;

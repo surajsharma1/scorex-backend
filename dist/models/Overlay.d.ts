@@ -8,8 +8,10 @@ export interface IOverlay extends Document {
     publicId: string;
     createdBy: mongoose.Types.ObjectId;
 }
-declare const _default: mongoose.Model<IOverlay, {}, {}, {}, mongoose.Document<unknown, {}, IOverlay> & IOverlay & {
+declare const _default: mongoose.Model<IOverlay, {}, {}, {}, mongoose.Document<unknown, {}, IOverlay, {}, {}> & IOverlay & Required<{
     _id: mongoose.Types.ObjectId;
+}> & {
+    __v: number;
 }, any>;
 export default _default;
 //# sourceMappingURL=Overlay.d.ts.map

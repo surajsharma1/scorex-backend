@@ -11,6 +11,7 @@ const getUsers = async (req, res) => {
         res.json(users);
     }
     catch (error) {
+        console.error('Get users error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -25,6 +26,7 @@ const updateUserRole = async (req, res) => {
         res.json(user);
     }
     catch (error) {
+        console.error('Update user role error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

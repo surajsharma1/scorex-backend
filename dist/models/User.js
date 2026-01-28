@@ -39,20 +39,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const userSchema = new mongoose_1.Schema({
-    username: { type: String, required: true },
+    username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'organizer', 'viewer'], default: 'viewer' },
+    password: { type: String }, // Optional for Google users
+    role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
+    googleId: { type: String, unique: true }, // For Google OAuth
 }, { timestamps: true });
+// Hash password before saving (only if password exists)
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password'))
+    if (!this.isModified('password') || !this.password)
         return next();
     const salt = await bcryptjs_1.default.genSalt(10);
     this.password = await bcryptjs_1.default.hash(this.password, salt);
     next();
 });
-userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcryptjs_1.default.compare(enteredPassword, this.password);
+// Compare password method
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    if (!this.password)
+        return false; // For Google users without password
+    return bcryptjs_1.default.compare(candidatePassword, this.password);
 };
 exports.default = mongoose_1.default.model('User', userSchema);
 //# sourceMappingURL=User.js.map

@@ -32,7 +32,7 @@ export const createTournament = async (req: AuthRequest, res: Response): Promise
     console.log('Creating tournament with data:', req.body); // Debug log
     const tournament = await Tournament.create({
       ...req.body,
-      createdBy: req.user._id,
+      createdBy: req.user?._id,
     });
     console.log('Tournament created:', tournament); // Debug log
     res.status(201).json(tournament);

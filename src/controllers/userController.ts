@@ -6,6 +6,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const users = await User.find().select('-password');
     res.json(users);
   } catch (error) {
+    console.error('Get users error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -19,6 +20,7 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
     }
     res.json(user);
   } catch (error) {
+    console.error('Update user role error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

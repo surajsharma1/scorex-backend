@@ -31,14 +31,17 @@ const getTournament = async (req, res) => {
 exports.getTournament = getTournament;
 const createTournament = async (req, res) => {
     try {
+        console.log('Creating tournament with data:', req.body); // Debug log
         const tournament = await Tournament_1.default.create({
             ...req.body,
-            createdBy: req.user?._id, // Type assertion to fix TypeScript
+            createdBy: req.user?._id,
         });
+        console.log('Tournament created:', tournament); // Debug log
         res.status(201).json(tournament);
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Create tournament error:', error.message); // Detailed error
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 exports.createTournament = createTournament;
