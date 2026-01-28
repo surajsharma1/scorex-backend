@@ -5,7 +5,7 @@ import User from '../models/User';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Register attempt:', req.body); // Debug log
+    console.log('Register attempt:', req.body);
     const { username, email, password } = req.body;
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -23,14 +23,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Login attempt for email:', req.body.email); // Debug log
+    console.log('Login attempt for email:', req.body.email);
     const { email, password } = req.body;
     if (!email || !password) {
       res.status(400).json({ message: 'Email and password required' });
       return;
     }
     const user = await User.findOne({ email });
-    console.log('User found:', user ? 'Yes' : 'No'); // Debug log
+    console.log('User found:', user ? 'Yes' : 'No');
     if (user && user.password && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
       res.json({ token });
