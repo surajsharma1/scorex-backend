@@ -18,6 +18,7 @@ import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
 import User from './models/User';
+import session from 'express-session'; 
 
 dotenv.config();
 
@@ -69,6 +70,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_random_secret_key_here', // Add to .env
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Rate limiting
 const limiter = rateLimit({
