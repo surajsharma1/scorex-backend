@@ -79,7 +79,7 @@ app.set('trust proxy', 1); // For rate limiting behind proxies
 
 // Session middleware added here
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'scorex-lllleaqeqwdadq212312eqe12341e5da',
+  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -137,30 +137,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/callback`,
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      let user = await User.findOne({ googleId: profile.id });
-      if (!user) {
-        user = await User.create({
-          username: profile.displayName,
-          email: profile.emails?.[0].value,
-          googleId: profile.id,
-          role: 'viewer',
-        });
-      }
-      done(null, user);
-    } catch (error) {
-      done(error, undefined);
-    }
-  }));
-} else {
-  console.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
-}
 
 export default app;
