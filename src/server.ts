@@ -19,7 +19,7 @@ import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
 import User from './models/User';
 import jwt from 'jsonwebtoken';
-import MongoStore from 'connect-mongo'
+import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
 
 dotenv.config();
@@ -47,15 +47,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       let user = await User.findOne({ googleId: profile.id });
       if (!user) {
         user = await User.create({
-        username: profile.displayName,
-        email: profile.emails?.[0].value,
-        googleId: profile.id,
-        role: 'viewer',
-      });
+          username: profile.displayName,
+          email: profile.emails?.[0].value,
+          googleId: profile.id,
+          role: 'viewer',
+        });
       }
       done(null, user);
     } catch (error) {
-      done(error, undefined);
+      done(error, undefined); // Fixed syntax error
     }
   }));
 } else {
@@ -76,6 +76,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
 app.set('trust proxy', 1); // For rate limiting behind proxies
 
 // Session middleware added here
@@ -111,6 +112,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/auth', authRoutes);
+
 // Serve overlays
 app.use('/overlay', express.static('public/overlays'));
 

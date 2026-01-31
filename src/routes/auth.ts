@@ -1,15 +1,18 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User';
 import express from 'express';
+import jwt from 'jsonwebtoken';
+import { protect } from '../middleware/auth';
+import User from '../models/User';
 import passport from 'passport';
+import { Request, Response, NextFunction } from 'express';
+import { IUser } from '../models/User';
 
 const router = express.Router();
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
 export interface AuthRequest extends Request {
   user?: IUser;
 }
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+
+export const protectAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -50,6 +53,26 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
   }
 };
 
-export const protectAdmin = [protect, authorize('admin')];
+export const protectAdmin = [protectAuth, authorize('admin')];
+
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
+  try {
+    const user = req.user as any;
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+    // Redirect to frontend with token
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    res.redirect('/');
+  }
+});
+
+// Protected route example
+router.get('/me', protectAuth as any, async (req, res) => {
+  res.json((req as any).user);
+});
 
 export default router;

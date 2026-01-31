@@ -78,7 +78,6 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-app.use('/routes/auth', auth_1.default);
 app.set('trust proxy', 1); // For rate limiting behind proxies
 // Session middleware added here
 app.use((0, express_session_1.default)({
@@ -109,6 +108,7 @@ app.use('/api/matches', matches_1.default);
 app.use('/api/users', users_1.default);
 app.use('/api/notifications', notifications_1.default);
 app.use('/api/stats', stats_1.default);
+app.use('/api/auth', auth_1.default);
 // Serve overlays
 app.use('/overlay', express_1.default.static('public/overlays'));
 // Socket.io

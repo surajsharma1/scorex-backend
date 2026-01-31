@@ -7,7 +7,9 @@ exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.pr
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const express_1 = __importDefault(require("express"));
+const passport_1 = __importDefault(require("passport"));
 const router = express_1.default.Router();
+router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
 const protect = async (req, res, next) => {
     try {
         let token;
