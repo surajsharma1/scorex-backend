@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
 import express from 'express';
+import passport from 'passport';
 
 const router = express.Router();
-
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 export interface AuthRequest extends Request {
   user?: IUser;
 }
