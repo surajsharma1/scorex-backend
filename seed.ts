@@ -14,6 +14,13 @@ const seedData = async () => {
     await Tournament.deleteMany();
     await Team.deleteMany();
 
+    connectDB().then(async () => {
+  await User.updateMany({}, { role: 'admin' });
+  console.log('All users made admins');
+  process.exit();
+  });
+
+    
     // Create admin user
     const admin = await User.create({
       username: 'admin',

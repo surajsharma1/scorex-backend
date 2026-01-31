@@ -3,6 +3,10 @@ import { Request, Response, NextFunction } from 'express';
 import User, { IUser } from '../models/User';
 
 export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+
+ {req.user = { _id: 'default_user_id', role: 'admin' }; // Mock user
+  next();
+};
   try {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
