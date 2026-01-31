@@ -12,10 +12,10 @@ import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// router.get('/', protect, getTeams);
-// router.post('/', protect, upload.single('logo'), createTeam);
-// router.put('/:id', protect, upload.single('logo'), updateTeam);
-// router.delete('/:id', protect, deleteTeam);
-// router.post('/:teamId/players', protect, upload.single('image'), addPlayer);
+router.get('/', protect as any , getTeams);
+router.post('/', protect as any , upload.single('logo'), createTeam);
+router.put('/:id', protect as any , upload.single('logo'), updateTeam);
+router.delete('/:id', protect as any , deleteTeam);
+router.post('/:teamId/players', protect as any , upload.single('image'), addPlayer);
 
 export default router;

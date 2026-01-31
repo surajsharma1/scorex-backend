@@ -1,34 +1,50 @@
-import express from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { protect } from '../middleware/auth';
-import User from '../models/User';
-import { register, login } from '../controllers/authController';
-import passport from 'passport';
+import User, { IUser } from '../models/User';
 
-const router = express.Router();
+export interface AuthRequest extends Request {
+  user?: IUser;
+}
 
-// Existing routes
-router.post('/register', register);
-router.post('/login', login);
-
-// Google OAuth routes
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), async (req, res) => {
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const user = req.user as any;
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    // Redirect to frontend with token
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    if (!token) {
+      res.status(401).json({ message: 'Not authorized, no token' });
+      return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      res.status(401).json({ message: 'Not authorized, user not found' });
+      return;
+    }
+    req.user = user;
+    next();
   } catch (error) {
-    console.error('Google OAuth callback error:', error);
-    res.redirect('/login');
+    res.status(401).json({ message: 'Not authorized, token failed' });
   }
-});
+};
 
-// Protected route example
-// router.get('/me', protect, async (req, res) => {
-//   res.json(req.user);
-// });
+export const authorize = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ message: 'User role not authorized' });
+      return;
+    }
+    next();
+  };
+};
 
-export default router;
+export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user && (req.user.role === 'organizer' || req.user.role === 'admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'User role not authorized' });
+  }
+};
+
+export const protectAdmin = [protect, authorize('admin')];

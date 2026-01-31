@@ -8,17 +8,17 @@ import {
   goLive,
   updateLiveScores,
 } from '../controllers/tournamentController';
-import { protect, protectOrganizer } from '../middleware/auth';
+import { protect } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// router.get('/', protect, getTournaments);
-// router.get('/:id', protect, getTournament);
-// router.post('/', protectOrganizer, createTournament);
-// router.put('/:id', protect, updateTournament);
-// router.delete('/:id', protect, deleteTournament);
-// router.post('/:id/live', protect, goLive);
-// router.put('/:id/scores', protect, updateLiveScores);
+router.get('/', protect as any , getTournaments);
+router.get('/:id', protect as any , getTournament);
+router.post('/', protect as any , createTournament);
+router.put('/:id', protect as any , updateTournament);
+router.delete('/:id', protect as any , deleteTournament);
+router.post('/:id/live', protect as any , goLive);
+router.put('/:id/scores', protect as any , updateLiveScores);
 
 export default router;

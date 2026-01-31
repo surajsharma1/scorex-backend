@@ -5,7 +5,7 @@
 
     const router = express.Router();
 
-    // router.get('/', protect, getNotifications);
-    // router.put('/:id/read', protect, markAsRead);
+    router.get('/', protect as any, getNotifications);
+    router.put('/:id/read', protect as any, markAsRead);
 
     export default router;

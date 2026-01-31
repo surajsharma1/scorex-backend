@@ -9,7 +9,6 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import session from 'express-session';
 import connectDB from './config/database';
-import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
 import bracketRoutes from './routes/brackets';
@@ -103,7 +102,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/brackets', bracketRoutes);

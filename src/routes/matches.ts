@@ -11,10 +11,10 @@ import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// router.get('/', protect, getMatches);
-// router.post('/', protect, createMatch);
-// router.put('/:id', protect, updateMatch);
-// router.put('/:id/score', protect, updateMatchScore);
-// router.delete('/:id', protect, deleteMatch);
+router.get('/', protect as any, getMatches);
+router.post('/', protect as any, createMatch);
+router.put('/:id', protect as any, updateMatch);
+router.put('/:id/score', protect as any, updateMatchScore);
+router.delete('/:id', protect as any, deleteMatch);
 
 export default router;
