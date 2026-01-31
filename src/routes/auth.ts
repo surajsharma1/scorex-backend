@@ -62,14 +62,12 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
   try {
     const user = req.user as any;
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    // Redirect to frontend with token
-    res.redirect(`${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
     res.redirect('/');
   }
 });
-
 // Protected route example
 router.get('/me', protectAuth as any, async (req, res) => {
   res.json((req as any).user);
