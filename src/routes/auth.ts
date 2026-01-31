@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
+import express from 'express';
+
+const router = express.Router();
 
 export interface AuthRequest extends Request {
   user?: IUser;
 }
-
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token;
@@ -48,3 +50,5 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 };
 
 export const protectAdmin = [protect, authorize('admin')];
+
+export default router;

@@ -16,7 +16,7 @@ const register = async (req, res) => {
             res.status(400).json({ message: 'User already exists' });
             return;
         }
-        const user = await User_1.default.create({ username, email, password, role: 'admin' }); // Changed from default
+        const user = await User_1.default.create({ username, email, password, role: 'viewer' });
         const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.status(201).json({ token });
     }

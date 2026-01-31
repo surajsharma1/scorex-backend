@@ -7,10 +7,6 @@ exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.pr
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const protect = async (req, res, next) => {
-    // Temporary bypass for testing (remove for production)
-    req.user = { _id: 'default_user_id', role: 'admin' }; // Mock user
-    next();
-    // Original auth logic (uncomment when ready)
     try {
         let token;
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {

@@ -15,7 +15,6 @@ const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const express_session_1 = __importDefault(require("express-session"));
 const database_1 = __importDefault(require("./config/database"));
-const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));
 const brackets_1 = __importDefault(require("./routes/brackets"));
@@ -27,6 +26,7 @@ const stats_1 = __importDefault(require("./routes/stats"));
 const User_1 = __importDefault(require("./models/User"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
+const auth_1 = __importDefault(require("./routes/auth"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -52,7 +52,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                     username: profile.displayName,
                     email: profile.emails?.[0].value,
                     googleId: profile.id,
-                    role: 'admin', // Changed from 'viewer'
+                    role: 'viewer',
                 });
             }
             done(null, user);
@@ -73,11 +73,12 @@ passport_1.default.deserializeUser(async (id, done) => {
 // Middleware
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
     credentials: true,
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
+app.use('/routes/auth', auth_1.default);
 app.set('trust proxy', 1); // For rate limiting behind proxies
 // Session middleware added here
 app.use((0, express_session_1.default)({
@@ -100,7 +101,6 @@ app.use('/api/', limiter);
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 // Routes
-app.use('/api/auth', auth_1.default);
 app.use('/api/tournaments', tournaments_1.default);
 app.use('/api/teams', teams_1.default);
 app.use('/api/brackets', brackets_1.default);

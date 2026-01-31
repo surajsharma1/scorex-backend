@@ -4,8 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const notificationController_1 = require("../controllers/notificationController");
+const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
-// router.get('/', protect, getNotifications);
-// router.put('/:id/read', protect, markAsRead);
+router.get('/', auth_1.protect, notificationController_1.getNotifications);
+router.put('/:id/read', auth_1.protect, notificationController_1.markAsRead);
 exports.default = router;
 //# sourceMappingURL=notifications.js.map

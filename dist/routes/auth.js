@@ -3,31 +3,54 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
+exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const authController_1 = require("../controllers/authController");
-const passport_1 = __importDefault(require("passport"));
+const User_1 = __importDefault(require("../models/User"));
+const express_1 = __importDefault(require("express"));
 const router = express_1.default.Router();
-// Existing routes
-router.post('/register', authController_1.register);
-router.post('/login', authController_1.login);
-// Google OAuth routes
-router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/login' }), async (req, res) => {
+const protect = async (req, res, next) => {
     try {
-        const user = req.user;
-        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        // Redirect to frontend with token
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+        let token;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        if (!token) {
+            res.status(401).json({ message: 'Not authorized, no token' });
+            return;
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const user = await User_1.default.findById(decoded.id).select('-password');
+        if (!user) {
+            res.status(401).json({ message: 'Not authorized, user not found' });
+            return;
+        }
+        req.user = user;
+        next();
     }
     catch (error) {
-        console.error('Google OAuth callback error:', error);
-        res.redirect('/login');
+        res.status(401).json({ message: 'Not authorized, token failed' });
     }
-});
-// Protected route example
-// router.get('/me', protect, async (req, res) => {
-//   res.json(req.user);
-// });
+};
+exports.protect = protect;
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            res.status(403).json({ message: 'User role not authorized' });
+            return;
+        }
+        next();
+    };
+};
+exports.authorize = authorize;
+const protectOrganizer = (req, res, next) => {
+    if (req.user && (req.user.role === 'organizer' || req.user.role === 'admin')) {
+        next();
+    }
+    else {
+        res.status(403).json({ message: 'User role not authorized' });
+    }
+};
+exports.protectOrganizer = protectOrganizer;
+exports.protectAdmin = [exports.protect, (0, exports.authorize)('admin')];
 exports.default = router;
 //# sourceMappingURL=auth.js.map
