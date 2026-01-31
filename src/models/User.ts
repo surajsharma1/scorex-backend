@@ -18,7 +18,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
-    googleId: { type: String, unique: true },
+    googleId: { type: String, sparse: true },
   },
   { timestamps: true }
 );
