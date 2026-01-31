@@ -20,6 +20,7 @@ import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
 import User from './models/User';
 import jwt from 'jsonwebtoken';
+import MongoStore from 'connect-mongo'
 
 dotenv.config();
 
@@ -81,6 +82,7 @@ app.set('trust proxy', 1); // For rate limiting behind proxies
 // Session middleware added here
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
+  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
   resave: false,
   saveUninitialized: false,
   cookie: {
