@@ -50,7 +50,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         username: profile.displayName,
         email: profile.emails?.[0].value,
         googleId: profile.id,
-        role: 'admin', // Changed from 'viewer'
+        role: 'viewer',
       });
       }
       done(null, user);
@@ -71,7 +71,7 @@ passport.deserializeUser(async (id, done) => {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

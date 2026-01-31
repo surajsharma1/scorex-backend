@@ -2,17 +2,12 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import User, { IUser } from '../models/User';
 
-// Define AuthRequest interface
+
 export interface AuthRequest extends Request {
-  user?: IUser; // Use the IUser type for better typing
+  user?: IUser;
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  // Temporary bypass for testing (remove for production)
-  req.user = { _id: 'default_user_id', role: 'admin' } as any; // Mock user
-  next();
-
-  // Original auth logic (uncomment when ready)
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {    
     try {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
