@@ -76,7 +76,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/routes/auth', authRoutes);
 app.set('trust proxy', 1); // For rate limiting behind proxies
 
 // Session middleware added here
@@ -111,7 +110,7 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stats', statsRoutes);
-
+app.use('/api/auth', authRoutes);
 // Serve overlays
 app.use('/overlay', express.static('public/overlays'));
 
