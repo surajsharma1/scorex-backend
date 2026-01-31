@@ -4,13 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const bracketController_1 = require("../controllers/bracketController");
-const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
-router.get('/', auth_1.protect, bracketController_1.getBrackets);
-router.post('/', auth_1.protect, bracketController_1.createBracket);
-router.post('/:id/generate', auth_1.protect, bracketController_1.generateBracket);
-router.put('/:id', auth_1.protect, bracketController_1.updateBracket);
-router.delete('/:id', auth_1.protect, bracketController_1.deleteBracket);
+// router.get('/', protect, getBrackets);
+// router.post('/', protect, createBracket);
+// router.post('/:id/generate', protect, generateBracket);
+// router.put('/:id', protect, updateBracket);
+// router.delete('/:id', protect, deleteBracket);
 exports.default = router;
 //# sourceMappingURL=brackets.js.map

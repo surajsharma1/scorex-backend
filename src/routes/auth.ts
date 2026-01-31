@@ -27,8 +27,8 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
 });
 
 // Protected route example
-router.get('/me', protect, async (req, res) => {
-  res.json(req.user);
-});
+// router.get('/me', protect, async (req, res) => {
+//   res.json(req.user);
+// });
 
 export default router;

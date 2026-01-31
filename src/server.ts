@@ -47,11 +47,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       let user = await User.findOne({ googleId: profile.id });
       if (!user) {
         user = await User.create({
-          username: profile.displayName,
-          email: profile.emails?.[0].value,
-          googleId: profile.id,
-          role: 'viewer',
-        });
+        username: profile.displayName,
+        email: profile.emails?.[0].value,
+        googleId: profile.id,
+        role: 'admin', // Changed from 'viewer'
+      });
       }
       done(null, user);
     } catch (error) {

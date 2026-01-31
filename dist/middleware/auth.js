@@ -7,6 +7,10 @@ exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.pr
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const protect = async (req, res, next) => {
+    // Temporary bypass for testing (remove for production)
+    req.user = { _id: 'default_user_id', role: 'admin' }; // Mock user
+    next();
+    // Original auth logic (uncomment when ready)
     try {
         let token;
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -40,6 +44,14 @@ const authorize = (...roles) => {
     };
 };
 exports.authorize = authorize;
-exports.protectOrganizer = [exports.protect, (0, exports.authorize)('organizer')]; // For organizers
-exports.protectAdmin = [exports.protect, (0, exports.authorize)('admin')]; // Added: For admins
+const protectOrganizer = (req, res, next) => {
+    if (req.user && (req.user.role === 'organizer' || req.user.role === 'admin')) {
+        next();
+    }
+    else {
+        res.status(403).json({ message: 'User role not authorized' });
+    }
+};
+exports.protectOrganizer = protectOrganizer;
+exports.protectAdmin = [exports.protect, (0, exports.authorize)('admin')]; // For admins
 //# sourceMappingURL=auth.js.map

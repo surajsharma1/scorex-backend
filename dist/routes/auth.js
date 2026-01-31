@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const auth_1 = require("../middleware/auth");
 const authController_1 = require("../controllers/authController");
 const passport_1 = __importDefault(require("passport"));
 const router = express_1.default.Router();
@@ -27,8 +26,8 @@ router.get('/google/callback', passport_1.default.authenticate('google', { failu
     }
 });
 // Protected route example
-router.get('/me', auth_1.protect, async (req, res) => {
-    res.json(req.user);
-});
+// router.get('/me', protect, async (req, res) => {
+//   res.json(req.user);
+// });
 exports.default = router;
 //# sourceMappingURL=auth.js.map

@@ -4,14 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const teamController_1 = require("../controllers/teamController");
-const auth_1 = require("../middleware/auth");
-const upload_1 = __importDefault(require("../middleware/upload"));
 const router = express_1.default.Router();
-router.get('/', auth_1.protect, teamController_1.getTeams);
-router.post('/', auth_1.protect, upload_1.default.single('logo'), teamController_1.createTeam);
-router.put('/:id', auth_1.protect, upload_1.default.single('logo'), teamController_1.updateTeam);
-router.delete('/:id', auth_1.protect, teamController_1.deleteTeam);
-router.post('/:teamId/players', auth_1.protect, upload_1.default.single('image'), teamController_1.addPlayer);
+// router.get('/', protect, getTeams);
+// router.post('/', protect, upload.single('logo'), createTeam);
+// router.put('/:id', protect, upload.single('logo'), updateTeam);
+// router.delete('/:id', protect, deleteTeam);
+// router.post('/:teamId/players', protect, upload.single('image'), addPlayer);
 exports.default = router;
 //# sourceMappingURL=teams.js.map
