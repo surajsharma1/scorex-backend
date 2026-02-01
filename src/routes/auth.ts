@@ -1,10 +1,10 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { protect } from '../middleware/auth';
 import User from '../models/User';
 import passport from 'passport';
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -12,6 +12,7 @@ export interface AuthRequest extends Request {
   user?: IUser;
 }
 
+// Define protectAuth locally
 export const protectAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token;
@@ -55,6 +56,36 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 
 export const protectAdmin = [protectAuth, authorize('admin')];
 
+// Email register
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
+    const user = await User.create({ username, email, password, role: 'viewer' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+    res.status(201).json({ token });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Email login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+      res.json({ token });
+    } else {
+      res.status(401).json({ message: 'Invalid credentials' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -68,9 +99,10 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
     res.redirect('/');
   }
 });
+
 // Protected route example
 router.get('/me', protectAuth as any, async (req, res) => {
   res.json((req as any).user);
 });
 
-export default router;
+export default router;  
