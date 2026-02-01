@@ -41,8 +41,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-   callbackURL: `https://scorex-backend.onrender.com/api/auth/google/callback`,
-  }, async (accessToken, refreshToken, profile, done) => {
+     callbackURL: `https://scorex-backend.onrender.com/api/auth/google/callback`,
+  }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
       if (!user) {
@@ -55,9 +55,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       }
       done(null, user);
     } catch (error) {
-      done(error, undefined); // Fixed syntax error
-    }
-  }));
+  done(error, undefined); // Fixed
+}
+  }));  
 } else {
   console.warn('Google OAuth not configured.');
 }
