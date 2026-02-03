@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Match from '../models/Match';
+import Tournament from '../models/Tournament';
 import { io } from '../server'; // Fixed: Import io from server.ts
 
 export const getMatches = async (req: Request, res: Response): Promise<void> => {
@@ -65,9 +66,31 @@ export const updateMatch = async (req: Request, res: Response): Promise<void> =>
 
 export const updateMatchScore = async (req: Request, res: Response): Promise<void> => {
   try {
-    const match = await Match.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const match = await Match.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('team1 team2');
     if (match) {
       io.emit('scoreUpdate', { matchId: match._id, match }); // Emit real-time update
+
+      // Update the tournament's liveScores
+      const liveScores = {
+        team1: {
+          name: (match.team1 as any).name || 'Team 1',
+          score: match.score1 || 0,
+          wickets: match.wickets1 || 0,
+          overs: match.overs1 || 0,
+        },
+        team2: {
+          name: (match.team2 as any).name || 'Team 2',
+          score: match.score2 || 0,
+          wickets: match.wickets2 || 0,
+          overs: match.overs2 || 0,
+        },
+        currentRunRate: 0, // Default value
+        requiredRunRate: 0, // Default value
+        target: 0, // Default value
+        lastFiveOvers: '-', // Default value
+      };
+
+      await Tournament.findByIdAndUpdate(match.tournament, { liveScores });
     }
     res.json(match);
   } catch (error) {

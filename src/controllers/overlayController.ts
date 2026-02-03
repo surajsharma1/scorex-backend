@@ -108,10 +108,10 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
     <script>
-        // Auto-refresh every 5 seconds to get live updates
+        // Auto-refresh every 1.5 seconds to get live updates
         setTimeout(() => {
             window.location.reload();
-        }, 5000);
+        }, 1500);
     </script>
 </head>
 <body>
