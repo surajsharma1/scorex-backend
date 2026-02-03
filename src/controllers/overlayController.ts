@@ -103,10 +103,16 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         .overs { font-size: 0.875rem; opacity: 0.8; }
         .vs-text { font-size: 1.125rem; font-weight: bold; color: #fbbf24; }
         .stats-section { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
-        .stat-item { background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 4px; }
-        .stat-label { font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px; }
+        .stat-item { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 4px; color: white; }
+        .stat-label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 2px; }
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
+    <script>
+        // Auto-refresh every 5 seconds to get live updates
+        setTimeout(() => {
+            window.location.reload();
+        }, 5000);
+    </script>
 </head>
 <body>
     <div class="overlay-container">
