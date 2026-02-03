@@ -5,10 +5,16 @@ import Tournament from '../models/Tournament';
 
 export const createOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
+    const user = (req as any).user;
+    if (!user || !user._id) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+
     const overlayData = {
       ...req.body,
       publicId: uuidv4(),
-      createdBy: (req as any).user?._id,  // Type assertion
+      createdBy: user._id,
     };
     const overlay = await Overlay.create(overlayData);
     res.status(201).json(overlay);
