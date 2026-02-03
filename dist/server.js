@@ -27,6 +27,7 @@ const User_1 = __importDefault(require("./models/User"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const email_1 = require("./utils/email");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -47,18 +48,36 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }, async (_accessToken, _refreshToken, profile, done) => {
         try {
             let user = await User_1.default.findOne({ googleId: profile.id });
-            if (!user) {
-                user = await User_1.default.create({
-                    username: profile.displayName,
-                    email: profile.emails?.[0].value,
-                    googleId: profile.id,
-                    role: 'viewer',
-                });
+            if (user) {
+                done(null, user);
+                return;
             }
+            // Check if user exists by email
+            const email = profile.emails?.[0].value;
+            user = await User_1.default.findOne({ email });
+            if (user) {
+                // Associate Google ID with existing user
+                user.googleId = profile.id;
+                await user.save();
+                done(null, user);
+                return;
+            }
+            // New user: create, generate OTP, send email
+            const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+            const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+            user = await User_1.default.create({
+                username: profile.displayName,
+                email,
+                googleId: profile.id,
+                role: 'viewer',
+                otp,
+                otpExpires,
+            });
+            await (0, email_1.sendOtpEmail)(email, otp);
             done(null, user);
         }
         catch (error) {
-            done(error, undefined); // Fixed
+            done(error, undefined);
         }
     }));
 }

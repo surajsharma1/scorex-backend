@@ -4,7 +4,10 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     role: 'viewer' | 'organizer' | 'admin';
+    membership: 'free' | 'premium' | 'pro';
     googleId?: string;
+    otp?: string;
+    otpExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;

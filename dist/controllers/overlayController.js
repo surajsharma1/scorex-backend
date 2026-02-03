@@ -8,10 +8,15 @@ const uuid_1 = require("uuid");
 const Overlay_1 = __importDefault(require("../models/Overlay"));
 const createOverlay = async (req, res) => {
     try {
+        const user = req.user;
+        if (!user || !user._id) {
+            res.status(401).json({ message: 'User not authenticated' });
+            return;
+        }
         const overlayData = {
             ...req.body,
             publicId: (0, uuid_1.v4)(),
-            createdBy: req.user?._id, // Type assertion
+            createdBy: user._id,
         };
         const overlay = await Overlay_1.default.create(overlayData);
         res.status(201).json(overlay);

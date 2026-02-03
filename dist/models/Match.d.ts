@@ -13,6 +13,7 @@ export interface IMatch extends Document {
     overs1?: number;
     overs2?: number;
     winner?: mongoose.Types.ObjectId;
+    videoLink?: string;
     createdBy: mongoose.Types.ObjectId;
 }
 declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch> & IMatch & {
