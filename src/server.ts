@@ -21,6 +21,7 @@ import User from './models/User';
 import jwt from 'jsonwebtoken';
 import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
+import { sendOtpEmail } from './utils/email';
 
 dotenv.config();
 
@@ -45,19 +46,37 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
-      if (!user) {
-        user = await User.create({
-          username: profile.displayName,
-          email: profile.emails?.[0].value,
-          googleId: profile.id,
-          role: 'viewer',
-        });
+      if (user) {
+        done(null, user);
+        return;
       }
+      // Check if user exists by email
+      const email = profile.emails?.[0].value;
+      user = await User.findOne({ email });
+      if (user) {
+        // Associate Google ID with existing user
+        user.googleId = profile.id;
+        await user.save();
+        done(null, user);
+        return;
+      }
+      // New user: create, generate OTP, send email
+      const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      user = await User.create({
+        username: profile.displayName,
+        email,
+        googleId: profile.id,
+        role: 'viewer',
+        otp,
+        otpExpires,
+      });
+      await sendOtpEmail(email!, otp);
       done(null, user);
     } catch (error) {
-  done(error, undefined); // Fixed
-}
-  }));  
+      done(error, undefined);
+    }
+  }));
 } else {
   console.warn('Google OAuth not configured.');
 }
