@@ -6,43 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.protectAdmin = exports.protectOrganizer = exports.authorize = exports.protectAuth = void 0;
 const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const auth_1 = require("../middleware/auth");
 const User_1 = __importDefault(require("../models/User"));
 const passport_1 = __importDefault(require("passport"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const router = express_1.default.Router();
-// Email register
-router.post('/register', async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
-        const userExists = await User_1.default.findOne({ email });
-        if (userExists)
-            return res.status(400).json({ message: 'User already exists' });
-        const user = await User_1.default.create({ username, email, password, role: 'viewer' });
-        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(201).json({ token });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-// Email login
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User_1.default.findOne({ email });
-        if (user && user.password && (await bcryptjs_1.default.compare(password, user.password))) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-            res.json({ token });
-        }
-        else {
-            res.status(401).json({ message: 'Invalid credentials' });
-        }
-    }
-    catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
+// Define protectAuth locally
 const protectAuth = async (req, res, next) => {
     try {
         let token;
@@ -87,6 +55,38 @@ const protectOrganizer = (req, res, next) => {
 };
 exports.protectOrganizer = protectOrganizer;
 exports.protectAdmin = [exports.protectAuth, (0, exports.authorize)('admin')];
+// Email register
+router.post('/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        const userExists = await User_1.default.findOne({ email });
+        if (userExists)
+            return res.status(400).json({ message: 'User already exists' });
+        const user = await User_1.default.create({ username, email, password, role: 'viewer' });
+        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        res.status(201).json({ token });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+// Email login
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User_1.default.findOne({ email });
+        if (user && user.password && (await bcryptjs_1.default.compare(password, user.password))) {
+            const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+            res.json({ token });
+        }
+        else {
+            res.status(401).json({ message: 'Invalid credentials' });
+        }
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 // Google OAuth routes
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
