@@ -42,7 +42,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-     callbackURL: `https://scorex-backend.onrender.com/api/auth/google/callback`,
+     callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
@@ -156,6 +156,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 const PORT = process.env.PORT || 5000;
+console.log(`Starting server on port ${PORT}`);
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

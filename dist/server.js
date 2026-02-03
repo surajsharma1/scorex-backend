@@ -44,7 +44,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport_1.default.use(new passport_google_oauth20_1.Strategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `https://scorex-backend.onrender.com/api/auth/google/callback`,
+        callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/auth/google/callback`,
     }, async (_accessToken, _refreshToken, profile, done) => {
         try {
             let user = await User_1.default.findOne({ googleId: profile.id });
@@ -149,6 +149,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Something went wrong!' });
 });
 const PORT = process.env.PORT || 5000;
+console.log(`Starting server on port ${PORT}`);
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

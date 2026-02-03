@@ -16,7 +16,9 @@ const connectDB = async () => {
     }
     catch (error) {
         console.error('MongoDB connection error:', error);
-        process.exit(1);
+        // Instead of exiting, log the error and continue
+        // The app will fail gracefully when trying to use DB operations
+        console.error('Database connection failed. Please check MONGODB_URI environment variable.');
     }
 };
 exports.default = connectDB;
