@@ -14,6 +14,7 @@
     overs1?: number;
     overs2?: number;
     winner?: mongoose.Types.ObjectId;
+    videoLink?: string;
     createdBy: mongoose.Types.ObjectId;
   }
 
@@ -32,6 +33,7 @@
       overs1: { type: Number, default: 0 },
       overs2: { type: Number, default: 0 },
       winner: { type: Schema.Types.ObjectId, ref: 'Team' },
+      videoLink: String,
       createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     },
     { timestamps: true }
