@@ -94,8 +94,8 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${overlay.name}</title>
     <style>
-        body { margin: 0; padding: 0; font-family: ${overlay.config.fontFamily}, sans-serif; background: transparent; overflow: hidden; }
-        .overlay-container { position: absolute; top: ${overlay.config.position === 'top' ? '20px' : overlay.config.position === 'bottom' ? 'auto' : '50%'}; bottom: ${overlay.config.position === 'bottom' ? '20px' : 'auto'}; left: 20px; right: 20px; transform: ${overlay.config.position === 'center' ? 'translateY(-50%)' : 'none'}; background: ${overlay.config.backgroundColor}; opacity: ${overlay.config.opacity / 100}; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: transparent; overflow: hidden; }
+        .overlay-container { position: absolute; top: 20px; left: 20px; right: 20px; background: #16a34a; opacity: 0.9; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
         .score-section { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
         .team-info { text-align: center; }
         .team-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; }
