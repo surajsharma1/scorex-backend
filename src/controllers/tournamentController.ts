@@ -7,7 +7,18 @@ interface AuthRequest extends Request {
 
 export const getTournaments = async (req: Request, res: Response): Promise<void> => {
   try {
+    const cacheKey = cacheService.getTournamentsListKey();
+    const cachedTournaments = await cacheService.getJSON(cacheKey);
+
+    if (cachedTournaments) {
+      return res.json(cachedTournaments);
+    }
+
     const tournaments = await Tournament.find().populate('createdBy', 'username');
+
+    // Cache for 5 minutes
+    await cacheService.setJSON(cacheKey, tournaments, 300);
+
     res.json(tournaments);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -35,6 +46,10 @@ export const createTournament = async (req: AuthRequest, res: Response): Promise
       createdBy: req.user?._id,
     });
     console.log('Tournament created:', tournament); // Debug log
+
+    // Invalidate tournaments list cache
+    await cacheService.del(cacheService.getTournamentsListKey());
+
     res.status(201).json(tournament);
   } catch (error: any) {
     console.error('Create tournament error:', error.message); // Detailed error
@@ -62,6 +77,11 @@ export const deleteTournament = async (req: Request, res: Response): Promise<voi
       res.status(404).json({ message: 'Tournament not found' });
       return;
     }
+
+    // Invalidate caches
+    await cacheService.del(cacheService.getTournamentsListKey());
+    await cacheService.del(cacheService.getTournamentKey(req.params.id));
+
     res.json({ message: 'Tournament deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

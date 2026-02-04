@@ -100,6 +100,20 @@ router.get('/google/callback', passport.authenticate('google', { failureRedirect
   }
 });
 
+// GitHub OAuth routes
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+router.get('/github/callback', passport.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
+  try {
+    const user = req.user as any;
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+  } catch (error) {
+    console.error('GitHub OAuth callback error:', error);
+    res.redirect('/');
+  }
+});
+
 // Protected route example
 router.get('/me', protectAuth as any, async (req, res) => {
   res.json((req as any).user);

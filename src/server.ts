@@ -81,6 +81,45 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Google OAuth not configured.');
 }
 
+// GitHub OAuth
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/github/callback`,
+  }, async (_accessToken, _refreshToken, profile, done) => {
+    try {
+      let user = await User.findOne({ githubId: profile.id });
+      if (user) {
+        done(null, user);
+        return;
+      }
+      // Check if user exists by email
+      const email = profile.emails?.[0].value;
+      user = await User.findOne({ email });
+      if (user) {
+        // Associate GitHub ID with existing user
+        user.githubId = profile.id;
+        await user.save();
+        done(null, user);
+        return;
+      }
+      // New user: create account
+      user = await User.create({
+        username: profile.username || profile.displayName,
+        email,
+        githubId: profile.id,
+        role: 'viewer',
+      });
+      done(null, user);
+    } catch (error) {
+      done(error, undefined);
+    }
+  }));
+} else {
+  console.warn('GitHub OAuth not configured.');
+}
+
 passport.serializeUser((user: any, done) => done(null, user._id));
 passport.deserializeUser(async (id, done) => {
   const user = await User.findById(id);
@@ -122,15 +161,15 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
-app.use('/api/tournaments', tournamentRoutes);
-app.use('/api/teams', teamRoutes);
-app.use('/api/brackets', bracketRoutes);
-app.use('/api/overlays', overlayRoutes);
-app.use('/api/matches', matchRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/v1/tournaments', tournamentRoutes);
+app.use('/api/v1/teams', teamRoutes);
+app.use('/api/v1/brackets', bracketRoutes);
+app.use('/api/v1/overlays', overlayRoutes);
+app.use('/api/v1/matches', matchRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/stats', statsRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Serve overlays
 app.use('/overlay', express.static('public/overlays'));
