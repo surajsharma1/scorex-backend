@@ -15,6 +15,7 @@
     overs2?: number;
     winner?: mongoose.Types.ObjectId;
     videoLink?: string;
+    commentary: string[];
     createdBy: mongoose.Types.ObjectId;
   }
 

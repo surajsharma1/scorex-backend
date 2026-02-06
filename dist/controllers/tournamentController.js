@@ -15,7 +15,8 @@ const getTournaments = async (req, res) => {
         const cacheKey = `${cache_1.default.getTournamentsListKey()}:page${page}:limit${limit}`;
         const cachedResult = await cache_1.default.getJSON(cacheKey);
         if (cachedResult) {
-            return res.json(cachedResult);
+            res.json(cachedResult);
+            return;
         }
         const total = await Tournament_1.default.countDocuments();
         const tournaments = await Tournament_1.default.find()

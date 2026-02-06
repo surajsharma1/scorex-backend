@@ -49,6 +49,7 @@ const matchSchema = new mongoose_1.Schema({
     overs2: { type: Number, default: 0 },
     winner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
     videoLink: String,
+    commentary: [{ type: String, default: [] }],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 // Add indexes for performance

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteMatch = exports.updateMatchScore = exports.updateMatch = exports.createMatch = exports.getMatches = void 0;
+exports.getCommentary = exports.addCommentary = exports.deleteMatch = exports.updateMatchScore = exports.updateMatch = exports.createMatch = exports.getMatches = void 0;
 const Match_1 = __importDefault(require("../models/Match"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const server_1 = require("../server"); // Fixed: Import io from server.ts
@@ -112,4 +112,37 @@ const deleteMatch = async (req, res) => {
     }
 };
 exports.deleteMatch = deleteMatch;
+const addCommentary = async (req, res) => {
+    try {
+        const { commentary } = req.body;
+        const match = await Match_1.default.findByIdAndUpdate(req.params.id, { $push: { commentary } }, { new: true }).populate('team1 team2');
+        if (!match) {
+            res.status(404).json({ message: 'Match not found' });
+            return;
+        }
+        // Emit real-time commentary update
+        server_1.io.emit('commentaryUpdate', { matchId: match._id, commentary: match.commentary });
+        res.json(match);
+    }
+    catch (error) {
+        console.error('Add commentary error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.addCommentary = addCommentary;
+const getCommentary = async (req, res) => {
+    try {
+        const match = await Match_1.default.findById(req.params.id).select('commentary');
+        if (!match) {
+            res.status(404).json({ message: 'Match not found' });
+            return;
+        }
+        res.json({ commentary: match.commentary });
+    }
+    catch (error) {
+        console.error('Get commentary error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.getCommentary = getCommentary;
 //# sourceMappingURL=matchController.js.map

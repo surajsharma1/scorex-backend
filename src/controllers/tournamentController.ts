@@ -18,7 +18,8 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
     const cachedResult = await cacheService.getJSON(cacheKey);
 
     if (cachedResult) {
-      return res.json(cachedResult);
+      res.json(cachedResult);
+      return;
     }
 
     const total = await Tournament.countDocuments();

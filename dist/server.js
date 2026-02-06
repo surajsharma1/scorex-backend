@@ -13,6 +13,7 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
+const passport_github2_1 = require("passport-github2");
 const express_session_1 = __importDefault(require("express-session"));
 const database_1 = __importDefault(require("./config/database"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
@@ -87,7 +88,7 @@ else {
 }
 // GitHub OAuth
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    passport_1.default.use(new GitHubStrategy({
+    passport_1.default.use(new passport_github2_1.Strategy({
         clientID: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
         callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/github/callback`,

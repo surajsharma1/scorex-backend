@@ -7,4 +7,5 @@ export declare const protect: (req: AuthRequest, res: Response, next: NextFuncti
 export declare const authorize: (...roles: string[]) => (req: AuthRequest, res: Response, next: NextFunction) => void;
 export declare const protectOrganizer: (req: AuthRequest, res: Response, next: NextFunction) => void;
 export declare const protectAdmin: ((req: AuthRequest, res: Response, next: NextFunction) => void)[];
+export declare const requirePermission: (permission: string) => (req: AuthRequest, res: Response, next: NextFunction) => void;
 //# sourceMappingURL=auth.d.ts.map

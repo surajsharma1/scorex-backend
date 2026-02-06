@@ -51,6 +51,7 @@ const tournamentSchema = new mongoose_1.Schema({
         lastFiveOvers: String,
     },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    deleted: { type: Boolean, default: false },
 }, { timestamps: true });
 // Add indexes for performance
 tournamentSchema.index({ status: 1 });

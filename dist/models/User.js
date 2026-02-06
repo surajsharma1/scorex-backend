@@ -45,6 +45,15 @@ const userSchema = new mongoose_1.Schema({
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     googleId: { type: String, sparse: true },
+    notificationPreferences: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+        tournamentUpdates: { type: Boolean, default: true },
+        matchResults: { type: Boolean, default: true },
+        systemAnnouncements: { type: Boolean, default: true },
+    },
+    deleted: { type: Boolean, default: false },
 }, { timestamps: true });
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password') || !this.password)

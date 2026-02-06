@@ -10,6 +10,10 @@ export interface IPlayer extends Document {
         runs: number;
         wickets: number;
         average: number;
+        battingAverage: number;
+        bowlingAverage: number;
+        strikeRate: number;
+        economy: number;
     };
     createdAt: Date;
     updatedAt: Date;

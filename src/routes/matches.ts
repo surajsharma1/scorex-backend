@@ -5,6 +5,8 @@ import {
   updateMatch,
   deleteMatch,
   updateMatchScore,
+  addCommentary,
+  getCommentary,
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';

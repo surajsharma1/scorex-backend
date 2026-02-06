@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@types/express-session": "^1.18.2",
+    "@types/passport-github2": "^1.2.9",
     "@types/redis": "^4.0.10",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
@@ -33,7 +34,8 @@
     "stripe": "^20.3.0",
     "uuid": "^9.0.1",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -57,6 +59,7 @@
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
+    "tslib": "^2.6.2",
     "typescript": "^5.3.3"
   },
   "keywords": [

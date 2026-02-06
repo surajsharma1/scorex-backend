@@ -7,8 +7,9 @@ exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
+const validation_1 = require("../utils/validation");
 exports.register = [
-    validateRequest(registerSchema),
+    (0, validation_1.validateRequest)(validation_1.registerSchema),
     async (req, res) => {
         try {
             console.log('Register attempt:', req.body);
@@ -29,7 +30,7 @@ exports.register = [
     }
 ];
 exports.login = [
-    validateRequest(loginSchema),
+    (0, validation_1.validateRequest)(validation_1.loginSchema),
     async (req, res) => {
         try {
             console.log('Login attempt for email:', req.body.email);

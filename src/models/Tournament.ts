@@ -17,6 +17,7 @@ export interface ITournament extends Document {
     lastFiveOvers: string;
   };
   createdBy: mongoose.Types.ObjectId;
+  deleted?: boolean;
 }
 
 const tournamentSchema = new Schema<ITournament>(

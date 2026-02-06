@@ -11,6 +11,8 @@ router.get('/', auth_1.protect, matchController_1.getMatches);
 router.post('/', auth_1.protect, matchController_1.createMatch);
 router.put('/:id', auth_1.protect, matchController_1.updateMatch);
 router.put('/:id/score', auth_1.protect, matchController_1.updateMatchScore);
+router.post('/:id/commentary', auth_1.protect, matchController_1.addCommentary);
+router.get('/:id/commentary', auth_1.protect, matchController_1.getCommentary);
 router.delete('/:id', auth_1.protect, matchController_1.deleteMatch);
 exports.default = router;
 //# sourceMappingURL=matches.js.map

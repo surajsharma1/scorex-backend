@@ -26,6 +26,7 @@ export interface ITournament extends Document {
         lastFiveOvers: string;
     };
     createdBy: mongoose.Types.ObjectId;
+    deleted?: boolean;
 }
 declare const _default: mongoose.Model<ITournament, {}, {}, {}, mongoose.Document<unknown, {}, ITournament> & ITournament & {
     _id: mongoose.Types.ObjectId;

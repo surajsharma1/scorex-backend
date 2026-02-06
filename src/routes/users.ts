@@ -1,11 +1,11 @@
 import express from 'express';
 import { getNotificationPreferences, updateNotificationPreferences, getProfile, updateProfile } from '../controllers/userController';
-import { authenticate } from '../middleware/auth';
+import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
 // All user routes require authentication
-router.use(authenticate);
+router.use(protect as any);
 
 // Notification preferences
 router.get('/notifications/preferences', getNotificationPreferences);
