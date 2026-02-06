@@ -44,7 +44,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-     callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/google/callback`,
+     callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
@@ -88,7 +88,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/github/callback`,
+    callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/github/callback`,
   }, async (_accessToken: string, _refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
     try {
       let user = await User.findOne({ githubId: profile.id });
