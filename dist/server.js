@@ -29,6 +29,7 @@ const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const email_1 = require("./utils/email");
 const logger_1 = __importDefault(require("./utils/logger"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -152,7 +153,7 @@ app.use((0, express_session_1.default)({
     },
 }));
 // Rate limiting
-const limiter = rateLimit({
+const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
