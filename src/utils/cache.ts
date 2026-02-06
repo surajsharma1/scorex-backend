@@ -31,6 +31,8 @@ class CacheService {
         await this.client.connect();
       } catch (error) {
         console.error('Failed to connect to Redis:', error);
+        // Don't throw error, just log it and continue without Redis
+        this.isConnected = false;
       }
     }
   }
@@ -42,8 +44,11 @@ class CacheService {
   }
 
   async get(key: string): Promise<string | null> {
+    if (!this.isConnected) {
+      // Skip Redis operations if not connected
+      return null;
+    }
     try {
-      if (!this.isConnected) await this.connect();
       return await this.client.get(key);
     } catch (error) {
       console.error('Redis GET error:', error);
@@ -52,8 +57,11 @@ class CacheService {
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    if (!this.isConnected) {
+      // Skip Redis operations if not connected
+      return;
+    }
     try {
-      if (!this.isConnected) await this.connect();
       if (ttlSeconds) {
         await this.client.setEx(key, ttlSeconds, value);
       } else {
@@ -65,8 +73,11 @@ class CacheService {
   }
 
   async del(key: string): Promise<void> {
+    if (!this.isConnected) {
+      // Skip Redis operations if not connected
+      return;
+    }
     try {
-      if (!this.isConnected) await this.connect();
       await this.client.del(key);
     } catch (error) {
       console.error('Redis DEL error:', error);
@@ -74,8 +85,11 @@ class CacheService {
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.isConnected) {
+      // Skip Redis operations if not connected
+      return false;
+    }
     try {
-      if (!this.isConnected) await this.connect();
       const result = await this.client.exists(key);
       return result === 1;
     } catch (error) {
