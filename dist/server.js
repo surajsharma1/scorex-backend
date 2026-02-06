@@ -14,7 +14,6 @@ const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const passport_github2_1 = require("passport-github2");
 const express_session_1 = __importDefault(require("express-session"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const database_1 = __importDefault(require("./config/database"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));
@@ -139,7 +138,8 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-// Trust proxy setting removed (was for rate limiting)
+// Trust proxy setting for rate limiting in production
+app.set('trust proxy', 1);
 // Session middleware added here
 app.use((0, express_session_1.default)({
     secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
@@ -152,7 +152,7 @@ app.use((0, express_session_1.default)({
     },
 }));
 // Rate limiting
-const limiter = (0, express_rate_limit_1.default)({
+const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',

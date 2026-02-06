@@ -8,8 +8,6 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
-
-
 import connectDB from './config/database';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
@@ -25,6 +23,7 @@ import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
 import { sendOtpEmail } from './utils/email';
 import logger from './utils/logger';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
