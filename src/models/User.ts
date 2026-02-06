@@ -8,8 +8,18 @@ export interface IUser extends Document {
   role: 'viewer' | 'organizer' | 'admin';
   membership: 'free' | 'premium' | 'pro';
   googleId?: string;
+  githubId?: string;
   otp?: string;
   otpExpires?: Date;
+  notificationPreferences?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+    tournamentUpdates: boolean;
+    matchResults: boolean;
+    systemAnnouncements: boolean;
+  };
+  deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -23,6 +33,15 @@ const userSchema = new Schema<IUser>(
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     googleId: { type: String, sparse: true },
+    notificationPreferences: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false },
+      tournamentUpdates: { type: Boolean, default: true },
+      matchResults: { type: Boolean, default: true },
+      systemAnnouncements: { type: Boolean, default: true },
+    },
+    deleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

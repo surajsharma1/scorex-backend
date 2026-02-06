@@ -34,9 +34,17 @@
       overs2: { type: Number, default: 0 },
       winner: { type: Schema.Types.ObjectId, ref: 'Team' },
       videoLink: String,
+      commentary: [{ type: String, default: [] }],
       createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     },
     { timestamps: true }
   );
+
+  // Add indexes for performance
+  matchSchema.index({ tournament: 1 });
+  matchSchema.index({ date: 1 });
+  matchSchema.index({ status: 1 });
+  matchSchema.index({ createdBy: 1 });
+  matchSchema.index({ tournament: 1, date: -1 }); // Compound index for tournament matches by date
 
   export default mongoose.model<IMatch>('Match', matchSchema);

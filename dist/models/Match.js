@@ -51,5 +51,11 @@ const matchSchema = new mongoose_1.Schema({
     videoLink: String,
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
+// Add indexes for performance
+matchSchema.index({ tournament: 1 });
+matchSchema.index({ date: 1 });
+matchSchema.index({ status: 1 });
+matchSchema.index({ createdBy: 1 });
+matchSchema.index({ tournament: 1, date: -1 }); // Compound index for tournament matches by date
 exports.default = mongoose_1.default.model('Match', matchSchema);
 //# sourceMappingURL=Match.js.map

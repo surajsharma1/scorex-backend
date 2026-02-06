@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMatch = exports.updateMatchScore = exports.updateMatch = exports.createMatch = exports.getMatches = void 0;
 const Match_1 = __importDefault(require("../models/Match"));
+const Tournament_1 = __importDefault(require("../models/Tournament"));
 const server_1 = require("../server"); // Fixed: Import io from server.ts
 const getMatches = async (req, res) => {
     try {
@@ -68,9 +69,29 @@ const updateMatch = async (req, res) => {
 exports.updateMatch = updateMatch;
 const updateMatchScore = async (req, res) => {
     try {
-        const match = await Match_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const match = await Match_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('team1 team2');
         if (match) {
             server_1.io.emit('scoreUpdate', { matchId: match._id, match }); // Emit real-time update
+            // Update the tournament's liveScores
+            const liveScores = {
+                team1: {
+                    name: match.team1.name || 'Team 1',
+                    score: match.score1 || 0,
+                    wickets: match.wickets1 || 0,
+                    overs: match.overs1 || 0,
+                },
+                team2: {
+                    name: match.team2.name || 'Team 2',
+                    score: match.score2 || 0,
+                    wickets: match.wickets2 || 0,
+                    overs: match.overs2 || 0,
+                },
+                currentRunRate: 0, // Default value
+                requiredRunRate: 0, // Default value
+                target: 0, // Default value
+                lastFiveOvers: '-', // Default value
+            };
+            await Tournament_1.default.findByIdAndUpdate(match.tournament, { liveScores });
         }
         res.json(match);
     }

@@ -37,8 +37,16 @@ const tournamentSchema = new Schema<ITournament>(
       lastFiveOvers: String,
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    deleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+// Add indexes for performance
+tournamentSchema.index({ status: 1 });
+tournamentSchema.index({ startDate: 1 });
+tournamentSchema.index({ createdBy: 1 });
+tournamentSchema.index({ isLive: 1 });
+tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
 
 export default mongoose.model<ITournament>('Tournament', tournamentSchema);

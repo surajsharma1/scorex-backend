@@ -14,6 +14,7 @@ export interface ITeam extends Document {
   tournament: mongoose.Types.ObjectId;
   players: IPlayer[];
   createdBy: mongoose.Types.ObjectId;
+  deleted: boolean;
 }
 
 const playerSchema = new Schema<IPlayer>({

@@ -101,8 +101,8 @@ const serveOverlay = async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${overlay.name}</title>
     <style>
-        body { margin: 0; padding: 0; font-family: ${overlay.config.fontFamily}, sans-serif; background: transparent; overflow: hidden; }
-        .overlay-container { position: absolute; top: ${overlay.config.position === 'top' ? '20px' : overlay.config.position === 'bottom' ? 'auto' : '50%'}; bottom: ${overlay.config.position === 'bottom' ? '20px' : 'auto'}; left: 20px; right: 20px; transform: ${overlay.config.position === 'center' ? 'translateY(-50%)' : 'none'}; background: ${overlay.config.backgroundColor}; opacity: ${overlay.config.opacity / 100}; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: transparent; overflow: hidden; }
+        .overlay-container { position: absolute; top: 20px; left: 20px; right: 20px; background: #16a34a; opacity: 0.9; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
         .score-section { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
         .team-info { text-align: center; }
         .team-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; }
@@ -110,10 +110,16 @@ const serveOverlay = async (req, res) => {
         .overs { font-size: 0.875rem; opacity: 0.8; }
         .vs-text { font-size: 1.125rem; font-weight: bold; color: #fbbf24; }
         .stats-section { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
-        .stat-item { background: rgba(0, 0, 0, 0.3); padding: 8px; border-radius: 4px; }
-        .stat-label { font-size: 0.75rem; opacity: 0.8; margin-bottom: 2px; }
+        .stat-item { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 4px; color: white; }
+        .stat-label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 2px; }
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
+    <script>
+        // Auto-refresh every 1.5 seconds to get live updates
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    </script>
 </head>
 <body>
     <div class="overlay-container">

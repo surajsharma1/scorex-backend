@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.io = void 0;
+exports.createLimiter = exports.authLimiter = exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -28,6 +28,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const email_1 = require("./utils/email");
+const logger_1 = __importDefault(require("./utils/logger"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
@@ -84,6 +85,46 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 else {
     console.warn('Google OAuth not configured.');
 }
+// GitHub OAuth
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    passport_1.default.use(new GitHubStrategy({
+        clientID: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/github/callback`,
+    }, async (_accessToken, _refreshToken, profile, done) => {
+        try {
+            let user = await User_1.default.findOne({ githubId: profile.id });
+            if (user) {
+                done(null, user);
+                return;
+            }
+            // Check if user exists by email
+            const email = profile.emails?.[0].value;
+            user = await User_1.default.findOne({ email });
+            if (user) {
+                // Associate GitHub ID with existing user
+                user.githubId = profile.id;
+                await user.save();
+                done(null, user);
+                return;
+            }
+            // New user: create account
+            user = await User_1.default.create({
+                username: profile.username || profile.displayName,
+                email,
+                githubId: profile.id,
+                role: 'viewer',
+            });
+            done(null, user);
+        }
+        catch (error) {
+            done(error, undefined);
+        }
+    }));
+}
+else {
+    console.warn('GitHub OAuth not configured.');
+}
 passport_1.default.serializeUser((user, done) => done(null, user._id));
 passport_1.default.deserializeUser(async (id, done) => {
     const user = await User_1.default.findById(id);
@@ -115,37 +156,82 @@ const limiter = (0, express_rate_limit_1.default)({
     max: 100,
 });
 app.use('/api/', limiter);
+// Strict rate limiting for authentication endpoints
+exports.authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 requests per window
+    message: 'Too many authentication attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+// Rate limiting for creation endpoints (tournaments, teams)
+exports.createLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // 10 requests per window per IP
+    message: 'Too many creation requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 // Passport middleware
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 // Routes
-app.use('/api/tournaments', tournaments_1.default);
-app.use('/api/teams', teams_1.default);
-app.use('/api/brackets', brackets_1.default);
-app.use('/api/overlays', overlays_1.default);
-app.use('/api/matches', matches_1.default);
-app.use('/api/users', users_1.default);
-app.use('/api/notifications', notifications_1.default);
-app.use('/api/stats', stats_1.default);
-app.use('/api/auth', auth_1.default);
+app.use('/api/v1/tournaments', tournaments_1.default);
+app.use('/api/v1/teams', teams_1.default);
+app.use('/api/v1/brackets', brackets_1.default);
+app.use('/api/v1/overlays', overlays_1.default);
+app.use('/api/v1/matches', matches_1.default);
+app.use('/api/v1/users', users_1.default);
+app.use('/api/v1/notifications', notifications_1.default);
+app.use('/api/v1/stats', stats_1.default);
+app.use('/api/v1/auth', auth_1.default);
+// Health check endpoint
+app.get('/api/v1/health', async (req, res) => {
+    try {
+        // Check database connection
+        const mongoose = require('mongoose');
+        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+        // Check Redis connection
+        const cacheService = require('./utils/cache').cacheService;
+        const redisStatus = cacheService.isConnected ? 'connected' : 'disconnected';
+        res.status(200).json({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            services: {
+                database: dbStatus,
+                redis: redisStatus,
+            },
+            uptime: process.uptime(),
+        });
+    }
+    catch (error) {
+        res.status(503).json({
+            status: 'unhealthy',
+            timestamp: new Date().toISOString(),
+            error: error.message,
+        });
+    }
+});
 // Serve overlays
 app.use('/overlay', express_1.default.static('public/overlays'));
 // Socket.io
 exports.io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    logger_1.default.info(`User connected: ${socket.id}`);
     socket.on('joinTournament', (tournamentId) => {
         socket.join(tournamentId);
+        logger_1.default.info(`User ${socket.id} joined tournament: ${tournamentId}`);
     });
     socket.on('updateScore', (data) => {
         exports.io.to(data.tournamentId).emit('scoreUpdate', data);
+        logger_1.default.info(`Score update for tournament ${data.tournamentId}:`, data.match);
     });
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+        logger_1.default.info(`User disconnected: ${socket.id}`);
     });
 });
 // Error handling
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    logger_1.default.error('Unhandled error:', err);
     res.status(500).json({ message: 'Something went wrong!' });
 });
 const PORT = process.env.PORT || 5000;

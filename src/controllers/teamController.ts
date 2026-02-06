@@ -3,9 +3,31 @@ import Team from '../models/Team';
 
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const query = req.query.tournament ? { tournament: req.query.tournament } : {};
-    const teams = await Team.find(query).populate('tournament');
-    res.json(teams);
+    const total = await Team.countDocuments(query);
+    const teams = await Team.find(query)
+      .populate('tournament')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const result = {
+      teams,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+
+    res.json(result);
   } catch (error) {
     console.error('Get teams error:', error);
     res.status(500).json({ message: 'Server error' });

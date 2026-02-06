@@ -22,6 +22,7 @@ import jwt from 'jsonwebtoken';
 import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
 import { sendOtpEmail } from './utils/email';
+import logger from './utils/logger';
 
 dotenv.config();
 
@@ -156,6 +157,24 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Strict rate limiting for authentication endpoints
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting for creation endpoints (tournaments, teams)
+export const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 requests per window per IP
+  message: 'Too many creation requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
@@ -171,26 +190,57 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/auth', authRoutes);
 
+// Health check endpoint
+app.get('/api/v1/health', async (req, res) => {
+  try {
+    // Check database connection
+    const mongoose = require('mongoose');
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
+    // Check Redis connection
+    const cacheService = require('./utils/cache').cacheService;
+    const redisStatus = cacheService.isConnected ? 'connected' : 'disconnected';
+
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbStatus,
+        redis: redisStatus,
+      },
+      uptime: process.uptime(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+    });
+  }
+});
+
 // Serve overlays
 app.use('/overlay', express.static('public/overlays'));
 
 // Socket.io
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  logger.info(`User connected: ${socket.id}`);
   socket.on('joinTournament', (tournamentId: string) => {
     socket.join(tournamentId);
+    logger.info(`User ${socket.id} joined tournament: ${tournamentId}`);
   });
   socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
     io.to(data.tournamentId).emit('scoreUpdate', data);
+    logger.info(`Score update for tournament ${data.tournamentId}:`, data.match);
   });
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    logger.info(`User disconnected: ${socket.id}`);
   });
 });
 
 // Error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
+  logger.error('Unhandled error:', err);
   res.status(500).json({ message: 'Something went wrong!' });
 });
 

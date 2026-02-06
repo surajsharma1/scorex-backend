@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
+import auditLogger from '../utils/auditLogger';
+import cacheService from '../utils/cache';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -7,19 +9,41 @@ interface AuthRequest extends Request {
 
 export const getTournaments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const cacheKey = cacheService.getTournamentsListKey();
-    const cachedTournaments = await cacheService.getJSON(cacheKey);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
 
-    if (cachedTournaments) {
-      return res.json(cachedTournaments);
+    // Create cache key with pagination
+    const cacheKey = `${cacheService.getTournamentsListKey()}:page${page}:limit${limit}`;
+    const cachedResult = await cacheService.getJSON(cacheKey);
+
+    if (cachedResult) {
+      return res.json(cachedResult);
     }
 
-    const tournaments = await Tournament.find().populate('createdBy', 'username');
+    const total = await Tournament.countDocuments();
+    const tournaments = await Tournament.find()
+      .populate('createdBy', 'username')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const result = {
+      tournaments,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
 
     // Cache for 5 minutes
-    await cacheService.setJSON(cacheKey, tournaments, 300);
+    await cacheService.setJSON(cacheKey, result, 300);
 
-    res.json(tournaments);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

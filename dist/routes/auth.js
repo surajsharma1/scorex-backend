@@ -9,6 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const passport_1 = __importDefault(require("passport"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const server_1 = require("../server");
 const router = express_1.default.Router();
 // Define protectAuth locally
 const protectAuth = async (req, res, next) => {
@@ -56,7 +57,7 @@ const protectOrganizer = (req, res, next) => {
 exports.protectOrganizer = protectOrganizer;
 exports.protectAdmin = [exports.protectAuth, (0, exports.authorize)('admin')];
 // Email register
-router.post('/register', async (req, res) => {
+router.post('/register', server_1.authLimiter, async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const userExists = await User_1.default.findOne({ email });
@@ -71,7 +72,7 @@ router.post('/register', async (req, res) => {
     }
 });
 // Email login
-router.post('/login', async (req, res) => {
+router.post('/login', server_1.authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User_1.default.findOne({ email });
@@ -89,7 +90,7 @@ router.post('/login', async (req, res) => {
 });
 // Google OAuth routes
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
+router.get('/google/callback', server_1.authLimiter, passport_1.default.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
     try {
         const user = req.user;
         const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -97,6 +98,19 @@ router.get('/google/callback', passport_1.default.authenticate('google', { failu
     }
     catch (error) {
         console.error('Google OAuth callback error:', error);
+        res.redirect('/');
+    }
+});
+// GitHub OAuth routes
+router.get('/github', passport_1.default.authenticate('github', { scope: ['user:email'] }));
+router.get('/github/callback', server_1.authLimiter, passport_1.default.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
+    try {
+        const user = req.user;
+        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+    }
+    catch (error) {
+        console.error('GitHub OAuth callback error:', error);
         res.redirect('/');
     }
 });

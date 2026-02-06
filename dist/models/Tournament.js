@@ -52,5 +52,11 @@ const tournamentSchema = new mongoose_1.Schema({
     },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
+// Add indexes for performance
+tournamentSchema.index({ status: 1 });
+tournamentSchema.index({ startDate: 1 });
+tournamentSchema.index({ createdBy: 1 });
+tournamentSchema.index({ isLive: 1 });
+tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
 exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
 //# sourceMappingURL=Tournament.js.map

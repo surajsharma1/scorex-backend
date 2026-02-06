@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import auditLogger from '../utils/auditLogger';
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,6 +22,70 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
     res.json(user);
   } catch (error) {
     console.error('Update user role error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).user._id).select('notificationPreferences');
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json(user.notificationPreferences);
+  } catch (error) {
+    console.error('Get notification preferences error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const updateNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      (req as any).user._id,
+      { notificationPreferences: req.body },
+      { new: true }
+    ).select('notificationPreferences');
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json(user.notificationPreferences);
+  } catch (error) {
+    console.error('Update notification preferences error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById((req as any).user._id).select('-password');
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      (req as any).user._id,
+      { username: req.body.username, email: req.body.email },
+      { new: true }
+    ).select('-password');
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

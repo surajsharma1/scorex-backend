@@ -7,9 +7,28 @@ exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam
 const Team_1 = __importDefault(require("../models/Team"));
 const getTeams = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
         const query = req.query.tournament ? { tournament: req.query.tournament } : {};
-        const teams = await Team_1.default.find(query).populate('tournament');
-        res.json(teams);
+        const total = await Team_1.default.countDocuments(query);
+        const teams = await Team_1.default.find(query)
+            .populate('tournament')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+        const result = {
+            teams,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalItems: total,
+                itemsPerPage: limit,
+                hasNext: page * limit < total,
+                hasPrev: page > 1
+            }
+        };
+        res.json(result);
     }
     catch (error) {
         console.error('Get teams error:', error);

@@ -108,3 +108,41 @@ export const deleteMatch = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const addCommentary = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { commentary } = req.body;
+    const match = await Match.findByIdAndUpdate(
+      req.params.id,
+      { $push: { commentary } },
+      { new: true }
+    ).populate('team1 team2');
+
+    if (!match) {
+      res.status(404).json({ message: 'Match not found' });
+      return;
+    }
+
+    // Emit real-time commentary update
+    io.emit('commentaryUpdate', { matchId: match._id, commentary: match.commentary });
+
+    res.json(match);
+  } catch (error) {
+    console.error('Add commentary error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getCommentary = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const match = await Match.findById(req.params.id).select('commentary');
+    if (!match) {
+      res.status(404).json({ message: 'Match not found' });
+      return;
+    }
+    res.json({ commentary: match.commentary });
+  } catch (error) {
+    console.error('Get commentary error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

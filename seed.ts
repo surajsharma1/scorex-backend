@@ -1,9 +1,11 @@
-import 'dotenv/config'; 
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import connectDB from './src/config/database';
 import User from './src/models/User';
 import Tournament from './src/models/Tournament';
 import Team from './src/models/Team';
+import Match from './src/models/Match';
+import bcrypt from 'bcryptjs';
 
 const seedData = async () => {
   try {
@@ -13,43 +15,90 @@ const seedData = async () => {
     await User.deleteMany();
     await Tournament.deleteMany();
     await Team.deleteMany();
+    await Match.deleteMany();
 
-    connectDB().then(async () => {
-  await User.updateMany({}, { role: 'admin' });
-  console.log('All users made admins');
-  process.exit();
-  });
+    console.log('Cleared existing data');
 
-    
     // Create admin user
+    const hashedPassword = await bcrypt.hash('password123', 10);
     const admin = await User.create({
       username: 'admin',
       email: 'admin@example.com',
-      password: 'password123',
+      password: hashedPassword,
       role: 'admin',
+    });
+
+    // Create organizer user
+    const organizerPassword = await bcrypt.hash('password123', 10);
+    const organizer = await User.create({
+      username: 'organizer',
+      email: 'organizer@example.com',
+      password: organizerPassword,
+      role: 'organizer',
     });
 
     // Create sample tournament
     const tournament = await Tournament.create({
       name: 'IPL 2024',
-      description: 'Indian Premier League 2024',
+      description: 'Indian Premier League 2024 - The biggest cricket tournament',
       format: 'T20',
       startDate: new Date('2024-03-22'),
-      numberOfTeams: 10,
+      endDate: new Date('2024-05-26'),
+      maxTeams: 10,
+      entryFee: 100,
       status: 'upcoming',
       createdBy: admin._id,
     });
 
     // Create sample teams
-    const teams = [
-      { name: 'Mumbai Indians', color: '#004BA0', tournament: tournament._id, createdBy: admin._id },
-      { name: 'Chennai Super Kings', color: '#FFFF3C', tournament: tournament._id, createdBy: admin._id },
-      { name: 'Royal Challengers Bangalore', color: '#FF0000', tournament: tournament._id, createdBy: admin._id },
+    const teamsData = [
+      { name: 'Mumbai Indians', color: '#004BA0', captain: 'Rohit Sharma', players: ['Rohit Sharma', 'Jasprit Bumrah', 'Suryakumar Yadav'], createdBy: organizer._id },
+      { name: 'Chennai Super Kings', color: '#FFFF3C', captain: 'MS Dhoni', players: ['MS Dhoni', 'Ravindra Jadeja', 'Ruturaj Gaikwad'], createdBy: organizer._id },
+      { name: 'Royal Challengers Bangalore', color: '#FF0000', captain: 'Virat Kohli', players: ['Virat Kohli', 'Mohammed Siraj', 'Faf du Plessis'], createdBy: organizer._id },
+      { name: 'Kolkata Knight Riders', color: '#3A225D', captain: 'Shreyas Iyer', players: ['Shreyas Iyer', 'Andre Russell', 'Venkatesh Iyer'], createdBy: organizer._id },
+      { name: 'Delhi Capitals', color: '#17479E', captain: 'Rishabh Pant', players: ['Rishabh Pant', 'Axar Patel', 'David Warner'], createdBy: organizer._id },
     ];
 
-    await Team.insertMany(teams);
+    const teams = await Team.insertMany(teamsData);
 
-    console.log('Database seeded successfully');
+    // Create sample matches
+    const matchesData = [
+      {
+        tournamentId: tournament._id,
+        team1Id: teams[0]._id, // Mumbai Indians
+        team2Id: teams[1]._id, // Chennai Super Kings
+        scheduledDate: new Date('2024-03-25T14:00:00Z'),
+        venue: 'Wankhede Stadium, Mumbai',
+        status: 'scheduled',
+      },
+      {
+        tournamentId: tournament._id,
+        team1Id: teams[2]._id, // Royal Challengers Bangalore
+        team2Id: teams[3]._id, // Kolkata Knight Riders
+        scheduledDate: new Date('2024-03-26T14:00:00Z'),
+        venue: 'M. Chinnaswamy Stadium, Bangalore',
+        status: 'scheduled',
+      },
+      {
+        tournamentId: tournament._id,
+        team1Id: teams[4]._id, // Delhi Capitals
+        team2Id: teams[0]._id, // Mumbai Indians
+        scheduledDate: new Date('2024-03-27T14:00:00Z'),
+        venue: 'Arun Jaitley Stadium, Delhi',
+        status: 'scheduled',
+      },
+    ];
+
+    await Match.insertMany(matchesData);
+
+    console.log('Database seeded successfully with:');
+    console.log('- 2 users (admin and organizer)');
+    console.log('- 1 tournament (IPL 2024)');
+    console.log('- 5 teams');
+    console.log('- 3 matches');
+    console.log('\nAdmin login: admin@example.com / password123');
+    console.log('Organizer login: organizer@example.com / password123');
+
     process.exit(0);
   } catch (error) {
     console.error('Seeding error:', error);

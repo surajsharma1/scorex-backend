@@ -49,3 +49,26 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 };
 
 export const protectAdmin = [protect, authorize('admin')]; // For admins
+
+export const requirePermission = (permission: string) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const userRole = req.user.role;
+    const permissions: { [key: string]: string[] } = {
+      'viewer': ['read:tournaments', 'read:teams', 'read:matches'],
+      'organizer': ['read:tournaments', 'read:teams', 'read:matches', 'create:tournaments', 'create:teams', 'create:matches', 'update:own_tournaments', 'update:own_teams'],
+      'admin': ['read:tournaments', 'read:teams', 'read:matches', 'create:tournaments', 'create:teams', 'create:matches', 'update:tournaments', 'update:teams', 'update:matches', 'delete:tournaments', 'delete:teams', 'delete:matches', 'manage:users']
+    };
+
+    if (!permissions[userRole]?.includes(permission)) {
+      res.status(403).json({ message: 'Insufficient permissions' });
+      return;
+    }
+
+    next();
+  };
+};

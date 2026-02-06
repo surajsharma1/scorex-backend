@@ -1,11 +1,18 @@
 import express from 'express';
-import { getUsers, updateUserRole } from '../controllers/userController';
-import { protectAdmin } from '../middleware/auth'; // Single import
-import { AuthRequest } from '../middleware/auth';
+import { getNotificationPreferences, updateNotificationPreferences, getProfile, updateProfile } from '../controllers/userController';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/', protectAdmin as any, getUsers);
-router.put('/:id', protectAdmin as any, updateUserRole);
+// All user routes require authentication
+router.use(authenticate);
+
+// Notification preferences
+router.get('/notifications/preferences', getNotificationPreferences);
+router.put('/notifications/preferences', updateNotificationPreferences);
+
+// Profile management
+router.get('/profile', getProfile);
+router.put('/profile', updateProfile);
 
 export default router;
