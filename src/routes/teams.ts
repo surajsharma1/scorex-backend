@@ -9,7 +9,7 @@ import {
 import { protect } from '../middleware/auth';
 import upload from '../middleware/upload';
 import { AuthRequest } from '../middleware/auth';
-import { createLimiter } from '../utils/rateLimiters';
+
 
 const router = express.Router();
 

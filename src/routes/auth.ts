@@ -5,7 +5,7 @@ import passport from 'passport';
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
-import { authLimiter } from '../utils/rateLimiters';
+
 
 const router = express.Router();
 
@@ -72,7 +72,7 @@ router.post('/register', authLimiter, async (req, res) => {
 });
 
 // Email login
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -90,7 +90,7 @@ router.post('/login', authLimiter, async (req, res) => {
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-router.get('/google/callback', authLimiter, passport.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
   try {
     const user = req.user as any;
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
@@ -104,7 +104,7 @@ router.get('/google/callback', authLimiter, passport.authenticate('google', { fa
 // GitHub OAuth routes
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-router.get('/github/callback', authLimiter, passport.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
+router.get('/github/callback', passport.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
   try {
     const user = req.user as any;
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });

@@ -8,7 +8,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
-import rateLimit from 'express-rate-limit';
+
 import connectDB from './config/database';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
@@ -44,7 +44,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-     callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/auth/google/callback`,
+     callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
@@ -151,12 +151,7 @@ app.use(session({
   },
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-});
-app.use('/api/', limiter);
+
 
 
 
