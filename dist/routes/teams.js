@@ -9,7 +9,7 @@ const auth_1 = require("../middleware/auth");
 const upload_1 = __importDefault(require("../middleware/upload"));
 const router = express_1.default.Router();
 router.get('/', auth_1.protect, teamController_1.getTeams);
-router.post('/', auth_1.protect, createLimiter, upload_1.default.single('logo'), teamController_1.createTeam);
+router.post('/', auth_1.protect, upload_1.default.single('logo'), teamController_1.createTeam);
 router.put('/:id', auth_1.protect, upload_1.default.single('logo'), teamController_1.updateTeam);
 router.delete('/:id', auth_1.protect, teamController_1.deleteTeam);
 router.post('/:teamId/players', auth_1.protect, upload_1.default.single('image'), teamController_1.addPlayer);
