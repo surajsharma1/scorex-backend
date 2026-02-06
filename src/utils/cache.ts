@@ -1,32 +1,38 @@
 import { createClient, RedisClientType } from 'redis';
 
 class CacheService {
-  private client: RedisClientType;
+  private client: RedisClientType | null = null;
   private isConnected: boolean = false;
 
   constructor() {
-    this.client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-    });
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl) {
+      this.client = createClient({
+        url: redisUrl,
+      });
 
-    this.client.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+      this.client.on('error', (err) => {
+        console.error('Redis Client Error:', err);
+        this.isConnected = false;
+      });
+
+      this.client.on('connect', () => {
+        console.log('Connected to Redis');
+        this.isConnected = true;
+      });
+
+      this.client.on('disconnect', () => {
+        console.log('Disconnected from Redis');
+        this.isConnected = false;
+      });
+    } else {
+      console.log('Redis not configured, running without cache');
       this.isConnected = false;
-    });
-
-    this.client.on('connect', () => {
-      console.log('Connected to Redis');
-      this.isConnected = true;
-    });
-
-    this.client.on('disconnect', () => {
-      console.log('Disconnected from Redis');
-      this.isConnected = false;
-    });
+    }
   }
 
   async connect(): Promise<void> {
-    if (!this.isConnected) {
+    if (!this.isConnected && this.client) {
       try {
         await this.client.connect();
       } catch (error) {
