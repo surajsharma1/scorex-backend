@@ -6,6 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
+import { authLimiter } from '../utils/rateLimiters';
 
 
 const router = express.Router();
