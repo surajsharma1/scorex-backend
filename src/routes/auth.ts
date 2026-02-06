@@ -5,7 +5,7 @@ import passport from 'passport';
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
-import { authLimiter } from '../server';
+import { authLimiter } from '../utils/rateLimiters';
 
 const router = express.Router();
 
