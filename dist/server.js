@@ -3,11 +3,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createLimiter = exports.authLimiter = exports.io = void 0;
+exports.io = exports.authLimiter = exports.createLimiter = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+exports.createLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    message: 'Too many creation requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+exports.authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 requests per window
+    message: 'Too many authentication attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
@@ -157,22 +171,6 @@ const limiter = (0, express_rate_limit_1.default)({
     max: 100,
 });
 app.use('/api/', limiter);
-// Strict rate limiting for authentication endpoints
-exports.authLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 requests per window
-    message: 'Too many authentication attempts, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-// Rate limiting for creation endpoints (tournaments, teams)
-exports.createLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // 10 requests per window per IP
-    message: 'Too many creation requests, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
 // Passport middleware
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());

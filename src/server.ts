@@ -2,6 +2,20 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+export const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many creation requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -158,23 +172,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Strict rate limiting for authentication endpoints
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
-  message: 'Too many authentication attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
-// Rate limiting for creation endpoints (tournaments, teams)
-export const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 requests per window per IP
-  message: 'Too many creation requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+
+
 
 // Passport middleware
 app.use(passport.initialize());
