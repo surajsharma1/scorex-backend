@@ -1,21 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-export const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  message: 'Too many creation requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
-  message: 'Too many authentication attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -151,7 +136,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.set('trust proxy', 1); // For rate limiting behind proxies
+// Trust proxy setting removed (was for rate limiting)
 
 // Session middleware added here
 app.use(session({
