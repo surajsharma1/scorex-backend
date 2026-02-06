@@ -138,7 +138,8 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Trust proxy setting removed (was for rate limiting)
+// Trust proxy setting for rate limiting in production
+app.set('trust proxy', 1);
 
 // Session middleware added here
 app.use(session({
