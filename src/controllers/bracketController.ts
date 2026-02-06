@@ -15,8 +15,12 @@ export const getBrackets = async (req: Request, res: Response): Promise<void> =>
 
 export const createBracket = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { tournament, type, numberOfTeams } = req.body;
     const bracket = await Bracket.create({
-      ...req.body,
+      tournament,
+      type,
+      numberOfTeams,
+      rounds: [],
       createdBy: (req as any).user?._id,  // Type assertion
     });
     res.status(201).json(bracket);
@@ -26,23 +30,43 @@ export const createBracket = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+function generateRounds(teams: any[], numberOfTeams: number) {
+  const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
+  const rounds = [];
+  let currentTeams = shuffledTeams.slice(0, numberOfTeams);
+  while (currentTeams.length > 1) {
+    const matches = [];
+    for (let i = 0; i < currentTeams.length; i += 2) {
+      matches.push({
+        team1: currentTeams[i],
+        team2: currentTeams[i + 1] || null,
+        score1: 0,
+        score2: 0,
+      });
+    }
+    rounds.push({ matches });
+    // For next round, placeholders
+    currentTeams = new Array(Math.ceil(currentTeams.length / 2)).fill(null).map(() => ({ name: 'TBD' }));
+  }
+  return rounds;
+}
+
 export const generateBracket = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { tournamentId, teams } = req.body;
-    const bracket = await Bracket.findByIdAndUpdate(
-      req.params.id,
-      { 
-        tournament: tournamentId,
-        teams: teams,
-        status: 'generated'
-      },
-      { new: true }
-    );
+    const { teams } = req.body;
+    const bracket = await Bracket.findById(req.params.id);
     if (!bracket) {
       res.status(404).json({ message: 'Bracket not found' });
       return;
     }
-    res.json(bracket);
+    const numberOfTeams = (bracket as any).numberOfTeams || 8;
+    const rounds = generateRounds(teams, numberOfTeams);
+    const updatedBracket = await Bracket.findByIdAndUpdate(
+      req.params.id,
+      { rounds },
+      { new: true }
+    );
+    res.json(updatedBracket);
   } catch (error) {
     console.error('Generate bracket error:', error);
     res.status(500).json({ message: 'Server error' });
