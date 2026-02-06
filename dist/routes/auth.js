@@ -90,7 +90,7 @@ router.post('/login', rateLimiters_1.authLimiter, async (req, res) => {
 });
 // Google OAuth routes
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', rateLimiters_1.authLimiter, passport_1.default.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
+router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
     try {
         const user = req.user;
         const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });

@@ -46,7 +46,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport_1.default.use(new passport_google_oauth20_1.Strategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/auth/google/callback`,
+        callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
     }, async (_accessToken, _refreshToken, profile, done) => {
         try {
             let user = await User_1.default.findOne({ googleId: profile.id });
@@ -91,7 +91,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     passport_1.default.use(new passport_github2_1.Strategy({
         clientID: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        callbackURL: `${process.env.BACKEND_URL || 'https://scorex-backend.onrender.com'}/api/v1/auth/github/callback`,
+        callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/github/callback`,
     }, async (_accessToken, _refreshToken, profile, done) => {
         try {
             let user = await User_1.default.findOne({ githubId: profile.id });
@@ -153,8 +153,9 @@ app.use((0, express_session_1.default)({
 }));
 // Rate limiting
 const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/', limiter);
 // Passport middleware

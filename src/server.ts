@@ -8,6 +8,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
+import rateLimit from 'express-rate-limit';
 
 import connectDB from './config/database';
 import tournamentRoutes from './routes/tournaments';
@@ -151,11 +152,13 @@ app.use(session({
   },
 }));
 
-
-
-
-
-
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use('/api/', limiter);
 
 // Passport middleware
 app.use(passport.initialize());
