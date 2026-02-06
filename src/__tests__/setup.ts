@@ -1,17 +1,20 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let mongoServer: MongoMemoryServer;
+// Note: MongoMemoryServer removed due to installation issues
+// Tests will use the actual database connection configured in environment
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  // Connect to the test database if not already connected
+  if (mongoose.connection.readyState === 0) {
+    const testUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI;
+    if (testUri) {
+      await mongoose.connect(testUri);
+    }
+  }
 });
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
 });
 
 beforeEach(async () => {

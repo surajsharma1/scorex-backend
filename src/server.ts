@@ -8,6 +8,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
+import rateLimit from 'express-rate-limit';
 import connectDB from './config/database';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
@@ -156,6 +157,16 @@ const limiter = rateLimit({
   max: 100,
 });
 app.use('/api/', limiter);
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+});
+
+export const createLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+});
 
 
 

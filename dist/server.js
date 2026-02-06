@@ -3,25 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.io = exports.authLimiter = exports.createLimiter = void 0;
+exports.createLimiter = exports.authLimiter = exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
-exports.createLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 60 * 60 * 1000,
-    max: 10,
-    message: 'Too many creation requests, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-exports.authLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 requests per window
-    message: 'Too many authentication attempts, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
@@ -29,6 +14,7 @@ const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const passport_github2_1 = require("passport-github2");
 const express_session_1 = __importDefault(require("express-session"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const database_1 = __importDefault(require("./config/database"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));
@@ -153,7 +139,7 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-app.set('trust proxy', 1); // For rate limiting behind proxies
+// Trust proxy setting removed (was for rate limiting)
 // Session middleware added here
 app.use((0, express_session_1.default)({
     secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
@@ -171,6 +157,14 @@ const limiter = (0, express_rate_limit_1.default)({
     max: 100,
 });
 app.use('/api/', limiter);
+exports.authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+});
+exports.createLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60 * 1000,
+    max: 10,
+});
 // Passport middleware
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());

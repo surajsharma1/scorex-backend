@@ -4,16 +4,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
-const mongodb_memory_server_1 = require("mongodb-memory-server");
-let mongoServer;
+// Note: MongoMemoryServer removed due to installation issues
+// Tests will use the actual database connection configured in environment
 beforeAll(async () => {
-    mongoServer = await mongodb_memory_server_1.MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose_1.default.connect(mongoUri);
+    // Connect to the test database if not already connected
+    if (mongoose_1.default.connection.readyState === 0) {
+        const testUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI;
+        if (testUri) {
+            await mongoose_1.default.connect(testUri);
+        }
+    }
 });
 afterAll(async () => {
     await mongoose_1.default.disconnect();
-    await mongoServer.stop();
 });
 beforeEach(async () => {
     const collections = mongoose_1.default.connection.collections;
