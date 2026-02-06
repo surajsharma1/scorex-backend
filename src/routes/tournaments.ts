@@ -10,6 +10,7 @@ import {
 } from '../controllers/tournamentController';
 import { protect } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
+import { createLimiter } from '../utils/rateLimiters';
 
 
 const router = express.Router();
