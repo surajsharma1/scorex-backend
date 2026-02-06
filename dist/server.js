@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createLimiter = exports.authLimiter = exports.io = void 0;
+exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
@@ -157,14 +157,6 @@ const limiter = (0, express_rate_limit_1.default)({
     max: 100,
 });
 app.use('/api/', limiter);
-exports.authLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-});
-exports.createLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 60 * 1000,
-    max: 10,
-});
 // Passport middleware
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
