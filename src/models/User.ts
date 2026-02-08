@@ -23,6 +23,7 @@ export interface IUser extends Document {
     systemAnnouncements: boolean;
   };
   deleted: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;

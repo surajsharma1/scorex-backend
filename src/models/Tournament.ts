@@ -18,6 +18,7 @@ export interface ITournament extends Document {
   };
   createdBy: mongoose.Types.ObjectId;
   deleted?: boolean;
+  deletedAt?: Date;
 }
 
 const tournamentSchema = new Schema<ITournament>(
@@ -39,6 +40,7 @@ const tournamentSchema = new Schema<ITournament>(
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );

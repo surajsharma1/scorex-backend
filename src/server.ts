@@ -174,6 +174,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/clubs', clubRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {

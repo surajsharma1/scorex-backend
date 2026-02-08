@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import Team from '../models/Team';
+import Player from '../models/Player';
+import User from '../models/User';
 import logger from '../utils/logger';
 
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
@@ -97,17 +99,72 @@ export const addPlayer = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: 'Team not found' });
       return;
     }
+
+    // Create a new Player document
     const playerData = {
       name: req.body.name,
       role: req.body.role,
       jerseyNumber: req.body.jerseyNumber,
+      team: req.params.teamId,
+      userId: req.body.userId || (req as any).user?._id, // Link to user if provided
       ...(req.file && { image: `/uploads/${req.file.filename}` }),
     };
-    team.players.push(playerData);
+
+    const player = await Player.create(playerData);
+    team.players.push(player._id);
     await team.save();
+
+    // Populate the player in the response
+    await team.populate('players');
     res.status(201).json(team);
   } catch (error) {
     console.error('Add player error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const addPlayerByUsername = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { username } = req.body;
+    const teamId = req.params.teamId;
+
+    // Find user by username
+    const user = await User.findOne({ username, deleted: { $ne: true } });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Check if user is already a player in this team
+    const existingPlayer = await Player.findOne({ userId: user._id, team: teamId });
+    if (existingPlayer) {
+      res.status(400).json({ message: 'User is already a player in this team' });
+      return;
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      res.status(404).json({ message: 'Team not found' });
+      return;
+    }
+
+    // Create player with user reference
+    const player = await Player.create({
+      name: user.username,
+      role: req.body.role || 'Batsman',
+      jerseyNumber: req.body.jerseyNumber || '0',
+      team: teamId,
+      userId: user._id,
+    });
+
+    team.players.push(player._id);
+    await team.save();
+
+    // Populate the player in the response
+    await team.populate('players');
+    res.status(201).json(team);
+  } catch (error) {
+    console.error('Add player by username error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

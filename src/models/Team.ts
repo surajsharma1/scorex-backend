@@ -15,6 +15,9 @@ export interface ITeam extends Document {
   players: mongoose.Types.ObjectId[]; // Referenced players
   createdBy: mongoose.Types.ObjectId;
   deleted: boolean;
+  deletedAt?: Date;
+  registrationFee?: number;
+  isPaid?: boolean;
 }
 
 const playerSchema = new Schema<IPlayer>({

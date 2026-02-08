@@ -89,3 +89,23 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const searchUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { query } = req.query;
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ message: 'Query parameter is required' });
+      return;
+    }
+
+    const users = await User.find({
+      username: { $regex: query, $options: 'i' },
+      deleted: { $ne: true }
+    }).select('username profilePicture bio').limit(10);
+
+    res.json(users);
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
