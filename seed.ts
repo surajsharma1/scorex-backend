@@ -48,20 +48,68 @@ const seedData = async () => {
       description: 'Indian Premier League 2024 - The biggest cricket tournament',
       format: 'T20',
       startDate: new Date('2024-03-22'),
-      endDate: new Date('2024-05-26'),
-      maxTeams: 10,
-      entryFee: 100,
+      numberOfTeams: 5,
       status: 'upcoming',
       createdBy: admin._id,
     });
 
     // Create sample teams
     const teamsData = [
-      { name: 'Mumbai Indians', color: '#004BA0', captain: 'Rohit Sharma', players: ['Rohit Sharma', 'Jasprit Bumrah', 'Suryakumar Yadav'], createdBy: organizer._id },
-      { name: 'Chennai Super Kings', color: '#FFFF3C', captain: 'MS Dhoni', players: ['MS Dhoni', 'Ravindra Jadeja', 'Ruturaj Gaikwad'], createdBy: organizer._id },
-      { name: 'Royal Challengers Bangalore', color: '#FF0000', captain: 'Virat Kohli', players: ['Virat Kohli', 'Mohammed Siraj', 'Faf du Plessis'], createdBy: organizer._id },
-      { name: 'Kolkata Knight Riders', color: '#3A225D', captain: 'Shreyas Iyer', players: ['Shreyas Iyer', 'Andre Russell', 'Venkatesh Iyer'], createdBy: organizer._id },
-      { name: 'Delhi Capitals', color: '#17479E', captain: 'Rishabh Pant', players: ['Rishabh Pant', 'Axar Patel', 'David Warner'], createdBy: organizer._id },
+      {
+        name: 'Mumbai Indians',
+        color: '#004BA0',
+        tournament: tournament._id,
+        players: [
+          { name: 'Rohit Sharma', role: 'Batsman', jerseyNumber: '45' },
+          { name: 'Jasprit Bumrah', role: 'Bowler', jerseyNumber: '93' },
+          { name: 'Suryakumar Yadav', role: 'Batsman', jerseyNumber: '63' }
+        ],
+        createdBy: organizer._id
+      },
+      {
+        name: 'Chennai Super Kings',
+        color: '#FFFF3C',
+        tournament: tournament._id,
+        players: [
+          { name: 'MS Dhoni', role: 'Wicketkeeper', jerseyNumber: '7' },
+          { name: 'Ravindra Jadeja', role: 'All-rounder', jerseyNumber: '8' },
+          { name: 'Ruturaj Gaikwad', role: 'Batsman', jerseyNumber: '31' }
+        ],
+        createdBy: organizer._id
+      },
+      {
+        name: 'Royal Challengers Bangalore',
+        color: '#FF0000',
+        tournament: tournament._id,
+        players: [
+          { name: 'Virat Kohli', role: 'Batsman', jerseyNumber: '18' },
+          { name: 'Mohammed Siraj', role: 'Bowler', jerseyNumber: '13' },
+          { name: 'Faf du Plessis', role: 'Batsman', jerseyNumber: '13' }
+        ],
+        createdBy: organizer._id
+      },
+      {
+        name: 'Kolkata Knight Riders',
+        color: '#3A225D',
+        tournament: tournament._id,
+        players: [
+          { name: 'Shreyas Iyer', role: 'Batsman', jerseyNumber: '41' },
+          { name: 'Andre Russell', role: 'All-rounder', jerseyNumber: '12' },
+          { name: 'Venkatesh Iyer', role: 'All-rounder', jerseyNumber: '27' }
+        ],
+        createdBy: organizer._id
+      },
+      {
+        name: 'Delhi Capitals',
+        color: '#17479E',
+        tournament: tournament._id,
+        players: [
+          { name: 'Rishabh Pant', role: 'Wicketkeeper', jerseyNumber: '17' },
+          { name: 'Axar Patel', role: 'All-rounder', jerseyNumber: '20' },
+          { name: 'David Warner', role: 'Batsman', jerseyNumber: '31' }
+        ],
+        createdBy: organizer._id
+      },
     ];
 
     const teams = await Team.insertMany(teamsData);
