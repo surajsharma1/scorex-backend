@@ -1,4 +1,4 @@
-iimport mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IOverlay extends Document {
   name: string;
