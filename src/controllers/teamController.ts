@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Team from '../models/Team';
+import logger from '../utils/logger';
 
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -29,15 +30,15 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
     res.json(result);
   } catch (error) {
-    console.error('Get teams error:', error);
+    logger.error('Get teams error:', { error: error instanceof Error ? error.message : 'Unknown error' });
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 export const createTeam = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Creating team:', req.body);
-    
+    logger.info('Creating team:', { body: req.body, userId: (req as any).user?._id });
+
     const teamData = {
       name: req.body.name,
       color: req.body.color,
@@ -47,11 +48,11 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
     };
 
     const team = await Team.create(teamData);
-    console.log('Team created:', team);
-    
+    logger.info('Team created successfully:', { teamId: team._id });
+
     res.status(201).json(team);
   } catch (error) {
-    console.error('Team creation error:', error);
+    logger.error('Team creation error:', { error: error instanceof Error ? error.message : 'Unknown error', body: req.body });
     const message = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ message: 'Server error', error: message });
   }
@@ -70,7 +71,7 @@ export const updateTeam = async (req: Request, res: Response): Promise<void> => 
     }
     res.json(team);
   } catch (error) {
-    console.error('Update team error:', error);
+    logger.error('Update team error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.id });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -84,7 +85,7 @@ export const deleteTeam = async (req: Request, res: Response): Promise<void> => 
     }
     res.json({ message: 'Team deleted' });
   } catch (error) {
-    console.error('Delete team error:', error);
+    logger.error('Delete team error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.id });
     res.status(500).json({ message: 'Server error' });
   }
 };

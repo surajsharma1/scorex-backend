@@ -26,13 +26,13 @@ export declare const updateTournamentSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const createTeamSchema: z.ZodObject<{
     name: z.ZodString;
-    captain: z.ZodString;
-    players: z.ZodArray<z.ZodString>;
+    color: z.ZodString;
+    tournament: z.ZodString;
 }, z.core.$strip>;
 export declare const updateTeamSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
-    captain: z.ZodOptional<z.ZodString>;
-    players: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    color: z.ZodOptional<z.ZodString>;
+    tournament: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const createMatchSchema: z.ZodObject<{
     tournamentId: z.ZodString;

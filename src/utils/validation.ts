@@ -27,8 +27,8 @@ export const updateTournamentSchema = createTournamentSchema.partial();
 // Team validation schemas
 export const createTeamSchema = z.object({
   name: z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
-  captain: z.string().min(1, 'Captain is required'),
-  players: z.array(z.string()).min(1, 'At least one player required').max(15, 'Cannot exceed 15 players'),
+  color: z.string().min(1, 'Color is required'),
+  tournament: z.string().min(1, 'Tournament is required'),
 });
 
 export const updateTeamSchema = createTeamSchema.partial();

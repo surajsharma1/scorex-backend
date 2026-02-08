@@ -25,8 +25,8 @@ exports.updateTournamentSchema = exports.createTournamentSchema.partial();
 // Team validation schemas
 exports.createTeamSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
-    captain: zod_1.z.string().min(1, 'Captain is required'),
-    players: zod_1.z.array(zod_1.z.string()).min(1, 'At least one player required').max(15, 'Cannot exceed 15 players'),
+    color: zod_1.z.string().min(1, 'Color is required'),
+    tournament: zod_1.z.string().min(1, 'Tournament is required'),
 });
 exports.updateTeamSchema = exports.createTeamSchema.partial();
 // Match validation schemas
