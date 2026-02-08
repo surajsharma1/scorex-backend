@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import Club from '../models/Club';
 import User from '../models/User';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 export const createClub = async (req: Request, res: Response) => {
   try {
     const { name, description } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     if (!name) {
       return res.status(400).json({ message: 'Club name is required' });
@@ -67,7 +67,7 @@ export const getClub = async (req: Request, res: Response) => {
 export const joinClub = async (req: Request, res: Response) => {
   try {
     const { clubId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const club = await Club.findById(clubId);
     if (!club) {
@@ -92,7 +92,7 @@ export const joinClub = async (req: Request, res: Response) => {
 export const leaveClub = async (req: Request, res: Response) => {
   try {
     const { clubId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const club = await Club.findById(clubId);
     if (!club) {

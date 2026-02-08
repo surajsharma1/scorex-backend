@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import Friend from '../models/Friend';
 import User from '../models/User';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 export const sendFriendRequest = async (req: Request, res: Response) => {
   try {
     const { toUserId } = req.body;
-    const fromUserId = req.user?.id;
+    const fromUserId = (req.user as any)._id;
 
     if (!toUserId) {
       return res.status(400).json({ message: 'Recipient user ID is required' });
@@ -52,7 +52,7 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
 export const acceptFriendRequest = async (req: Request, res: Response) => {
   try {
     const { requestId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const friendRequest = await Friend.findById(requestId);
     if (!friendRequest) {
@@ -83,7 +83,7 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
 export const rejectFriendRequest = async (req: Request, res: Response) => {
   try {
     const { requestId } = req.params;
-    const userId = req.user?.id;
+    const userId = (req.user as any)._id.toString();
 
     const friendRequest = await Friend.findById(requestId);
     if (!friendRequest) {
@@ -106,7 +106,7 @@ export const rejectFriendRequest = async (req: Request, res: Response) => {
 
 export const getFriends = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const user = await User.findById(userId).populate('friends', 'username profilePicture bio');
     if (!user) {
@@ -122,7 +122,7 @@ export const getFriends = async (req: Request, res: Response) => {
 
 export const getFriendRequests = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const requests = await Friend.find({ to: userId, status: 'pending' })
       .populate('from', 'username profilePicture bio');
@@ -137,7 +137,7 @@ export const getFriendRequests = async (req: Request, res: Response) => {
 export const removeFriend = async (req: Request, res: Response) => {
   try {
     const { friendId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     // Remove from both users' friends arrays
     await Promise.all([

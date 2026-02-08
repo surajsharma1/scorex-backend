@@ -22,6 +22,8 @@ class DatabaseUtils {
             await Tournament.collection.createIndex({ isLive: 1 });
             await Tournament.collection.createIndex({ deleted: 1 });
             await Tournament.collection.createIndex({ status: 1, startDate: -1 });
+            await Tournament.collection.createIndex({ name: 'text', description: 'text' });
+            await Tournament.collection.createIndex({ registrationFee: 1 });
             // Team indexes
             const Team = mongoose_1.default.model('Team');
             await Team.collection.createIndex({ tournament: 1 });

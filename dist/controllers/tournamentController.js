@@ -5,7 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateLiveScores = exports.goLive = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getTournaments = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const auditLogger_1 = __importDefault(require("../utils/auditLogger"));
 const cache_1 = __importDefault(require("../utils/cache"));
+const logger_1 = __importDefault(require("../utils/logger"));
 const getTournaments = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -97,12 +99,16 @@ const deleteTournament = async (req, res) => {
             res.status(404).json({ message: 'Tournament not found' });
             return;
         }
+        // Audit log tournament deletion
+        auditLogger_1.default.logUserAction(req.user?._id.toString(), 'TOURNAMENT_DELETED', 'Tournament', req.params.id, { name: tournament.name }, req.ip, req.get('User-Agent'));
         // Invalidate caches
         await cache_1.default.del(cache_1.default.getTournamentsListKey());
         await cache_1.default.del(cache_1.default.getTournamentKey(req.params.id));
         res.json({ message: 'Tournament deleted successfully' });
     }
     catch (error) {
+        logger_1.default.error('Delete tournament error:', { error: error instanceof Error ? error.message : 'Unknown error', tournamentId: req.params.id });
+        auditLogger_1.default.logSystemAction('TOURNAMENT_DELETION_ERROR', 'Tournament', req.params.id, { error: error instanceof Error ? error.message : 'Unknown error' });
         res.status(500).json({ message: 'Server error' });
     }
 };
