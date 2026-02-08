@@ -97,7 +97,11 @@ export const updateTournament = async (req: Request, res: Response): Promise<voi
 
 export const deleteTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const tournament = await Tournament.findByIdAndDelete(req.params.id);
+    const tournament = await Tournament.findByIdAndUpdate(
+      req.params.id,
+      { deleted: true, deletedAt: new Date() },
+      { new: true }
+    );
     if (!tournament) {
       res.status(404).json({ message: 'Tournament not found' });
       return;
@@ -107,7 +111,7 @@ export const deleteTournament = async (req: Request, res: Response): Promise<voi
     await cacheService.del(cacheService.getTournamentsListKey());
     await cacheService.del(cacheService.getTournamentKey(req.params.id));
 
-    res.json({ message: 'Tournament deleted' });
+    res.json({ message: 'Tournament deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

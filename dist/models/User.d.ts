@@ -9,6 +9,9 @@ export interface IUser extends Document {
     githubId?: string;
     otp?: string;
     otpExpires?: Date;
+    friends: mongoose.Types.ObjectId[];
+    profilePicture?: string;
+    bio?: string;
     notificationPreferences?: {
         email: boolean;
         push: boolean;
@@ -18,6 +21,7 @@ export interface IUser extends Document {
         systemAnnouncements: boolean;
     };
     deleted: boolean;
+    deletedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;

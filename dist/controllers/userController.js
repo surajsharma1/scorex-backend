@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateProfile = exports.getProfile = exports.updateNotificationPreferences = exports.getNotificationPreferences = exports.updateUserRole = exports.getUsers = void 0;
+exports.searchUsers = exports.updateProfile = exports.getProfile = exports.updateNotificationPreferences = exports.getNotificationPreferences = exports.updateUserRole = exports.getUsers = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const getUsers = async (req, res) => {
     try {
@@ -91,4 +91,23 @@ const updateProfile = async (req, res) => {
     }
 };
 exports.updateProfile = updateProfile;
+const searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query || typeof query !== 'string') {
+            res.status(400).json({ message: 'Query parameter is required' });
+            return;
+        }
+        const users = await User_1.default.find({
+            username: { $regex: query, $options: 'i' },
+            deleted: { $ne: true }
+        }).select('username profilePicture bio').limit(10);
+        res.json(users);
+    }
+    catch (error) {
+        console.error('Search users error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.searchUsers = searchUsers;
 //# sourceMappingURL=userController.js.map

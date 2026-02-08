@@ -34,31 +34,11 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const tournamentSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    description: String,
-    format: { type: String, required: true },
-    startDate: { type: Date, required: true },
-    numberOfTeams: { type: Number, required: true },
-    status: { type: String, enum: ['upcoming', 'active', 'completed'], default: 'upcoming' },
-    isLive: { type: Boolean, default: false },
-    liveScores: {
-        team1: { name: String, score: Number, wickets: Number, overs: Number },
-        team2: { name: String, score: Number, wickets: Number, overs: Number },
-        currentRunRate: Number,
-        requiredRunRate: Number,
-        target: Number,
-        lastFiveOvers: String,
-    },
+const clubSchema = new mongoose_1.Schema({
+    name: { type: String, required: true, unique: true },
+    description: { type: String },
+    members: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
 }, { timestamps: true });
-// Add indexes for performance
-tournamentSchema.index({ status: 1 });
-tournamentSchema.index({ startDate: 1 });
-tournamentSchema.index({ createdBy: 1 });
-tournamentSchema.index({ isLive: 1 });
-tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
-exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
-//# sourceMappingURL=Tournament.js.map
+exports.default = mongoose_1.default.model('Club', clubSchema);
+//# sourceMappingURL=Club.js.map

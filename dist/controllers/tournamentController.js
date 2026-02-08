@@ -92,7 +92,7 @@ const updateTournament = async (req, res) => {
 exports.updateTournament = updateTournament;
 const deleteTournament = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findByIdAndDelete(req.params.id);
+        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { deleted: true, deletedAt: new Date() }, { new: true });
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
@@ -100,7 +100,7 @@ const deleteTournament = async (req, res) => {
         // Invalidate caches
         await cache_1.default.del(cache_1.default.getTournamentsListKey());
         await cache_1.default.del(cache_1.default.getTournamentKey(req.params.id));
-        res.json({ message: 'Tournament deleted' });
+        res.json({ message: 'Tournament deleted successfully' });
     }
     catch (error) {
         res.status(500).json({ message: 'Server error' });

@@ -172,6 +172,8 @@ app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/stats', stats_1.default);
 app.use('/api/v1/auth', auth_1.default);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/clubs', clubRoutes);
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
     try {

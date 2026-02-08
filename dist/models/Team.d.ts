@@ -10,9 +10,12 @@ export interface ITeam extends Document {
     color: string;
     logo?: string;
     tournament: mongoose.Types.ObjectId;
-    players: IPlayer[];
+    players: mongoose.Types.ObjectId[];
     createdBy: mongoose.Types.ObjectId;
     deleted: boolean;
+    deletedAt?: Date;
+    registrationFee?: number;
+    isPaid?: boolean;
 }
 declare const _default: mongoose.Model<ITeam, {}, {}, {}, mongoose.Document<unknown, {}, ITeam> & ITeam & {
     _id: mongoose.Types.ObjectId;

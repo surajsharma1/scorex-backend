@@ -3,8 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeams = void 0;
+exports.addPlayerByUsername = exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeams = void 0;
 const Team_1 = __importDefault(require("../models/Team"));
+const Player_1 = __importDefault(require("../models/Player"));
+const User_1 = __importDefault(require("../models/User"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const getTeams = async (req, res) => {
     try {
@@ -99,14 +101,20 @@ const addPlayer = async (req, res) => {
             res.status(404).json({ message: 'Team not found' });
             return;
         }
+        // Create a new Player document
         const playerData = {
             name: req.body.name,
             role: req.body.role,
             jerseyNumber: req.body.jerseyNumber,
+            team: req.params.teamId,
+            userId: req.body.userId || req.user?._id, // Link to user if provided
             ...(req.file && { image: `/uploads/${req.file.filename}` }),
         };
-        team.players.push(playerData);
+        const player = await Player_1.default.create(playerData);
+        team.players.push(player._id);
         await team.save();
+        // Populate the player in the response
+        await team.populate('players');
         res.status(201).json(team);
     }
     catch (error) {
@@ -115,4 +123,45 @@ const addPlayer = async (req, res) => {
     }
 };
 exports.addPlayer = addPlayer;
+const addPlayerByUsername = async (req, res) => {
+    try {
+        const { username } = req.body;
+        const teamId = req.params.teamId;
+        // Find user by username
+        const user = await User_1.default.findOne({ username, deleted: { $ne: true } });
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+        // Check if user is already a player in this team
+        const existingPlayer = await Player_1.default.findOne({ userId: user._id, team: teamId });
+        if (existingPlayer) {
+            res.status(400).json({ message: 'User is already a player in this team' });
+            return;
+        }
+        const team = await Team_1.default.findById(teamId);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        // Create player with user reference
+        const player = await Player_1.default.create({
+            name: user.username,
+            role: req.body.role || 'Batsman',
+            jerseyNumber: req.body.jerseyNumber || '0',
+            team: teamId,
+            userId: user._id,
+        });
+        team.players.push(player._id);
+        await team.save();
+        // Populate the player in the response
+        await team.populate('players');
+        res.status(201).json(team);
+    }
+    catch (error) {
+        console.error('Add player by username error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.addPlayerByUsername = addPlayerByUsername;
 //# sourceMappingURL=teamController.js.map

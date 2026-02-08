@@ -92,7 +92,12 @@ const serveOverlay = async (req, res) => {
             res.status(404).send('Overlay not found');
             return;
         }
+        // Get teams for this tournament
+        const Team = require('../models/Team').default;
+        const teams = await Team.find({ tournament: overlay.tournament._id }).limit(2);
         const liveScores = overlay.tournament?.liveScores || {};
+        const team1 = teams[0] || {};
+        const team2 = teams[1] || {};
         const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -125,13 +130,13 @@ const serveOverlay = async (req, res) => {
     <div class="overlay-container">
         <div class="score-section">
             <div class="team-info">
-                <div class="team-name">${liveScores.team1?.name || 'Team 1'}</div>
+                <div class="team-name">${team1?.name || liveScores.team1?.name || 'Team 1'}</div>
                 <div class="score">${liveScores.team1?.score || 0}/${liveScores.team1?.wickets || 0}</div>
                 <div class="overs">${liveScores.team1?.overs || 0} overs</div>
             </div>
             <div class="vs-text">VS</div>
             <div class="team-info">
-                <div class="team-name">${liveScores.team2?.name || 'Team 2'}</div>
+                <div class="team-name">${team2?.name || liveScores.team2?.name || 'Team 2'}</div>
                 <div class="score">${liveScores.team2?.score || 0}/${liveScores.team2?.wickets || 0}</div>
                 <div class="overs">${liveScores.team2?.overs || 0} overs</div>
             </div>

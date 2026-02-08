@@ -34,31 +34,12 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const tournamentSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    description: String,
-    format: { type: String, required: true },
-    startDate: { type: Date, required: true },
-    numberOfTeams: { type: Number, required: true },
-    status: { type: String, enum: ['upcoming', 'active', 'completed'], default: 'upcoming' },
-    isLive: { type: Boolean, default: false },
-    liveScores: {
-        team1: { name: String, score: Number, wickets: Number, overs: Number },
-        team2: { name: String, score: Number, wickets: Number, overs: Number },
-        currentRunRate: Number,
-        requiredRunRate: Number,
-        target: Number,
-        lastFiveOvers: String,
-    },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    deleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
+const friendSchema = new mongoose_1.Schema({
+    from: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    to: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
 }, { timestamps: true });
-// Add indexes for performance
-tournamentSchema.index({ status: 1 });
-tournamentSchema.index({ startDate: 1 });
-tournamentSchema.index({ createdBy: 1 });
-tournamentSchema.index({ isLive: 1 });
-tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
-exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
-//# sourceMappingURL=Tournament.js.map
+// Ensure unique friend requests (no duplicates)
+friendSchema.index({ from: 1, to: 1 }, { unique: true });
+exports.default = mongoose_1.default.model('Friend', friendSchema);
+//# sourceMappingURL=Friend.js.map

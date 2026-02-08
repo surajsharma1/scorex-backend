@@ -5,4 +5,5 @@ export declare const getNotificationPreferences: (req: Request, res: Response) =
 export declare const updateNotificationPreferences: (req: Request, res: Response) => Promise<void>;
 export declare const getProfile: (req: Request, res: Response) => Promise<void>;
 export declare const updateProfile: (req: Request, res: Response) => Promise<void>;
+export declare const searchUsers: (req: Request, res: Response) => Promise<void>;
 //# sourceMappingURL=userController.d.ts.map
