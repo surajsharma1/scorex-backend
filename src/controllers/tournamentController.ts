@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
 import auditLogger from '../utils/auditLogger';
 import cacheService from '../utils/cache';
+import logger from '../utils/logger';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -107,12 +108,25 @@ export const deleteTournament = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    // Audit log tournament deletion
+    auditLogger.logUserAction(
+      (req as any).user?._id.toString(),
+      'TOURNAMENT_DELETED',
+      'Tournament',
+      req.params.id,
+      { name: tournament.name },
+      req.ip,
+      req.get('User-Agent')
+    );
+
     // Invalidate caches
     await cacheService.del(cacheService.getTournamentsListKey());
     await cacheService.del(cacheService.getTournamentKey(req.params.id));
 
     res.json({ message: 'Tournament deleted successfully' });
   } catch (error) {
+    logger.error('Delete tournament error:', { error: error instanceof Error ? error.message : 'Unknown error', tournamentId: req.params.id });
+    auditLogger.logSystemAction('TOURNAMENT_DELETION_ERROR', 'Tournament', req.params.id, { error: error instanceof Error ? error.message : 'Unknown error' });
     res.status(500).json({ message: 'Server error' });
   }
 };
