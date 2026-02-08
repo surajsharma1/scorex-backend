@@ -12,7 +12,7 @@ export interface ITeam extends Document {
   color: string;
   logo?: string;
   tournament: mongoose.Types.ObjectId;
-  players: IPlayer[];
+  players: mongoose.Types.ObjectId[]; // Referenced players
   createdBy: mongoose.Types.ObjectId;
   deleted: boolean;
 }

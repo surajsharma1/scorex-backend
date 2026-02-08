@@ -6,6 +6,7 @@ export interface IPlayer extends Document {
   jerseyNumber: string;
   image?: string;
   team: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId; // Link to user for social features
   stats: {
     matches: number;
     runs: number;

@@ -11,6 +11,9 @@ export interface IUser extends Document {
   githubId?: string;
   otp?: string;
   otpExpires?: Date;
+  friends: mongoose.Types.ObjectId[];
+  profilePicture?: string;
+  bio?: string;
   notificationPreferences?: {
     email: boolean;
     push: boolean;
