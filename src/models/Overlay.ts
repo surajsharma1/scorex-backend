@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+iimport mongoose, { Document, Schema } from 'mongoose';
 
 export interface IOverlay extends Document {
   name: string;
@@ -13,7 +13,7 @@ export interface IOverlay extends Document {
 const overlaySchema = new Schema<IOverlay>(
   {
     name: { type: String, required: true },
-    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
+  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
     template: { type: String, required: true },
     config: { type: Schema.Types.Mixed, required: true },
     elements: [{ type: Schema.Types.Mixed }],

@@ -2,6 +2,7 @@ import mongoose, { Document } from 'mongoose';
 export interface IBracket extends Document {
     tournament: mongoose.Types.ObjectId;
     type: string;
+    numberOfTeams: number;
     rounds: any[];
     createdBy: mongoose.Types.ObjectId;
 }
