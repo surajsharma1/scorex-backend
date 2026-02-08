@@ -37,6 +37,12 @@ const userSchema = new Schema<IUser>(
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     googleId: { type: String, sparse: true },
+    githubId: { type: String, sparse: true },
+    otp: { type: String },
+    otpExpires: { type: Date },
+    friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    profilePicture: { type: String },
+    bio: { type: String },
     notificationPreferences: {
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true },
@@ -46,20 +52,25 @@ const userSchema = new Schema<IUser>(
       systemAnnouncements: { type: Boolean, default: true },
     },
     deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );
 
-userSchema.pre('save', async function (next) {
+// Pre-save hook
+userSchema.pre<IUser>('save', async function (next) {
   if (!this.isModified('password') || !this.password) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
+// Instance method
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model<IUser>('User', userSchema);
+const User = mongoose.model<IUser>('User', userSchema);
+
+export default User;
