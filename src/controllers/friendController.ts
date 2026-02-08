@@ -106,14 +106,19 @@ export const rejectFriendRequest = async (req: Request, res: Response) => {
 
 export const getFriends = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?._id;
+    const userId = (req.user as any)?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
 
     const user = await User.findById(userId).populate('friends', 'username profilePicture bio');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ friends: user.friends });
+    const friends = Array.isArray(user.friends) ? user.friends : [];
+    res.json({ friends });
   } catch (error) {
     logger.error('Error getting friends:', error);
     res.status(500).json({ message: 'Internal server error' });

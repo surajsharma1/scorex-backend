@@ -38,7 +38,7 @@ export const getClubs = async (req: Request, res: Response) => {
       .populate('members', 'username profilePicture')
       .populate('createdBy', 'username');
 
-    res.json({ clubs });
+    res.json(clubs);
   } catch (error) {
     logger.error('Error getting clubs:', error);
     res.status(500).json({ message: 'Internal server error' });
