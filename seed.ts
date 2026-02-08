@@ -117,28 +117,31 @@ const seedData = async () => {
     // Create sample matches
     const matchesData = [
       {
-        tournamentId: tournament._id,
-        team1Id: teams[0]._id, // Mumbai Indians
-        team2Id: teams[1]._id, // Chennai Super Kings
-        scheduledDate: new Date('2024-03-25T14:00:00Z'),
+        tournament: tournament._id,
+        team1: teams[0]._id, // Mumbai Indians
+        team2: teams[1]._id, // Chennai Super Kings
+        date: new Date('2024-03-25T14:00:00Z'),
         venue: 'Wankhede Stadium, Mumbai',
         status: 'scheduled',
+        createdBy: organizer._id,
       },
       {
-        tournamentId: tournament._id,
-        team1Id: teams[2]._id, // Royal Challengers Bangalore
-        team2Id: teams[3]._id, // Kolkata Knight Riders
-        scheduledDate: new Date('2024-03-26T14:00:00Z'),
+        tournament: tournament._id,
+        team1: teams[2]._id, // Royal Challengers Bangalore
+        team2: teams[3]._id, // Kolkata Knight Riders
+        date: new Date('2024-03-26T14:00:00Z'),
         venue: 'M. Chinnaswamy Stadium, Bangalore',
         status: 'scheduled',
+        createdBy: organizer._id,
       },
       {
-        tournamentId: tournament._id,
-        team1Id: teams[4]._id, // Delhi Capitals
-        team2Id: teams[0]._id, // Mumbai Indians
-        scheduledDate: new Date('2024-03-27T14:00:00Z'),
+        tournament: tournament._id,
+        team1: teams[4]._id, // Delhi Capitals
+        team2: teams[0]._id, // Mumbai Indians
+        date: new Date('2024-03-27T14:00:00Z'),
         venue: 'Arun Jaitley Stadium, Delhi',
         status: 'scheduled',
+        createdBy: organizer._id,
       },
     ];
 
