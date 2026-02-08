@@ -21,6 +21,8 @@ import User from './models/User';
 import jwt from 'jsonwebtoken';
 import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
+import friendRoutes from './routes/friends';
+import clubRoutes from './routes/clubs';
 import { sendOtpEmail } from './utils/email';
 import logger from './utils/logger';
 import rateLimit from 'express-rate-limit';

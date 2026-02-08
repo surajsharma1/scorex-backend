@@ -5,6 +5,8 @@ import User from './src/models/User';
 import Tournament from './src/models/Tournament';
 import Team from './src/models/Team';
 import Match from './src/models/Match';
+import Friend from './src/models/Friend';
+import Club from './src/models/Club';
 import bcrypt from 'bcryptjs';
 
 const seedData = async () => {
@@ -91,11 +93,42 @@ const seedData = async () => {
 
     await Match.insertMany(matchesData);
 
+    // Create sample friends
+    const friendsData = [
+      {
+        from: admin._id,
+        to: organizer._id,
+        status: 'accepted',
+      },
+    ];
+
+    await Friend.insertMany(friendsData);
+
+    // Create sample clubs
+    const clubsData = [
+      {
+        name: 'Cricket Enthusiasts Club',
+        description: 'A club for cricket lovers and tournament organizers',
+        members: [admin._id, organizer._id],
+        createdBy: admin._id,
+      },
+      {
+        name: 'Tournament Managers',
+        description: 'Professional tournament management and organization',
+        members: [organizer._id],
+        createdBy: organizer._id,
+      },
+    ];
+
+    await Club.insertMany(clubsData);
+
     console.log('Database seeded successfully with:');
     console.log('- 2 users (admin and organizer)');
     console.log('- 1 tournament (IPL 2024)');
     console.log('- 5 teams');
     console.log('- 3 matches');
+    console.log('- 1 friend relationship');
+    console.log('- 2 clubs');
     console.log('\nAdmin login: admin@example.com / password123');
     console.log('Organizer login: organizer@example.com / password123');
 
