@@ -10,7 +10,7 @@ const logger_1 = __importDefault(require("../utils/logger"));
 const sendFriendRequest = async (req, res) => {
     try {
         const { toUserId } = req.body;
-        const fromUserId = req.user?._id;
+        const fromUserId = req.user._id;
         if (!toUserId) {
             return res.status(400).json({ message: 'Recipient user ID is required' });
         }
@@ -76,7 +76,7 @@ exports.acceptFriendRequest = acceptFriendRequest;
 const rejectFriendRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const userId = req.user?._id.toString();
+        const userId = req.user._id.toString();
         const friendRequest = await Friend_1.default.findById(requestId);
         if (!friendRequest) {
             return res.status(404).json({ message: 'Friend request not found' });
