@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Friend from '../models/Friend';
 import User from '../models/User';
 import logger from '../utils/logger';
+import { AuthRequest } from '../middleware/auth';
 
-export const sendFriendRequest = async (req: Request, res: Response) => {
+export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { toUserId } = req.body;
     const fromUserId = (req.user as any)._id;
@@ -108,20 +110,46 @@ export const getFriends = async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)?._id;
 
+    logger.info(`Getting friends for user: ${userId}`);
+
     if (!userId) {
+      logger.warn('User not authenticated in getFriends');
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const user = await User.findById(userId).populate('friends', 'username profilePicture bio');
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      logger.error('Database not connected - readyState:', mongoose.connection.readyState);
+      return res.status(500).json({ message: 'Database connection error' });
+    }
+
+    // First, get the user without populate to check if they exist
+    const user = await User.findById(userId);
     if (!user) {
+      logger.warn(`User not found: ${userId}`);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const friends = Array.isArray(user.friends) ? user.friends : [];
+    logger.info(`User found, friends array length: ${user.friends?.length || 0}`);
+
+    // Now populate the friends
+    const populatedUser = await User.findById(userId).populate('friends', 'username profilePicture bio');
+    if (!populatedUser) {
+      logger.warn(`User not found after populate: ${userId}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    logger.info(`Found ${populatedUser.friends.length} friends for user: ${userId}`);
+
+    const friends = Array.isArray(populatedUser.friends) ? populatedUser.friends : [];
     res.json({ friends });
   } catch (error) {
     logger.error('Error getting friends:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    // More detailed error response for debugging
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
   }
 };
 
