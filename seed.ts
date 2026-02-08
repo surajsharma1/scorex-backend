@@ -13,7 +13,10 @@ const seedData = async () => {
   try {
     await connectDB();
 
-    // Clear existing data
+    // Drop the entire database to ensure clean state
+    await mongoose.connection.db.dropDatabase();
+
+    // Clear existing data (redundant but kept for safety)
     await User.deleteMany();
     await Tournament.deleteMany();
     await Team.deleteMany();

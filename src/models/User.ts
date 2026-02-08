@@ -36,8 +36,8 @@ const userSchema = new Schema<IUser>(
     password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
-    googleId: { type: String, sparse: true },
-    githubId: { type: String, sparse: true },
+    googleId: { type: String, unique: true, sparse: true },
+    githubId: { type: String, unique: true, sparse: true },
     otp: { type: String },
     otpExpires: { type: Date },
     friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
@@ -58,7 +58,7 @@ const userSchema = new Schema<IUser>(
 );
 
 // Pre-save hook
-userSchema.pre<IUser>('save', async function (next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
