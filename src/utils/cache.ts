@@ -1,132 +1,64 @@
 import { createClient, RedisClientType } from 'redis';
 
-class CacheService {
+export class CacheService {
   private client: RedisClientType | null = null;
-  private isConnected: boolean = false;
-
-  constructor() {
-    const redisUrl = process.env.REDIS_URL;
-    if (redisUrl) {
-      this.client = createClient({
-        url: redisUrl,
-      });
-
-      this.client.on('error', (err) => {
-        console.error('Redis Client Error:', err);
-        this.isConnected = false;
-      });
-
-      this.client.on('connect', () => {
-        console.log('Connected to Redis');
-        this.isConnected = true;
-      });
-
-      this.client.on('disconnect', () => {
-        console.log('Disconnected from Redis');
-        this.isConnected = false;
-      });
-    } else {
-      console.log('Redis not configured, running without cache');
-      this.isConnected = false;
-    }
-  }
+  public isConnected: boolean = false;
 
   async connect(): Promise<void> {
-    if (!this.isConnected && this.client) {
-      try {
-        await this.client.connect();
-      } catch (error) {
-        console.error('Failed to connect to Redis:', error);
-        // Don't throw error, just log it and continue without Redis
-        this.isConnected = false;
+    try {
+      const redisUrl = process.env.REDIS_URL;
+      if (!redisUrl) {
+        console.warn('Redis not configured, running without cache');
+        return;
       }
+
+      this.client = createClient({ url: redisUrl });
+      this.client.on('error', (err) => console.error('Redis Client Error', err));
+      this.client.on('connect', () => {
+        this.isConnected = true;
+        console.log('Redis connected');
+      });
+      this.client.on('disconnect', () => {
+        this.isConnected = false;
+        console.log('Redis disconnected');
+      });
+
+      await this.client.connect();
+    } catch (error) {
+      console.warn('Failed to connect to Redis:', error);
     }
   }
 
   async disconnect(): Promise<void> {
-    if (this.isConnected) {
-      await this.client.disconnect();
+    if (this.client) {
+      await this.client!.disconnect();
     }
   }
 
   async get(key: string): Promise<string | null> {
-    if (!this.isConnected) {
-      // Skip Redis operations if not connected
-      return null;
-    }
-    try {
-      return await this.client.get(key);
-    } catch (error) {
-      console.error('Redis GET error:', error);
-      return null;
-    }
+    if (!this.client) return null;
+    return await this.client!.get(key);
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
-    if (!this.isConnected) {
-      // Skip Redis operations if not connected
-      return;
-    }
-    try {
-      if (ttlSeconds) {
-        await this.client.setEx(key, ttlSeconds, value);
-      } else {
-        await this.client.set(key, value);
-      }
-    } catch (error) {
-      console.error('Redis SET error:', error);
+    if (!this.client) return;
+    if (ttlSeconds) {
+      await this.client!.setEx(key, ttlSeconds, value);
+    } else {
+      await this.client!.set(key, value);
     }
   }
 
-  async del(key: string): Promise<void> {
-    if (!this.isConnected) {
-      // Skip Redis operations if not connected
-      return;
-    }
-    try {
-      await this.client.del(key);
-    } catch (error) {
-      console.error('Redis DEL error:', error);
-    }
+  async delete(key: string): Promise<void> {
+    if (!this.client) return;
+    await this.client!.del(key);
   }
 
   async exists(key: string): Promise<boolean> {
-    if (!this.isConnected) {
-      // Skip Redis operations if not connected
-      return false;
-    }
-    try {
-      const result = await this.client.exists(key);
-      return result === 1;
-    } catch (error) {
-      console.error('Redis EXISTS error:', error);
-      return false;
-    }
-  }
-
-  // Cache with JSON serialization
-  async getJSON<T>(key: string): Promise<T | null> {
-    const data = await this.get(key);
-    return data ? JSON.parse(data) : null;
-  }
-
-  async setJSON<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    await this.set(key, JSON.stringify(value), ttlSeconds);
-  }
-
-  // Tournament-specific cache methods
-  getTournamentKey(id: string): string {
-    return `tournament:${id}`;
-  }
-
-  getTournamentsListKey(): string {
-    return 'tournaments:list';
-  }
-
-  getTournamentStatsKey(): string {
-    return 'tournaments:stats';
+    if (!this.client) return false;
+    const result = await this.client!.exists(key);
+    return result === 1;
   }
 }
 
 export const cacheService = new CacheService();
-export default cacheService;

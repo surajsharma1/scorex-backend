@@ -37,7 +37,7 @@ const getClubs = async (req, res) => {
         const clubs = await Club_1.default.find()
             .populate('members', 'username profilePicture')
             .populate('createdBy', 'username');
-        res.json({ clubs });
+        res.json(clubs);
     }
     catch (error) {
         logger_1.default.error('Error getting clubs:', error);

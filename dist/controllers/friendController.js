@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeFriend = exports.getFriendRequests = exports.getFriends = exports.rejectFriendRequest = exports.acceptFriendRequest = exports.sendFriendRequest = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Friend_1 = __importDefault(require("../models/Friend"));
 const User_1 = __importDefault(require("../models/User"));
 const logger_1 = __importDefault(require("../utils/logger"));
@@ -97,15 +98,40 @@ exports.rejectFriendRequest = rejectFriendRequest;
 const getFriends = async (req, res) => {
     try {
         const userId = req.user?._id;
-        const user = await User_1.default.findById(userId).populate('friends', 'username profilePicture bio');
+        logger_1.default.info(`Getting friends for user: ${userId}`);
+        if (!userId) {
+            logger_1.default.warn('User not authenticated in getFriends');
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        // Check database connection
+        if (mongoose_1.default.connection.readyState !== 1) {
+            logger_1.default.error('Database not connected - readyState:', mongoose_1.default.connection.readyState);
+            return res.status(500).json({ message: 'Database connection error' });
+        }
+        // First, get the user without populate to check if they exist
+        const user = await User_1.default.findById(userId);
         if (!user) {
+            logger_1.default.warn(`User not found: ${userId}`);
             return res.status(404).json({ message: 'User not found' });
         }
-        res.json({ friends: user.friends });
+        logger_1.default.info(`User found, friends array length: ${user.friends?.length || 0}`);
+        // Now populate the friends
+        const populatedUser = await User_1.default.findById(userId).populate('friends', 'username profilePicture bio');
+        if (!populatedUser) {
+            logger_1.default.warn(`User not found after populate: ${userId}`);
+            return res.status(404).json({ message: 'User not found' });
+        }
+        logger_1.default.info(`Found ${populatedUser.friends.length} friends for user: ${userId}`);
+        const friends = Array.isArray(populatedUser.friends) ? populatedUser.friends : [];
+        res.json({ friends });
     }
     catch (error) {
         logger_1.default.error('Error getting friends:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        // More detailed error response for debugging
+        res.status(500).json({
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 exports.getFriends = getFriends;

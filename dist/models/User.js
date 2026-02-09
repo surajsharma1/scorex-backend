@@ -44,7 +44,13 @@ const userSchema = new mongoose_1.Schema({
     password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
-    googleId: { type: String, sparse: true },
+    googleId: { type: String, unique: true, sparse: true },
+    githubId: { type: String, unique: true, sparse: true },
+    otp: { type: String },
+    otpExpires: { type: Date },
+    friends: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
+    profilePicture: { type: String },
+    bio: { type: String },
     notificationPreferences: {
         email: { type: Boolean, default: true },
         push: { type: Boolean, default: true },
@@ -54,7 +60,9 @@ const userSchema = new mongoose_1.Schema({
         systemAnnouncements: { type: Boolean, default: true },
     },
     deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
 }, { timestamps: true });
+// Pre-save hook
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password') || !this.password)
         return next();
@@ -62,10 +70,12 @@ userSchema.pre('save', async function (next) {
     this.password = await bcryptjs_1.default.hash(this.password, salt);
     next();
 });
+// Instance method
 userSchema.methods.comparePassword = async function (candidatePassword) {
     if (!this.password)
         return false;
     return bcryptjs_1.default.compare(candidatePassword, this.password);
 };
-exports.default = mongoose_1.default.model('User', userSchema);
+const User = mongoose_1.default.model('User', userSchema);
+exports.default = User;
 //# sourceMappingURL=User.js.map
