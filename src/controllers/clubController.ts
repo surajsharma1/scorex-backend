@@ -149,10 +149,10 @@ export const updateClub = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const deleteClub = async (req: Request, res: Response) => {
+export const deleteClub = async (req: AuthRequest, res: Response) => {
   try {
     const { clubId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const club = await Club.findById(clubId);
     if (!club) {

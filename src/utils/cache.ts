@@ -1,6 +1,26 @@
+import { Document, Types } from 'mongoose';
 import { createClient, RedisClientType } from 'redis';
+import { ITournament } from '../models/Tournament';
 
 export class CacheService {
+  getJSON(cacheKey: string) {
+    throw new Error('Method not implemented.');
+  }
+  setJSON(cacheKey: string, result: { tournaments: Omit<Document<unknown, {}, ITournament> & ITournament & { _id: Types.ObjectId; }, never>[]; pagination: { currentPage: number; totalPages: number; totalItems: number; itemsPerPage: number; hasNext: boolean; hasPrev: boolean; }; }, arg2: number) {
+    throw new Error('Method not implemented.');
+  }
+  getTournamentsListKey(): any {
+    throw new Error('Method not implemented.');
+  }
+  getTournamentKey(id: string): any {
+    throw new Error('Method not implemented.');
+  }
+  del(arg0: any) {
+    throw new Error('Method not implemented.');
+  }
+  del(arg0: any) {
+    throw new Error('Method not implemented.');
+  }
   private client: RedisClientType | null = null;
   public isConnected: boolean = false;
 
