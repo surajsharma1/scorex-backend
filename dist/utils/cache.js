@@ -7,6 +7,22 @@ class CacheService {
         this.client = null;
         this.isConnected = false;
     }
+    getTournamentsListKey() {
+        return 'tournaments:list';
+    }
+    getTournamentKey(id) {
+        return `tournaments:${id}`;
+    }
+    async getJSON(key) {
+        const data = await this.get(key);
+        return data ? JSON.parse(data) : null;
+    }
+    async setJSON(key, value, ttlSeconds) {
+        await this.set(key, JSON.stringify(value), ttlSeconds);
+    }
+    async del(key) {
+        await this.delete(key);
+    }
     async connect() {
         try {
             const redisUrl = process.env.REDIS_URL;

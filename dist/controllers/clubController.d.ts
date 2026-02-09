@@ -6,5 +6,5 @@ export declare const getClub: (req: Request, res: Response) => Promise<Response<
 export declare const joinClub: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const leaveClub: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const updateClub: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-export declare const deleteClub: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const deleteClub: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 //# sourceMappingURL=clubController.d.ts.map

@@ -1,4 +1,9 @@
 export declare class CacheService {
+    getTournamentsListKey(): string;
+    getTournamentKey(id: string): string;
+    getJSON(key: string): Promise<any>;
+    setJSON(key: string, value: any, ttlSeconds?: number): Promise<void>;
+    del(key: string): Promise<void>;
     private client;
     isConnected: boolean;
     connect(): Promise<void>;

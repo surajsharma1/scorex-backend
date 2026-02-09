@@ -16,7 +16,12 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
 
     // Create cache key with pagination
     const cacheKey = `${cacheService.getTournamentsListKey()}:page${page}:limit${limit}`;
-    const cachedResult = await cacheService.getJSON(cacheKey);
+    let cachedResult = null;
+    try {
+      cachedResult = await cacheService.getJSON(cacheKey);
+    } catch (cacheError) {
+      logger.warn('Cache get error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+    }
 
     if (cachedResult) {
       res.json(cachedResult);
@@ -43,10 +48,15 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
     };
 
     // Cache for 5 minutes
-    await cacheService.setJSON(cacheKey, result, 300);
+    try {
+      await cacheService.setJSON(cacheKey, result, 300);
+    } catch (cacheError) {
+      logger.warn('Cache set error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+    }
 
     res.json(result);
   } catch (error) {
+    logger.error('Get tournaments error:', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -74,7 +84,11 @@ export const createTournament = async (req: AuthRequest, res: Response): Promise
     console.log('Tournament created:', tournament); // Debug log
 
     // Invalidate tournaments list cache
-    await cacheService.del(cacheService.getTournamentsListKey());
+    try {
+      await cacheService.del(cacheService.getTournamentsListKey());
+    } catch (cacheError) {
+      logger.warn('Cache delete error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+    }
 
     res.status(201).json(tournament);
   } catch (error: any) {

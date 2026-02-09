@@ -141,7 +141,7 @@ exports.updateClub = updateClub;
 const deleteClub = async (req, res) => {
     try {
         const { clubId } = req.params;
-        const userId = req.user?.id;
+        const userId = req.user?._id;
         const club = await Club_1.default.findById(clubId);
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });

@@ -15,7 +15,13 @@ const getTournaments = async (req, res) => {
         const skip = (page - 1) * limit;
         // Create cache key with pagination
         const cacheKey = `${cache_1.cacheService.getTournamentsListKey()}:page${page}:limit${limit}`;
-        const cachedResult = await cache_1.cacheService.getJSON(cacheKey);
+        let cachedResult = null;
+        try {
+            cachedResult = await cache_1.cacheService.getJSON(cacheKey);
+        }
+        catch (cacheError) {
+            logger_1.default.warn('Cache get error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+        }
         if (cachedResult) {
             res.json(cachedResult);
             return;
@@ -38,10 +44,16 @@ const getTournaments = async (req, res) => {
             }
         };
         // Cache for 5 minutes
-        await cache_1.cacheService.setJSON(cacheKey, result, 300);
+        try {
+            await cache_1.cacheService.setJSON(cacheKey, result, 300);
+        }
+        catch (cacheError) {
+            logger_1.default.warn('Cache set error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+        }
         res.json(result);
     }
     catch (error) {
+        logger_1.default.error('Get tournaments error:', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -69,7 +81,12 @@ const createTournament = async (req, res) => {
         });
         console.log('Tournament created:', tournament); // Debug log
         // Invalidate tournaments list cache
-        await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
+        try {
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
+        }
+        catch (cacheError) {
+            logger_1.default.warn('Cache delete error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+        }
         res.status(201).json(tournament);
     }
     catch (error) {
