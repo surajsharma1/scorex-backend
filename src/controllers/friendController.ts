@@ -51,7 +51,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const acceptFriendRequest = async (req: Request, res: Response) => {
+export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { requestId } = req.params;
     const userId = req.user?._id;

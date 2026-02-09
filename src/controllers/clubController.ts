@@ -24,7 +24,7 @@ export const createClub = async (req: AuthRequest, res: Response) => {
     logger.info(`Club created: ${name} by ${userId}`);
     res.status(201).json({ message: 'Club created successfully', club });
   } catch (error: any) {
-    if (error.code === 11000) {
+    if (error?.code === 11000) {
       return res.status(400).json({ message: 'Club name already exists' });
     }
     logger.error('Error creating club:', error);
