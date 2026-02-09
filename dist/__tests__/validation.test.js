@@ -94,8 +94,8 @@ describe('Validation Schemas', () => {
         it('should validate valid team data', () => {
             const validData = {
                 name: 'Test Team',
-                captain: 'captain-id',
-                players: ['player1', 'player2'],
+                color: 'blue',
+                tournament: 'tournament-id',
             };
             expect(() => validation_1.createTeamSchema.parse(validData)).not.toThrow();
         });

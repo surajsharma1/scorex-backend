@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import Club from '../models/Club';
-import User from '../models/User';
 import logger from '../utils/logger';
+import { AuthRequest } from '../middleware/auth';
 
-export const createClub = async (req: Request, res: Response) => {
+export const createClub = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description } = req.body;
     const userId = req.user?._id;
@@ -23,7 +23,7 @@ export const createClub = async (req: Request, res: Response) => {
 
     logger.info(`Club created: ${name} by ${userId}`);
     res.status(201).json({ message: 'Club created successfully', club });
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Club name already exists' });
     }
@@ -64,7 +64,7 @@ export const getClub = async (req: Request, res: Response) => {
   }
 };
 
-export const joinClub = async (req: Request, res: Response) => {
+export const joinClub = async (req: AuthRequest, res: Response) => {
   try {
     const { clubId } = req.params;
     const userId = req.user?._id;
@@ -89,7 +89,7 @@ export const joinClub = async (req: Request, res: Response) => {
   }
 };
 
-export const leaveClub = async (req: Request, res: Response) => {
+export const leaveClub = async (req: AuthRequest, res: Response) => {
   try {
     const { clubId } = req.params;
     const userId = req.user?._id;
@@ -118,18 +118,18 @@ export const leaveClub = async (req: Request, res: Response) => {
   }
 };
 
-export const updateClub = async (req: Request, res: Response) => {
+export const updateClub = async (req: AuthRequest, res: Response) => {
   try {
     const { clubId } = req.params;
     const { name, description } = req.body;
-    const userId = req.user?.id;
+    const userId = (req.user as any)?._id;
 
     const club = await Club.findById(clubId);
     if (!club) {
       return res.status(404).json({ message: 'Club not found' });
     }
 
-    if (club.createdBy.toString() !== userId) {
+    if (club.createdBy.toString() !== userId?.toString()) {
       return res.status(403).json({ message: 'Only club creator can update the club' });
     }
 
@@ -140,7 +140,7 @@ export const updateClub = async (req: Request, res: Response) => {
 
     logger.info(`Club updated: ${clubId}`);
     res.json({ message: 'Club updated successfully', club });
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Club name already exists' });
     }

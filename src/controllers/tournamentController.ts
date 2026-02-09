@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
 import auditLogger from '../utils/auditLogger';
-import cacheService from '../utils/cache';
+import { cacheService } from '../utils/cache';
 import logger from '../utils/logger';
 
 interface AuthRequest extends Request {

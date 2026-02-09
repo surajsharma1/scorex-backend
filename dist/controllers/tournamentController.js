@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateLiveScores = exports.goLive = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getTournaments = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const auditLogger_1 = __importDefault(require("../utils/auditLogger"));
-const cache_1 = __importDefault(require("../utils/cache"));
+const cache_1 = require("../utils/cache");
 const logger_1 = __importDefault(require("../utils/logger"));
 const getTournaments = async (req, res) => {
     try {
@@ -14,8 +14,8 @@ const getTournaments = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         // Create cache key with pagination
-        const cacheKey = `${cache_1.default.getTournamentsListKey()}:page${page}:limit${limit}`;
-        const cachedResult = await cache_1.default.getJSON(cacheKey);
+        const cacheKey = `${cache_1.cacheService.getTournamentsListKey()}:page${page}:limit${limit}`;
+        const cachedResult = await cache_1.cacheService.getJSON(cacheKey);
         if (cachedResult) {
             res.json(cachedResult);
             return;
@@ -38,7 +38,7 @@ const getTournaments = async (req, res) => {
             }
         };
         // Cache for 5 minutes
-        await cache_1.default.setJSON(cacheKey, result, 300);
+        await cache_1.cacheService.setJSON(cacheKey, result, 300);
         res.json(result);
     }
     catch (error) {
@@ -69,7 +69,7 @@ const createTournament = async (req, res) => {
         });
         console.log('Tournament created:', tournament); // Debug log
         // Invalidate tournaments list cache
-        await cache_1.default.del(cache_1.default.getTournamentsListKey());
+        await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
         res.status(201).json(tournament);
     }
     catch (error) {
@@ -102,8 +102,8 @@ const deleteTournament = async (req, res) => {
         // Audit log tournament deletion
         auditLogger_1.default.logUserAction(req.user?._id.toString(), 'TOURNAMENT_DELETED', 'Tournament', req.params.id, { name: tournament.name }, req.ip, req.get('User-Agent'));
         // Invalidate caches
-        await cache_1.default.del(cache_1.default.getTournamentsListKey());
-        await cache_1.default.del(cache_1.default.getTournamentKey(req.params.id));
+        await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
+        await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(req.params.id));
         res.json({ message: 'Tournament deleted successfully' });
     }
     catch (error) {

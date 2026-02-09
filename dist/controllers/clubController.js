@@ -113,12 +113,12 @@ const updateClub = async (req, res) => {
     try {
         const { clubId } = req.params;
         const { name, description } = req.body;
-        const userId = req.user?.id;
+        const userId = req.user?._id;
         const club = await Club_1.default.findById(clubId);
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
         }
-        if (club.createdBy.toString() !== userId) {
+        if (club.createdBy.toString() !== userId?.toString()) {
             return res.status(403).json({ message: 'Only club creator can update the club' });
         }
         if (name)

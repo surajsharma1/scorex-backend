@@ -82,7 +82,7 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
   }
 };
 
-export const rejectFriendRequest = async (req: Request, res: Response) => {
+export const rejectFriendRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { requestId } = req.params;
     const userId = (req.user as any)._id.toString();
@@ -106,7 +106,7 @@ export const rejectFriendRequest = async (req: Request, res: Response) => {
   }
 };
 
-export const getFriends = async (req: Request, res: Response) => {
+export const getFriends = async (req: AuthRequest, res: Response) => {
   try {
     const userId = (req.user as any)?._id;
 
@@ -167,7 +167,7 @@ export const getFriendRequests = async (req: Request, res: Response) => {
   }
 };
 
-export const removeFriend = async (req: Request, res: Response) => {
+export const removeFriend = async (req: AuthRequest, res: Response) => {
   try {
     const { friendId } = req.params;
     const userId = req.user?._id;
