@@ -3,23 +3,25 @@ import { createClient, RedisClientType } from 'redis';
 import { ITournament } from '../models/Tournament';
 
 export class CacheService {
-  getJSON(cacheKey: string) {
-    throw new Error('Method not implemented.');
+  getTournamentsListKey(): string {
+    return 'tournaments:list';
   }
-  setJSON(cacheKey: string, result: { tournaments: Omit<Document<unknown, {}, ITournament> & ITournament & { _id: Types.ObjectId; }, never>[]; pagination: { currentPage: number; totalPages: number; totalItems: number; itemsPerPage: number; hasNext: boolean; hasPrev: boolean; }; }, arg2: number) {
-    throw new Error('Method not implemented.');
+
+  getTournamentKey(id: string): string {
+    return `tournaments:${id}`;
   }
-  getTournamentsListKey(): any {
-    throw new Error('Method not implemented.');
+
+  async getJSON(key: string): Promise<any> {
+    const data = await this.get(key);
+    return data ? JSON.parse(data) : null;
   }
-  getTournamentKey(id: string): any {
-    throw new Error('Method not implemented.');
+
+  async setJSON(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    await this.set(key, JSON.stringify(value), ttlSeconds);
   }
-  del(arg0: any) {
-    throw new Error('Method not implemented.');
-  }
-  del(arg0: any) {
-    throw new Error('Method not implemented.');
+
+  async del(key: string): Promise<void> {
+    await this.delete(key);
   }
   private client: RedisClientType | null = null;
   public isConnected: boolean = false;
