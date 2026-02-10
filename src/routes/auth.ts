@@ -131,7 +131,7 @@ router.post('/login', authLimiter, async (req, res) => {
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
+router.get('/google/callback', passport.authenticate('google'), async (req, res) => {
   try {
     const user = req.user as any;
     if (user) {
