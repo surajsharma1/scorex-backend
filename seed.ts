@@ -33,6 +33,8 @@ const seedData = async () => {
       role: 'admin',
       profilePicture: 'https://via.placeholder.com/150/000000/FFFFFF?text=Admin',
       bio: 'System administrator and tournament manager.',
+      fullName: 'Admin User',
+      dob: new Date('1990-01-01'),
     });
 
     // Create organizer user
@@ -44,6 +46,8 @@ const seedData = async () => {
       role: 'organizer',
       profilePicture: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Organizer',
       bio: 'Professional tournament organizer and cricket enthusiast.',
+      fullName: 'Organizer User',
+      dob: new Date('1985-05-15'),
     });
 
     // Create viewer user
@@ -55,6 +59,8 @@ const seedData = async () => {
       role: 'viewer',
       profilePicture: 'https://via.placeholder.com/150/00FF00/FFFFFF?text=Viewer',
       bio: 'Cricket fan and tournament spectator.',
+      fullName: 'Viewer User',
+      dob: new Date('1995-10-20'),
     });
 
     // Create sample tournament
