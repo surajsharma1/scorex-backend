@@ -51,11 +51,22 @@ export const sendResetEmail = async (email: string, token: string) => {
 
 export const sendOtpEmail = async (email: string, otp: string) => {
   try {
+    console.log('Starting email send process...');
+    console.log('Environment check:', {
+      hasRefreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
+      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      emailUser: process.env.EMAIL_USER
+    });
+
     if (!process.env.GOOGLE_REFRESH_TOKEN) {
       throw new Error('Google OAuth configuration missing. Please set GOOGLE_REFRESH_TOKEN environment variable.');
     }
 
+    console.log('Creating transporter...');
     const transporter = await createTransporter();
+    console.log('Transporter created successfully');
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -63,11 +74,17 @@ export const sendOtpEmail = async (email: string, otp: string) => {
       html: `<p>Your OTP for registration is: <strong>${otp}</strong></p>`,
     };
 
+    console.log('Sending email with options:', { from: mailOptions.from, to: mailOptions.to, subject: mailOptions.subject });
     const result = await transporter.sendMail(mailOptions);
     console.log(`OTP email sent successfully to ${email}, message ID: ${result.messageId}`);
     return result;
   } catch (error) {
     console.error('Failed to send OTP email:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     throw error;
   }
 };
