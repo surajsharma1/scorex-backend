@@ -7,6 +7,7 @@ import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
 import auditLogger from '../utils/auditLogger';
+import { validateRequest, registerSchema } from '../utils/validation';
 
 
 
@@ -62,13 +63,22 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 export const protectAdmin = [protectAuth, authorize('admin')];
 
 // Email register
-router.post('/register', async (req, res) => {
+router.post('/register', validateRequest(registerSchema), async (req, res) => {
   try {
     const { username, email, password, fullName, dob, googleId } = req.body;
+
+    // Additional server-side checks
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
+
     const usernameExists = await User.findOne({ username });
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
+
+    // Check for common weak passwords (additional security layer)
+    const weakPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
+    if (weakPasswords.includes(password.toLowerCase())) {
+      return res.status(400).json({ message: 'Password is too weak. Please choose a stronger password.' });
+    }
 
     // Create the user directly without OTP verification
     const user = await User.create({
@@ -97,6 +107,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ token });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
