@@ -9,6 +9,8 @@ export interface IUser extends Document {
   membership: 'free' | 'premium' | 'pro';
   googleId?: string;
   githubId?: string;
+  fullName?: string;
+  dob?: Date;
   otp?: string;
   otpExpires?: Date;
   friends: mongoose.Types.ObjectId[];

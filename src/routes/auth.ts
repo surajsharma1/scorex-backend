@@ -61,10 +61,12 @@ export const protectAdmin = [protectAuth, authorize('admin')];
 // Email register
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, dob, googleId } = req.body;
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
-    const user = await User.create({ username, email, password, role: 'viewer' });
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
+    const user = await User.create({ username, email, password, fullName, dob, googleId, role: 'viewer' });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
     res.status(201).json({ token });
   } catch (error) {
@@ -103,8 +105,21 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/' }), async (req, res) => {
   try {
     const user = req.user as any;
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+    if (user) {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+    } else {
+      // New user: redirect to register with prefilled details
+      const authInfo = req.authInfo as any;
+      if (authInfo && authInfo.pendingGoogleUser) {
+        const { email, fullName, googleId } = authInfo.pendingGoogleUser;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
+        res.redirect(registerUrl);
+      } else {
+        res.redirect('/');
+      }
+    }
   } catch (error) {
     console.error('Google OAuth callback error:', error);
     res.redirect('/');

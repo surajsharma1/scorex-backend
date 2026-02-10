@@ -64,19 +64,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         done(null, user);
         return;
       }
-      // New user: create, generate OTP, send email
-      const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      user = await User.create({
-        username: profile.displayName,
-        email,
+      // New user: store pending info in session, don't create user yet
+      const pendingGoogleUser = {
         googleId: profile.id,
-        role: 'viewer',
-        otp,
-        otpExpires,
-      });
-      await sendOtpEmail(email!, otp);
-      done(null, user);
+        email,
+        fullName: profile.displayName,
+      };
+      // Store in session for callback
+      done(null, false, { pendingGoogleUser });
     } catch (error) {
       done(error, undefined);
     }
