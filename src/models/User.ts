@@ -40,6 +40,8 @@ const userSchema = new Schema<IUser>(
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     googleId: { type: String, unique: true, sparse: true },
     githubId: { type: String, unique: true, sparse: true },
+    fullName: { type: String },
+    dob: { type: Date },
     otp: { type: String },
     otpExpires: { type: Date },
     friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
