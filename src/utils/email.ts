@@ -39,14 +39,16 @@ const createTransporter = async () => {
 };
 
 export const sendResetEmail = async (email: string, token: string) => {
-  const transporter = await createTransporter();
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  const msg = {
     to: email,
+    from: process.env.EMAIL_USER || 'noreply@scorex.com', // Use a verified sender
     subject: 'Password Reset',
     html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
-  });
+  };
+
+  const transporter = await createTransporter();
+  await transporter.send(msg);
 };
 
 export const sendOtpEmail = async (email: string, otp: string) => {
@@ -81,9 +83,9 @@ export const sendOtpEmail = async (email: string, otp: string) => {
   } catch (error) {
     console.error('Failed to send OTP email:', error);
     console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      name: (error as Error).name
     });
     throw error;
   }

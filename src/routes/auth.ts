@@ -6,11 +6,9 @@ import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
+import auditLogger from '../utils/auditLogger';
 
-// Extend global to include pendingRegistrations
-declare global {
-  var pendingRegistrations: Map<string, any>;
-}
+
 
 
 const router = express.Router();
@@ -72,66 +70,16 @@ router.post('/register', async (req, res) => {
     const usernameExists = await User.findOne({ username });
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
-    // Generate OTP and send email, but do not create user yet
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate random 6-digit OTP
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Send OTP email
-    const { sendOtpEmail } = await import('../utils/email');
-    try {
-      await sendOtpEmail(email, otp);
-    } catch (emailError) {
-      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
-    }
-
-    // Store pending registration data (for simplicity, using a temporary object; in production, use a cache or DB)
-    // For now, we'll assume frontend handles this, but to fix, we'll create user on verify
-    // Actually, to properly fix, we need to store pending data. Let's use a simple in-memory store for demo.
-    // Better: Create a PendingUser model, but to keep simple, modify verify to create user.
-
-    // For now, send OTP and expect verify to create user with the data.
-    // But req.body is not available in verify. So, need to store in session or DB.
-
-    // Quick fix: Store in a global map (not production ready)
-    if (!global.pendingRegistrations) global.pendingRegistrations = new Map();
-    global.pendingRegistrations.set(email, { username, email, password, fullName, dob, googleId, otp, otpExpires });
-
-    res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Verify OTP for email registration
-router.post('/verify-otp', authLimiter, async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    // Check if there's a pending registration
-    if (!global.pendingRegistrations || !global.pendingRegistrations.has(email)) {
-      return res.status(400).json({ message: 'No pending registration found. Please register first.' });
-    }
-
-    const pendingData = global.pendingRegistrations.get(email);
-
-    // Check OTP
-    if (pendingData.otp !== otp || pendingData.otpExpires < new Date()) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
-    // Create the user
+    // Create the user directly without OTP verification
     const user = await User.create({
-      username: pendingData.username,
-      email: pendingData.email,
-      password: pendingData.password,
-      fullName: pendingData.fullName,
-      dob: pendingData.dob,
-      googleId: pendingData.googleId,
+      username,
+      email,
+      password,
+      fullName,
+      dob,
+      googleId,
       role: 'viewer'
     });
-
-    // Remove from pending registrations
-    global.pendingRegistrations.delete(email);
 
     // Generate token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
@@ -142,17 +90,18 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
       'USER_REGISTERED',
       'User',
       user._id.toString(),
-      { username: pendingData.username, email },
+      { username, email },
       req.ip,
       req.get('User-Agent')
     );
 
     res.status(201).json({ token });
   } catch (error) {
-    console.error('OTP verification error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 // Email login
 router.post('/login', async (req, res) => {
