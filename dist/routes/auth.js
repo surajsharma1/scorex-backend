@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -90,7 +57,7 @@ const protectOrganizer = (req, res, next) => {
 exports.protectOrganizer = protectOrganizer;
 exports.protectAdmin = [exports.protectAuth, (0, exports.authorize)('admin')];
 // Email register
-router.post('/register', rateLimiters_1.authLimiter, async (req, res) => {
+router.post('/register', async (req, res) => {
     try {
         const { username, email, password, fullName, dob, googleId } = req.body;
         const userExists = await User_1.default.findOne({ email });
@@ -100,12 +67,12 @@ router.post('/register', rateLimiters_1.authLimiter, async (req, res) => {
         if (usernameExists)
             return res.status(400).json({ message: 'Username already taken' });
         // Always send OTP for verification, regardless of registration method
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = '123456'; // Fixed OTP for development testing
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         await User_1.default.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
-        // Send OTP email
-        const { sendOtpEmail } = await Promise.resolve().then(() => __importStar(require('../utils/email')));
-        await sendOtpEmail(email, otp);
+        // Send OTP email (commented out for development)
+        // const { sendOtpEmail } = await import('../utils/email');
+        // await sendOtpEmail(email, otp);
         res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
     }
     catch (error) {
@@ -129,8 +96,30 @@ router.post('/verify-otp', rateLimiters_1.authLimiter, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+// OTP verification
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await User_1.default.findOne({ email });
+        if (!user)
+            return res.status(404).json({ message: 'User not found' });
+        if (user.otp !== otp || !user.otpExpires || user.otpExpires < new Date()) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
+        // Clear OTP and mark as verified
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
+        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        res.json({ token });
+    }
+    catch (error) {
+        console.error('OTP verification error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 // Email login
-router.post('/login', rateLimiters_1.authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         console.log('Login request body:', req.body);
         const { email, password } = req.body;
@@ -140,6 +129,10 @@ router.post('/login', rateLimiters_1.authLimiter, async (req, res) => {
         const user = await User_1.default.findOne({ email });
         console.log('User found:', user ? 'Yes' : 'No');
         if (user && user.password && (await bcryptjs_1.default.compare(password, user.password))) {
+            // Check if user has verified OTP (otp field should be undefined after verification)
+            if (user.otp !== undefined) {
+                return res.status(401).json({ message: 'Please verify your email with OTP before logging in' });
+            }
             const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
             res.json({ token });
         }
@@ -154,31 +147,38 @@ router.post('/login', rateLimiters_1.authLimiter, async (req, res) => {
 });
 // Google OAuth routes
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport_1.default.authenticate('google'), async (req, res) => {
-    try {
-        const user = req.user;
-        if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+router.get('/google/callback', (req, res, next) => {
+    passport_1.default.authenticate('google', (err, user, info) => {
+        if (err) {
+            console.error('Google OAuth error:', err);
+            return res.status(401).json({ message: 'Unauthorized' });
         }
-        else {
-            // New user: redirect to register with prefilled details
-            const authInfo = req.authInfo;
-            if (authInfo && authInfo.pendingGoogleUser) {
-                const { email, fullName, googleId } = authInfo.pendingGoogleUser;
+        if (!user) {
+            if (info && info.pendingGoogleUser) {
+                // New user: redirect to register with prefilled details
+                const { email, fullName, googleId } = info.pendingGoogleUser;
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
                 const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
                 res.redirect(registerUrl);
             }
             else {
-                res.redirect('/');
+                // Authentication failed
+                console.error('Google OAuth failed:', info);
+                return res.status(401).json({ message: 'Unauthorized' });
             }
         }
-    }
-    catch (error) {
-        console.error('Google OAuth callback error:', error);
-        res.redirect('/');
-    }
+        else {
+            // Existing user: generate token and redirect
+            try {
+                const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+                res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+            }
+            catch (error) {
+                console.error('Token generation error:', error);
+                res.status(500).json({ message: 'Internal server error' });
+            }
+        }
+    })(req, res, next);
 });
 // GitHub OAuth routes
 router.get('/github', passport_1.default.authenticate('github', { scope: ['user:email'] }));

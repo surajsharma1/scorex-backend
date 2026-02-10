@@ -130,7 +130,7 @@ passport_1.default.deserializeUser(async (id, done) => {
 // Middleware
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
