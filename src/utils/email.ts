@@ -19,6 +19,7 @@ export const sendResetEmail = async (email: string, token: string) => {
 };
 
 export const sendOtpEmail = async (email: string, otp: string) => {
+  console.log(`OTP for ${email}: ${otp}`); // For testing purposes
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
