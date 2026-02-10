@@ -71,9 +71,9 @@ router.post('/register', async (req, res) => {
     const otp = '123456'; // Fixed OTP for development testing
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await User.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
-    // Send OTP email (commented out for development)
-    // const { sendOtpEmail } = await import('../utils/email');
-    // await sendOtpEmail(email, otp);
+    // Send OTP email
+    const { sendOtpEmail } = await import('../utils/email');
+    await sendOtpEmail(email, otp);
     res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
