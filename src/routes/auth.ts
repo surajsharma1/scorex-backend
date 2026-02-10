@@ -96,6 +96,30 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
   }
 });
 
+// OTP verification
+router.post('/verify-otp', authLimiter, async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.otp !== otp || !user.otpExpires || user.otpExpires < new Date()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP and mark as verified
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+    res.json({ token });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Email login
 router.post('/login', authLimiter, async (req, res) => {
   try {
