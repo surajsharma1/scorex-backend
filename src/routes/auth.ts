@@ -152,28 +152,35 @@ router.post('/login', async (req, res) => {
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-router.get('/google/callback', passport.authenticate('google'), async (req, res) => {
-  try {
-    const user = req.user as any;
-    if (user) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
-    } else {
-      // New user: redirect to register with prefilled details
-      const authInfo = req.authInfo as any;
-      if (authInfo && authInfo.pendingGoogleUser) {
-        const { email, fullName, googleId } = authInfo.pendingGoogleUser;
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', (err: any, user: any, info: any) => {
+    if (err) {
+      console.error('Google OAuth error:', err);
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (!user) {
+      if (info && info.pendingGoogleUser) {
+        // New user: redirect to register with prefilled details
+        const { email, fullName, googleId } = info.pendingGoogleUser;
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
         res.redirect(registerUrl);
       } else {
-        res.redirect('/');
+        // Authentication failed
+        console.error('Google OAuth failed:', info);
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+    } else {
+      // Existing user: generate token and redirect
+      try {
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+      } catch (error) {
+        console.error('Token generation error:', error);
+        res.status(500).json({ message: 'Internal server error' });
       }
     }
-  } catch (error) {
-    console.error('Google OAuth callback error:', error);
-    res.redirect('/');
-  }
+  })(req, res, next);
 });
 
 // GitHub OAuth routes
