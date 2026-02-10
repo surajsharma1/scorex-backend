@@ -68,12 +68,12 @@ router.post('/register', authLimiter, async (req, res) => {
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
     // Always send OTP for verification, regardless of registration method
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = '123456'; // Fixed OTP for development testing
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await User.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
-    // Send OTP email
-    const { sendOtpEmail } = await import('../utils/email');
-    await sendOtpEmail(email, otp);
+    // Send OTP email (commented out for development)
+    // const { sendOtpEmail } = await import('../utils/email');
+    // await sendOtpEmail(email, otp);
     res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -110,6 +110,10 @@ router.post('/login', authLimiter, async (req, res) => {
     console.log('User found:', user ? 'Yes' : 'No');
 
     if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      // Check if user has verified OTP (otp field should be undefined after verification)
+      if (user.otp !== undefined) {
+        return res.status(401).json({ message: 'Please verify your email with OTP before logging in' });
+      }
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
       res.json({ token });
     } else {
