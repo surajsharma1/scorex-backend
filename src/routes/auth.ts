@@ -75,8 +75,16 @@ router.post('/register', authLimiter, async (req, res) => {
 // Email login
 router.post('/login', authLimiter, async (req, res) => {
   try {
+    console.log('Login request body:', req.body);
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
     const user = await User.findOne({ email });
+    console.log('User found:', user ? 'Yes' : 'No');
+
     if (user && user.password && (await bcrypt.compare(password, user.password))) {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
       res.json({ token });
@@ -84,6 +92,7 @@ router.post('/login', authLimiter, async (req, res) => {
       res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
