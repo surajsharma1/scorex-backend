@@ -29,7 +29,6 @@ const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const friends_1 = __importDefault(require("./routes/friends"));
 const clubs_1 = __importDefault(require("./routes/clubs"));
-const email_1 = require("./utils/email");
 const logger_1 = __importDefault(require("./utils/logger"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 dotenv_1.default.config();
@@ -66,19 +65,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 done(null, user);
                 return;
             }
-            // New user: create, generate OTP, send email
-            const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-            const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-            user = await User_1.default.create({
-                username: profile.displayName,
-                email,
+            // New user: store pending info in session, don't create user yet
+            const pendingGoogleUser = {
                 googleId: profile.id,
-                role: 'viewer',
-                otp,
-                otpExpires,
-            });
-            await (0, email_1.sendOtpEmail)(email, otp);
-            done(null, user);
+                email,
+                fullName: profile.displayName,
+            };
+            // Store in session for callback
+            done(null, false, { pendingGoogleUser });
         }
         catch (error) {
             done(error, undefined);

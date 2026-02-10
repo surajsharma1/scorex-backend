@@ -46,6 +46,8 @@ const userSchema = new mongoose_1.Schema({
     membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
     googleId: { type: String, unique: true, sparse: true },
     githubId: { type: String, unique: true, sparse: true },
+    fullName: { type: String },
+    dob: { type: Date },
     otp: { type: String },
     otpExpires: { type: Date },
     friends: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],

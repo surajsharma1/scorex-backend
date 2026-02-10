@@ -67,21 +67,14 @@ router.post('/register', authLimiter, async (req, res) => {
     const usernameExists = await User.findOne({ username });
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
-    if (googleId) {
-      // Direct registration for Google users
-      const user = await User.create({ username, email, password, fullName, dob, googleId, role: 'viewer' });
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-      res.status(201).json({ token });
-    } else {
-      // OTP for email registration
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      await User.create({ username, email, password, fullName, dob, otp, otpExpires, role: 'viewer' });
-      // Send OTP email
-      const { sendOtpEmail } = await import('../utils/email');
-      await sendOtpEmail(email, otp);
-      res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
-    }
+    // Always send OTP for verification, regardless of registration method
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await User.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
+    // Send OTP email
+    const { sendOtpEmail } = await import('../utils/email');
+    await sendOtpEmail(email, otp);
+    res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

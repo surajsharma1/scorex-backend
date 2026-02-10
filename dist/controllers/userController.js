@@ -78,7 +78,12 @@ const getProfile = async (req, res) => {
 exports.getProfile = getProfile;
 const updateProfile = async (req, res) => {
     try {
-        const user = await User_1.default.findByIdAndUpdate(req.user._id, { username: req.body.username, email: req.body.email }, { new: true }).select('-password');
+        const { username, email, profilePicture, bio, fullName, dob } = req.body;
+        const updateData = { username, email, profilePicture, bio, fullName };
+        if (dob) {
+            updateData.dob = new Date(dob);
+        }
+        const user = await User_1.default.findByIdAndUpdate(req.user._id, updateData, { new: true }).select('-password');
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;

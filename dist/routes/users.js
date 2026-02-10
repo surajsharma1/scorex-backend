@@ -15,5 +15,7 @@ router.put('/notifications/preferences', userController_1.updateNotificationPref
 // Profile management
 router.get('/profile', userController_1.getProfile);
 router.put('/profile', userController_1.updateProfile);
+// User search
+router.get('/search', userController_1.searchUsers);
 exports.default = router;
 //# sourceMappingURL=users.js.map
