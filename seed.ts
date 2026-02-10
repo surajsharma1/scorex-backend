@@ -25,21 +25,36 @@ const seedData = async () => {
     console.log('Cleared existing data');
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const adminPassword = await bcrypt.hash('admin123', 10);
     const admin = await User.create({
       username: 'admin',
       email: 'admin@example.com',
-      password: hashedPassword,
+      password: adminPassword,
       role: 'admin',
+      profilePicture: 'https://via.placeholder.com/150/000000/FFFFFF?text=Admin',
+      bio: 'System administrator and tournament manager.',
     });
 
     // Create organizer user
-    const organizerPassword = await bcrypt.hash('password123', 10);
+    const organizerPassword = await bcrypt.hash('organizer123', 10);
     const organizer = await User.create({
       username: 'organizer',
       email: 'organizer@example.com',
       password: organizerPassword,
       role: 'organizer',
+      profilePicture: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Organizer',
+      bio: 'Professional tournament organizer and cricket enthusiast.',
+    });
+
+    // Create viewer user
+    const viewerPassword = await bcrypt.hash('viewer123', 10);
+    const viewer = await User.create({
+      username: 'viewer',
+      email: 'viewer@example.com',
+      password: viewerPassword,
+      role: 'viewer',
+      profilePicture: 'https://via.placeholder.com/150/00FF00/FFFFFF?text=Viewer',
+      bio: 'Cricket fan and tournament spectator.',
     });
 
     // Create sample tournament
