@@ -59,7 +59,7 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 export const protectAdmin = [protectAuth, authorize('admin')];
 
 // Email register
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { username, email, password, fullName, dob, googleId } = req.body;
     const userExists = await User.findOne({ email });
@@ -97,7 +97,7 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
 });
 
 // OTP verification
-router.post('/verify-otp', authLimiter, async (req, res) => {
+router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await User.findOne({ email });
@@ -121,7 +121,7 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
 });
 
 // Email login
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     console.log('Login request body:', req.body);
     const { email, password } = req.body;
