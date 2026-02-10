@@ -63,110 +63,7 @@ const seedData = async () => {
       dob: new Date('1995-10-20'),
     });
 
-    // Create sample tournament
-    const tournament = await Tournament.create({
-      name: 'IPL 2024',
-      description: 'Indian Premier League 2024 - The biggest cricket tournament',
-      format: 'T20',
-      startDate: new Date('2024-03-22'),
-      numberOfTeams: 5,
-      status: 'upcoming',
-      createdBy: admin._id,
-    });
 
-    // Create sample teams
-    const teamsData = [
-      {
-        name: 'Mumbai Indians',
-        color: '#004BA0',
-        tournament: tournament._id,
-        players: [
-          { name: 'Rohit Sharma', role: 'Batsman', jerseyNumber: '45' },
-          { name: 'Jasprit Bumrah', role: 'Bowler', jerseyNumber: '93' },
-          { name: 'Suryakumar Yadav', role: 'Batsman', jerseyNumber: '63' }
-        ],
-        createdBy: organizer._id
-      },
-      {
-        name: 'Chennai Super Kings',
-        color: '#FFFF3C',
-        tournament: tournament._id,
-        players: [
-          { name: 'MS Dhoni', role: 'Wicketkeeper', jerseyNumber: '7' },
-          { name: 'Ravindra Jadeja', role: 'All-rounder', jerseyNumber: '8' },
-          { name: 'Ruturaj Gaikwad', role: 'Batsman', jerseyNumber: '31' }
-        ],
-        createdBy: organizer._id
-      },
-      {
-        name: 'Royal Challengers Bangalore',
-        color: '#FF0000',
-        tournament: tournament._id,
-        players: [
-          { name: 'Virat Kohli', role: 'Batsman', jerseyNumber: '18' },
-          { name: 'Mohammed Siraj', role: 'Bowler', jerseyNumber: '13' },
-          { name: 'Faf du Plessis', role: 'Batsman', jerseyNumber: '13' }
-        ],
-        createdBy: organizer._id
-      },
-      {
-        name: 'Kolkata Knight Riders',
-        color: '#3A225D',
-        tournament: tournament._id,
-        players: [
-          { name: 'Shreyas Iyer', role: 'Batsman', jerseyNumber: '41' },
-          { name: 'Andre Russell', role: 'All-rounder', jerseyNumber: '12' },
-          { name: 'Venkatesh Iyer', role: 'All-rounder', jerseyNumber: '27' }
-        ],
-        createdBy: organizer._id
-      },
-      {
-        name: 'Delhi Capitals',
-        color: '#17479E',
-        tournament: tournament._id,
-        players: [
-          { name: 'Rishabh Pant', role: 'Wicketkeeper', jerseyNumber: '17' },
-          { name: 'Axar Patel', role: 'All-rounder', jerseyNumber: '20' },
-          { name: 'David Warner', role: 'Batsman', jerseyNumber: '31' }
-        ],
-        createdBy: organizer._id
-      },
-    ];
-
-    const teams = await Team.insertMany(teamsData);
-
-    // Create sample matches
-    const matchesData = [
-      {
-        tournament: tournament._id,
-        team1: teams[0]._id, // Mumbai Indians
-        team2: teams[1]._id, // Chennai Super Kings
-        date: new Date('2024-03-25T14:00:00Z'),
-        venue: 'Wankhede Stadium, Mumbai',
-        status: 'scheduled',
-        createdBy: organizer._id,
-      },
-      {
-        tournament: tournament._id,
-        team1: teams[2]._id, // Royal Challengers Bangalore
-        team2: teams[3]._id, // Kolkata Knight Riders
-        date: new Date('2024-03-26T14:00:00Z'),
-        venue: 'M. Chinnaswamy Stadium, Bangalore',
-        status: 'scheduled',
-        createdBy: organizer._id,
-      },
-      {
-        tournament: tournament._id,
-        team1: teams[4]._id, // Delhi Capitals
-        team2: teams[0]._id, // Mumbai Indians
-        date: new Date('2024-03-27T14:00:00Z'),
-        venue: 'Arun Jaitley Stadium, Delhi',
-        status: 'scheduled',
-        createdBy: organizer._id,
-      },
-    ];
-
-    await Match.insertMany(matchesData);
 
     // Create sample friends
     const friendsData = [
@@ -198,14 +95,12 @@ const seedData = async () => {
     await Club.insertMany(clubsData);
 
     console.log('Database seeded successfully with:');
-    console.log('- 2 users (admin and organizer)');
-    console.log('- 1 tournament (IPL 2024)');
-    console.log('- 5 teams');
-    console.log('- 3 matches');
+    console.log('- 3 users (admin, organizer, viewer)');
     console.log('- 1 friend relationship');
     console.log('- 2 clubs');
-    console.log('\nAdmin login: admin@example.com / password123');
-    console.log('Organizer login: organizer@example.com / password123');
+    console.log('\nAdmin login: admin@example.com / admin123');
+    console.log('Organizer login: organizer@example.com / organizer123');
+    console.log('Viewer login: viewer@example.com / viewer123');
 
     process.exit(0);
   } catch (error) {

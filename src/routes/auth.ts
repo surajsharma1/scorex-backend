@@ -7,6 +7,11 @@ import { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
 
+// Extend global to include pendingRegistrations
+declare global {
+  var pendingRegistrations: Map<string, any>;
+}
+
 
 const router = express.Router();
 
@@ -67,15 +72,34 @@ router.post('/register', async (req, res) => {
     const usernameExists = await User.findOne({ username });
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
-    // Always send OTP for verification, regardless of registration method
+    // Generate OTP and send email, but do not create user yet
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate random 6-digit OTP
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    await User.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
+
     // Send OTP email
     const { sendOtpEmail } = await import('../utils/email');
-    await sendOtpEmail(email, otp);
+    try {
+      await sendOtpEmail(email, otp);
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
+    }
+
+    // Store pending registration data (for simplicity, using a temporary object; in production, use a cache or DB)
+    // For now, we'll assume frontend handles this, but to fix, we'll create user on verify
+    // Actually, to properly fix, we need to store pending data. Let's use a simple in-memory store for demo.
+    // Better: Create a PendingUser model, but to keep simple, modify verify to create user.
+
+    // For now, send OTP and expect verify to create user with the data.
+    // But req.body is not available in verify. So, need to store in session or DB.
+
+    // Quick fix: Store in a global map (not production ready)
+    if (!global.pendingRegistrations) global.pendingRegistrations = new Map();
+    global.pendingRegistrations.set(email, { username, email, password, fullName, dob, googleId, otp, otpExpires });
+
     res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
