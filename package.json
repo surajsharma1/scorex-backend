@@ -11,6 +11,7 @@
     "seed": "ts-node seed.ts"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "@types/express-session": "^1.18.2",
     "@types/passport-github2": "^1.2.9",
     "@types/redis": "^4.0.10",
