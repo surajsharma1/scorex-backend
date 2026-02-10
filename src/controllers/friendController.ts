@@ -170,7 +170,7 @@ export const getFriendRequests = async (req: Request, res: Response) => {
 export const removeFriend = async (req: AuthRequest, res: Response) => {
   try {
     const { friendId } = req.params;
-    const userId = req.user?._id;
+    const userId = (req.user as any)?._id;
 
     // Remove from both users' friends arrays
     await Promise.all([
