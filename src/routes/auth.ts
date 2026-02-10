@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
     if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
     // Always send OTP for verification, regardless of registration method
-    const otp = '123456'; // Fixed OTP for development testing
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate random 6-digit OTP
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await User.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
     // Send OTP email
