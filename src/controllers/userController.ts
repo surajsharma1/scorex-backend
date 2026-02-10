@@ -74,10 +74,10 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, profilePicture, bio } = req.body;
+    const { username, email, profilePicture, bio, fullName, dob } = req.body;
     const user = await User.findByIdAndUpdate(
       (req as any).user._id,
-      { username, email, profilePicture, bio },
+      { username, email, profilePicture, bio, fullName, dob },
       { new: true }
     ).select('-password');
     if (!user) {
