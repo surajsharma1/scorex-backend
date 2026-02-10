@@ -81,7 +81,6 @@ router.post('/register', async (req, res) => {
     try {
       await sendOtpEmail(email, otp);
     } catch (emailError) {
-      console.error('Email sending failed:', emailError);
       return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
     }
 
@@ -99,7 +98,6 @@ router.post('/register', async (req, res) => {
 
     res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
   } catch (error) {
-    console.error('Register error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
