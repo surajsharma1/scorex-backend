@@ -108,36 +108,48 @@ router.post('/register', async (req, res) => {
 router.post('/verify-otp', authLimiter, async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const user = await User.findOne({ email, otp, otpExpires: { $gt: new Date() } });
-    if (!user) return res.status(400).json({ message: 'Invalid or expired OTP' });
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.status(201).json({ token });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
-// OTP verification
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Check if there's a pending registration
+    if (!global.pendingRegistrations || !global.pendingRegistrations.has(email)) {
+      return res.status(400).json({ message: 'No pending registration found. Please register first.' });
+    }
 
-    if (user.otp !== otp || !user.otpExpires || user.otpExpires < new Date()) {
+    const pendingData = global.pendingRegistrations.get(email);
+
+    // Check OTP
+    if (pendingData.otp !== otp || pendingData.otpExpires < new Date()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP and mark as verified
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save();
+    // Create the user
+    const user = await User.create({
+      username: pendingData.username,
+      email: pendingData.email,
+      password: pendingData.password,
+      fullName: pendingData.fullName,
+      dob: pendingData.dob,
+      googleId: pendingData.googleId,
+      role: 'viewer'
+    });
 
+    // Remove from pending registrations
+    global.pendingRegistrations.delete(email);
+
+    // Generate token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.json({ token });
+
+    // Audit log successful registration
+    auditLogger.logUserAction(
+      user._id.toString(),
+      'USER_REGISTERED',
+      'User',
+      user._id.toString(),
+      { username: pendingData.username, email },
+      req.ip,
+      req.get('User-Agent')
+    );
+
+    res.status(201).json({ token });
   } catch (error) {
     console.error('OTP verification error:', error);
     res.status(500).json({ message: 'Server error' });
