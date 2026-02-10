@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+  import { Request, Response } from 'express';
 import User from '../models/User';
 import auditLogger from '../utils/auditLogger';
 
