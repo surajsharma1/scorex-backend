@@ -6,7 +6,9 @@ import {
   joinClub,
   leaveClub,
   updateClub,
-  deleteClub
+  deleteClub,
+  addMember,
+  removeMember
 } from '../controllers/clubController';
 import { protect } from '../middleware/auth';
 
@@ -35,5 +37,11 @@ router.put('/:clubId', updateClub);
 
 // Delete club (creator only)
 router.delete('/:clubId', deleteClub);
+
+// Add member (creator only)
+router.post('/:clubId/members', addMember);
+
+// Remove member (creator only)
+router.delete('/:clubId/members/:userId', removeMember);
 
 export default router;

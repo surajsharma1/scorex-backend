@@ -172,3 +172,66 @@ export const deleteClub = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const addMember = async (req: AuthRequest, res: Response) => {
+  try {
+    const { clubId } = req.params;
+    const { userId } = req.body;
+    const currentUserId = req.user?._id;
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ message: 'Club not found' });
+    }
+
+    if (club.createdBy.toString() !== currentUserId) {
+      return res.status(403).json({ message: 'Only club creator can add members' });
+    }
+
+    if (club.members.includes(userId)) {
+      return res.status(400).json({ message: 'User is already a member of this club' });
+    }
+
+    club.members.push(userId);
+    await club.save();
+
+    logger.info(`User ${userId} added to club ${clubId} by ${currentUserId}`);
+    res.json({ message: 'Member added successfully', club });
+  } catch (error) {
+    logger.error('Error adding member:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const removeMember = async (req: AuthRequest, res: Response) => {
+  try {
+    const { clubId, userId } = req.params;
+    const currentUserId = req.user?._id;
+
+    const club = await Club.findById(clubId);
+    if (!club) {
+      return res.status(404).json({ message: 'Club not found' });
+    }
+
+    if (club.createdBy.toString() !== currentUserId) {
+      return res.status(403).json({ message: 'Only club creator can remove members' });
+    }
+
+    if (club.createdBy.toString() === userId) {
+      return res.status(400).json({ message: 'Cannot remove the club creator' });
+    }
+
+    if (!club.members.includes(userId)) {
+      return res.status(400).json({ message: 'User is not a member of this club' });
+    }
+
+    club.members = club.members.filter(member => member.toString() !== userId);
+    await club.save();
+
+    logger.info(`User ${userId} removed from club ${clubId} by ${currentUserId}`);
+    res.json({ message: 'Member removed successfully', club });
+  } catch (error) {
+    logger.error('Error removing member:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
