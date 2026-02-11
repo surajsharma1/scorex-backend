@@ -104,9 +104,12 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
     }
 
     const users = await User.find({
-      username: { $regex: query, $options: 'i' },
+      $or: [
+        { username: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } }
+      ],
       deleted: { $ne: true }
-    }).select('username profilePicture bio').limit(10);
+    }).select('username email profilePicture bio fullName').limit(10);
 
     res.json(users);
   } catch (error) {
