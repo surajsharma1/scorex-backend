@@ -45,6 +45,31 @@ export const getClubs = async (req: Request, res: Response) => {
   }
 };
 
+export const searchClubs = async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query;
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ message: 'Query parameter is required' });
+      return;
+    }
+
+    const clubs = await Club.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+      ]
+    })
+      .populate('members', 'username profilePicture')
+      .populate('createdBy', 'username')
+      .limit(10);
+
+    res.json(clubs);
+  } catch (error) {
+    logger.error('Error searching clubs:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const getClub = async (req: Request, res: Response) => {
   try {
     const { clubId } = req.params;

@@ -95,9 +95,11 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const searchUsers = async (req: Request, res: Response): Promise<void> => {
+export const searchUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { query } = req.query;
+    const currentUserId = req.user?._id;
+
     if (!query || typeof query !== 'string') {
       res.status(400).json({ message: 'Query parameter is required' });
       return;
@@ -108,7 +110,8 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
         { username: { $regex: query, $options: 'i' } },
         { email: { $regex: query, $options: 'i' } }
       ],
-      deleted: { $ne: true }
+      deleted: { $ne: true },
+      _id: { $ne: currentUserId } // Exclude current user
     }).select('username email profilePicture bio fullName').limit(10);
 
     res.json(users);

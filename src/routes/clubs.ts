@@ -20,6 +20,9 @@ router.use(protect as any);
 // Get all clubs
 router.get('/', getClubs);
 
+// Search clubs
+router.get('/search', searchClubs);
+
 // Get specific club
 router.get('/:clubId', getClub);
 
