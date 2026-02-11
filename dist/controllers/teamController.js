@@ -159,7 +159,7 @@ const addPlayerByUsername = async (req, res) => {
         res.status(201).json(team);
     }
     catch (error) {
-        console.error('Add player by username error:', error);
+        logger_1.default.error('Add player by username error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, username: req.body.username });
         res.status(500).json({ message: 'Server error' });
     }
 };

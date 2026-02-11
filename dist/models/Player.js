@@ -44,11 +44,16 @@ const PlayerSchema = new mongoose_1.Schema({
     jerseyNumber: { type: String, required: true },
     image: { type: String },
     team: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
+    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }, // Link to user for social features
     stats: {
         matches: { type: Number, default: 0 },
         runs: { type: Number, default: 0 },
         wickets: { type: Number, default: 0 },
-        average: { type: Number, default: 0 }
+        average: { type: Number, default: 0 },
+        battingAverage: { type: Number, default: 0 },
+        bowlingAverage: { type: Number, default: 0 },
+        strikeRate: { type: Number, default: 0 },
+        economy: { type: Number, default: 0 }
     }
 }, {
     timestamps: true

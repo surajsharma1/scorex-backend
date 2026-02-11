@@ -118,7 +118,7 @@ export const addPlayer = async (req: Request, res: Response): Promise<void> => {
     await team.populate('players');
     res.status(201).json(team);
   } catch (error) {
-    console.error('Add player error:', error);
+    logger.error('Add player error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, body: req.body });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -164,7 +164,7 @@ export const addPlayerByUsername = async (req: Request, res: Response): Promise<
     await team.populate('players');
     res.status(201).json(team);
   } catch (error) {
-    console.error('Add player by username error:', error);
+    logger.error('Add player by username error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, username: req.body.username });
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -163,6 +163,7 @@ app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/teams', teams_1.default);
 app.use('/api/v1/brackets', brackets_1.default);
 app.use('/api/v1/overlays', overlays_1.default);
+app.use('/v1/api/overlays', overlays_1.default);
 app.use('/api/v1/matches', matches_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/notifications', notifications_1.default);

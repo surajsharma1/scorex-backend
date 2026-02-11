@@ -34,18 +34,12 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const playerSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    role: { type: String, required: true },
-    jerseyNumber: { type: String, required: true },
-    image: String,
-});
 const teamSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     color: { type: String, required: true },
     logo: String,
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    players: [playerSchema],
+    players: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' }],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Team', teamSchema);

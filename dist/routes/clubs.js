@@ -11,6 +11,8 @@ const router = express_1.default.Router();
 router.use(auth_1.protect);
 // Get all clubs
 router.get('/', clubController_1.getClubs);
+// Search clubs
+// router.get('/search', searchClubs);
 // Get specific club
 router.get('/:clubId', clubController_1.getClub);
 // Create club
@@ -23,5 +25,9 @@ router.post('/:clubId/leave', clubController_1.leaveClub);
 router.put('/:clubId', clubController_1.updateClub);
 // Delete club (creator only)
 router.delete('/:clubId', clubController_1.deleteClub);
+// Add member (creator only)
+router.post('/:clubId/members', clubController_1.addMember);
+// Remove member (creator only)
+router.delete('/:clubId/members/:userId', clubController_1.removeMember);
 exports.default = router;
 //# sourceMappingURL=clubs.js.map

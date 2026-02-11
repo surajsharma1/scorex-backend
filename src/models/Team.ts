@@ -14,18 +14,11 @@ export interface ITeam extends Document {
   tournament: mongoose.Types.ObjectId;
   players: mongoose.Types.ObjectId[]; // Referenced players
   createdBy: mongoose.Types.ObjectId;
-  deleted: boolean;
+  deleted?: boolean;
   deletedAt?: Date;
   registrationFee?: number;
   isPaid?: boolean;
 }
-
-const playerSchema = new Schema<IPlayer>({
-  name: { type: String, required: true },
-  role: { type: String, required: true },
-  jerseyNumber: { type: String, required: true },
-  image: String,
-});
 
 const teamSchema = new Schema<ITeam>(
   {
@@ -33,7 +26,7 @@ const teamSchema = new Schema<ITeam>(
     color: { type: String, required: true },
     logo: String,
     tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    players: [playerSchema],
+    players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

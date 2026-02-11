@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteClub = exports.updateClub = exports.leaveClub = exports.joinClub = exports.getClub = exports.getClubs = exports.createClub = void 0;
+exports.removeMember = exports.addMember = exports.deleteClub = exports.updateClub = exports.leaveClub = exports.joinClub = exports.getClub = exports.searchClubs = exports.getClubs = exports.createClub = void 0;
 const Club_1 = __importDefault(require("../models/Club"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const createClub = async (req, res) => {
@@ -45,6 +45,30 @@ const getClubs = async (req, res) => {
     }
 };
 exports.getClubs = getClubs;
+const searchClubs = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query || typeof query !== 'string') {
+            res.status(400).json({ message: 'Query parameter is required' });
+            return;
+        }
+        const clubs = await Club_1.default.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } }
+            ]
+        })
+            .populate('members', 'username profilePicture')
+            .populate('createdBy', 'username')
+            .limit(10);
+        res.json(clubs);
+    }
+    catch (error) {
+        logger_1.default.error('Error searching clubs:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.searchClubs = searchClubs;
 const getClub = async (req, res) => {
     try {
         const { clubId } = req.params;
@@ -159,4 +183,58 @@ const deleteClub = async (req, res) => {
     }
 };
 exports.deleteClub = deleteClub;
+const addMember = async (req, res) => {
+    try {
+        const { clubId } = req.params;
+        const { userId } = req.body;
+        const currentUserId = req.user?._id;
+        const club = await Club_1.default.findById(clubId);
+        if (!club) {
+            return res.status(404).json({ message: 'Club not found' });
+        }
+        if (club.createdBy.toString() !== currentUserId) {
+            return res.status(403).json({ message: 'Only club creator can add members' });
+        }
+        if (club.members.includes(userId)) {
+            return res.status(400).json({ message: 'User is already a member of this club' });
+        }
+        club.members.push(userId);
+        await club.save();
+        logger_1.default.info(`User ${userId} added to club ${clubId} by ${currentUserId}`);
+        res.json({ message: 'Member added successfully', club });
+    }
+    catch (error) {
+        logger_1.default.error('Error adding member:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.addMember = addMember;
+const removeMember = async (req, res) => {
+    try {
+        const { clubId, userId } = req.params;
+        const currentUserId = req.user?._id;
+        const club = await Club_1.default.findById(clubId);
+        if (!club) {
+            return res.status(404).json({ message: 'Club not found' });
+        }
+        if (club.createdBy.toString() !== currentUserId) {
+            return res.status(403).json({ message: 'Only club creator can remove members' });
+        }
+        if (club.createdBy.toString() === userId) {
+            return res.status(400).json({ message: 'Cannot remove the club creator' });
+        }
+        if (!club.members.includes(userId)) {
+            return res.status(400).json({ message: 'User is not a member of this club' });
+        }
+        club.members = club.members.filter(member => member.toString() !== userId);
+        await club.save();
+        logger_1.default.info(`User ${userId} removed from club ${clubId} by ${currentUserId}`);
+        res.json({ message: 'Member removed successfully', club });
+    }
+    catch (error) {
+        logger_1.default.error('Error removing member:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.removeMember = removeMember;
 //# sourceMappingURL=clubController.js.map

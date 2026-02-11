@@ -12,7 +12,7 @@ export interface ITeam extends Document {
     tournament: mongoose.Types.ObjectId;
     players: mongoose.Types.ObjectId[];
     createdBy: mongoose.Types.ObjectId;
-    deleted: boolean;
+    deleted?: boolean;
     deletedAt?: Date;
     registrationFee?: number;
     isPaid?: boolean;

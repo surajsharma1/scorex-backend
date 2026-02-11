@@ -99,14 +99,19 @@ exports.updateProfile = updateProfile;
 const searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
+        const currentUserId = req.user?._id;
         if (!query || typeof query !== 'string') {
             res.status(400).json({ message: 'Query parameter is required' });
             return;
         }
         const users = await User_1.default.find({
-            username: { $regex: query, $options: 'i' },
-            deleted: { $ne: true }
-        }).select('username profilePicture bio').limit(10);
+            $or: [
+                { username: { $regex: query, $options: 'i' } },
+                { email: { $regex: query, $options: 'i' } }
+            ],
+            deleted: { $ne: true },
+            _id: { $ne: currentUserId } // Exclude current user
+        }).select('username email profilePicture bio fullName').limit(10);
         res.json(users);
     }
     catch (error) {

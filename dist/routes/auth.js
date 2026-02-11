@@ -10,6 +10,8 @@ const User_1 = __importDefault(require("../models/User"));
 const passport_1 = __importDefault(require("passport"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const rateLimiters_1 = require("../utils/rateLimiters");
+const auditLogger_1 = __importDefault(require("../utils/auditLogger"));
+const validation_1 = require("../utils/validation");
 const router = express_1.default.Router();
 // Define protectAuth locally
 const protectAuth = async (req, res, next) => {
@@ -57,64 +59,39 @@ const protectOrganizer = (req, res, next) => {
 exports.protectOrganizer = protectOrganizer;
 exports.protectAdmin = [exports.protectAuth, (0, exports.authorize)('admin')];
 // Email register
-router.post('/register', async (req, res) => {
+router.post('/register', (0, validation_1.validateRequest)(validation_1.registerSchema), async (req, res) => {
     try {
         const { username, email, password, fullName, dob, googleId } = req.body;
+        // Additional server-side checks
         const userExists = await User_1.default.findOne({ email });
         if (userExists)
             return res.status(400).json({ message: 'User already exists' });
         const usernameExists = await User_1.default.findOne({ username });
         if (usernameExists)
             return res.status(400).json({ message: 'Username already taken' });
-        // Always send OTP for verification, regardless of registration method
-        const otp = '123456'; // Fixed OTP for development testing
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-        await User_1.default.create({ username, email, password, fullName, dob, googleId, otp, otpExpires, role: 'viewer' });
-        // Send OTP email (commented out for development)
-        // const { sendOtpEmail } = await import('../utils/email');
-        // await sendOtpEmail(email, otp);
-        res.status(200).json({ message: 'OTP sent to email. Please verify to complete registration.' });
-    }
-    catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-// Verify OTP for email registration
-router.post('/verify-otp', rateLimiters_1.authLimiter, async (req, res) => {
-    try {
-        const { email, otp } = req.body;
-        const user = await User_1.default.findOne({ email, otp, otpExpires: { $gt: new Date() } });
-        if (!user)
-            return res.status(400).json({ message: 'Invalid or expired OTP' });
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        await user.save();
+        // Check for common weak passwords (additional security layer)
+        const weakPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
+        if (weakPasswords.includes(password.toLowerCase())) {
+            return res.status(400).json({ message: 'Password is too weak. Please choose a stronger password.' });
+        }
+        // Create the user directly without OTP verification
+        const user = await User_1.default.create({
+            username,
+            email,
+            password,
+            fullName,
+            dob,
+            googleId,
+            role: 'viewer'
+        });
+        // Generate token
         const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        // Audit log successful registration
+        auditLogger_1.default.logUserAction(user._id.toString(), 'USER_REGISTERED', 'User', user._id.toString(), { username, email }, req.ip, req.get('User-Agent'));
         res.status(201).json({ token });
     }
     catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-// OTP verification
-router.post('/verify-otp', async (req, res) => {
-    try {
-        const { email, otp } = req.body;
-        const user = await User_1.default.findOne({ email });
-        if (!user)
-            return res.status(404).json({ message: 'User not found' });
-        if (user.otp !== otp || !user.otpExpires || user.otpExpires < new Date()) {
-            return res.status(400).json({ message: 'Invalid or expired OTP' });
-        }
-        // Clear OTP and mark as verified
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        await user.save();
-        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.json({ token });
-    }
-    catch (error) {
-        console.error('OTP verification error:', error);
+        console.error('Registration error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

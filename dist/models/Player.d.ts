@@ -5,7 +5,7 @@ export interface IPlayer extends Document {
     jerseyNumber: string;
     image?: string;
     team: mongoose.Types.ObjectId;
-    userId: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
     stats: {
         matches: number;
         runs: number;
