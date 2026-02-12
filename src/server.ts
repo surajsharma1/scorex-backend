@@ -23,6 +23,7 @@ import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
 import friendRoutes from './routes/friends';
 import clubRoutes from './routes/clubs';
+import paymentRoutes from './routes/payments';
 import { sendOtpEmail } from './utils/email';
 import logger from './utils/logger';
 import rateLimit from 'express-rate-limit';
@@ -174,6 +175,7 @@ app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/clubs', clubRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
