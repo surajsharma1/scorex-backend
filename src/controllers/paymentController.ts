@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2024-12-18.acacia',
-});
+}) : null;
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {
