@@ -38,10 +38,11 @@ export const loginSchema = z.object({
 export const createTournamentSchema = z.object({
   name: z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  format: z.string().min(1, 'Format is required'),
   startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid date format'),
-  endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid date format'),
-  maxTeams: z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
-  entryFee: z.number().min(0, 'Entry fee cannot be negative').optional(),
+  numberOfTeams: z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
+  status: z.enum(['upcoming', 'active', 'completed']).optional(),
+  liveMatchUrl: z.string().url('Invalid URL format').optional(),
 });
 
 export const updateTournamentSchema = createTournamentSchema.partial();
@@ -54,6 +55,20 @@ export const createTeamSchema = z.object({
 });
 
 export const updateTeamSchema = createTeamSchema.partial();
+
+// Player validation schemas
+export const addPlayerSchema = z.object({
+  name: z.string().min(1, 'Player name is required').max(100, 'Player name must be less than 100 characters'),
+  role: z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role'),
+  jerseyNumber: z.string().min(1, 'Jersey number is required'),
+  userId: z.string().optional(),
+});
+
+export const addPlayerByUsernameSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  role: z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role').optional(),
+  jerseyNumber: z.string().optional(),
+});
 
 // Match validation schemas
 export const createMatchSchema = z.object({
