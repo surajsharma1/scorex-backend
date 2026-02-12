@@ -29,6 +29,7 @@ const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const friends_1 = __importDefault(require("./routes/friends"));
 const clubs_1 = __importDefault(require("./routes/clubs"));
+const payments_1 = __importDefault(require("./routes/payments"));
 const logger_1 = __importDefault(require("./utils/logger"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 dotenv_1.default.config();
@@ -132,6 +133,8 @@ app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -171,6 +174,7 @@ app.use('/api/v1/stats', stats_1.default);
 app.use('/api/v1/auth', auth_1.default);
 app.use('/api/v1/friends', friends_1.default);
 app.use('/api/v1/clubs', clubs_1.default);
+app.use('/api/v1/payments', payments_1.default);
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
     try {

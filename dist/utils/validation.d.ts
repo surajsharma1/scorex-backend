@@ -13,18 +13,28 @@ export declare const loginSchema: z.ZodObject<{
 export declare const createTournamentSchema: z.ZodObject<{
     name: z.ZodString;
     description: z.ZodOptional<z.ZodString>;
+    format: z.ZodString;
     startDate: z.ZodString;
-    endDate: z.ZodString;
-    maxTeams: z.ZodNumber;
-    entryFee: z.ZodOptional<z.ZodNumber>;
+    numberOfTeams: z.ZodNumber;
+    status: z.ZodOptional<z.ZodEnum<{
+        upcoming: "upcoming";
+        active: "active";
+        completed: "completed";
+    }>>;
+    liveMatchUrl: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateTournamentSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    format: z.ZodOptional<z.ZodString>;
     startDate: z.ZodOptional<z.ZodString>;
-    endDate: z.ZodOptional<z.ZodString>;
-    maxTeams: z.ZodOptional<z.ZodNumber>;
-    entryFee: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+    numberOfTeams: z.ZodOptional<z.ZodNumber>;
+    status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+        upcoming: "upcoming";
+        active: "active";
+        completed: "completed";
+    }>>>;
+    liveMatchUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const createTeamSchema: z.ZodObject<{
     name: z.ZodString;
@@ -35,6 +45,27 @@ export declare const updateTeamSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     color: z.ZodOptional<z.ZodString>;
     tournament: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export declare const addPlayerSchema: z.ZodObject<{
+    name: z.ZodString;
+    role: z.ZodEnum<{
+        Batsman: "Batsman";
+        Bowler: "Bowler";
+        "All-rounder": "All-rounder";
+        "Wicket Keeper": "Wicket Keeper";
+    }>;
+    jerseyNumber: z.ZodString;
+    userId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export declare const addPlayerByUsernameSchema: z.ZodObject<{
+    username: z.ZodString;
+    role: z.ZodOptional<z.ZodEnum<{
+        Batsman: "Batsman";
+        Bowler: "Bowler";
+        "All-rounder": "All-rounder";
+        "Wicket Keeper": "Wicket Keeper";
+    }>>;
+    jerseyNumber: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const createMatchSchema: z.ZodObject<{
     tournamentId: z.ZodString;

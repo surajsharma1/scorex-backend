@@ -7,6 +7,7 @@ export interface ITournament extends Document {
     numberOfTeams: number;
     status: 'upcoming' | 'active' | 'completed';
     isLive: boolean;
+    liveMatchUrl?: string;
     liveScores?: {
         team1: {
             name: string;

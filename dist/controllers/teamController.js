@@ -118,7 +118,7 @@ const addPlayer = async (req, res) => {
         res.status(201).json(team);
     }
     catch (error) {
-        console.error('Add player error:', error);
+        logger_1.default.error('Add player error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, body: req.body });
         res.status(500).json({ message: 'Server error' });
     }
 };

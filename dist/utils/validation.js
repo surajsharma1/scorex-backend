@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.updateMatchSchema = exports.createMatchSchema = exports.updateTeamSchema = exports.createTeamSchema = exports.updateTournamentSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.validateRequest = exports.updateMatchSchema = exports.createMatchSchema = exports.addPlayerByUsernameSchema = exports.addPlayerSchema = exports.updateTeamSchema = exports.createTeamSchema = exports.updateTournamentSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 // User validation schemas
 exports.registerSchema = zod_1.z.object({
@@ -37,10 +37,11 @@ exports.loginSchema = zod_1.z.object({
 exports.createTournamentSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
     description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
+    format: zod_1.z.string().min(1, 'Format is required'),
     startDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid date format'),
-    endDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid date format'),
-    maxTeams: zod_1.z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
-    entryFee: zod_1.z.number().min(0, 'Entry fee cannot be negative').optional(),
+    numberOfTeams: zod_1.z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
+    status: zod_1.z.enum(['upcoming', 'active', 'completed']).optional(),
+    liveMatchUrl: zod_1.z.string().url('Invalid URL format').optional(),
 });
 exports.updateTournamentSchema = exports.createTournamentSchema.partial();
 // Team validation schemas
@@ -50,6 +51,18 @@ exports.createTeamSchema = zod_1.z.object({
     tournament: zod_1.z.string().min(1, 'Tournament is required'),
 });
 exports.updateTeamSchema = exports.createTeamSchema.partial();
+// Player validation schemas
+exports.addPlayerSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, 'Player name is required').max(100, 'Player name must be less than 100 characters'),
+    role: zod_1.z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role'),
+    jerseyNumber: zod_1.z.string().min(1, 'Jersey number is required'),
+    userId: zod_1.z.string().optional(),
+});
+exports.addPlayerByUsernameSchema = zod_1.z.object({
+    username: zod_1.z.string().min(1, 'Username is required'),
+    role: zod_1.z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role').optional(),
+    jerseyNumber: zod_1.z.string().optional(),
+});
 // Match validation schemas
 exports.createMatchSchema = zod_1.z.object({
     tournamentId: zod_1.z.string().min(1, 'Tournament ID is required'),
