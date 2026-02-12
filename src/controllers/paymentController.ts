@@ -2,9 +2,17 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: '2024-12-18.acacia',
-}) : null;
+let stripe: Stripe | null = null;
+
+try {
+  if (stripeSecretKey) {
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2024-12-18.acacia',
+    });
+  }
+} catch (error) {
+  console.warn('Stripe not configured:', error);
+}
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {

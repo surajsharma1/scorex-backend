@@ -5,11 +5,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPaymentHistory = exports.confirmPayment = exports.createPaymentIntent = void 0;
 const stripe_1 = __importDefault(require("stripe"));
-const stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2024-12-18.acacia',
-});
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+let stripe = null;
+try {
+    if (stripeSecretKey) {
+        stripe = new stripe_1.default(stripeSecretKey, {
+            apiVersion: '2024-12-18.acacia',
+        });
+    }
+}
+catch (error) {
+    console.warn('Stripe not configured:', error);
+}
 const createPaymentIntent = async (req, res) => {
     try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Payment service not configured' });
+        }
         const { amount, level, duration } = req.body;
         // Convert amount to cents for Stripe
         const amountInCents = Math.round(amount * 100);
@@ -20,7 +32,7 @@ const createPaymentIntent = async (req, res) => {
             metadata: {
                 level,
                 duration,
-                userId: req.user?.id
+                userId: req.user?._id || 'unknown'
             }
         });
         res.json({
@@ -36,6 +48,9 @@ const createPaymentIntent = async (req, res) => {
 exports.createPaymentIntent = createPaymentIntent;
 const confirmPayment = async (req, res) => {
     try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Payment service not configured' });
+        }
         const { paymentIntentId, level, duration } = req.body;
         // Retrieve the payment intent to confirm it's succeeded
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
