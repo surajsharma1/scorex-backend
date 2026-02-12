@@ -8,6 +8,10 @@ const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment service not configured' });
+    }
+
     const { amount, level, duration } = req.body;
 
     // Convert amount to cents for Stripe
@@ -20,7 +24,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
       metadata: {
         level,
         duration,
-        userId: req.user?.id
+        userId: (req.user as any)?._id || 'unknown'
       }
     });
 
@@ -36,6 +40,10 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
 
 export const confirmPayment = async (req: Request, res: Response) => {
   try {
+    if (!stripe) {
+      return res.status(500).json({ error: 'Payment service not configured' });
+    }
+
     const { paymentIntentId, level, duration } = req.body;
 
     // Retrieve the payment intent to confirm it's succeeded
