@@ -11,22 +11,15 @@ export const registerSchema = z.object({
     .max(254, 'Email is too long'), // RFC 5321 limit
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must be less than 100 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+    .max(100, 'Password must be less than 100 characters'),
   fullName: z.string()
     .min(2, 'Full name must be at least 2 characters')
     .max(100, 'Full name must be less than 100 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
   dob: z.string()
-    .refine((date: string) => {
-      const birthDate = new Date(date);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      return age >= 13 && age <= 120; // Reasonable age range
-    }, 'You must be at least 13 years old')
-    .optional(),
+    .optional()
+    .or(z.literal('')),
 });
 
 export const loginSchema = z.object({
