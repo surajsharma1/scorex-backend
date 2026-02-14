@@ -8,11 +8,17 @@ import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
 import auditLogger from '../utils/auditLogger';
 import { validateRequest, registerSchema } from '../utils/validation';
+import { sendOtpEmail } from '../utils/email';
 
 
 
 
 const router = express.Router();
+
+// Helper function to generate OTP
+const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 export interface AuthRequest extends Request {
   user?: IUser;
