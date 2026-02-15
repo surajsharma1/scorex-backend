@@ -12,14 +12,17 @@ export const registerSchema = z.object({
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must be less than 100 characters'),
-  fullName: z.string()
-    .min(2, 'Full name must be at least 2 characters')
-    .max(100, 'Full name must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-  dob: z.string()
-    .optional()
-    .or(z.literal('')),
+  fullName: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string()
+      .min(2, 'Full name must be at least 2 characters')
+      .max(100, 'Full name must be less than 100 characters')
+      .optional()
+  ),
+  dob: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().optional()
+  ),
 });
 
 export const loginSchema = z.object({
