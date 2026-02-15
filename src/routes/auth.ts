@@ -71,14 +71,27 @@ export const protectAdmin = [protectAuth, authorize('admin')];
 // Email register
 router.post('/register', validateRequest(registerSchema), async (req, res) => {
   try {
+    console.log('Registration request received:', req.body);
     const { username, email, password, fullName, dob, googleId } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !password) {
+      console.log('Missing required fields:', { username: !!username, email: !!email, password: !!password });
+      return res.status(400).json({ message: 'Username, email, and password are required' });
+    }
 
     // Additional server-side checks
     const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
+    if (userExists) {
+      console.log('User already exists with email:', email);
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
     const usernameExists = await User.findOne({ username });
-    if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
+    if (usernameExists) {
+      console.log('Username already taken:', username);
+      return res.status(400).json({ message: 'Username already taken' });
+    }
 
     // Check for common weak passwords (additional security layer)
     const weakPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
@@ -102,6 +115,8 @@ router.post('/register', validateRequest(registerSchema), async (req, res) => {
       otpExpires,
       role: 'viewer'
     });
+
+    console.log('User created successfully:', user._id);
 
     // Send OTP via email
     try {
@@ -127,9 +142,10 @@ router.post('/register', validateRequest(registerSchema), async (req, res) => {
       message: 'Registration successful. Please verify your email with the OTP sent to your email address.',
       email: email
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -313,4 +329,4 @@ router.get('/me', protectAuth as any, async (req, res) => {
   res.json((req as any).user);
 });
 
-export default router;  
+export default router;
