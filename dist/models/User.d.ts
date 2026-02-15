@@ -4,7 +4,8 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     role: 'viewer' | 'organizer' | 'admin';
-    membership: 'free' | 'premium' | 'pro';
+    membership: 'free' | 'premium' | 'pro' | 'premium-level1' | 'premium-level2';
+    membershipExpiry?: Date;
     googleId?: string;
     githubId?: string;
     fullName?: string;
@@ -22,6 +23,15 @@ export interface IUser extends Document {
         matchResults: boolean;
         systemAnnouncements: boolean;
     };
+    paymentHistory?: {
+        amount: number;
+        currency: string;
+        level: string;
+        duration: string;
+        paymentIntentId: string;
+        status: string;
+        date: Date;
+    }[];
     deleted: boolean;
     deletedAt?: Date;
     createdAt: Date;

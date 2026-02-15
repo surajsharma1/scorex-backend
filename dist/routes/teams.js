@@ -10,7 +10,9 @@ const upload_1 = __importDefault(require("../middleware/upload"));
 const validation_1 = require("../utils/validation");
 const rateLimiters_1 = require("../utils/rateLimiters");
 const router = express_1.default.Router();
-router.get('/', auth_1.protect, teamController_1.getTeams);
+// Public routes - anyone can view teams
+router.get('/', teamController_1.getTeams);
+// Protected routes - require authentication
 router.post('/', auth_1.protect, rateLimiters_1.createLimiter, upload_1.default.single('logo'), (0, validation_1.validateRequest)(validation_1.createTeamSchema), teamController_1.createTeam);
 router.put('/:id', auth_1.protect, upload_1.default.single('logo'), (0, validation_1.validateRequest)(validation_1.updateTeamSchema), teamController_1.updateTeam);
 router.delete('/:id', auth_1.protect, teamController_1.deleteTeam);

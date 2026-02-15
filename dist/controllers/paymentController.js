@@ -5,12 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPaymentHistory = exports.confirmPayment = exports.createPaymentIntent = void 0;
 const stripe_1 = __importDefault(require("stripe"));
+const User_1 = __importDefault(require("../models/User"));
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe = null;
 try {
     if (stripeSecretKey) {
         stripe = new stripe_1.default(stripeSecretKey, {
-            apiVersion: '2024-12-18.acacia',
+            apiVersion: '2026-01-28.clover',
         });
     }
 }
@@ -52,16 +53,51 @@ const confirmPayment = async (req, res) => {
             return res.status(500).json({ error: 'Payment service not configured' });
         }
         const { paymentIntentId, level, duration } = req.body;
+        const userId = req.user?._id;
         // Retrieve the payment intent to confirm it's succeeded
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (paymentIntent.status === 'succeeded') {
+            // Calculate membership expiry date based on duration
+            const now = new Date();
+            let expiryDate = new Date();
+            switch (duration) {
+                case '1day':
+                    expiryDate.setDate(now.getDate() + 1);
+                    break;
+                case '1week':
+                    expiryDate.setDate(now.getDate() + 7);
+                    break;
+                case '1month':
+                    expiryDate.setMonth(now.getMonth() + 1);
+                    break;
+                default:
+                    expiryDate.setDate(now.getDate() + 7); // Default to 1 week
+            }
             // Update user membership in database
-            // This would typically update the user's membership level and expiry date
-            // For now, we'll just return success
+            const membership = `premium-${level}`;
+            const updatedUser = await User_1.default.findByIdAndUpdate(userId, {
+                membership: membership,
+                membershipExpiry: expiryDate,
+                $push: {
+                    paymentHistory: {
+                        amount: paymentIntent.amount / 100, // Convert from cents
+                        currency: paymentIntent.currency,
+                        level: level,
+                        duration: duration,
+                        paymentIntentId: paymentIntentId,
+                        status: 'completed',
+                        date: new Date()
+                    }
+                }
+            }, { new: true });
+            if (!updatedUser) {
+                return res.status(404).json({ error: 'User not found' });
+            }
             res.json({
                 success: true,
                 message: 'Payment confirmed successfully',
-                membership: `premium-${level}`,
+                membership: membership,
+                membershipExpiry: expiryDate,
                 duration
             });
         }

@@ -14,37 +14,17 @@ import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-// All club routes require authentication
-router.use(protect as any);
-
-// Get all clubs
+// Public routes - anyone can view clubs
 router.get('/', getClubs);
-
-// Search clubs
-// router.get('/search', searchClubs);
-
-// Get specific club
 router.get('/:clubId', getClub);
 
-// Create club
-router.post('/', createClub);
-
-// Join club
-router.post('/:clubId/join', joinClub);
-
-// Leave club
-router.post('/:clubId/leave', leaveClub);
-
-// Update club (creator only)
-router.put('/:clubId', updateClub);
-
-// Delete club (creator only)
-router.delete('/:clubId', deleteClub);
-
-// Add member (creator only)
-router.post('/:clubId/members', addMember);
-
-// Remove member (creator only)
-router.delete('/:clubId/members/:userId', removeMember);
+// Protected routes - require authentication
+router.post('/', protect as any, createClub);
+router.post('/:clubId/join', protect as any, joinClub);
+router.post('/:clubId/leave', protect as any, leaveClub);
+router.put('/:clubId', protect as any, updateClub);
+router.delete('/:clubId', protect as any, deleteClub);
+router.post('/:clubId/members', protect as any, addMember);
+router.delete('/:clubId/members/:userId', protect as any, removeMember);
 
 export default router;

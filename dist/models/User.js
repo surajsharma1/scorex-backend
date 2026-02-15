@@ -43,7 +43,8 @@ const userSchema = new mongoose_1.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
-    membership: { type: String, enum: ['free', 'premium', 'pro'], default: 'free' },
+    membership: { type: String, enum: ['free', 'premium', 'pro', 'premium-level1', 'premium-level2'], default: 'free' },
+    membershipExpiry: { type: Date },
     googleId: { type: String, unique: true, sparse: true },
     githubId: { type: String, unique: true, sparse: true },
     fullName: { type: String },
@@ -61,6 +62,15 @@ const userSchema = new mongoose_1.Schema({
         matchResults: { type: Boolean, default: true },
         systemAnnouncements: { type: Boolean, default: true },
     },
+    paymentHistory: [{
+            amount: { type: Number },
+            currency: { type: String },
+            level: { type: String },
+            duration: { type: String },
+            paymentIntentId: { type: String },
+            status: { type: String },
+            date: { type: Date }
+        }],
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
 }, { timestamps: true });

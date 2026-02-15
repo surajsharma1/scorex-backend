@@ -136,6 +136,14 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// Debug middleware to log request bodies for troubleshooting
+app.use((req, res, next) => {
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log(`[${req.method}] ${req.path} - Content-Type: ${req.headers['content-type']}`);
+        console.log('Request body:', req.body);
+    }
+    next();
+});
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 // Trust proxy setting for rate limiting in production

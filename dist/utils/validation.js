@@ -14,20 +14,12 @@ exports.registerSchema = zod_1.z.object({
     password: zod_1.z.string()
         .min(8, 'Password must be at least 8 characters')
         .max(100, 'Password must be less than 100 characters')
-        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
-    fullName: zod_1.z.string()
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+    fullName: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string()
         .min(2, 'Full name must be at least 2 characters')
         .max(100, 'Full name must be less than 100 characters')
-        .regex(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces')
-        .optional(),
-    dob: zod_1.z.string()
-        .refine((date) => {
-        const birthDate = new Date(date);
-        const today = new Date();
-        const age = today.getFullYear() - birthDate.getFullYear();
-        return age >= 13 && age <= 120; // Reasonable age range
-    }, 'You must be at least 13 years old')
-        .optional(),
+        .optional()),
+    dob: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string().optional()),
 });
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
