@@ -15,8 +15,11 @@ import { createLimiter } from '../utils/rateLimiters';
 
 const router = express.Router();
 
-router.get('/', protect as any , getTournaments);
-router.get('/:id', protect as any , getTournament);
+// Public routes - anyone can view tournaments
+router.get('/', getTournaments);
+router.get('/:id', getTournament);
+
+// Protected routes - require authentication
 router.post('/', protect as any, createLimiter, createTournament);
 router.put('/:id', protect as any , updateTournament);
 router.delete('/:id', protect as any , deleteTournament);
