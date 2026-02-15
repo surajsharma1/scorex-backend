@@ -15,7 +15,10 @@ import { createLimiter } from '../utils/rateLimiters';
 
 const router = express.Router();
 
-router.get('/', protect as any , getTeams);
+// Public routes - anyone can view teams
+router.get('/', getTeams);
+
+// Protected routes - require authentication
 router.post('/', protect as any, createLimiter, upload.single('logo'), validateRequest(createTeamSchema), createTeam);
 router.put('/:id', protect as any, upload.single('logo'), validateRequest(updateTeamSchema), updateTeam);
 router.delete('/:id', protect as any , deleteTeam);
