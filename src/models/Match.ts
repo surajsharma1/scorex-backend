@@ -1,23 +1,26 @@
   import mongoose, { Document, Schema } from 'mongoose';
 
-  export interface IMatch extends Document {
-    tournament: mongoose.Types.ObjectId;
-    team1: mongoose.Types.ObjectId;
-    team2: mongoose.Types.ObjectId;
-    date: Date;
-    venue?: string;
-    status: 'scheduled' | 'ongoing' | 'completed';
-    score1?: number;
-    score2?: number;
-    wickets1?: number;
-    wickets2?: number;
-    overs1?: number;
-    overs2?: number;
-    winner?: mongoose.Types.ObjectId;
-    videoLink?: string;
-    commentary: string[];
-    createdBy: mongoose.Types.ObjectId;
-  }
+export interface IMatch extends Document {
+  tournament: mongoose.Types.ObjectId;
+  team1: mongoose.Types.ObjectId;
+  team2: mongoose.Types.ObjectId;
+  date: Date;
+  venue?: string;
+  status: 'scheduled' | 'ongoing' | 'completed';
+  score1?: number;
+  score2?: number;
+  wickets1?: number;
+  wickets2?: number;
+  overs1?: number;
+  overs2?: number;
+  winner?: mongoose.Types.ObjectId;
+  tossWinner?: mongoose.Types.ObjectId;
+  matchType?: 'League' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Playoff';
+  videoLink?: string;
+  commentary: string[];
+  createdBy: mongoose.Types.ObjectId;
+}
+
 
   const matchSchema = new Schema<IMatch>(
     {
@@ -34,9 +37,12 @@
       overs1: { type: Number, default: 0 },
       overs2: { type: Number, default: 0 },
       winner: { type: Schema.Types.ObjectId, ref: 'Team' },
+      tossWinner: { type: Schema.Types.ObjectId, ref: 'Team' },
+      matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
       videoLink: String,
       commentary: [{ type: String, default: [] }],
       createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
     },
     { timestamps: true }
   );

@@ -4,7 +4,10 @@ import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-// All user routes require authentication
+// Public route - anyone can search users
+router.get('/search', searchUsers);
+
+// Protected routes - require authentication
 router.use(protect as any);
 
 // Notification preferences
@@ -15,7 +18,5 @@ router.put('/notifications/preferences', updateNotificationPreferences);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 
-// User search
-router.get('/search', searchUsers);
 
 export default router;

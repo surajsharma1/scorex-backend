@@ -11,7 +11,10 @@ import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/', protect as any, getBrackets);
+// Public route - anyone can view brackets
+router.get('/', getBrackets);
+
+// Protected routes - require authentication
 router.post('/', protect as any, createBracket);
 router.post('/:id/generate', protect as any, generateBracket);
 router.put('/:id', protect as any, updateBracket);
