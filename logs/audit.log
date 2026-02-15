@@ -1,0 +1,1 @@
+{"timestamp":"2026-02-15T05:02:47.814Z","userId":"69915374a496146fbc559215","action":"USER_REGISTERED_PENDING_VERIFICATION","resource":"User","resourceId":"69915374a496146fbc559215","details":{"username":"testuser123","email":"test123@example.com"},"ipAddress":"::1","userAgent":"curl/8.16.0"}
