@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IOverlay extends Document {
   name: string;
   tournament: mongoose.Types.ObjectId;
+  match?: mongoose.Types.ObjectId;
   template: string;
   config: any;
   elements: any[];
@@ -13,7 +14,8 @@ export interface IOverlay extends Document {
 const overlaySchema = new Schema<IOverlay>(
   {
     name: { type: String, required: true },
-  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
+    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
+    match: { type: Schema.Types.ObjectId, ref: 'Match' },
     template: { type: String, required: true },
     config: { type: Schema.Types.Mixed, required: true },
     elements: [{ type: Schema.Types.Mixed }],
