@@ -15,7 +15,9 @@ export interface IMatch extends Document {
   overs2?: number;
   winner?: mongoose.Types.ObjectId;
   tossWinner?: mongoose.Types.ObjectId;
+  tossChoice?: 'bat' | 'bowl';
   matchType?: 'League' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Playoff';
+
   videoLink?: string;
   commentary: string[];
   createdBy: mongoose.Types.ObjectId;
@@ -38,7 +40,9 @@ export interface IMatch extends Document {
       overs2: { type: Number, default: 0 },
       winner: { type: Schema.Types.ObjectId, ref: 'Team' },
       tossWinner: { type: Schema.Types.ObjectId, ref: 'Team' },
+      tossChoice: { type: String, enum: ['bat', 'bowl'] },
       matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
+
       videoLink: String,
       commentary: [{ type: String, default: [] }],
       createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
