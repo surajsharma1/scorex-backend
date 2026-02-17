@@ -2,6 +2,7 @@ import mongoose, { Document } from 'mongoose';
 export interface IOverlay extends Document {
     name: string;
     tournament: mongoose.Types.ObjectId;
+    match?: mongoose.Types.ObjectId;
     template: string;
     config: any;
     elements: any[];

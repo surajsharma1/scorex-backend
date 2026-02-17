@@ -13,6 +13,9 @@ export interface IMatch extends Document {
     overs1?: number;
     overs2?: number;
     winner?: mongoose.Types.ObjectId;
+    tossWinner?: mongoose.Types.ObjectId;
+    tossChoice?: 'bat' | 'bowl';
+    matchType?: 'League' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Playoff';
     videoLink?: string;
     commentary: string[];
     createdBy: mongoose.Types.ObjectId;

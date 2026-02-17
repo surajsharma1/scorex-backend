@@ -13,8 +13,10 @@ const getTournaments = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        // Create cache key with pagination
-        const cacheKey = `${cache_1.cacheService.getTournamentsListKey()}:page${page}:limit${limit}`;
+        // Get user ID from authenticated request
+        const userId = req.user?._id;
+        // Create cache key with pagination and user ID for user-specific data
+        const cacheKey = `${cache_1.cacheService.getTournamentsListKey()}:user${userId}:page${page}:limit${limit}`;
         let cachedResult = null;
         try {
             cachedResult = await cache_1.cacheService.getJSON(cacheKey);
@@ -26,8 +28,10 @@ const getTournaments = async (req, res) => {
             res.json(cachedResult);
             return;
         }
-        const total = await Tournament_1.default.countDocuments();
-        const tournaments = await Tournament_1.default.find()
+        // Filter tournaments by createdBy user for data separation and exclude deleted tournaments
+        const filter = userId ? { createdBy: userId, deleted: false } : { deleted: false };
+        const total = await Tournament_1.default.countDocuments(filter);
+        const tournaments = await Tournament_1.default.find(filter)
             .populate('createdBy', 'username')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -60,7 +64,8 @@ const getTournaments = async (req, res) => {
 exports.getTournaments = getTournaments;
 const getTournament = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findById(req.params.id).populate('createdBy', 'username');
+        const userId = req.user?._id;
+        const tournament = await Tournament_1.default.findOne({ _id: req.params.id, createdBy: userId, deleted: false }).populate('createdBy', 'username');
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
@@ -97,7 +102,8 @@ const createTournament = async (req, res) => {
 exports.createTournament = createTournament;
 const updateTournament = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const userId = req.user?._id;
+        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, req.body, { new: true });
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
@@ -111,7 +117,8 @@ const updateTournament = async (req, res) => {
 exports.updateTournament = updateTournament;
 const deleteTournament = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { deleted: true, deletedAt: new Date() }, { new: true });
+        const userId = req.user?._id;
+        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, { deleted: true, deletedAt: new Date() }, { new: true });
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
@@ -132,7 +139,8 @@ const deleteTournament = async (req, res) => {
 exports.deleteTournament = deleteTournament;
 const goLive = async (req, res) => {
     try {
-        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { isLive: true }, { new: true });
+        const userId = req.user?._id;
+        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, { isLive: true }, { new: true });
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
@@ -146,8 +154,9 @@ const goLive = async (req, res) => {
 exports.goLive = goLive;
 const updateLiveScores = async (req, res) => {
     try {
+        const userId = req.user?._id;
         const { scores } = req.body;
-        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, { liveScores: scores }, { new: true });
+        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, { liveScores: scores }, { new: true });
         if (!tournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;

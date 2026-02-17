@@ -14,7 +14,7 @@ exports.registerSchema = zod_1.z.object({
     password: zod_1.z.string()
         .min(8, 'Password must be at least 8 characters')
         .max(100, 'Password must be less than 100 characters')
-        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, 'Password must contain at least one alphabet, one number, and one special character'),
     fullName: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string()
         .min(2, 'Full name must be at least 2 characters')
         .max(100, 'Full name must be less than 100 characters')

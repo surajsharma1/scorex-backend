@@ -37,6 +37,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const overlaySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
+    match: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
     template: { type: String, required: true },
     config: { type: mongoose_1.Schema.Types.Mixed, required: true },
     elements: [{ type: mongoose_1.Schema.Types.Mixed }],
