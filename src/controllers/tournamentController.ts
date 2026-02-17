@@ -31,8 +31,8 @@ export const getTournaments = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    // Filter tournaments by createdBy user for data separation
-    const filter = userId ? { createdBy: userId } : {};
+    // Filter tournaments by createdBy user for data separation and exclude deleted tournaments
+    const filter = userId ? { createdBy: userId, deleted: false } : { deleted: false };
     const total = await Tournament.countDocuments(filter);
     const tournaments = await Tournament.find(filter)
       .populate('createdBy', 'username')
@@ -69,7 +69,7 @@ export const getTournaments = async (req: AuthRequest, res: Response): Promise<v
 export const getTournament = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?._id;
-    const tournament = await Tournament.findOne({ _id: req.params.id, createdBy: userId }).populate('createdBy', 'username');
+    const tournament = await Tournament.findOne({ _id: req.params.id, createdBy: userId, deleted: false }).populate('createdBy', 'username');
     if (!tournament) {
       res.status(404).json({ message: 'Tournament not found' });
       return;
