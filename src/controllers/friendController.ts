@@ -54,7 +54,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
 export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { requestId } = req.params;
-    const userId = (req.user as any)?._id?.toString();
+    const userId = req.user?._id;
 
     if (!userId) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -65,7 +65,7 @@ export const acceptFriendRequest = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Friend request not found' });
     }
 
-    if (friendRequest.to.toString() !== userId) {
+    if (friendRequest.to.toString() !== userId.toString()) {
       return res.status(403).json({ message: 'Not authorized to accept this request' });
     }
 
