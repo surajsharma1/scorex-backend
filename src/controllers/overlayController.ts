@@ -81,20 +81,55 @@ export const deleteOverlay = async (req: Request, res: Response): Promise<void> 
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
     const overlay = await Overlay.findOne({ publicId: req.params.id })
-      .populate('tournament') as any;
+      .populate('tournament')
+      .populate('match') as any;
+    
     if (!overlay) {
       res.status(404).send('Overlay not found');
       return;
     }
 
-    // Get teams for this tournament
-    const Team = require('../models/Team').default;
-    const teams = await Team.find({ tournament: overlay.tournament._id }).limit(2);
+    // Get the template ID from the overlay, default to 'modern' if not specified
+    const templateId = overlay.template || 'modern';
+    
+    // Get the match ID for the overlay-utils.js to fetch live data
+    const matchId = overlay.match?._id || overlay.match;
+    
+    // Get the API base URL from environment or use default
+    const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
+    
+    // Try to read the template file
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Path to the frontend public/overlays folder
+    // The backend is in scorex-backend, frontend is in scorex-frontend/scorex-frontend
+    const templatePath = path.join(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays', `${templateId}.html`);
+    
+    // Check if template file exists
+    if (fs.existsSync(templatePath)) {
+      // Redirect to the template with matchId and apiBaseUrl as URL parameters
+      // The overlay-utils.js reads these from URL parameters
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const redirectUrl = `${baseUrl}/overlays/${templateId}.html?matchId=${matchId}&apiBaseUrl=${encodeURIComponent(apiBaseUrl)}`;
+      
+      res.redirect(redirectUrl);
+      return;
+    } else {
+      // Template file not found, generate a fallback HTML
+      console.log(`Template not found: ${templatePath}, using fallback`);
+      
+      // Get teams for this tournament
+      const Team = require('../models/Team').default;
+      const teams = overlay.tournament?._id 
+        ? await Team.find({ tournament: overlay.tournament._id }).limit(2) 
+        : [];
 
-    const liveScores = overlay.tournament?.liveScores || {};
-    const team1 = teams[0] || {};
-    const team2 = teams[1] || {};
-    const html = `
+      const liveScores = overlay.tournament?.liveScores || {};
+      const team1 = teams[0] || {};
+      const team2 = teams[1] || {};
+      
+      const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,8 +193,9 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     </div>
 </body>
 </html>`;
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    }
   } catch (error) {
     console.error('Serve overlay error:', error);
     res.status(500).send('Error serving overlay');

@@ -218,8 +218,8 @@ app.get('/api/v1/health', async (req, res) => {
   }
 });
 
-// Serve overlays
-app.use('/overlay', express.static('public/overlays'));
+// Serve overlays from frontend public folder
+app.use('/overlay', express.static('../scorex-frontend/scorex-frontend/public/overlays'));
 
 // Socket.io
 io.on('connection', (socket) => {
