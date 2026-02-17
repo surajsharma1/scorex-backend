@@ -15,9 +15,9 @@ import { createLimiter } from '../utils/rateLimiters';
 
 const router = express.Router();
 
-// Public routes - anyone can view tournaments
-router.get('/', getTournaments);
-router.get('/:id', getTournament);
+// All tournament routes now require authentication for user data separation
+router.get('/', protect as any, getTournaments);
+router.get('/:id', protect as any, getTournament);
 
 // Protected routes - require authentication
 router.post('/', protect as any, createLimiter, createTournament);
