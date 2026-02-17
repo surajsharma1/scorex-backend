@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
+import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -105,12 +106,20 @@ export const confirmPayment = async (req: Request, res: Response) => {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Generate new JWT token with updated membership
+      const newToken = jwt.sign(
+        { id: updatedUser._id, role: updatedUser.role, membership: updatedUser.membership },
+        process.env.JWT_SECRET!,
+        { expiresIn: '30d' }
+      );
+
       res.json({
         success: true,
         message: 'Payment confirmed successfully',
         membership: membership,
         membershipExpiry: expiryDate,
-        duration
+        duration,
+        token: newToken // Return new token with updated membership
       });
     } else {
       res.status(400).json({

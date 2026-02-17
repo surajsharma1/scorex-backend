@@ -14,6 +14,57 @@ export const getMatches = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+export const getMatch = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const match = await Match.findById(req.params.id)
+      .populate('team1 team2')
+      .populate('tournament');
+    
+    if (!match) {
+      res.status(404).json({ message: 'Match not found' });
+      return;
+    }
+    
+    // Return match data in a format suitable for overlay consumption
+    const team1 = match.team1 as any;
+    const team2 = match.team2 as any;
+    const tournament = match.tournament as any;
+    
+    res.json({
+      _id: match._id,
+      tournament: {
+        _id: tournament?._id,
+        name: tournament?.name || 'Tournament'
+      },
+      team1: {
+        _id: team1?._id,
+        name: team1?.name || 'Team 1',
+        shortName: team1?.shortName || 'T1',
+        players: team1?.players || []
+      },
+      team2: {
+        _id: team2?._id,
+        name: team2?.name || 'Team 2',
+        shortName: team2?.shortName || 'T2',
+        players: team2?.players || []
+      },
+      // Match scores - use actual field names from Match model
+      score1: match.score1 || 0,
+      score2: match.score2 || 0,
+      wickets1: match.wickets1 || 0,
+      wickets2: match.wickets2 || 0,
+      overs1: match.overs1 || 0,
+      overs2: match.overs2 || 0,
+      status: match.status,
+      date: match.date,
+      venue: match.venue
+    });
+  } catch (error) {
+    console.error('Get match error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const createMatch = async (req: Request, res: Response): Promise<void> => {
   console.log('Create match request body:', req.body); // Add logging
   try {

@@ -18,7 +18,11 @@ export const register = [
         return;
       }
       const user = await User.create({ username, email, password, role: 'viewer' });
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+      const token = jwt.sign(
+        { id: user._id, role: user.role, membership: user.membership },
+        process.env.JWT_SECRET!,
+        { expiresIn: '30d' }
+      );
 
       // Audit log successful registration
       auditLogger.logUserAction(
@@ -49,7 +53,11 @@ export const login = [
       const user = await User.findOne({ email });
       console.log('User found:', user ? 'Yes' : 'No');
       if (user && user.password && (await bcrypt.compare(password, user.password))) {
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
+        const token = jwt.sign(
+          { id: user._id, role: user.role, membership: user.membership },
+          process.env.JWT_SECRET!,
+          { expiresIn: '30d' }
+        );
         res.json({ token });
       } else {
         res.status(401).json({ message: 'Invalid credentials' });

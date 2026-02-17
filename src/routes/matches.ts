@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getMatches,
+  getMatch,
   createMatch,
   updateMatch,
   deleteMatch,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public routes - anyone can view matches
 router.get('/', getMatches);
+router.get('/:id', getMatch); // Get single match for overlay data
 router.get('/:id/commentary', getCommentary);
 
 // Protected routes - require authentication

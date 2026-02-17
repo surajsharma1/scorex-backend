@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -218,8 +219,10 @@ app.get('/api/v1/health', async (req, res) => {
   }
 });
 
-// Serve overlays from frontend public folder
-app.use('/overlay', express.static('../scorex-frontend/scorex-frontend/public/overlays'));
+// Serve overlays from frontend public folder - use path.resolve for reliability
+const overlaysPath = path.resolve(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays');
+app.use('/overlays', express.static(overlaysPath));
+app.use('/overlay', express.static(overlaysPath)); // Legacy path support
 
 // Socket.io
 io.on('connection', (socket) => {

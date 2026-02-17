@@ -103,8 +103,11 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     const path = require('path');
     
     // Path to the frontend public/overlays folder
-    // The backend is in scorex-backend, frontend is in scorex-frontend/scorex-frontend
-    const templatePath = path.join(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays', `${templateId}.html`);
+    // Use path.resolve for reliable path resolution
+    const overlaysDir = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
+    const templatePath = path.join(overlaysDir, `${templateId}.html`);
+    
+    console.log('Looking for template at:', templatePath);
     
     // Check if template file exists
     if (fs.existsSync(templatePath)) {
