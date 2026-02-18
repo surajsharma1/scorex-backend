@@ -139,8 +139,9 @@ router.post('/register', validateRequest(registerSchema), async (req, res) => {
     );
 
     res.status(201).json({ 
-      message: 'Registration successful. Please verify your email with the OTP sent to your email address.',
-      email: email
+      message: 'Registration successful. Please verify your email with the OTP.',
+      email: email,
+      otp: otp // Return OTP for testing - in production, remove this
     });
   } catch (error: any) {
     console.error('Registration error:', error);
