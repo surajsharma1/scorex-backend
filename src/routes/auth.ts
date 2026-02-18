@@ -261,10 +261,6 @@ router.post('/login', async (req, res) => {
     console.log('User found:', user ? 'Yes' : 'No');
 
     if (user && user.password && (await bcrypt.compare(password, user.password))) {
-      // Check if user has verified OTP (otp field should be undefined after verification)
-      if (user.otp !== undefined) {
-        return res.status(401).json({ message: 'Please verify your email with OTP before logging in' });
-      }
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
       res.json({ token });
     } else {
