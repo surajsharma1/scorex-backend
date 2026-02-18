@@ -1,7 +1,7 @@
 /**
  * Email Utility for Backend
  * Provides comprehensive email sending functions using EmailJS and Nodemailer
- * Handles OTP emails, password reset emails, welcome emails, and notifications
+ * Handles password reset emails, welcome emails, and notifications
  */
 
 import emailjs from 'emailjs';
@@ -14,7 +14,6 @@ const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 
 // Email template IDs
 const TEMPLATES = {
-  OTP: process.env.EMAILJS_OTP_TEMPLATE_ID || 'template_m83jjye',
   PASSWORD_RESET: process.env.EMAILJS_PASSWORD_RESET_TEMPLATE_ID || 'template_password_reset',
   WELCOME: process.env.EMAILJS_WELCOME_TEMPLATE_ID || 'template_welcome',
   NOTIFICATION: process.env.EMAILJS_NOTIFICATION_TEMPLATE_ID || 'template_notification',
@@ -25,8 +24,6 @@ const TEMPLATES = {
 export interface EmailParams {
   to_email: string;
   to_name?: string;
-  passcode?: string;
-  otp?: string;
   reset_url?: string;
   resetToken?: string;
   verificationUrl?: string;
@@ -51,12 +48,6 @@ export interface SendEmailOptions {
   to: string;
   templateId: string;
   params: EmailParams;
-}
-
-export interface OtpEmailOptions {
-  email: string;
-  otp: string;
-  purpose?: 'registration' | 'login' | 'verification' | 'password_change';
 }
 
 export interface PasswordResetOptions {
@@ -99,13 +90,6 @@ export const logEmailConfigStatus = (): void => {
     privateKey: !!EMAILJS_PRIVATE_KEY,
     environment: process.env.NODE_ENV || 'development',
   });
-};
-
-/**
- * Generate a 6-digit OTP
- */
-export const generateOTP = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 /**
@@ -153,74 +137,6 @@ const sendEmailViaEmailJS = async (
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to send email',
-    };
-  }
-};
-
-/**
- * Send OTP email
- * @param email - Recipient email address
- * @param otp - One-time password
- * @param purpose - Purpose of the OTP (optional)
- */
-export const sendOtpEmail = async (
-  email: string, 
-  otp: string, 
-  purpose: 'registration' | 'login' | 'verification' | 'password_change' = 'registration'
-): Promise<EmailResult> => {
-  try {
-    console.log(`Sending OTP email to ${email} for ${purpose}...`);
-    
-    // Check if EmailJS is configured
-    if (!isEmailConfigured()) {
-      console.warn('EmailJS is not configured. Returning mock success for development.');
-      console.warn(`OTP for ${email} is: ${otp} (simulated - email not actually sent)`);
-      return {
-        success: true,
-        message: `OTP: ${otp} (Development mode - email not sent)`,
-        status: 200,
-      };
-    }
-
-    const templateParams: EmailParams = {
-      to_email: email,
-      passcode: otp,
-      otp: otp,
-      to_name: email.split('@')[0],
-      timestamp: new Date().toLocaleString(),
-      user_email: email,
-    };
-
-    const result = await sendEmailViaEmailJS(TEMPLATES.OTP, templateParams);
-    
-    if (result.success) {
-      console.log(`OTP email sent successfully to ${email}, status: ${result.status}`);
-    } else {
-      console.error(`Failed to send OTP email to ${email}:`, result.message);
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Failed to send OTP email:', error);
-    console.error('Error details:', {
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-      name: (error as Error).name,
-    });
-    
-    // In development, return success with the OTP
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`Development mode: OTP for ${email} is ${otp}`);
-      return {
-        success: true,
-        message: `OTP email failed but returning OTP for dev: ${otp}`,
-        status: 200,
-      };
-    }
-    
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to send OTP email',
     };
   }
 };
@@ -535,7 +451,6 @@ export const sendCustomEmail = async (
 // Export all email functions as a single service object
 export const emailService = {
   // Core functions
-  sendOtpEmail,
   sendResetEmail,
   sendWelcomeEmail,
   sendVerificationEmail,
@@ -544,7 +459,6 @@ export const emailService = {
   sendEmailWithNodemailer,
   
   // Utility functions
-  generateOTP,
   generateSecureToken,
   isEmailConfigured,
   logEmailConfigStatus,

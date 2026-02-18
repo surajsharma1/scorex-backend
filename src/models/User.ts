@@ -12,8 +12,6 @@ export interface IUser extends Document {
   githubId?: string;
   fullName?: string;
   dob?: Date;
-  otp?: string;
-  otpExpires?: Date;
   friends: mongoose.Types.ObjectId[];
   profilePicture?: string;
   bio?: string;
@@ -53,8 +51,6 @@ const userSchema = new Schema<IUser>(
     githubId: { type: String, unique: true, sparse: true },
     fullName: { type: String },
     dob: { type: Date },
-    otp: { type: String },
-    otpExpires: { type: Date },
     friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     profilePicture: { type: String },
     bio: { type: String },
