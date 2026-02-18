@@ -12,11 +12,57 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const overlayData = {
-      ...req.body,
+    const { name, template, config, tournament, match, elements } = req.body;
+
+    // Validate required fields
+    if (!name || !name.trim()) {
+      res.status(400).json({ message: 'Overlay name is required' });
+      return;
+    }
+
+    if (!template || !template.trim()) {
+      res.status(400).json({ message: 'Template is required' });
+      return;
+    }
+
+    if (!config) {
+      res.status(400).json({ message: 'Configuration is required' });
+      return;
+    }
+
+    // Import mongoose for ObjectId conversion
+    const mongoose = require('mongoose');
+
+    // Prepare overlay data with proper ObjectId conversion
+    const overlayData: any = {
+      name: name.trim(),
+      template: template.trim(),
+      config,
+      elements: elements || [],
       publicId: uuidv4(),
       createdBy: user._id,
     };
+
+    // Convert tournament string to ObjectId if provided
+    if (tournament) {
+      if (mongoose.Types.ObjectId.isValid(tournament)) {
+        overlayData.tournament = new mongoose.Types.ObjectId(tournament);
+      } else {
+        res.status(400).json({ message: 'Invalid tournament ID format' });
+        return;
+      }
+    }
+
+    // Convert match string to ObjectId if provided
+    if (match) {
+      if (mongoose.Types.ObjectId.isValid(match)) {
+        overlayData.match = new mongoose.Types.ObjectId(match);
+      } else {
+        res.status(400).json({ message: 'Invalid match ID format' });
+        return;
+      }
+    }
+
     const overlay = await Overlay.create(overlayData);
     res.status(201).json(overlay);
   } catch (error) {
