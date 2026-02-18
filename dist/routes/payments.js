@@ -9,6 +9,7 @@ const paymentController_1 = require("../controllers/paymentController");
 const router = express_1.default.Router();
 // Protected routes
 router.post('/create-payment-intent', auth_1.protect, paymentController_1.createPaymentIntent);
+router.post('/create-intent', auth_1.protect, paymentController_1.createPaymentIntent); // Alias for frontend compatibility
 router.post('/confirm', auth_1.protect, paymentController_1.confirmPayment);
 router.get('/history', auth_1.protect, paymentController_1.getPaymentHistory);
 exports.default = router;

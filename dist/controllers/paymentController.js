@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPaymentHistory = exports.confirmPayment = exports.createPaymentIntent = void 0;
 const stripe_1 = __importDefault(require("stripe"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 let stripe = null;
@@ -93,12 +94,20 @@ const confirmPayment = async (req, res) => {
             if (!updatedUser) {
                 return res.status(404).json({ error: 'User not found' });
             }
+            // Generate new JWT token with updated membership and expiry
+            const newToken = jsonwebtoken_1.default.sign({
+                id: updatedUser._id,
+                role: updatedUser.role,
+                membership: updatedUser.membership,
+                membershipExpiresAt: updatedUser.membershipExpiry ? updatedUser.membershipExpiry.toISOString() : null
+            }, process.env.JWT_SECRET, { expiresIn: '30d' });
             res.json({
                 success: true,
                 message: 'Payment confirmed successfully',
                 membership: membership,
                 membershipExpiry: expiryDate,
-                duration
+                duration,
+                token: newToken // Return new token with updated membership
             });
         }
         else {

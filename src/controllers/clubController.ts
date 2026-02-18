@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Club from '../models/Club';
 import logger from '../utils/logger';
 import { AuthRequest } from '../middleware/auth';
@@ -209,15 +210,16 @@ export const addMember = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Club not found' });
     }
 
-    if (club.createdBy.toString() !== currentUserId) {
+    if (club.createdBy.toString() !== currentUserId?.toString()) {
       return res.status(403).json({ message: 'Only club creator can add members' });
     }
 
-    if (club.members.includes(userId)) {
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    if (club.members.some(member => member.toString() === userId)) {
       return res.status(400).json({ message: 'User is already a member of this club' });
     }
 
-    club.members.push(userId);
+    club.members.push(userObjectId);
     await club.save();
 
     logger.info(`User ${userId} added to club ${clubId} by ${currentUserId}`);
@@ -238,7 +240,7 @@ export const removeMember = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Club not found' });
     }
 
-    if (club.createdBy.toString() !== currentUserId) {
+    if (club.createdBy.toString() !== currentUserId?.toString()) {
       return res.status(403).json({ message: 'Only club creator can remove members' });
     }
 
@@ -246,7 +248,7 @@ export const removeMember = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Cannot remove the club creator' });
     }
 
-    if (!club.members.includes(userId)) {
+    if (!club.members.some(member => member.toString() === userId)) {
       return res.status(400).json({ message: 'User is not a member of this club' });
     }
 

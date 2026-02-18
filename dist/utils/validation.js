@@ -12,9 +12,9 @@ exports.registerSchema = zod_1.z.object({
         .email('Invalid email format')
         .max(254, 'Email is too long'), // RFC 5321 limit
     password: zod_1.z.string()
-        .min(8, 'Password must be at least 8 characters')
+        .min(6, 'Password must be at least 6 characters')
         .max(100, 'Password must be less than 100 characters')
-        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, 'Password must contain at least one alphabet, one number, and one special character'),
+        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character'),
     fullName: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string()
         .min(2, 'Full name must be at least 2 characters')
         .max(100, 'Full name must be less than 100 characters')

@@ -22,7 +22,12 @@ exports.register = [
                 return;
             }
             const user = await User_1.default.create({ username, email, password, role: 'viewer' });
-            const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+            const token = jsonwebtoken_1.default.sign({
+                id: user._id,
+                role: user.role,
+                membership: user.membership,
+                membershipExpiresAt: null
+            }, process.env.JWT_SECRET, { expiresIn: '30d' });
             // Audit log successful registration
             auditLogger_1.default.logUserAction(user._id.toString(), 'USER_REGISTERED', 'User', user._id.toString(), { username, email }, req.ip, req.get('User-Agent'));
             res.status(201).json({ token });
@@ -43,7 +48,27 @@ exports.login = [
             const user = await User_1.default.findOne({ email });
             console.log('User found:', user ? 'Yes' : 'No');
             if (user && user.password && (await bcryptjs_1.default.compare(password, user.password))) {
-                const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+                // Check if membership has expired
+                let membership = user.membership;
+                let membershipExpiresAt = user.membershipExpiry;
+                if (membership !== 'free' && membershipExpiresAt) {
+                    const expiryDate = new Date(membershipExpiresAt);
+                    if (expiryDate < new Date()) {
+                        // Membership has expired, reset to free
+                        membership = 'free';
+                        membershipExpiresAt = undefined;
+                        await User_1.default.findByIdAndUpdate(user._id, {
+                            membership: 'free',
+                            membershipExpiry: null
+                        });
+                    }
+                }
+                const token = jsonwebtoken_1.default.sign({
+                    id: user._id,
+                    role: user.role,
+                    membership: membership,
+                    membershipExpiresAt: membershipExpiresAt ? membershipExpiresAt.toISOString() : null
+                }, process.env.JWT_SECRET, { expiresIn: '30d' });
                 res.json({ token });
             }
             else {

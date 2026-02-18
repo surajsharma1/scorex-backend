@@ -9,6 +9,7 @@ const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Public routes - anyone can view matches
 router.get('/', matchController_1.getMatches);
+router.get('/:id', matchController_1.getMatch); // Get single match for overlay data
 router.get('/:id/commentary', matchController_1.getCommentary);
 // Protected routes - require authentication
 router.post('/', auth_1.protect, matchController_1.createMatch);

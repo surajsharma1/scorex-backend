@@ -49,8 +49,6 @@ const userSchema = new mongoose_1.Schema({
     githubId: { type: String, unique: true, sparse: true },
     fullName: { type: String },
     dob: { type: Date },
-    otp: { type: String },
-    otpExpires: { type: Date },
     friends: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
     profilePicture: { type: String },
     bio: { type: String },

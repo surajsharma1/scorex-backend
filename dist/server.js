@@ -7,6 +7,7 @@ exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
@@ -210,8 +211,10 @@ app.get('/api/v1/health', async (req, res) => {
         });
     }
 });
-// Serve overlays
-app.use('/overlay', express_1.default.static('public/overlays'));
+// Serve overlays from frontend public folder - use path.resolve for reliability
+const overlaysPath = path_1.default.resolve(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays');
+app.use('/overlays', express_1.default.static(overlaysPath));
+app.use('/overlay', express_1.default.static(overlaysPath)); // Legacy path support
 // Socket.io
 exports.io.on('connection', (socket) => {
     logger_1.default.info(`User connected: ${socket.id}`);
