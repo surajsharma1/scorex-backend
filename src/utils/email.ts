@@ -1,12 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const emailjs = require('emailjs');
 
-// EmailJS configuration
-// You need to sign up at https://www.emailjs.com/ and get these values
-// 1. SERVICE_ID - Your EmailJS service ID
-// 2. TEMPLATE_ID - Your EmailJS template ID  
-// 3. PUBLIC_KEY - Your EmailJS public key
-
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID || 'service_jo73hp8';
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID || 'template_m83jjye';
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY || 'iAe2zwL5rU5RyQ-XY';
