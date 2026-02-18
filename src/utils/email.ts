@@ -54,9 +54,11 @@ export const sendOtpEmail = async (email: string, otp: string) => {
       return { status: 200, text: 'Simulated success' };
     }
 
-    const templateParams: EmailParams = {
+    const timeString = new Date().toLocaleString();
+    const templateParams: any = {
       to_email: email,
-      otp: otp,
+      passcode: otp,
+      time: timeString,
       to_name: email.split('@')[0],
     };
 
