@@ -19,7 +19,12 @@ export const register = [
       }
       const user = await User.create({ username, email, password, role: 'viewer' });
       const token = jwt.sign(
-        { id: user._id, role: user.role, membership: user.membership },
+        { 
+          id: user._id, 
+          role: user.role, 
+          membership: user.membership,
+          membershipExpiresAt: null
+        },
         process.env.JWT_SECRET!,
         { expiresIn: '30d' }
       );
@@ -52,9 +57,32 @@ export const login = [
       const { email, password } = req.body;
       const user = await User.findOne({ email });
       console.log('User found:', user ? 'Yes' : 'No');
+      
       if (user && user.password && (await bcrypt.compare(password, user.password))) {
+        // Check if membership has expired
+        let membership = user.membership;
+        let membershipExpiresAt = user.membershipExpiry;
+        
+        if (membership !== 'free' && membershipExpiresAt) {
+          const expiryDate = new Date(membershipExpiresAt);
+          if (expiryDate < new Date()) {
+            // Membership has expired, reset to free
+            membership = 'free';
+            membershipExpiresAt = undefined;
+            await User.findByIdAndUpdate(user._id, {
+              membership: 'free',
+              membershipExpiry: null
+            });
+          }
+        }
+        
         const token = jwt.sign(
-          { id: user._id, role: user.role, membership: user.membership },
+          { 
+            id: user._id, 
+            role: user.role, 
+            membership: membership,
+            membershipExpiresAt: membershipExpiresAt ? membershipExpiresAt.toISOString() : null
+          },
           process.env.JWT_SECRET!,
           { expiresIn: '30d' }
         );

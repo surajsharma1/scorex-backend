@@ -106,9 +106,14 @@ export const confirmPayment = async (req: Request, res: Response) => {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Generate new JWT token with updated membership
+      // Generate new JWT token with updated membership and expiry
       const newToken = jwt.sign(
-        { id: updatedUser._id, role: updatedUser.role, membership: updatedUser.membership },
+        { 
+          id: updatedUser._id, 
+          role: updatedUser.role, 
+          membership: updatedUser.membership,
+          membershipExpiresAt: updatedUser.membershipExpiry ? updatedUser.membershipExpiry.toISOString() : null
+        },
         process.env.JWT_SECRET!,
         { expiresIn: '30d' }
       );
