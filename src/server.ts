@@ -25,7 +25,6 @@ import authRoutes from './routes/auth';
 import friendRoutes from './routes/friends';
 import clubRoutes from './routes/clubs';
 import paymentRoutes from './routes/payments';
-import { sendOtpEmail } from './utils/email';
 import logger from './utils/logger';
 import rateLimit from 'express-rate-limit';
 
