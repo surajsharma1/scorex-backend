@@ -10,12 +10,8 @@ export const registerSchema = z.object({
     .email('Invalid email format')
     .max(254, 'Email is too long'), // RFC 5321 limit
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must be less than 100 characters')
-    .regex(
-      /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      'Password must contain at least one alphabet, one number, and one special character'
-    ),
+    .min(6, 'Password must be at least 6 characters')
+    .max(100, 'Password must be less than 100 characters'),
   fullName: z.preprocess(
     (val) => (val === '' ? undefined : val),
     z.string()
