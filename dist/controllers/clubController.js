@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeMember = exports.addMember = exports.deleteClub = exports.updateClub = exports.leaveClub = exports.joinClub = exports.getClub = exports.searchClubs = exports.getClubs = exports.createClub = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Club_1 = __importDefault(require("../models/Club"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const createClub = async (req, res) => {
@@ -192,13 +193,14 @@ const addMember = async (req, res) => {
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
         }
-        if (club.createdBy.toString() !== currentUserId) {
+        if (club.createdBy.toString() !== currentUserId?.toString()) {
             return res.status(403).json({ message: 'Only club creator can add members' });
         }
-        if (club.members.includes(userId)) {
+        const userObjectId = new mongoose_1.default.Types.ObjectId(userId);
+        if (club.members.some(member => member.toString() === userId)) {
             return res.status(400).json({ message: 'User is already a member of this club' });
         }
-        club.members.push(userId);
+        club.members.push(userObjectId);
         await club.save();
         logger_1.default.info(`User ${userId} added to club ${clubId} by ${currentUserId}`);
         res.json({ message: 'Member added successfully', club });
@@ -217,13 +219,13 @@ const removeMember = async (req, res) => {
         if (!club) {
             return res.status(404).json({ message: 'Club not found' });
         }
-        if (club.createdBy.toString() !== currentUserId) {
+        if (club.createdBy.toString() !== currentUserId?.toString()) {
             return res.status(403).json({ message: 'Only club creator can remove members' });
         }
         if (club.createdBy.toString() === userId) {
             return res.status(400).json({ message: 'Cannot remove the club creator' });
         }
-        if (!club.members.includes(userId)) {
+        if (!club.members.some(member => member.toString() === userId)) {
             return res.status(400).json({ message: 'User is not a member of this club' });
         }
         club.members = club.members.filter(member => member.toString() !== userId);

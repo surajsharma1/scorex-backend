@@ -12,24 +12,24 @@ import { protect } from '../middleware/auth';
 const router = express.Router();
 
 // All friend routes require authentication
-router.use(protect);
+router.use(protect as any);
 
 // Send friend request
-router.post('/request', sendFriendRequest);
+router.post('/request', sendFriendRequest as any);
 
 // Accept friend request
-router.put('/request/:requestId/accept', acceptFriendRequest);
+router.put('/request/:requestId/accept', acceptFriendRequest as any);
 
 // Reject friend request
-router.delete('/request/:requestId/reject', rejectFriendRequest);
+router.delete('/request/:requestId/reject', rejectFriendRequest as any);
 
 // Get user's friends
-router.get('/', getFriends);
+router.get('/', getFriends as any);
 
 // Get pending friend requests
-router.get('/requests', getFriendRequests);
+router.get('/requests', getFriendRequests as any);
 
 // Remove friend
-router.delete('/:friendId', removeFriend);
+router.delete('/:friendId', removeFriend as any);
 
 export default router;

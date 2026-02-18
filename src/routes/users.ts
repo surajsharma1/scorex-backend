@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth';
 const router = express.Router();
 
 // Public route - anyone can search users
-router.get('/search', searchUsers);
+router.get('/search', searchUsers as any);
 
 // Protected routes - require authentication
 router.use(protect as any);

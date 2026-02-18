@@ -19,12 +19,12 @@ router.get('/', getClubs);
 router.get('/:clubId', getClub);
 
 // Protected routes - require authentication
-router.post('/', protect as any, createClub);
-router.post('/:clubId/join', protect as any, joinClub);
-router.post('/:clubId/leave', protect as any, leaveClub);
-router.put('/:clubId', protect as any, updateClub);
-router.delete('/:clubId', protect as any, deleteClub);
-router.post('/:clubId/members', protect as any, addMember);
-router.delete('/:clubId/members/:userId', protect as any, removeMember);
+router.post('/', protect as any, createClub as any);
+router.post('/:clubId/join', protect as any, joinClub as any);
+router.post('/:clubId/leave', protect as any, leaveClub as any);
+router.put('/:clubId', protect as any, updateClub as any);
+router.delete('/:clubId', protect as any, deleteClub as any);
+router.post('/:clubId/members', protect as any, addMember as any);
+router.delete('/:clubId/members/:userId', protect as any, removeMember as any);
 
 export default router;
