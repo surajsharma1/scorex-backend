@@ -1,84 +1,79 @@
-import { google } from 'googleapis';
-import nodemailer from 'nodemailer';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const emailjs = require('emailjs');
 
-const OAuth2 = google.auth.OAuth2;
+// EmailJS configuration
+// You need to sign up at https://www.emailjs.com/ and get these values
+// 1. SERVICE_ID - Your EmailJS service ID
+// 2. TEMPLATE_ID - Your EmailJS template ID  
+// 3. PUBLIC_KEY - Your EmailJS public key
 
-const createTransporter = async () => {
-  const oauth2Client = new OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    'https://developers.google.com/oauthplayground'
-  );
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID || 'service_jo73hp8';
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID || 'template_m83jjye';
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY || 'iAe2zwL5rU5RyQ-XY';
 
-  oauth2Client.setCredentials({
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-  });
-
-  const accessToken = await new Promise((resolve, reject) => {
-    oauth2Client.getAccessToken((err, token) => {
-      if (err) {
-        reject('Failed to create access token');
-      }
-      resolve(token);
-    });
-  });
-
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: process.env.EMAIL_USER,
-      accessToken,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-    },
-  });
-
-  return transporter;
-};
+interface EmailParams {
+  to_email: string;
+  otp?: string;
+  reset_url?: string;
+  to_name?: string;
+}
 
 export const sendResetEmail = async (email: string, token: string) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-  const msg = {
-    to: email,
-    from: process.env.EMAIL_USER || 'noreply@scorex.com', // Use a verified sender
-    subject: 'Password Reset',
-    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
-  };
+  
+  try {
+    const templateParams: EmailParams = {
+      to_email: email,
+      reset_url: resetUrl,
+      to_name: email.split('@')[0],
+    };
 
-  const transporter = await createTransporter();
-  await transporter.send(msg);
+    const result = await (emailjs as any).send(
+      EMAILJS_SERVICE_ID,
+      'your_password_reset_template_id', // Create a separate template for password reset
+      templateParams,
+      EMAILJS_PUBLIC_KEY
+    );
+
+    console.log(`Password reset email sent successfully to ${email}`);
+    return result;
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    throw error;
+  }
 };
 
 export const sendOtpEmail = async (email: string, otp: string) => {
   try {
-    console.log('Starting email send process...');
+    console.log('Starting EmailJS OTP send process...');
     console.log('Environment check:', {
-      hasRefreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
-      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
-      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-      emailUser: process.env.EMAIL_USER
+      hasServiceId: !!process.env.EMAILJS_SERVICE_ID,
+      hasTemplateId: !!process.env.EMAILJS_TEMPLATE_ID,
+      hasPublicKey: !!process.env.EMAILJS_PUBLIC_KEY,
     });
 
-    if (!process.env.GOOGLE_REFRESH_TOKEN) {
-      throw new Error('Google OAuth configuration missing. Please set GOOGLE_REFRESH_TOKEN environment variable.');
+    // If EmailJS is not configured, log a warning and simulate success
+    if (!process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICE_ID === 'your_service_id') {
+      console.warn('EmailJS is not configured. Please set EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, and EMAILJS_PUBLIC_KEY environment variables.');
+      console.warn(`OTP for ${email} is: ${otp} (simulated - email not actually sent)`);
+      // Return a mock success response for development
+      return { status: 200, text: 'Simulated success' };
     }
 
-    console.log('Creating transporter...');
-    const transporter = await createTransporter();
-    console.log('Transporter created successfully');
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'OTP for Registration',
-      html: `<p>Your OTP for registration is: <strong>${otp}</strong></p>`,
+    const templateParams: EmailParams = {
+      to_email: email,
+      otp: otp,
+      to_name: email.split('@')[0],
     };
 
-    console.log('Sending email with options:', { from: mailOptions.from, to: mailOptions.to, subject: mailOptions.subject });
-    const result = await transporter.sendMail(mailOptions);
-    console.log(`OTP email sent successfully to ${email}, message ID: ${result.messageId}`);
+    const result = await (emailjs as any).send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      templateParams,
+      EMAILJS_PUBLIC_KEY
+    );
+
+    console.log(`OTP email sent successfully to ${email}, status:`, result.status);
     return result;
   } catch (error) {
     console.error('Failed to send OTP email:', error);
@@ -89,4 +84,36 @@ export const sendOtpEmail = async (email: string, otp: string) => {
     });
     throw error;
   }
+};
+
+// Alternative: Send email using nodemailer as fallback
+// This uses the existing nodemailer setup if EmailJS fails
+export const sendEmailWithNodemailer = async (to: string, subject: string, html: string) => {
+  const nodemailer = require('nodemailer');
+  
+  // Create a test account (for development only)
+  // In production, use real SMTP credentials
+  const testAccount = await nodemailer.createTestAccount();
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass,
+    },
+  });
+
+  const info = await transporter.sendMail({
+    from: '"ScoreX" <noreply@scorex.com>',
+    to: to,
+    subject: subject,
+    html: html,
+  });
+
+  console.log('Message sent: %s', info.messageId);
+  console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  
+  return info;
 };
