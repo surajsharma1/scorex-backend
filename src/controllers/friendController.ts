@@ -161,7 +161,7 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getFriendRequests = async (req: Request, res: Response) => {
+export const getFriendRequests = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?._id;
 

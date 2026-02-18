@@ -1,4 +1,5 @@
-  import { Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 import auditLogger from '../utils/auditLogger';
 
