@@ -69,9 +69,10 @@ export const getOverlays = async (req: Request, res: Response): Promise<void> =>
     const user = (req as any).user;
     console.log('[getOverlays] User:', user);
     
+    // Return 401 if user is not authenticated instead of silently returning empty array
     if (!user || !user._id) {
-      console.log('[getOverlays] No user found - returning empty array');
-      res.json([]);
+      console.log('[getOverlays] No user found or user not authenticated');
+      res.status(401).json({ message: 'Not authorized, please log in' });
       return;
     }
 
