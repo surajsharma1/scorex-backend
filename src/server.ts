@@ -25,6 +25,8 @@ import authRoutes from './routes/auth';
 import friendRoutes from './routes/friends';
 import clubRoutes from './routes/clubs';
 import paymentRoutes from './routes/payments';
+import messageRoutes from './routes/messages';
+import leaderboardRoutes from './routes/leaderboard';
 import logger from './utils/logger';
 import rateLimit from 'express-rate-limit';
 
@@ -188,6 +190,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/clubs', clubRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/leaderboard', leaderboardRoutes);
 
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
