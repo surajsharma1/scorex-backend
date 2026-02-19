@@ -260,9 +260,16 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       
       try {
         const axios = require('axios');
+        // Increased timeout to 15 seconds and added error handling
         const templateResponse = await axios.get(`${frontendUrl}/overlays/${templateId}.html`, {
-          timeout: 5000
+          timeout: 15000,
+          headers: {
+            'Accept': 'text/html',
+            'User-Agent': 'Mozilla/5.0 (compatible; ScoreX-Backend/1.0)'
+          }
         });
+        
+        console.log('Template fetched successfully from frontend, status:', templateResponse.status);
         
         let templateContent = templateResponse.data;
         
@@ -283,6 +290,11 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         return;
       } catch (fetchError: any) {
         console.log('Failed to fetch template from frontend:', fetchError.message);
+        if (fetchError.code === 'ECONNABORTED') {
+          console.log('Timeout error - template fetch took too long');
+        } else if (fetchError.response) {
+          console.log('Response status:', fetchError.response.status);
+        }
       }
       
       // Final fallback - generate a simple overlay with the config
