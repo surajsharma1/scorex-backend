@@ -288,14 +288,39 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       // Final fallback - generate a simple overlay with the config
       console.log(`Template not found: ${templateId}, using fallback`);
       
+      // Try to fetch match data from API using /matches/{id} endpoint (not /live)
+      let matchData = null;
+      try {
+        const axios = require('axios');
+        const matchResponse = await axios.get(`${apiBaseUrl}/matches/${matchId || ''}`, {
+          timeout: 5000
+        });
+        matchData = matchResponse.data;
+        console.log('Match data fetched:', matchData);
+      } catch (fetchError) {
+        console.log('Failed to fetch match data:', fetchError.message);
+      }
+      
       const Team = require('../models/Team').default;
       const teams = overlay.tournament?._id 
         ? await Team.find({ tournament: overlay.tournament._id }).limit(2) 
         : [];
 
-      const liveScores = overlay.tournament?.liveScores || {};
+      // Use matchData if available, otherwise fall back to tournament liveScores
+      const match = matchData || {};
+      const liveScores = matchData || overlay.tournament?.liveScores || {};
       const team1 = teams[0] || {};
       const team2 = teams[1] || {};
+      
+      // Get team names from match data if available
+      const team1Name = match.team1?.name || team1?.name || liveScores.team1?.name || 'Team 1';
+      const team2Name = match.team2?.name || team2?.name || liveScores.team2?.name || 'Team 2';
+      const team1Score = match.team1Score || liveScores.team1?.score || 0;
+      const team1Wickets = match.team1Wickets || liveScores.team1?.wickets || 0;
+      const team2Score = match.team2Score || liveScores.team2?.score || 0;
+      const team2Wickets = match.team2Wickets || liveScores.team2?.wickets || 0;
+      const team1Overs = match.team1Overs || liveScores.team1?.overs || 0;
+      const team2Overs = match.team2Overs || liveScores.team2?.overs || 0;
       
       // Get the background color from overlay config, default to green
       const bgColor = overlay.config?.backgroundColor || '#16a34a';
@@ -334,37 +359,51 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
     <script>
-        // Auto-refresh every 1.5 seconds to get live scores
-        setTimeout(() => { window.location.reload(); }, 1500);
+        // Auto-refresh every 3 seconds to get live scores
+        setInterval(() => { window.location.reload(); }, 3000);
         
-        // Try to fetch live scores from API
-        async function fetchLiveScores() {
+        // Try to fetch match data from API - use /matches/{id} not /live
+        async function fetchMatchData() {
             try {
-                const response = await fetch('${apiBaseUrl}/matches/${matchId || ''}/live');
+                const matchId = window.OVERLAY_CONFIG?.matchId;
+                if (!matchId) {
+                    console.log('No matchId in config');
+                    return;
+                }
+                const apiBaseUrl = window.OVERLAY_CONFIG?.apiBaseUrl || '${apiBaseUrl}';
+                const response = await fetch(apiBaseUrl + '/matches/' + matchId);
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Live scores:', data);
+                    console.log('Match data:', data);
+                    updateScoreboard(data);
                 }
             } catch (e) {
-                console.log('Could not fetch live scores');
+                console.log('Could not fetch match data:', e.message);
             }
         }
-        fetchLiveScores();
+        
+        function updateScoreboard(data) {
+            // Update the scoreboard with new data
+            console.log('Updating scoreboard with:', data);
+        }
+        
+        // Initial fetch
+        fetchMatchData();
     </script>
 </head>
 <body>
     <div class="overlay-container">
         <div class="score-section">
             <div class="team-info">
-                <div class="team-name">${team1?.name || liveScores.team1?.name || 'Team 1'}</div>
-                <div class="score">${liveScores.team1?.score || 0}/${liveScores.team1?.wickets || 0}</div>
-                <div class="overs">${liveScores.team1?.overs || 0} overs</div>
+                <div class="team-name">${team1Name}</div>
+                <div class="score">${team1Score}/${team1Wickets}</div>
+                <div class="overs">${team1Overs} overs</div>
             </div>
             <div class="vs-text">VS</div>
             <div class="team-info">
-                <div class="team-name">${team2?.name || liveScores.team2?.name || 'Team 2'}</div>
-                <div class="score">${liveScores.team2?.score || 0}/${liveScores.team2?.wickets || 0}</div>
-                <div class="overs">${liveScores.team2?.overs || 0} overs</div>
+                <div class="team-name">${team2Name}</div>
+                <div class="score">${team2Score}/${team2Wickets}</div>
+                <div class="overs">${team2Overs} overs</div>
             </div>
         </div>
         <div class="stats-section">
