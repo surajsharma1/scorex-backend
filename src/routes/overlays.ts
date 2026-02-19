@@ -13,9 +13,11 @@ import { AuthRequest } from '../middleware/auth';
 const router = express.Router();
 
 // Public routes - anyone can view overlays
-router.get('/', getOverlays);
-router.get('/:id', getOverlay);
 router.get('/public/:id', serveOverlay); // Public route for serving overlays
+
+// Protected routes - require authentication (must come before :id routes)
+router.get('/', protect as any, getOverlays);
+router.get('/:id', protect as any, getOverlay);
 
 // Protected routes - require authentication
 router.post('/', protect as any , createOverlay);
