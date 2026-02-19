@@ -59,13 +59,16 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
     const overlay = await Overlay.create(overlayData);
     
     // Generate the public URL for the overlay - use direct backend URL to avoid Vercel rewrite issues
+    // Include the template name in the URL so it's clear which overlay file is being used
     const backendUrl = process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
-    const publicUrl = `${backendUrl}/overlays/public/${overlay.publicId}`;
+    const templateName = overlay.template || 'modern';
+    const publicUrl = `${backendUrl}/overlays/public/${overlay.publicId}?template=${templateName}`;
     
     // Return the overlay with the public URL
     res.status(201).json({
       ...overlay.toObject(),
-      publicUrl
+      publicUrl,
+      templateName
     });
   } catch (error) {
     console.error('Overlay creation error:', error);
