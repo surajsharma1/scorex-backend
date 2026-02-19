@@ -181,7 +181,6 @@ app.use('/api/v1/tournaments', tournamentRoutes);
 app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/brackets', bracketRoutes);
 app.use('/api/v1/overlays', overlayRoutes);
-app.use('/v1/api/overlays', overlayRoutes);
 app.use('/api/v1/matches', matchRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
