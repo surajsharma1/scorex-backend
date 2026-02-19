@@ -58,9 +58,9 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
 
     const overlay = await Overlay.create(overlayData);
     
-    // Generate the public URL for the overlay
-    const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
-    const publicUrl = `${frontendUrl}/api/overlays/public/${overlay.publicId}`;
+    // Generate the public URL for the overlay - use direct backend URL to avoid Vercel rewrite issues
+    const backendUrl = process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+    const publicUrl = `${backendUrl}/overlays/public/${overlay.publicId}`;
     
     // Return the overlay with the public URL
     res.status(201).json({
@@ -143,9 +143,9 @@ export const deleteOverlay = async (req: Request, res: Response): Promise<void> 
  * This creates a public URL that can be used in OBS or browser sources
  */
 export const generateOverlayUrl = (publicId: string, backendUrl?: string): string => {
-  // Use the provided backend URL or construct from request
-  const baseUrl = backendUrl || process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
-  return `${baseUrl}/api/overlays/public/${publicId}`;
+  // Use direct backend URL to avoid Vercel rewrite issues
+  const baseUrl = backendUrl || process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+  return `${baseUrl}/overlays/public/${publicId}`;
 };
 
 /**
