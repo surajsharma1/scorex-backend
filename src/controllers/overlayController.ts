@@ -57,7 +57,16 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
     }
 
     const overlay = await Overlay.create(overlayData);
-    res.status(201).json(overlay);
+    
+    // Generate the public URL for the overlay
+    const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
+    const publicUrl = `${frontendUrl}/api/overlays/public/${overlay.publicId}`;
+    
+    // Return the overlay with the public URL
+    res.status(201).json({
+      ...overlay.toObject(),
+      publicUrl
+    });
   } catch (error) {
     console.error('Overlay creation error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -129,6 +138,56 @@ export const deleteOverlay = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+/**
+ * Generate a shareable URL for an overlay
+ * This creates a public URL that can be used in OBS or browser sources
+ */
+export const generateOverlayUrl = (publicId: string, backendUrl?: string): string => {
+  // Use the provided backend URL or construct from request
+  const baseUrl = backendUrl || process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
+  return `${baseUrl}/api/overlays/public/${publicId}`;
+};
+
+/**
+ * Get all available overlay templates
+ */
+export const getOverlayTemplates = async (): Promise<Array<{id: string; name: string; description: string}>> => {
+  // These should match the templates in the frontend OverlayEditor
+  return [
+    { id: 'modern', name: 'Modern Minimal', description: 'Clean, modern design with white glass effect and blue accents' },
+    { id: 'dark', name: 'Dark Theme', description: 'Sleek dark overlay with vibrant accents for night streaming' },
+    { id: 'classic', name: 'Classic Score', description: 'Traditional cricket scoreboard with green background and gold accents' },
+    { id: 'minimalist', name: 'Minimalist', description: 'Ultra-clean design focusing on essential score information' },
+    { id: 'retro', name: 'Retro Style', description: 'Vintage arcade-style pixelated cricket scoreboard' },
+    { id: 'gradient', name: 'Gradient Flow', description: 'Smooth gradient backgrounds with flowing color transitions' },
+    { id: 'vintage', name: 'Vintage Cricket', description: 'Old-school cricket board with classic newspaper aesthetics' },
+    { id: 'chalkboard', name: 'Chalkboard', description: 'Green chalkboard with handwritten-style scores' },
+    { id: 'minimal-dark', name: 'Minimal Dark', description: 'Ultra-minimal dark theme with subtle neon highlights' },
+    { id: 'ocean', name: 'Ocean Waves', description: 'Calming ocean waves with blue gradients and sea aesthetics' },
+    { id: 'forest', name: 'Forest Green', description: 'Natural forest theme with green tones and leaf patterns' },
+    { id: 'sunset', name: 'Sunset Glow', description: 'Warm sunset colors with golden orange gradients' },
+    { id: 'desert', name: 'Desert Sands', description: 'Sandy desert theme with warm earth tones and sun effects' },
+    { id: 'broadcast', name: 'Broadcast Style', description: 'Professional broadcast-quality overlay with ticker and graphics' },
+    { id: 'ipl', name: 'IPL Style', description: 'Indian Premier League inspired design with dynamic animations' },
+    { id: 'animated', name: 'Animated Score', description: 'Dynamic overlay with smooth entrance and exit animations' },
+    { id: 'neon', name: 'Neon Glow', description: 'Vibrant neon colors with glowing effects and pulse animations' },
+    { id: 'metallic', name: 'Metallic Shine', description: 'Shiny metallic overlay with reflections and chrome effects' },
+    { id: 'cyberpunk', name: 'Cyberpunk', description: 'Futuristic cyberpunk style with digital glitches and neon' },
+    { id: 'particle', name: 'Particle Effect', description: 'Animated floating particles around the scoreboard' },
+    { id: 'holographic', name: 'Holographic', description: '3D holographic projection effect with rainbow reflections' },
+    { id: 'fire', name: 'Fire Theme', description: 'Fiery animated background with realistic flame effects' },
+    { id: 'space', name: 'Space Theme', description: 'Cosmic space background with stars, planets and nebula' },
+    { id: 'crystal', name: 'Crystal Clear', description: 'Crystal-like transparency with prismatic light effects' },
+    { id: 'storm', name: 'Storm Clouds', description: 'Dramatic storm clouds with lightning flash effects' },
+    { id: 'aurora', name: 'Aurora Borealis', description: 'Northern lights with colorful flowing aurora effects' },
+    { id: 'neon2', name: 'Neon Glow 2', description: 'Enhanced neon colors with multiple glow layers' },
+    { id: 'glass2', name: 'Glass Morphism 2', description: 'Modern frosted glass design with blur effects' },
+    { id: 'wooden2', name: 'Wooden Board 2', description: 'Classic wooden scoreboard with grain textures' },
+    { id: 'metallic2', name: 'Metallic Shine 2', description: 'Premium metallic finish with animated reflections' },
+    { id: 'cyberpunk2', name: 'Cyberpunk 2', description: 'Advanced cyberpunk with holographic elements' },
+  ];
+};
+
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
     const overlay = await Overlay.findOne({ publicId: req.params.id })
@@ -142,28 +201,38 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
 
     const templateId = overlay.template || 'modern';
     const matchId = overlay.match?._id || overlay.match;
-    const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
+    const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
     
     const fs = require('fs');
     const path = require('path');
     
+    // Try multiple possible paths for the templates
     const possiblePaths = [
+      // Local development paths
       path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays'),
       path.resolve(__dirname, '../../scorex-frontend/public/overlays'),
       path.resolve(__dirname, '../../../scorex-frontend/public/overlays'),
-    ].filter(Boolean);
+      // Production paths - templates served from frontend URL
+      path.resolve(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays'),
+      path.resolve(process.cwd(), 'scorex-frontend/public/overlays'),
+    ];
     
     let templatePath = '';
     let templateFound = false;
     
     for (const overlaysDir of possiblePaths) {
-      const testPath = path.join(overlaysDir, `${templateId}.html`);
-      console.log('Checking template at:', testPath);
-      if (fs.existsSync(testPath)) {
-        templatePath = testPath;
-        templateFound = true;
-        console.log('Template found at:', templatePath);
-        break;
+      try {
+        const testPath = path.join(overlaysDir, `${templateId}.html`);
+        console.log('Checking template at:', testPath);
+        if (fs.existsSync(testPath)) {
+          templatePath = testPath;
+          templateFound = true;
+          console.log('Template found at:', templatePath);
+          break;
+        }
+      } catch (e) {
+        console.log('Path not accessible:', overlaysDir);
       }
     }
     
@@ -186,7 +255,38 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       res.send(templateContent);
       return;
     } else {
-      console.log(`Template not found: ${templatePath}, using fallback`);
+      // Try to fetch template from frontend URL as fallback
+      console.log('Template not found locally, trying frontend URL:', `${frontendUrl}/overlays/${templateId}.html`);
+      
+      try {
+        const axios = require('axios');
+        const templateResponse = await axios.get(`${frontendUrl}/overlays/${templateId}.html`, {
+          timeout: 5000
+        });
+        
+        let templateContent = templateResponse.data;
+        
+        const injectScript = `
+          <script>
+            window.OVERLAY_CONFIG = window.OVERLAY_CONFIG || {};
+            window.OVERLAY_CONFIG.matchId = '${matchId || ''}';
+            window.OVERLAY_CONFIG.apiBaseUrl = '${apiBaseUrl}';
+            window.OVERLAY_CONFIG.overlayName = '${overlay.name}';
+            window.OVERLAY_CONFIG.publicId = '${overlay.publicId}';
+          </script>
+        `;
+        
+        templateContent = templateContent.replace('</body>', `${injectScript}</body>`);
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(templateContent);
+        return;
+      } catch (fetchError: any) {
+        console.log('Failed to fetch template from frontend:', fetchError.message);
+      }
+      
+      // Final fallback - generate a simple overlay with the config
+      console.log(`Template not found: ${templateId}, using fallback`);
       
       const Team = require('../models/Team').default;
       const teams = overlay.tournament?._id 
@@ -197,6 +297,10 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       const team1 = teams[0] || {};
       const team2 = teams[1] || {};
       
+      // Get the background color from overlay config, default to green
+      const bgColor = overlay.config?.backgroundColor || '#16a34a';
+      const opacity = overlay.config?.opacity || 90;
+      
       const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -205,8 +309,19 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${overlay.name}</title>
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: transparent; overflow: hidden; }
-        .overlay-container { position: absolute; top: 20px; left: 20px; right: 20px; background: #16a34a; opacity: 0.9; border-radius: 8px; padding: 16px; color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        body { margin: 0; padding: 0; font-family: ${overlay.config?.fontFamily || 'Arial'}, sans-serif; background: transparent; overflow: hidden; }
+        .overlay-container { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            right: 20px; 
+            background: ${bgColor}; 
+            opacity: ${opacity / 100}; 
+            border-radius: 8px; 
+            padding: 16px; 
+            color: white; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+        }
         .score-section { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
         .team-info { text-align: center; }
         .team-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; }
@@ -219,7 +334,22 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
     <script>
+        // Auto-refresh every 1.5 seconds to get live scores
         setTimeout(() => { window.location.reload(); }, 1500);
+        
+        // Try to fetch live scores from API
+        async function fetchLiveScores() {
+            try {
+                const response = await fetch('${apiBaseUrl}/matches/${matchId || ''}/live');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Live scores:', data);
+                }
+            } catch (e) {
+                console.log('Could not fetch live scores');
+            }
+        }
+        fetchLiveScores();
     </script>
 </head>
 <body>
