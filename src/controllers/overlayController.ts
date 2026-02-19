@@ -193,6 +193,9 @@ export const getOverlayTemplates = async (): Promise<Array<{id: string; name: st
 
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Check if template is provided in query parameter
+    const templateFromQuery = req.query.template as string;
+    
     const overlay = await Overlay.findOne({ publicId: req.params.id })
       .populate('tournament')
       .populate('match') as any;
@@ -202,7 +205,9 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const templateId = overlay.template || 'modern';
+    // Use template from query parameter if provided, otherwise use from database
+    const templateId = templateFromQuery || overlay.template || 'modern';
+    console.log('Serving overlay with template:', templateId, 'from query:', templateFromQuery, 'from db:', overlay.template);
     const matchId = overlay.match?._id || overlay.match;
     const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
     const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
