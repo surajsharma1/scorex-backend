@@ -141,28 +141,56 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     // Get the match ID for the overlay-utils.js to fetch live data
     const matchId = overlay.match?._id || overlay.match;
     
-    // Get the API base URL from environment or use default
+    // Get the API base URL from environment - prioritize frontend URL for production
+    const frontendUrl = process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL || '';
     const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
     
-    // Try to read the template file
+    // Try to read the template file from multiple possible locations
     const fs = require('fs');
     const path = require('path');
     
-    // Path to the frontend public/overlays folder
-    // Use path.resolve for reliable path resolution
-    const overlaysDir = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
-    const templatePath = path.join(overlaysDir, `${templateId}.html`);
+    // Multiple possible paths for the overlays directory
+    const possiblePaths = [
+      // Development paths
+      path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays'),
+      path.resolve(__dirname, '../../scorex-frontend/public/overlays'),
+      path.resolve(__dirname, '../../../scorex-frontend/public/overlays'),
+    ].filter(Boolean);
     
-    console.log('Looking for template at:', templatePath);
+    let templatePath = '';
+    let templateFound = false;
+    
+    for (const overlaysDir of possiblePaths) {
+      const testPath = path.join(overlaysDir, `${templateId}.html`);
+      console.log('Checking template at:', testPath);
+      if (fs.existsSync(testPath)) {
+        templatePath = testPath;
+        templateFound = true;
+        console.log('Template found at:', templatePath);
+        break;
+      }
+    }
     
     // Check if template file exists
-    if (fs.existsSync(templatePath)) {
-      // Redirect to the template with matchId and apiBaseUrl as URL parameters
-      // The overlay-utils.js reads these from URL parameters
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const redirectUrl = `${baseUrl}/overlays/${templateId}.html?matchId=${matchId}&apiBaseUrl=${encodeURIComponent(apiBaseUrl)}`;
+    if (templateFound && templatePath) {
+      // Read the template and inject configuration
+      let templateContent = fs.readFileSync(templatePath, 'utf-8');
       
-      res.redirect(redirectUrl);
+      // Inject overlay configuration as global JavaScript variables
+      const injectScript = `
+        <script>
+          window.OVERLAY_CONFIG = window.OVERLAY_CONFIG || {};
+          window.OVERLAY_CONFIG.matchId = '${matchId || ''}';
+          window.OVERLAY_CONFIG.apiBaseUrl = '${apiBaseUrl}';
+          window.OVERLAY_CONFIG.overlayName = '${overlay.name}';
+          window.OVERLAY_CONFIG.publicId = '${overlay.publicId}';
+        </script>
+      `;
+      
+      templateContent = templateContent.replace('</body>', `${injectScript}</body>`);
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.send(templateContent);
       return;
     } else {
       // Template file not found, generate a fallback HTML
