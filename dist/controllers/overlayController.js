@@ -13,11 +13,46 @@ const createOverlay = async (req, res) => {
             res.status(401).json({ message: 'User not authenticated' });
             return;
         }
+        const { name, template, config, tournament, match, elements } = req.body;
+        if (!name || !name.trim()) {
+            res.status(400).json({ message: 'Overlay name is required' });
+            return;
+        }
+        if (!template || !template.trim()) {
+            res.status(400).json({ message: 'Template is required' });
+            return;
+        }
+        if (!config) {
+            res.status(400).json({ message: 'Configuration is required' });
+            return;
+        }
+        const mongoose = require('mongoose');
         const overlayData = {
-            ...req.body,
+            name: name.trim(),
+            template: template.trim(),
+            config,
+            elements: elements || [],
             publicId: (0, uuid_1.v4)(),
             createdBy: user._id,
         };
+        if (tournament) {
+            if (mongoose.Types.ObjectId.isValid(tournament)) {
+                overlayData.tournament = new mongoose.Types.ObjectId(tournament);
+            }
+            else {
+                res.status(400).json({ message: 'Invalid tournament ID format' });
+                return;
+            }
+        }
+        if (match) {
+            if (mongoose.Types.ObjectId.isValid(match)) {
+                overlayData.match = new mongoose.Types.ObjectId(match);
+            }
+            else {
+                res.status(400).json({ message: 'Invalid match ID format' });
+                return;
+            }
+        }
         const overlay = await Overlay_1.default.create(overlayData);
         res.status(201).json(overlay);
     }
@@ -29,8 +64,18 @@ const createOverlay = async (req, res) => {
 exports.createOverlay = createOverlay;
 const getOverlays = async (req, res) => {
     try {
-        const overlays = await Overlay_1.default.find({ createdBy: req.user?._id }) // Type assertion
-            .populate('tournament');
+        const user = req.user;
+        console.log('[getOverlays] User:', user);
+        // Return 401 if user is not authenticated instead of silently returning empty array
+        if (!user || !user._id) {
+            console.log('[getOverlays] No user found or user not authenticated');
+            res.status(401).json({ message: 'Not authorized, please log in' });
+            return;
+        }
+        const overlays = await Overlay_1.default.find({ createdBy: user._id })
+            .populate('tournament')
+            .populate('match');
+        console.log('[getOverlays] Found overlays:', overlays.length);
         res.json(overlays);
     }
     catch (error) {
@@ -93,33 +138,46 @@ const serveOverlay = async (req, res) => {
             res.status(404).send('Overlay not found');
             return;
         }
-        // Get the template ID from the overlay, default to 'modern' if not specified
         const templateId = overlay.template || 'modern';
-        // Get the match ID for the overlay-utils.js to fetch live data
         const matchId = overlay.match?._id || overlay.match;
-        // Get the API base URL from environment or use default
         const apiBaseUrl = process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
-        // Try to read the template file
         const fs = require('fs');
         const path = require('path');
-        // Path to the frontend public/overlays folder
-        // Use path.resolve for reliable path resolution
-        const overlaysDir = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
-        const templatePath = path.join(overlaysDir, `${templateId}.html`);
-        console.log('Looking for template at:', templatePath);
-        // Check if template file exists
-        if (fs.existsSync(templatePath)) {
-            // Redirect to the template with matchId and apiBaseUrl as URL parameters
-            // The overlay-utils.js reads these from URL parameters
-            const baseUrl = `${req.protocol}://${req.get('host')}`;
-            const redirectUrl = `${baseUrl}/overlays/${templateId}.html?matchId=${matchId}&apiBaseUrl=${encodeURIComponent(apiBaseUrl)}`;
-            res.redirect(redirectUrl);
+        const possiblePaths = [
+            path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays'),
+            path.resolve(__dirname, '../../scorex-frontend/public/overlays'),
+            path.resolve(__dirname, '../../../scorex-frontend/public/overlays'),
+        ].filter(Boolean);
+        let templatePath = '';
+        let templateFound = false;
+        for (const overlaysDir of possiblePaths) {
+            const testPath = path.join(overlaysDir, `${templateId}.html`);
+            console.log('Checking template at:', testPath);
+            if (fs.existsSync(testPath)) {
+                templatePath = testPath;
+                templateFound = true;
+                console.log('Template found at:', templatePath);
+                break;
+            }
+        }
+        if (templateFound && templatePath) {
+            let templateContent = fs.readFileSync(templatePath, 'utf-8');
+            const injectScript = `
+        <script>
+          window.OVERLAY_CONFIG = window.OVERLAY_CONFIG || {};
+          window.OVERLAY_CONFIG.matchId = '${matchId || ''}';
+          window.OVERLAY_CONFIG.apiBaseUrl = '${apiBaseUrl}';
+          window.OVERLAY_CONFIG.overlayName = '${overlay.name}';
+          window.OVERLAY_CONFIG.publicId = '${overlay.publicId}';
+        </script>
+      `;
+            templateContent = templateContent.replace('</body>', `${injectScript}</body>`);
+            res.setHeader('Content-Type', 'text/html');
+            res.send(templateContent);
             return;
         }
         else {
-            // Template file not found, generate a fallback HTML
             console.log(`Template not found: ${templatePath}, using fallback`);
-            // Get teams for this tournament
             const Team = require('../models/Team').default;
             const teams = overlay.tournament?._id
                 ? await Team.find({ tournament: overlay.tournament._id }).limit(2)
@@ -149,10 +207,7 @@ const serveOverlay = async (req, res) => {
         .stat-value { font-size: 1rem; font-weight: bold; }
     </style>
     <script>
-        // Auto-refresh every 1.5 seconds to get live updates
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+        setTimeout(() => { window.location.reload(); }, 1500);
     </script>
 </head>
 <body>

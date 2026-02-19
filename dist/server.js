@@ -31,6 +31,8 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const friends_1 = __importDefault(require("./routes/friends"));
 const clubs_1 = __importDefault(require("./routes/clubs"));
 const payments_1 = __importDefault(require("./routes/payments"));
+const messages_1 = __importDefault(require("./routes/messages"));
+const leaderboard_1 = __importDefault(require("./routes/leaderboard"));
 const logger_1 = __importDefault(require("./utils/logger"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 dotenv_1.default.config();
@@ -175,7 +177,6 @@ app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/teams', teams_1.default);
 app.use('/api/v1/brackets', brackets_1.default);
 app.use('/api/v1/overlays', overlays_1.default);
-app.use('/v1/api/overlays', overlays_1.default);
 app.use('/api/v1/matches', matches_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
@@ -184,6 +185,8 @@ app.use('/api/v1/auth', auth_1.default);
 app.use('/api/v1/friends', friends_1.default);
 app.use('/api/v1/clubs', clubs_1.default);
 app.use('/api/v1/payments', payments_1.default);
+app.use('/api/v1/messages', messages_1.default);
+app.use('/api/v1/leaderboard', leaderboard_1.default);
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
     try {
