@@ -19,6 +19,23 @@ export interface IMatch extends Document {
     videoLink?: string;
     commentary: string[];
     createdBy: mongoose.Types.ObjectId;
+    strikerName?: string;
+    strikerRuns?: number;
+    strikerBalls?: number;
+    nonStrikerName?: string;
+    nonStrikerRuns?: number;
+    nonStrikerBalls?: number;
+    currentRunRate?: number;
+    requiredRunRate?: number;
+    target?: number;
+    lastFiveOvers?: string;
+    bowlerName?: string;
+    bowlerOvers?: number;
+    bowlerMaidens?: number;
+    bowlerRuns?: number;
+    bowlerWickets?: number;
+    team1Points?: number;
+    team2Points?: number;
 }
 declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch> & IMatch & {
     _id: mongoose.Types.ObjectId;

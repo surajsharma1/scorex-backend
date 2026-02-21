@@ -54,12 +54,33 @@ const matchSchema = new mongoose_1.Schema({
     videoLink: String,
     commentary: [{ type: String, default: [] }],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    // Striker/Non-striker fields for live scoring
+    strikerName: { type: String, default: '' },
+    strikerRuns: { type: Number, default: 0 },
+    strikerBalls: { type: Number, default: 0 },
+    nonStrikerName: { type: String, default: '' },
+    nonStrikerRuns: { type: Number, default: 0 },
+    nonStrikerBalls: { type: Number, default: 0 },
+    // Computed stats
+    currentRunRate: { type: Number, default: 0 },
+    requiredRunRate: { type: Number, default: 0 },
+    target: { type: Number, default: 0 },
+    lastFiveOvers: { type: String, default: '-' },
+    // Bowler fields for current over
+    bowlerName: { type: String, default: '' },
+    bowlerOvers: { type: Number, default: 0 },
+    bowlerMaidens: { type: Number, default: 0 },
+    bowlerRuns: { type: Number, default: 0 },
+    bowlerWickets: { type: Number, default: 0 },
+    // Point system for fantasy/display
+    team1Points: { type: Number, default: 0 },
+    team2Points: { type: Number, default: 0 },
 }, { timestamps: true });
 // Add indexes for performance
 matchSchema.index({ tournament: 1 });
 matchSchema.index({ date: 1 });
 matchSchema.index({ status: 1 });
 matchSchema.index({ createdBy: 1 });
-matchSchema.index({ tournament: 1, date: -1 }); // Compound index for tournament matches by date
+matchSchema.index({ tournament: 1, date: -1 });
 exports.default = mongoose_1.default.model('Match', matchSchema);
 //# sourceMappingURL=Match.js.map

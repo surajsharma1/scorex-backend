@@ -1,28 +1,30 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const mongoose_1 = __importDefault(require("mongoose"));
-// Note: MongoMemoryServer removed due to installation issues
-// Tests will use the actual database connection configured in environment
-beforeAll(async () => {
-    // Connect to the test database if not already connected
-    if (mongoose_1.default.connection.readyState === 0) {
-        const testUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI;
-        if (testUri) {
-            await mongoose_1.default.connect(testUri);
-        }
-    }
-});
-afterAll(async () => {
-    await mongoose_1.default.disconnect();
-});
-beforeEach(async () => {
-    const collections = mongoose_1.default.connection.collections;
-    for (const key in collections) {
-        const collection = collections[key];
-        await collection.deleteMany({});
-    }
+// Jest test setup file
+const globals_1 = require("@jest/globals");
+// Mock mongoose to avoid database connections during tests
+globals_1.jest.mock('mongoose', () => ({
+    connect: globals_1.jest.fn().mockResolvedValue(true),
+    disconnect: globals_1.jest.fn().mockResolvedValue(true),
+    model: globals_1.jest.fn().mockReturnValue({}),
+    Schema: globals_1.jest.fn().mockImplementation(() => ({
+        pre: globals_1.jest.fn(),
+        post: globals_1.jest.fn(),
+        methods: {},
+        statics: {},
+        indexes: globals_1.jest.fn().mockReturnValue([]),
+    })),
+    Models: {},
+}));
+// Mock config
+globals_1.jest.mock('../config/database', () => ({
+    connectDB: globals_1.jest.fn().mockResolvedValue(true),
+    disconnectDB: globals_1.jest.fn().mockResolvedValue(true),
+}));
+// Global test timeout
+globals_1.jest.setTimeout(10000);
+// Cleanup after each test
+afterEach(() => {
+    globals_1.jest.clearAllMocks();
 });
 //# sourceMappingURL=setup.js.map
