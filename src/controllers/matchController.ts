@@ -30,6 +30,16 @@ export const getMatch = async (req: Request, res: Response): Promise<void> => {
     const team2 = match.team2 as any;
     const tournament = match.tournament as any;
     
+    // Calculate run rates
+    const overs2 = match.overs2 || 0;
+    const score2 = match.score2 || 0;
+    const score1 = match.score1 || 0;
+    const currentRunRate = overs2 > 0 ? (score2 / overs2).toFixed(2) : '0.00';
+    const target = score1 + 1;
+    const remainingRuns = target - score2;
+    const remainingOvers = 20 - overs2;
+    const requiredRunRate = remainingOvers > 0 ? (remainingRuns / remainingOvers).toFixed(2) : '0.00';
+    
     res.json({
       _id: match._id,
       tournament: {
@@ -55,6 +65,21 @@ export const getMatch = async (req: Request, res: Response): Promise<void> => {
       wickets2: match.wickets2 || 0,
       overs1: match.overs1 || 0,
       overs2: match.overs2 || 0,
+      
+      // Striker/Non-striker data for overlay
+      striker_name: match.strikerName || '',
+      striker_runs: match.strikerRuns || 0,
+      striker_balls: match.strikerBalls || 0,
+      nonstriker_name: match.nonStrikerName || '',
+      nonstriker_runs: match.nonStrikerRuns || 0,
+      nonstriker_balls: match.nonStrikerBalls || 0,
+      
+      // Stats for overlay
+      crr: currentRunRate,
+      rrr: requiredRunRate,
+      target: target.toString(),
+      last5Overs: match.lastFiveOvers || '-',
+      
       status: match.status,
       date: match.date,
       venue: match.venue

@@ -21,6 +21,20 @@ export interface IMatch extends Document {
   videoLink?: string;
   commentary: string[];
   createdBy: mongoose.Types.ObjectId;
+  
+  // Striker/Non-striker fields for live scoring
+  strikerName?: string;
+  strikerRuns?: number;
+  strikerBalls?: number;
+  nonStrikerName?: string;
+  nonStrikerRuns?: number;
+  nonStrikerBalls?: number;
+  
+  // Computed stats
+  currentRunRate?: number;
+  requiredRunRate?: number;
+  target?: number;
+  lastFiveOvers?: string;
 }
 
 
@@ -46,6 +60,20 @@ export interface IMatch extends Document {
       videoLink: String,
       commentary: [{ type: String, default: [] }],
       createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+
+      // Striker/Non-striker fields for live scoring
+      strikerName: { type: String, default: '' },
+      strikerRuns: { type: Number, default: 0 },
+      strikerBalls: { type: Number, default: 0 },
+      nonStrikerName: { type: String, default: '' },
+      nonStrikerRuns: { type: Number, default: 0 },
+      nonStrikerBalls: { type: Number, default: 0 },
+      
+      // Computed stats
+      currentRunRate: { type: Number, default: 0 },
+      requiredRunRate: { type: Number, default: 0 },
+      target: { type: Number, default: 0 },
+      lastFiveOvers: { type: String, default: '-' },
 
     },
     { timestamps: true }
