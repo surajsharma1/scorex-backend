@@ -235,7 +235,8 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     
     for (const overlaysDir of possiblePaths) {
       try {
-        const testPath = path.join(overlaysDir, `${templateId}.html`);
+        // templateId already includes .html extension (e.g., "vintage.html")
+        const testPath = path.join(overlaysDir, templateId);
         console.log('Checking template at:', testPath);
         if (fs.existsSync(testPath)) {
           templatePath = testPath;
@@ -268,12 +269,17 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       return;
     } else {
       // Try to fetch template from frontend URL as fallback
-      console.log('Template not found locally, trying frontend URL:', `${frontendUrl}/overlays/${templateId}.html`);
+      // Note: templateId already includes .html extension (e.g., "vintage.html")
+      const templateUrl = templateId.endsWith('.html') 
+        ? `${frontendUrl}/overlays/${templateId}`
+        : `${frontendUrl}/overlays/${templateId}.html`;
+        
+      console.log('Template not found locally, trying frontend URL:', templateUrl);
       
       try {
         const axios = require('axios');
         // Increased timeout to 15 seconds and added error handling
-        const templateResponse = await axios.get(`${frontendUrl}/overlays/${templateId}.html`, {
+        const templateResponse = await axios.get(templateUrl, {
           timeout: 15000,
           headers: {
             'Accept': 'text/html',
