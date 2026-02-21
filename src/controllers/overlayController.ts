@@ -153,41 +153,45 @@ export const generateOverlayUrl = (publicId: string, backendUrl?: string): strin
 
 /**
  * Get all available overlay templates
+ * Updated to match actual files in /public/overlays/
  */
 export const getOverlayTemplates = async (): Promise<Array<{id: string; name: string; description: string}>> => {
-  // These should match the templates in the frontend OverlayEditor
+  // These match the actual template files in scorex-frontend/public/overlays/
   return [
-    { id: 'modern', name: 'Modern Minimal', description: 'Clean, modern design with white glass effect and blue accents' },
-    { id: 'dark', name: 'Dark Theme', description: 'Sleek dark overlay with vibrant accents for night streaming' },
-    { id: 'classic', name: 'Classic Score', description: 'Traditional cricket scoreboard with green background and gold accents' },
-    { id: 'minimalist', name: 'Minimalist', description: 'Ultra-clean design focusing on essential score information' },
-    { id: 'retro', name: 'Retro Style', description: 'Vintage arcade-style pixelated cricket scoreboard' },
-    { id: 'gradient', name: 'Gradient Flow', description: 'Smooth gradient backgrounds with flowing color transitions' },
-    { id: 'vintage', name: 'Vintage Cricket', description: 'Old-school cricket board with classic newspaper aesthetics' },
-    { id: 'chalkboard', name: 'Chalkboard', description: 'Green chalkboard with handwritten-style scores' },
-    { id: 'minimal-dark', name: 'Minimal Dark', description: 'Ultra-minimal dark theme with subtle neon highlights' },
-    { id: 'ocean', name: 'Ocean Waves', description: 'Calming ocean waves with blue gradients and sea aesthetics' },
-    { id: 'forest', name: 'Forest Green', description: 'Natural forest theme with green tones and leaf patterns' },
-    { id: 'sunset', name: 'Sunset Glow', description: 'Warm sunset colors with golden orange gradients' },
-    { id: 'desert', name: 'Desert Sands', description: 'Sandy desert theme with warm earth tones and sun effects' },
-    { id: 'broadcast', name: 'Broadcast Style', description: 'Professional broadcast-quality overlay with ticker and graphics' },
-    { id: 'ipl', name: 'IPL Style', description: 'Indian Premier League inspired design with dynamic animations' },
-    { id: 'animated', name: 'Animated Score', description: 'Dynamic overlay with smooth entrance and exit animations' },
-    { id: 'neon', name: 'Neon Glow', description: 'Vibrant neon colors with glowing effects and pulse animations' },
-    { id: 'metallic', name: 'Metallic Shine', description: 'Shiny metallic overlay with reflections and chrome effects' },
-    { id: 'cyberpunk', name: 'Cyberpunk', description: 'Futuristic cyberpunk style with digital glitches and neon' },
-    { id: 'particle', name: 'Particle Effect', description: 'Animated floating particles around the scoreboard' },
-    { id: 'holographic', name: 'Holographic', description: '3D holographic projection effect with rainbow reflections' },
-    { id: 'fire', name: 'Fire Theme', description: 'Fiery animated background with realistic flame effects' },
-    { id: 'space', name: 'Space Theme', description: 'Cosmic space background with stars, planets and nebula' },
-    { id: 'crystal', name: 'Crystal Clear', description: 'Crystal-like transparency with prismatic light effects' },
-    { id: 'storm', name: 'Storm Clouds', description: 'Dramatic storm clouds with lightning flash effects' },
-    { id: 'aurora', name: 'Aurora Borealis', description: 'Northern lights with colorful flowing aurora effects' },
-    { id: 'neon2', name: 'Neon Glow 2', description: 'Enhanced neon colors with multiple glow layers' },
-    { id: 'glass2', name: 'Glass Morphism 2', description: 'Modern frosted glass design with blur effects' },
-    { id: 'wooden2', name: 'Wooden Board 2', description: 'Classic wooden scoreboard with grain textures' },
-    { id: 'metallic2', name: 'Metallic Shine 2', description: 'Premium metallic finish with animated reflections' },
-    { id: 'cyberpunk2', name: 'Cyberpunk 2', description: 'Advanced cyberpunk with holographic elements' },
+    // Free templates
+    { id: 'vintage.html', name: 'Vintage Cricket', description: 'Old-school cricket board with classic newspaper aesthetics' },
+    { id: 'gate-minimal-dark.html', name: 'Minimal Dark', description: 'Ultra-minimal dark theme with subtle neon highlights' },
+    { id: 'slate-gold-ashes.html', name: 'Slate Gold', description: 'Dark slate with gold accents for premium look' },
+    { id: 'minimalist-split-bar.html', name: 'Minimalist Split', description: 'Ultra-clean split bar design focusing on essential score' },
+    // Premium Basic
+    { id: 'gradient-monolith.html', name: 'Gradient Monolith', description: 'Smooth gradient backgrounds with flowing color transitions' },
+    { id: 'neon-vector-replay.html', name: 'Neon Vector', description: 'Vibrant neon vector style with glowing effects' },
+    { id: 'circuit-node-neon.html', name: 'Circuit Node', description: 'Futuristic circuit board design with neon accents' },
+    { id: 'cyber-shield.html', name: 'Cyber Shield', description: 'Futuristic cyberpunk shield design' },
+    { id: 'hex-perimeter.html', name: 'Hex Perimeter', description: 'Hexagonal pattern with modern aesthetics' },
+    { id: 'grid-sunset-red.html', name: 'Grid Sunset', description: 'Warm sunset colors with grid pattern' },
+    { id: 'titan-perimeter.html', name: 'Titan Perimeter', description: 'Bold titan design with strong perimeter lines' },
+    { id: 'prism-pop-desert.html', name: 'Prism Pop', description: 'Colorful prism effect with vibrant pops' },
+    { id: 'modern-monolith-slab.html', name: 'Modern Monolith', description: 'Modern slab design with clean lines' },
+    // Premium Designer
+    { id: 'apex-cradle-gold.html', name: 'Apex Cradle Gold', description: 'Premium apex design with gold accents' },
+    { id: 'aurora-glass-bbl.html', name: 'Aurora Glass BBL', description: 'Aurora borealis effect with glass morphism' },
+    { id: 'mono-cyberpunk.html', name: 'Mono Cyberpunk', description: 'Monochrome cyberpunk style' },
+    { id: 'storm-flare-rail.html', name: 'Storm Flare', description: 'Dramatic storm clouds with flare effects' },
+    { id: 'titanium-dark-ribbon.html', name: 'Titanium Dark', description: 'Premium titanium finish with dark theme' },
+    { id: 'retro-glitch-hud.html', name: 'Retro Glitch HUD', description: 'Retro arcade style with glitch effects' },
+    { id: 'wooden2.html', name: 'Wooden Board', description: 'Classic wooden scoreboard with grain textures' },
+    { id: 'interceptor-orange.html', name: 'Interceptor Orange', description: 'Bold orange interceptor design' },
+    { id: 'metallic-eclipse-lens.html', name: 'Metallic Eclipse', description: 'Metallic eclipse lens effect' },
+    { id: 'red-spine-replay.html', name: 'Red Spine Replay', description: 'Bold red spine design for replays' },
+    { id: 'Double-Rail-Broadcast.html', name: 'Double Rail Broadcast', description: 'Professional broadcast style with dual rails' },
+    { id: 'rail-world-broadcast.html', name: 'Rail World', description: 'World broadcast rail design' },
+    { id: 'news-ticker-broadcast.html', name: 'News Ticker Broadcast', description: 'News ticker style broadcast overlay' },
+    { id: 'vertical-slice-ashes.html', name: 'Vertical Slice Ashes', description: 'Vertical slice design for Ashes series' },
+    { id: 'velocity-frame-v2.html', name: 'Velocity Frame V2', description: 'Velocity frame design v2' },
+    { id: 'velocity-frame.html', name: 'Velocity Frame', description: 'Velocity frame design' },
+    { id: 'fire-win-predictor.html', name: 'Fire Win Predictor', description: 'Fiery win predictor with flame effects' },
+    { id: 'broadcast-score-bug.html', name: 'Broadcast Score Bug', description: 'Professional broadcast score bug' },
   ];
 };
 
