@@ -1,4 +1,4 @@
-  import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IMatch extends Document {
   tournament: mongoose.Types.ObjectId;
@@ -35,55 +35,77 @@ export interface IMatch extends Document {
   requiredRunRate?: number;
   target?: number;
   lastFiveOvers?: string;
+  
+  // Bowler fields for current over
+  bowlerName?: string;
+  bowlerOvers?: number;
+  bowlerMaidens?: number;
+  bowlerRuns?: number;
+  bowlerWickets?: number;
+  
+  // Point system for fantasy/display
+  team1Points?: number;
+  team2Points?: number;
 }
 
 
-  const matchSchema = new Schema<IMatch>(
-    {
-      tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-      team1: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
-      team2: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
-      date: { type: Date, required: true },
-      venue: String,
-      status: { type: String, enum: ['scheduled', 'ongoing', 'completed'], default: 'scheduled' },
-      score1: { type: Number, default: 0 },
-      score2: { type: Number, default: 0 },
-      wickets1: { type: Number, default: 0 },
-      wickets2: { type: Number, default: 0 },
-      overs1: { type: Number, default: 0 },
-      overs2: { type: Number, default: 0 },
-      winner: { type: Schema.Types.ObjectId, ref: 'Team' },
-      tossWinner: { type: Schema.Types.ObjectId, ref: 'Team' },
-      tossChoice: { type: String, enum: ['bat', 'bowl'] },
-      matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
+const matchSchema = new Schema<IMatch>(
+  {
+    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
+    team1: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+    team2: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+    date: { type: Date, required: true },
+    venue: String,
+    status: { type: String, enum: ['scheduled', 'ongoing', 'completed'], default: 'scheduled' },
+    score1: { type: Number, default: 0 },
+    score2: { type: Number, default: 0 },
+    wickets1: { type: Number, default: 0 },
+    wickets2: { type: Number, default: 0 },
+    overs1: { type: Number, default: 0 },
+    overs2: { type: Number, default: 0 },
+    winner: { type: Schema.Types.ObjectId, ref: 'Team' },
+    tossWinner: { type: Schema.Types.ObjectId, ref: 'Team' },
+    tossChoice: { type: String, enum: ['bat', 'bowl'] },
+    matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
 
-      videoLink: String,
-      commentary: [{ type: String, default: [] }],
-      createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    videoLink: String,
+    commentary: [{ type: String, default: [] }],
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
-      // Striker/Non-striker fields for live scoring
-      strikerName: { type: String, default: '' },
-      strikerRuns: { type: Number, default: 0 },
-      strikerBalls: { type: Number, default: 0 },
-      nonStrikerName: { type: String, default: '' },
-      nonStrikerRuns: { type: Number, default: 0 },
-      nonStrikerBalls: { type: Number, default: 0 },
-      
-      // Computed stats
-      currentRunRate: { type: Number, default: 0 },
-      requiredRunRate: { type: Number, default: 0 },
-      target: { type: Number, default: 0 },
-      lastFiveOvers: { type: String, default: '-' },
+    // Striker/Non-striker fields for live scoring
+    strikerName: { type: String, default: '' },
+    strikerRuns: { type: Number, default: 0 },
+    strikerBalls: { type: Number, default: 0 },
+    nonStrikerName: { type: String, default: '' },
+    nonStrikerRuns: { type: Number, default: 0 },
+    nonStrikerBalls: { type: Number, default: 0 },
+    
+    // Computed stats
+    currentRunRate: { type: Number, default: 0 },
+    requiredRunRate: { type: Number, default: 0 },
+    target: { type: Number, default: 0 },
+    lastFiveOvers: { type: String, default: '-' },
 
-    },
-    { timestamps: true }
-  );
+    // Bowler fields for current over
+    bowlerName: { type: String, default: '' },
+    bowlerOvers: { type: Number, default: 0 },
+    bowlerMaidens: { type: Number, default: 0 },
+    bowlerRuns: { type: Number, default: 0 },
+    bowlerWickets: { type: Number, default: 0 },
+    
+    // Point system for fantasy/display
+    team1Points: { type: Number, default: 0 },
+    team2Points: { type: Number, default: 0 },
 
-  // Add indexes for performance
-  matchSchema.index({ tournament: 1 });
-  matchSchema.index({ date: 1 });
-  matchSchema.index({ status: 1 });
-  matchSchema.index({ createdBy: 1 });
-  matchSchema.index({ tournament: 1, date: -1 }); // Compound index for tournament matches by date
+  },
+  { timestamps: true }
+);
 
-  export default mongoose.model<IMatch>('Match', matchSchema);
+// Add indexes for performance
+matchSchema.index({ tournament: 1 });
+matchSchema.index({ date: 1 });
+matchSchema.index({ status: 1 });
+matchSchema.index({ createdBy: 1 });
+matchSchema.index({ tournament: 1, date: -1 });
+
+export default mongoose.model<IMatch>('Match', matchSchema);
