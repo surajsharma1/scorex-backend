@@ -229,14 +229,80 @@ app.use('/overlay', express.static(overlaysPath)); // Legacy path support
 // Socket.io
 io.on('connection', (socket) => {
   logger.info(`User connected: ${socket.id}`);
+
+  // Join tournament room for real-time score updates
   socket.on('joinTournament', (tournamentId: string) => {
     socket.join(tournamentId);
     logger.info(`User ${socket.id} joined tournament: ${tournamentId}`);
   });
+
+  // Leave tournament room
+  socket.on('leaveTournament', (tournamentId: string) => {
+    socket.leave(tournamentId);
+    logger.info(`User ${socket.id} left tournament: ${tournamentId}`);
+  });
+
+  // Join match room for detailed updates
+  socket.on('joinMatch', (matchId: string) => {
+    socket.join(`match:${matchId}`);
+    logger.info(`User ${socket.id} joined match: ${matchId}`);
+  });
+
+  // Leave match room
+  socket.on('leaveMatch', (matchId: string) => {
+    socket.leave(`match:${matchId}`);
+    logger.info(`User ${socket.id} left match: ${matchId}`);
+  });
+
+  // Update score - broadcast to all users in the tournament
   socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
     io.to(data.tournamentId).emit('scoreUpdate', data);
     logger.info(`Score update for tournament ${data.tournamentId}:`, data.match);
   });
+
+  // Match status update - broadcast to all users in the match
+  socket.on('updateMatchStatus', (data: { matchId: string; tournamentId: string; status: string }) => {
+    io.to(`match:${data.matchId}`).emit('matchStatusUpdate', data);
+    io.to(data.tournamentId).emit('matchStatusUpdate', data);
+    logger.info(`Match status update: ${data.matchId} - ${data.status}`);
+  });
+
+  // Tournament update - broadcast to all users in the tournament
+  socket.on('updateTournament', (data: { tournamentId: string; tournament: any }) => {
+    io.to(data.tournamentId).emit('tournamentUpdate', data);
+    logger.info(`Tournament update for ${data.tournamentId}:`, data.tournament);
+  });
+
+  // Live notification - broadcast to all connected users
+  socket.on('sendNotification', (data: { userId?: string; message: string; type: string }) => {
+    if (data.userId) {
+      // Send to specific user
+      io.to(`user:${data.userId}`).emit('notification', data);
+    } else {
+      // Broadcast to all users
+      io.emit('notification', data);
+    }
+    logger.info(`Notification sent: ${data.type} - ${data.message}`);
+  });
+
+  // Join user-specific room for notifications
+  socket.on('joinUserRoom', (userId: string) => {
+    socket.join(`user:${userId}`);
+    logger.info(`User ${socket.id} joined user room: ${userId}`);
+  });
+
+  // Handle typing indicators for chat
+  socket.on('typing', (data: { roomId: string; userId: string; isTyping: boolean }) => {
+    socket.to(data.roomId).emit('userTyping', data);
+  });
+
+  // Handle chat messages
+  socket.on('sendMessage', (data: { roomId: string; message: any }) => {
+    io.to(data.roomId).emit('newMessage', data.message);
+    logger.info(`New message in room ${data.roomId}`);
+  });
+
+  // Disconnect handling
   socket.on('disconnect', () => {
     logger.info(`User disconnected: ${socket.id}`);
   });
