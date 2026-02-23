@@ -207,18 +207,24 @@ export const getOverlayTemplates = async (): Promise<Array<{id: string; name: st
     { id: 'fire-win-predictor.html', name: 'Fire Win Predictor', description: 'Fiery win predictor with flame effects' },
     { id: 'broadcast-score-bug.html', name: 'Broadcast Score Bug', description: 'Professional broadcast score bug' },
     
-    // Premium Collection - New Overlays
-    { idOrDescription:'orbital-overlay.svg'},
-{ html, nameOrDescription:'Fragment Overlay'},
-{ html, nameOrDescription:'Nebula Overlay'},
-{ html, nameOrDescription:'Aether Overlay'},
-{ html, nameOrDescription:'Vector Overlay'},
-{ html, or vector-shift.name =name = "Vector Shift",description:"Dynamic vector shift effect"},
-{name:"Zenith Overlay",description:"Peak performance overlay"},
-{name:"Chronos Overlay",description:"Time-themed overlay"},
-{name:"Obsidian Overlay",description:"Dark obsidian design"},
-{name="Vanguard Overlay",description:"Leading edge design"}, 
-{fractal-overlay:{html,name="FractalOverlay"}},
+    // Premium Collection - New Overlay Templates
+    { id: 'orbital-overlay.html', name: 'Orbital Overlay', description: 'Space orbital design with rotating elements' },
+    { id: 'fragment-overlay.html', name: 'Fragment Overlay', description: 'Modern fragmented design with sharp edges' },
+    { id: 'nebula-overlay.html', name: 'Nebula Overlay', description: 'Cosmic nebula with purple and blue gradients' },
+    { id: 'aether-overlay.html', name: 'Aether Overlay', description: 'Ethereal and dreamy aesthetic' },
+    { id: 'vector-overlay.html', name: 'Vector Overlay', description: 'Clean vector-based design' },
+    { id: 'vector-shift.html', name: 'Vector Shift', description: 'Dynamic vector design with shifting colors' },
+    { id: 'zenith-overlay.html', name: 'Zenith Overlay', description: 'Peak design reaching the zenith' },
+    { id: 'chronos-overlay.html', name: 'Chronos Overlay', description: 'Time-themed overlay with clock elements' },
+    { id: 'obsidian-overlay.html', name: 'Obsidian Overlay', description: 'Dark obsidian stone aesthetic' },
+    { id: 'vanguard-overlay.html', name: 'Vanguard Overlay', description: 'Bold leading edge design' },
+    { id: 'fractal-overlay.html', name: 'Fractal Overlay', description: 'Mathematical fractal patterns' },
+    { id: 'glitch-overlay.html', name: 'Glitch Overlay', description: 'Digital glitch art style' },
+    { id: 'titan-overlay.html', name: 'Titan Overlay', description: 'Massive powerful design' },
+    { id: 'prism-overlay.html', name: 'Prism Overlay', description: 'Light refracting prism effect' },
+    { id: 'octane-overlay.html', name: 'Octane Overlay', description: 'High octane racing style' },
+  ];
+};
 
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
