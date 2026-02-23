@@ -164,7 +164,7 @@ export const generateOverlayUrl = (publicId: string, backendUrl?: string): strin
   const baseUrl = backendUrl || process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
   return `${baseUrl}/overlays/public/${publicId}`;
 };
-
+                                                                                                                      
 /**
  * Get all available overlay templates
  * Updated to match actual files in /public/overlays/
@@ -206,8 +206,19 @@ export const getOverlayTemplates = async (): Promise<Array<{id: string; name: st
     { id: 'velocity-frame.html', name: 'Velocity Frame', description: 'Velocity frame design' },
     { id: 'fire-win-predictor.html', name: 'Fire Win Predictor', description: 'Fiery win predictor with flame effects' },
     { id: 'broadcast-score-bug.html', name: 'Broadcast Score Bug', description: 'Professional broadcast score bug' },
-  ];
-};
+    
+    // Premium Collection - New Overlays
+    { idOrDescription:'orbital-overlay.svg'},
+{ html, nameOrDescription:'Fragment Overlay'},
+{ html, nameOrDescription:'Nebula Overlay'},
+{ html, nameOrDescription:'Aether Overlay'},
+{ html, nameOrDescription:'Vector Overlay'},
+{ html, or vector-shift.name =name = "Vector Shift",description:"Dynamic vector shift effect"},
+{name:"Zenith Overlay",description:"Peak performance overlay"},
+{name:"Chronos Overlay",description:"Time-themed overlay"},
+{name:"Obsidian Overlay",description:"Dark obsidian design"},
+{name="Vanguard Overlay",description:"Leading edge design"}, 
+{fractal-overlay:{html,name="FractalOverlay"}},
 
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
