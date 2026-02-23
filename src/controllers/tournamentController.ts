@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
+import Overlay from '../models/Overlay';
 import auditLogger from '../utils/auditLogger';
 import { cacheService } from '../utils/cache';
 import logger from '../utils/logger';
@@ -14,10 +15,8 @@ export const getTournaments = async (req: AuthRequest, res: Response): Promise<v
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    // Get user ID from authenticated request
     const userId = req.user?._id;
 
-    // Create cache key with pagination and user ID for user-specific data
     const cacheKey = `${cacheService.getTournamentsListKey()}:user${userId}:page${page}:limit${limit}`;
     let cachedResult = null;
     try {
@@ -31,7 +30,6 @@ export const getTournaments = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    // Filter tournaments by createdBy user for data separation and exclude deleted tournaments
     const filter = userId ? { createdBy: userId, deleted: false } : { deleted: false };
     const total = await Tournament.countDocuments(filter);
     const tournaments = await Tournament.find(filter)
@@ -52,7 +50,6 @@ export const getTournaments = async (req: AuthRequest, res: Response): Promise<v
       }
     };
 
-    // Cache for 5 minutes
     try {
       await cacheService.setJSON(cacheKey, result, 300);
     } catch (cacheError) {
@@ -82,14 +79,13 @@ export const getTournament = async (req: AuthRequest, res: Response): Promise<vo
 
 export const createTournament = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    console.log('Creating tournament with data:', req.body); // Debug log
+    console.log('Creating tournament with data:', req.body);
     const tournament = await Tournament.create({
       ...req.body,
       createdBy: req.user?._id,
     });
-    console.log('Tournament created:', tournament); // Debug log
+    console.log('Tournament created:', tournament);
 
-    // Invalidate tournaments list cache
     try {
       await cacheService.del(cacheService.getTournamentsListKey());
     } catch (cacheError) {
@@ -98,7 +94,7 @@ export const createTournament = async (req: AuthRequest, res: Response): Promise
 
     res.status(201).json(tournament);
   } catch (error: any) {
-    console.error('Create tournament error:', error.message); // Detailed error
+    console.error('Create tournament error:', error.message);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -124,26 +120,49 @@ export const updateTournament = async (req: AuthRequest, res: Response): Promise
 export const deleteTournament = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?._id;
+    
+    // First check if tournament exists and belongs to user
+    const existingTournament = await Tournament.findOne({ _id: req.params.id, createdBy: userId });
+    
+    if (!existingTournament) {
+      res.status(404).json({ message: 'Tournament not found' });
+      return;
+    }
+    
+    // Mark tournament as deleted (soft delete)
     const tournament = await Tournament.findOneAndUpdate(
       { _id: req.params.id, createdBy: userId },
       { deleted: true, deletedAt: new Date() },
       { new: true }
     );
-    if (!tournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
+    
+    // Cascade delete: Remove associated overlays when tournament is deleted
+    // This ensures overlays don't persist after tournament deletion
+    await Overlay.deleteMany({ tournament: existingTournament._id });
+    
+    // Also delete overlays created by this user that are linked to matches in this tournament
+    const Match = require('../models/Match').default;
+    const matchesInTournament = await Match.find({ tournament: existingTournament._id }).select('_id');
+    const matchIds = matchesInTournament.map((m: any) => m._id);
+    
+    if (matchIds.length > 0) {
+      await Overlay.deleteMany({
+        match: { $in: matchIds }
+      });
     }
 
     // Audit log tournament deletion
-    auditLogger.logUserAction(
-      (req as any).user?._id.toString(),
-      'TOURNAMENT_DELETED',
-      'Tournament',
-      req.params.id,
-      { name: tournament.name },
-      req.ip,
-      req.get('User-Agent')
-    );
+    if (tournament) {
+      auditLogger.logUserAction(
+        (req as any).user?._id.toString(),
+        'TOURNAMENT_DELETED',
+        'Tournament',
+        req.params.id,
+        { name: tournament.name },
+        req.ip,
+        req.get('User-Agent')
+      );
+    }
 
     // Invalidate caches
     await cacheService.del(cacheService.getTournamentsListKey());

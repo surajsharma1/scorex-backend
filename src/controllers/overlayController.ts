@@ -101,11 +101,25 @@ export const getOverlays = async (req: Request, res: Response): Promise<void> =>
 
 export const getOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
-    const overlay = await Overlay.findById(req.params.id);
+    const user = (req as any).user;
+    
+    // Return 401 if user is not authenticated
+    if (!user || !user._id) {
+      res.status(401).json({ message: 'Not authorized, please log in' });
+      return;
+    }
+
+    // Find overlay and verify ownership
+    const overlay = await Overlay.findOne({
+      _id: req.params.id,
+      createdBy: user._id
+    });
+    
     if (!overlay) {
       res.status(404).json({ message: 'Overlay not found' });
       return;
     }
+    
     res.json(overlay);
   } catch (error) {
     console.error('Get overlay error:', error);
