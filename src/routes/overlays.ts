@@ -6,6 +6,7 @@ import {
   updateOverlay,
   deleteOverlay,
   serveOverlay,
+  getOverlayTemplates,
 } from '../controllers/overlayController';
 import { protect } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
@@ -14,6 +15,7 @@ const router = express.Router();
 
 // Public routes - anyone can view overlays
 router.get('/public/:id', serveOverlay); // Public route for serving overlays
+router.get('/templates', getOverlayTemplates); // Public route for getting available templates
 
 // Protected routes - require authentication (must come before :id routes)
 router.get('/', protect as any, getOverlays);
