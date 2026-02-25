@@ -7,6 +7,7 @@ import axios from 'axios';
 import Overlay from '../models/Overlay';
 import Team from '../models/Team';
 import { AuthRequest } from '../middleware/auth';
+import User from '../models/User';
 
 export const regenerateOverlayUrl = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -227,31 +228,40 @@ export const deleteOverlay = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const getOverlayTemplates = async (): Promise<Array<{id: string; name: string; description: string}>> => {
+export const getOverlayTemplates = async () => {
   return [
-    { id: 'vintage.html', name: 'Vintage Cricket', description: 'Old-school cricket board' },
-    { id: 'gate-minimal-dark.html', name: 'Minimal Dark', description: 'Ultra-minimal dark theme' },
-    { id: 'slate-gold-ashes.html', name: 'Slate Gold', description: 'Dark slate with gold accents' },
-    { id: 'minimalist-split-bar.html', name: 'Minimalist Split', description: 'Split bar design' },
-    { id: 'gradient-monolith.html', name: 'Gradient Monolith', description: 'Smooth gradient backgrounds' },
-    { id: 'neon-vector-replay.html', name: 'Neon Vector', description: 'Vibrant neon vector style' },
-    { id: 'circuit-node-neon.html', name: 'Circuit Node', description: 'Futuristic circuit board' },
-    { id: 'cyber-shield.html', name: 'Cyber Shield', description: 'Cyberpunk shield design' },
-    { id: 'hex-perimeter.html', name: 'Hex Perimeter', description: 'Hexagonal pattern' },
-    { id: 'modern-monolith-slab.html', name: 'Modern Monolith', description: 'Modern slab design' },
-    { id: 'aurora-glass-bbl.html', name: 'Aurora Glass', description: 'Glass morphism effect' },
-    { id: 'orbital-overlay.html', name: 'Orbital', description: 'Rotating orbital elements' },
-    { id: 'fragment-overlay.html', name: 'Fragment', description: 'Modern fragmented design' },
-    { id: 'aether-overlay.html', name: 'Aether', description: 'Ethereal aesthetic' },
-    { id: 'vector-overlay.html', name: 'Vector', description: 'Clean vector design' },
-    { id: 'zenith-overlay.html', name: 'Zenith', description: 'Peak design style' },
-    { id: 'obsidian-overlay.html', name: 'Obsidian', description: 'Dark stone aesthetic' },
-    { id: 'vanguard-overlay.html', name: 'Vanguard', description: 'Bold leading edge' },
-    { id: 'fractal-overlay.html', name: 'Fractal', description: 'Mathematical patterns' },
-    { id: 'glitch-overlay.html', name: 'Glitch', description: 'Digital glitch art' },
-    { id: 'titan-overlay.html', name: 'Titan', description: 'Massive powerful design' },
-    { id: 'prism-overlay.html', name: 'Prism', description: 'Light refracting effect' },
-    { id: 'octane-overlay.html', name: 'Octane', description: 'High speed racing style' },
+    // --- LEVEL 1: STATIC (Basic Designs) ---
+    { id: 'lvl1-classic.html', name: 'Classic Test', level: 1, description: 'Traditional white/red design' },
+    { id: 'lvl1-modern-blue.html', name: 'Modern Blue', level: 1, description: 'Clean blue header style' },
+    { id: 'lvl1-minimal-dark.html', name: 'Dark Minimal', level: 1, description: 'High contrast dark mode' },
+    { id: 'lvl1-broadcast-bar.html', name: 'Bottom Bar', level: 1, description: 'Standard TV broadcast bottom bar' },
+    { id: 'lvl1-side-panel.html', name: 'Side Panel', level: 1, description: 'Vertical side panel stats' },
+    { id: 'lvl1-retro-board.html', name: 'Retro Board', level: 1, description: '90s style digital board' },
+    { id: 'lvl1-paper-style.html', name: 'Paper Score', level: 1, description: 'Paper texture background' },
+    { id: 'lvl1-high-vis.html', name: 'High Vis', level: 1, description: 'Yellow/Black high visibility' },
+    { id: 'lvl1-clean-slate.html', name: 'Clean Slate', level: 1, description: 'Grey and white professional' },
+    { id: 'lvl1-box-score.html', name: 'Box Score', level: 1, description: 'Compact box design' },
+    { id: 'lvl1-red-card.html', name: 'Red Card', level: 1, description: 'Bold red team focus' },
+    { id: 'lvl1-grass-theme.html', name: 'Grass Roots', level: 1, description: 'Green texture theme' },
+    { id: 'lvl1-simple-text.html', name: 'Text Only', level: 1, description: 'Just the facts' },
+
+    // --- LEVEL 2: ANIMATED (Premium Designs with Notifications) ---
+    { id: 'lvl2-neon-pulse.html', name: 'Neon Pulse', level: 2, type: 'animated', description: 'Glowing neon edges with pulse' },
+    { id: 'lvl2-cyber-glitch.html', name: 'Cyber Glitch', level: 2, type: 'animated', description: 'Cyberpunk glitch effects on score change' },
+    { id: 'lvl2-gold-rush.html', name: 'Gold Rush', level: 2, type: 'animated', description: 'Golden particle effects' },
+    { id: 'lvl2-flame-thrower.html', name: 'Flame Thrower', level: 2, type: 'animated', description: 'Fire animations on boundaries' },
+    { id: 'lvl2-water-flow.html', name: 'Aqua Flow', level: 2, type: 'animated', description: 'Fluid liquid background' },
+    { id: 'lvl2-tech-hud.html', name: 'Sci-Fi HUD', level: 2, type: 'animated', description: 'Iron Man style HUD interface' },
+    { id: 'lvl2-glass-morphism.html', name: 'Glass Motion', level: 2, type: 'animated', description: 'Frosted glass with moving gradients' },
+    { id: 'lvl2-speed-racer.html', name: 'Speed Racer', level: 2, type: 'animated', description: 'Fast sliding animations' },
+    { id: 'lvl2-thunder-strike.html', name: 'Thunder', level: 2, type: 'animated', description: 'Lightning effects on wickets' },
+    { id: 'lvl2-cosmic-orbit.html', name: 'Cosmic', level: 2, type: 'animated', description: 'Rotating celestial bodies' },
+    { id: 'lvl2-matrix-rain.html', name: 'The Matrix', level: 2, type: 'animated', description: 'Digital code rain background' },
+    { id: 'lvl2-vinyl-spin.html', name: 'Vinyl', level: 2, type: 'animated', description: 'Spinning record style' },
+    { id: 'lvl2-broadcast-pro.html', name: 'ESPN Style', level: 2, type: 'animated', description: 'Professional TV animations' },
+    { id: 'lvl2-particle-storm.html', name: 'Particles', level: 2, type: 'animated', description: 'Exploding particles on 6s' },
+    { id: 'lvl2-hologram.html', name: 'Hologram', level: 2, type: 'animated', description: '3D Holographic projection effect' },
+    { id: 'lvl2-rgb-split.html', name: 'RGB Split', level: 2, type: 'animated', description: 'Chromatic aberration effects' },
   ];
 };
 
