@@ -95,10 +95,10 @@ router.get('/google/callback', (req, res, next) => {
         return res.status(401).json({ message: 'Unauthorized' });
       }
     } else {
-      // Existing user: generate token and redirect
+      // Existing user: generate token and redirect to dashboard
       try {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
       } catch (error) {
         console.error('Token generation error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -110,14 +110,14 @@ router.get('/google/callback', (req, res, next) => {
 // GitHub OAuth
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
-router.get('/github/callback', authLimiter, passport.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
+router.get('/github/callback', authLimiter, passport.authenticate('github', { failureRedirect: '/login' }), async (req, res) => {
   try {
     const user = req.user as any;
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
   } catch (error) {
     console.error('GitHub OAuth callback error:', error);
-    res.redirect('/');
+    res.redirect('/login');
   }
 });
 
