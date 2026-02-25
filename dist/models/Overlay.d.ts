@@ -1,13 +1,21 @@
 import mongoose, { Document } from 'mongoose';
+export interface IOverlayConfig {
+    backgroundColor?: string;
+    opacity?: number;
+    fontFamily?: string;
+    [key: string]: any;
+}
 export interface IOverlay extends Document {
     name: string;
-    tournament: mongoose.Types.ObjectId;
-    match?: mongoose.Types.ObjectId;
     template: string;
-    config: any;
-    elements: any[];
     publicId: string;
+    config: IOverlayConfig;
+    elements: any[];
+    tournament?: mongoose.Types.ObjectId;
+    match?: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
+    createdAt: Date;
+    updatedAt: Date;
 }
 declare const _default: mongoose.Model<IOverlay, {}, {}, {}, mongoose.Document<unknown, {}, IOverlay> & IOverlay & {
     _id: mongoose.Types.ObjectId;

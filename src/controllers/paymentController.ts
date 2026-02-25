@@ -16,6 +16,14 @@ try {
   console.warn('Stripe not configured:', error);
 }
 
+// Helper to convert membershipLevel to string
+const getMembershipString = (level: number): string => {
+  switch (level) {
+    case 1: return 'basic';
+    case 2: return 'premium';
+    default: return 'free';
+  }
+};
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {
@@ -80,13 +88,15 @@ export const confirmPayment = async (req: Request, res: Response) => {
           expiryDate.setDate(now.getDate() + 7); // Default to 1 week
       }
 
+      // Convert level string to number
+      const membershipLevelNum = level === 'premium' ? 2 : level === 'basic' ? 1 : 0;
+
       // Update user membership in database
-      const membership = `premium-${level}`;
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         {
-          membership: membership,
-          membershipExpiry: expiryDate,
+          membershipLevel: membershipLevelNum,
+          membershipExpiresAt: expiryDate,
           $push: {
             paymentHistory: {
               amount: paymentIntent.amount / 100, // Convert from cents
@@ -111,8 +121,8 @@ export const confirmPayment = async (req: Request, res: Response) => {
         { 
           id: updatedUser._id, 
           role: updatedUser.role, 
-          membership: updatedUser.membership,
-          membershipExpiresAt: updatedUser.membershipExpiry ? updatedUser.membershipExpiry.toISOString() : null
+          membership: getMembershipString(updatedUser.membershipLevel || 0),
+          membershipExpiresAt: updatedUser.membershipExpiresAt ? updatedUser.membershipExpiresAt.toISOString() : null
         },
         process.env.JWT_SECRET!,
         { expiresIn: '30d' }
@@ -121,7 +131,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
       res.json({
         success: true,
         message: 'Payment confirmed successfully',
-        membership: membership,
+        membership: getMembershipString(membershipLevelNum),
         membershipExpiry: expiryDate,
         duration,
         token: newToken // Return new token with updated membership

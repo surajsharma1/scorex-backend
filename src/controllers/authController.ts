@@ -7,14 +7,23 @@ import { validateRequest, registerSchema, loginSchema } from '../utils/validatio
 import auditLogger from '../utils/auditLogger';
 import sendEmail from '../utils/emailService'; 
 
+// Helper to convert membershipLevel to string for token
+const getMembershipString = (level: number): string => {
+  switch (level) {
+    case 1: return 'basic';
+    case 2: return 'premium';
+    default: return 'free';
+  }
+};
+
 // Helper to generate JWT Token
 const signToken = (user: any) => {
   return jwt.sign(
     { 
       id: user._id, 
       role: user.role, 
-      membership: user.membership,
-      membershipExpiresAt: user.membershipExpiry ? user.membershipExpiry.toISOString() : null
+      membership: getMembershipString(user.membershipLevel || 0),
+      membershipExpiresAt: user.membershipExpiresAt ? user.membershipExpiresAt.toISOString() : null
     },
     process.env.JWT_SECRET!,
     { expiresIn: '30d' }
@@ -58,6 +67,7 @@ export const register = [
           email,
           password,
           role: 'viewer', // Default role
+          membershipLevel: 0, // Default free
           otp,
           otpExpires,
           isVerified: false
@@ -171,12 +181,12 @@ export const login = [
       }
 
       // Check Membership Expiry
-      if (user.membership !== 'free' && user.membershipExpiry) {
-        const expiryDate = new Date(user.membershipExpiry);
+      if (user.membershipLevel !== 0 && user.membershipExpiresAt) {
+        const expiryDate = new Date(user.membershipExpiresAt);
         if (expiryDate < new Date()) {
           // Membership has expired, reset to free
-          user.membership = 'free';
-          user.membershipExpiry = undefined;
+          user.membershipLevel = 0;
+          user.membershipExpiresAt = undefined;
           await user.save();
         }
       }
@@ -201,7 +211,7 @@ export const login = [
           username: user.username,
           email: user.email,
           role: user.role,
-          membership: user.membership
+          membership: getMembershipString(user.membershipLevel || 0)
         }
       });
 
@@ -238,14 +248,15 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
          email: payload.email,
          password: crypto.randomBytes(16).toString('hex'), // Random password
          isVerified: true, // Auto-verify Google users
-         role: 'viewer'
+         role: 'viewer',
+         membershipLevel: 0
        });
     }
 
     const jwtToken = signToken(user);
     res.json({ token: jwtToken, user });
 
-  } catch(err: any) {
+  } catch (err: any) {
     res.status(500).json({ message: "Google Login Failed" });
   }
 };

@@ -4,8 +4,8 @@ export interface IUser extends Document {
     email: string;
     password?: string;
     role: 'viewer' | 'organizer' | 'admin';
-    membership: 'free' | 'premium' | 'pro' | 'premium-level1' | 'premium-level2';
-    membershipExpiry?: Date;
+    membershipLevel: 0 | 1 | 2;
+    membershipExpiresAt?: Date;
     otp?: string;
     otpExpires?: Date;
     isVerified: boolean;
@@ -32,15 +32,15 @@ export interface IUser extends Document {
         paymentIntentId: string;
         status: string;
         date: Date;
-    }[];
+    };
     deleted: boolean;
     deletedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
-declare const User: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
+declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
     _id: mongoose.Types.ObjectId;
 }, any>;
-export default User;
+export default _default;
 //# sourceMappingURL=User.d.ts.map

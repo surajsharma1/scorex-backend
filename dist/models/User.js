@@ -38,14 +38,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const userSchema = new mongoose_1.Schema({
-    username: { type: String, required: true, unique: true },
+const UserSchema = new mongoose_1.Schema({
+    username: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, select: false }, // Hide password by default
+    password: { type: String },
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
-    // Membership
-    membership: { type: String, enum: ['free', 'premium', 'pro', 'premium-level1', 'premium-level2'], default: 'free' },
-    membershipExpiry: { type: Date },
+    membershipLevel: { type: Number, default: 0, enum: [0, 1, 2] },
+    membershipExpiresAt: { type: Date },
     // Verification Fields (Critical for OTP)
     otp: { type: String, select: false }, // Select false means it won't be returned in queries unless requested
     otpExpires: { type: Date, select: false },
@@ -79,7 +78,7 @@ const userSchema = new mongoose_1.Schema({
     deletedAt: { type: Date },
 }, { timestamps: true });
 // Pre-save hook to hash password
-userSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function (next) {
     if (!this.isModified('password') || !this.password)
         return next();
     try {
@@ -92,13 +91,12 @@ userSchema.pre('save', async function (next) {
     }
 });
 // Method to check password
-userSchema.methods.comparePassword = async function (candidatePassword) {
+UserSchema.methods.comparePassword = async function (candidatePassword) {
     // If password is not selected, we cannot compare. 
     // Ensure your controller does .select('+password') if using this method on a query result that hid it.
     if (!this.password)
         return false;
     return bcryptjs_1.default.compare(candidatePassword, this.password);
 };
-const User = mongoose_1.default.model('User', userSchema);
-exports.default = User;
+exports.default = mongoose_1.default.model('User', UserSchema);
 //# sourceMappingURL=User.js.map

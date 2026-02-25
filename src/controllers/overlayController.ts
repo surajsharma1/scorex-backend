@@ -9,6 +9,10 @@ import Team from '../models/Team';
 import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 
+const getBaseUrl = (): string => {
+  return process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+};
+
 export const regenerateOverlayUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
@@ -24,7 +28,7 @@ export const regenerateOverlayUrl = async (req: Request, res: Response): Promise
       res.status(404).json({ message: 'Overlay not found' });
       return;
     }
-    const baseUrl = process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+    const baseUrl = getBaseUrl();
     res.json({ 
       publicId: newPublicId,
       url: `${baseUrl}/overlays/public/${newPublicId}` 
@@ -33,74 +37,6 @@ export const regenerateOverlayUrl = async (req: Request, res: Response): Promise
     console.error('Error regenerating link:', error);
     res.status(500).json({ message: 'Server error' });
   }
-};
-
-export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const overlay = await Overlay.findOne({ publicId: req.params.id })
-      .populate('tournament')
-      .populate('match');
-    
-    if (!overlay) {
-      res.status(404).send('Overlay not found');
-      return;
-    }
-    // --- MEMBERSHIP CHECK START ---
-    const owner = await User.findById(overlay.createdBy);
-    
-    // Check if membership exists and is valid
-    if (!owner || !owner.membershipExpiresAt || new Date() > owner.membershipExpiresAt) {
-      res.status(403).send(`
-        <html>
-          <body style="background: #1a1a1a; color: #ff4444; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">
-            <div style="text-align: center; padding: 2rem; border: 1px solid #333; border-radius: 8px;">
-              <h1>Broadcast License Expired</h1>
-              <p>The membership for this overlay has ended.</p>
-              <p>Please contact the organizer to renew.</p>
-            </div>
-          </body>
-        </html>
-      `);
-      return;
-    }
-    const templates = await getOverlayTemplates();
-    const selectedTemplate = templates.find(t => t.id === overlay.template);
-    
-    if (selectedTemplate?.level === 2 && owner.membershipLevel < 2) {
-       res.status(403).send("Upgrade to Level 2 Membership to use animated overlays.");
-       return;
-    }
-    const socketScript = `
-      <script src="/socket.io/socket.io.js"></script>
-      <script>
-        const socket = io('${process.env.API_BASE_URL}');
-        const matchId = '${overlay.match?._id || ""}';
-        
-        socket.on('connect', () => {
-          console.log('Connected to ScoreX Live');
-          if(matchId) socket.emit('join_match', matchId);
-        });
-
-        socket.on('match_update', (data) => {
-          if (window.updateOverlay) window.updateOverlay(data);
-          
-          // Handle Push Notifications (Level 2 Only)
-          if (data.notification && ${owner.membershipLevel} >= 2) {
-             if (window.showNotification) window.showNotification(data.notification);
-          }
-        });
-      </script>
-    `;
-    
-    // Send final HTML with socket script injected
-    // ...
-  } catch (error) {
-    // ...
-  }
-};
-
-const getBaseUrl = (): string => {
-  return process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
 };
 
 export const createOverlay = async (req: Request, res: Response): Promise<void> => {
@@ -319,8 +255,8 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
           responseType: 'text' 
         });
         templateContent = templateResponse.data;
-      } catch (err) {
-        console.error('Failed to fetch template from frontend:', err);
+      } catch (err: any) {
+        console.error('Failed to fetch template from frontend:', err.message);
         // 3. Fallback to basic HTML if all else fails
         templateContent = `
           <html>

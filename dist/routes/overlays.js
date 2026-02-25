@@ -5,17 +5,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const overlayController_1 = require("../controllers/overlayController");
-const auth_1 = require("../middleware/auth");
+const auth_1 = require("../middleware/auth"); // Changed from 'authenticate' to 'protect'
 const router = express_1.default.Router();
-// Public routes - anyone can view overlays
-router.get('/public/:id', overlayController_1.serveOverlay); // Public route for serving overlays
-router.get('/templates', overlayController_1.getOverlayTemplates); // Public route for getting available templates
-// Protected routes - require authentication (must come before :id routes)
-router.get('/', auth_1.protect, overlayController_1.getOverlays);
-router.get('/:id', auth_1.protect, overlayController_1.getOverlay);
-// Protected routes - require authentication
-router.post('/', auth_1.protect, overlayController_1.createOverlay);
-router.put('/:id', auth_1.protect, overlayController_1.updateOverlay);
-router.delete('/:id', auth_1.protect, overlayController_1.deleteOverlay);
+// Public route for serving the overlay HTML (OBS/Browser Source)
+// This must come BEFORE the protect middleware
+router.get('/public/:id', overlayController_1.serveOverlay);
+// Protected routes (require login)
+router.use(auth_1.protect); // Changed from 'authenticate' to 'protect'
+router.get('/', overlayController_1.getOverlays);
+router.get('/templates', async (req, res) => {
+    const templates = await (0, overlayController_1.getOverlayTemplates)();
+    res.json(templates);
+});
+router.post('/', overlayController_1.createOverlay);
+router.get('/:id', overlayController_1.getOverlay);
+router.put('/:id', overlayController_1.updateOverlay);
+router.delete('/:id', overlayController_1.deleteOverlay);
 exports.default = router;
 //# sourceMappingURL=overlays.js.map

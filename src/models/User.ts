@@ -34,6 +34,7 @@ export interface IUser extends Document {
     systemAnnouncements: boolean;
   };
   
+  // FIXED: Changed to an array of objects to match the Schema definition
   paymentHistory?: {
     amount: number;
     currency: string;
@@ -103,7 +104,7 @@ const UserSchema: Schema = new Schema({
 );
 
 // Pre-save hook to hash password
-userSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) return next();
   
   try {
@@ -117,7 +118,7 @@ userSchema.pre('save', async function (next) {
 
 // Method to check password
 UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
-  // If password is not selected, we cannot compare. 
+  // If password is not selected (select: false), we cannot compare. 
   // Ensure your controller does .select('+password') if using this method on a query result that hid it.
   if (!this.password) return false; 
   return bcrypt.compare(candidatePassword, this.password);

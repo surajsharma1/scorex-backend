@@ -34,15 +34,21 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const overlaySchema = new mongoose_1.Schema({
+const OverlaySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
+    template: { type: String, required: true, default: 'modern' },
+    publicId: { type: String, required: true, unique: true },
+    config: {
+        type: Map,
+        of: mongoose_1.Schema.Types.Mixed,
+        default: {}
+    },
+    elements: { type: Array, default: [] },
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
     match: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
-    template: { type: String, required: true },
-    config: { type: mongoose_1.Schema.Types.Mixed, required: true },
-    elements: [{ type: mongoose_1.Schema.Types.Mixed }],
-    publicId: { type: String, required: true, unique: true },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-}, { timestamps: true });
-exports.default = mongoose_1.default.model('Overlay', overlaySchema);
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
+}, {
+    timestamps: true
+});
+exports.default = mongoose_1.default.model('Overlay', OverlaySchema);
 //# sourceMappingURL=Overlay.js.map
