@@ -9,6 +9,7 @@ const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Public routes - anyone can view overlays
 router.get('/public/:id', overlayController_1.serveOverlay); // Public route for serving overlays
+router.get('/templates', overlayController_1.getOverlayTemplates); // Public route for getting available templates
 // Protected routes - require authentication (must come before :id routes)
 router.get('/', auth_1.protect, overlayController_1.getOverlays);
 router.get('/:id', auth_1.protect, overlayController_1.getOverlay);

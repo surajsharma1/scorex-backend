@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateLiveScores = exports.goLive = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getTournaments = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const Overlay_1 = __importDefault(require("../models/Overlay"));
 const auditLogger_1 = __importDefault(require("../utils/auditLogger"));
 const cache_1 = require("../utils/cache");
 const logger_1 = __importDefault(require("../utils/logger"));
@@ -13,9 +14,7 @@ const getTournaments = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        // Get user ID from authenticated request
         const userId = req.user?._id;
-        // Create cache key with pagination and user ID for user-specific data
         const cacheKey = `${cache_1.cacheService.getTournamentsListKey()}:user${userId}:page${page}:limit${limit}`;
         let cachedResult = null;
         try {
@@ -28,7 +27,6 @@ const getTournaments = async (req, res) => {
             res.json(cachedResult);
             return;
         }
-        // Filter tournaments by createdBy user for data separation and exclude deleted tournaments
         const filter = userId ? { createdBy: userId, deleted: false } : { deleted: false };
         const total = await Tournament_1.default.countDocuments(filter);
         const tournaments = await Tournament_1.default.find(filter)
@@ -47,7 +45,6 @@ const getTournaments = async (req, res) => {
                 hasPrev: page > 1
             }
         };
-        // Cache for 5 minutes
         try {
             await cache_1.cacheService.setJSON(cacheKey, result, 300);
         }
@@ -79,13 +76,12 @@ const getTournament = async (req, res) => {
 exports.getTournament = getTournament;
 const createTournament = async (req, res) => {
     try {
-        console.log('Creating tournament with data:', req.body); // Debug log
+        console.log('Creating tournament with data:', req.body);
         const tournament = await Tournament_1.default.create({
             ...req.body,
             createdBy: req.user?._id,
         });
-        console.log('Tournament created:', tournament); // Debug log
-        // Invalidate tournaments list cache
+        console.log('Tournament created:', tournament);
         try {
             await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
         }
@@ -95,7 +91,7 @@ const createTournament = async (req, res) => {
         res.status(201).json(tournament);
     }
     catch (error) {
-        console.error('Create tournament error:', error.message); // Detailed error
+        console.error('Create tournament error:', error.message);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -118,13 +114,30 @@ exports.updateTournament = updateTournament;
 const deleteTournament = async (req, res) => {
     try {
         const userId = req.user?._id;
-        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, { deleted: true, deletedAt: new Date() }, { new: true });
-        if (!tournament) {
+        // First check if tournament exists and belongs to user
+        const existingTournament = await Tournament_1.default.findOne({ _id: req.params.id, createdBy: userId });
+        if (!existingTournament) {
             res.status(404).json({ message: 'Tournament not found' });
             return;
         }
+        // Mark tournament as deleted (soft delete)
+        const tournament = await Tournament_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: userId }, { deleted: true, deletedAt: new Date() }, { new: true });
+        // Cascade delete: Remove associated overlays when tournament is deleted
+        // This ensures overlays don't persist after tournament deletion
+        await Overlay_1.default.deleteMany({ tournament: existingTournament._id });
+        // Also delete overlays created by this user that are linked to matches in this tournament
+        const Match = require('../models/Match').default;
+        const matchesInTournament = await Match.find({ tournament: existingTournament._id }).select('_id');
+        const matchIds = matchesInTournament.map((m) => m._id);
+        if (matchIds.length > 0) {
+            await Overlay_1.default.deleteMany({
+                match: { $in: matchIds }
+            });
+        }
         // Audit log tournament deletion
-        auditLogger_1.default.logUserAction(req.user?._id.toString(), 'TOURNAMENT_DELETED', 'Tournament', req.params.id, { name: tournament.name }, req.ip, req.get('User-Agent'));
+        if (tournament) {
+            auditLogger_1.default.logUserAction(req.user?._id.toString(), 'TOURNAMENT_DELETED', 'Tournament', req.params.id, { name: tournament.name }, req.ip, req.get('User-Agent'));
+        }
         // Invalidate caches
         await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey());
         await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(req.params.id));

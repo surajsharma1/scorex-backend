@@ -221,14 +221,69 @@ app.use('/overlay', express_1.default.static(overlaysPath)); // Legacy path supp
 // Socket.io
 exports.io.on('connection', (socket) => {
     logger_1.default.info(`User connected: ${socket.id}`);
+    // Join tournament room for real-time score updates
     socket.on('joinTournament', (tournamentId) => {
         socket.join(tournamentId);
         logger_1.default.info(`User ${socket.id} joined tournament: ${tournamentId}`);
     });
+    // Leave tournament room
+    socket.on('leaveTournament', (tournamentId) => {
+        socket.leave(tournamentId);
+        logger_1.default.info(`User ${socket.id} left tournament: ${tournamentId}`);
+    });
+    // Join match room for detailed updates
+    socket.on('joinMatch', (matchId) => {
+        socket.join(`match:${matchId}`);
+        logger_1.default.info(`User ${socket.id} joined match: ${matchId}`);
+    });
+    // Leave match room
+    socket.on('leaveMatch', (matchId) => {
+        socket.leave(`match:${matchId}`);
+        logger_1.default.info(`User ${socket.id} left match: ${matchId}`);
+    });
+    // Update score - broadcast to all users in the tournament
     socket.on('updateScore', (data) => {
         exports.io.to(data.tournamentId).emit('scoreUpdate', data);
         logger_1.default.info(`Score update for tournament ${data.tournamentId}:`, data.match);
     });
+    // Match status update - broadcast to all users in the match
+    socket.on('updateMatchStatus', (data) => {
+        exports.io.to(`match:${data.matchId}`).emit('matchStatusUpdate', data);
+        exports.io.to(data.tournamentId).emit('matchStatusUpdate', data);
+        logger_1.default.info(`Match status update: ${data.matchId} - ${data.status}`);
+    });
+    // Tournament update - broadcast to all users in the tournament
+    socket.on('updateTournament', (data) => {
+        exports.io.to(data.tournamentId).emit('tournamentUpdate', data);
+        logger_1.default.info(`Tournament update for ${data.tournamentId}:`, data.tournament);
+    });
+    // Live notification - broadcast to all connected users
+    socket.on('sendNotification', (data) => {
+        if (data.userId) {
+            // Send to specific user
+            exports.io.to(`user:${data.userId}`).emit('notification', data);
+        }
+        else {
+            // Broadcast to all users
+            exports.io.emit('notification', data);
+        }
+        logger_1.default.info(`Notification sent: ${data.type} - ${data.message}`);
+    });
+    // Join user-specific room for notifications
+    socket.on('joinUserRoom', (userId) => {
+        socket.join(`user:${userId}`);
+        logger_1.default.info(`User ${socket.id} joined user room: ${userId}`);
+    });
+    // Handle typing indicators for chat
+    socket.on('typing', (data) => {
+        socket.to(data.roomId).emit('userTyping', data);
+    });
+    // Handle chat messages
+    socket.on('sendMessage', (data) => {
+        exports.io.to(data.roomId).emit('newMessage', data.message);
+        logger_1.default.info(`New message in room ${data.roomId}`);
+    });
+    // Disconnect handling
     socket.on('disconnect', () => {
         logger_1.default.info(`User disconnected: ${socket.id}`);
     });

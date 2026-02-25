@@ -11,6 +11,7 @@ export declare const deleteOverlay: (req: Request, res: Response) => Promise<voi
 export declare const generateOverlayUrl: (publicId: string, backendUrl?: string) => string;
 /**
  * Get all available overlay templates
+ * Updated to match actual files in /public/overlays/
  */
 export declare const getOverlayTemplates: () => Promise<Array<{
     id: string;
