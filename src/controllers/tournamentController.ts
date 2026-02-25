@@ -1,214 +1,69 @@
 import { Request, Response } from 'express';
 import Tournament from '../models/Tournament';
-import Overlay from '../models/Overlay';
 import auditLogger from '../utils/auditLogger';
-import { cacheService } from '../utils/cache';
-import logger from '../utils/logger';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
-
-export const getTournaments = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
-
-    const userId = req.user?._id;
-
-    const cacheKey = `${cacheService.getTournamentsListKey()}:user${userId}:page${page}:limit${limit}`;
-    let cachedResult = null;
+export const tournamentController = {
+  // Public endpoint for Ticker/Carousel
+  getTournaments: async (req: Request, res: Response) => {
     try {
-      cachedResult = await cacheService.getJSON(cacheKey);
-    } catch (cacheError) {
-      logger.warn('Cache get error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
+      // Sort by start date, most recent first
+      const tournaments = await Tournament.find({ deleted: false })
+        .populate('teams')
+        .sort({ startDate: -1 })
+        .limit(20); // Limit to keep payload small for ticker
+
+      res.status(200).json(tournaments);
+    } catch (error: any) {
+      console.error('Fetch tournaments error:', error);
+      res.status(500).json({ message: 'Failed to fetch tournaments' });
     }
+  },
 
-    if (cachedResult) {
-      res.json(cachedResult);
-      return;
-    }
-
-    const filter = userId ? { createdBy: userId, deleted: false } : { deleted: false };
-    const total = await Tournament.countDocuments(filter);
-    const tournaments = await Tournament.find(filter)
-      .populate('createdBy', 'username')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const result = {
-      tournaments,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        itemsPerPage: limit,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
+  createTournament: async (req: Request, res: Response) => {
+    try {
+      // Ensure user is authenticated (middleware should handle this, but double check)
+      if (!(req as any).user) {
+         return res.status(401).json({ message: "Unauthorized" });
       }
-    };
 
-    try {
-      await cacheService.setJSON(cacheKey, result, 300);
-    } catch (cacheError) {
-      logger.warn('Cache set error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
-    }
-
-    res.json(result);
-  } catch (error) {
-    logger.error('Get tournaments error:', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-export const getTournament = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?._id;
-    const tournament = await Tournament.findOne({ _id: req.params.id, createdBy: userId, deleted: false }).populate('createdBy', 'username');
-    if (!tournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
-    }
-    res.json(tournament);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-export const createTournament = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    console.log('Creating tournament with data:', req.body);
-    const tournament = await Tournament.create({
-      ...req.body,
-      createdBy: req.user?._id,
-    });
-    console.log('Tournament created:', tournament);
-
-    try {
-      await cacheService.del(cacheService.getTournamentsListKey());
-    } catch (cacheError) {
-      logger.warn('Cache delete error:', { error: cacheError instanceof Error ? cacheError.message : 'Unknown cache error' });
-    }
-
-    res.status(201).json(tournament);
-  } catch (error: any) {
-    console.error('Create tournament error:', error.message);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const updateTournament = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?._id;
-    const tournament = await Tournament.findOneAndUpdate(
-      { _id: req.params.id, createdBy: userId },
-      req.body,
-      { new: true }
-    );
-    if (!tournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
-    }
-    res.json(tournament);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-export const deleteTournament = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?._id;
-    
-    // First check if tournament exists and belongs to user
-    const existingTournament = await Tournament.findOne({ _id: req.params.id, createdBy: userId });
-    
-    if (!existingTournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
-    }
-    
-    // Mark tournament as deleted (soft delete)
-    const tournament = await Tournament.findOneAndUpdate(
-      { _id: req.params.id, createdBy: userId },
-      { deleted: true, deletedAt: new Date() },
-      { new: true }
-    );
-    
-    // Cascade delete: Remove associated overlays when tournament is deleted
-    // This ensures overlays don't persist after tournament deletion
-    await Overlay.deleteMany({ tournament: existingTournament._id });
-    
-    // Also delete overlays created by this user that are linked to matches in this tournament
-    const Match = require('../models/Match').default;
-    const matchesInTournament = await Match.find({ tournament: existingTournament._id }).select('_id');
-    const matchIds = matchesInTournament.map((m: any) => m._id);
-    
-    if (matchIds.length > 0) {
-      await Overlay.deleteMany({
-        match: { $in: matchIds }
+      const { name, startDate, endDate, format, teams } = req.body;
+      
+      const newTournament = await Tournament.create({
+        name,
+        startDate,
+        endDate,
+        format,
+        teams, // Assuming array of Team IDs
+        organizer: (req as any).user._id,
+        status: 'upcoming' // Default status
       });
-    }
 
-    // Audit log tournament deletion
-    if (tournament) {
       auditLogger.logUserAction(
-        (req as any).user?._id.toString(),
-        'TOURNAMENT_DELETED',
+        (req as any).user._id,
+        'CREATE_TOURNAMENT',
         'Tournament',
-        req.params.id,
-        { name: tournament.name },
+        newTournament._id.toString(),
+        { name },
         req.ip,
         req.get('User-Agent')
       );
+
+      res.status(201).json(newTournament);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
+  },
 
-    // Invalidate caches
-    await cacheService.del(cacheService.getTournamentsListKey());
-    await cacheService.del(cacheService.getTournamentKey(req.params.id));
+  getTournamentById: async (req: Request, res: Response) => {
+    try {
+      const tournament = await Tournament.findById(req.params.id)
+        .populate('teams')
+        .populate('matches'); // Assuming matches are linked
 
-    res.json({ message: 'Tournament deleted successfully' });
-  } catch (error) {
-    logger.error('Delete tournament error:', { error: error instanceof Error ? error.message : 'Unknown error', tournamentId: req.params.id });
-    auditLogger.logSystemAction('TOURNAMENT_DELETION_ERROR', 'Tournament', req.params.id, { error: error instanceof Error ? error.message : 'Unknown error' });
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-export const goLive = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?._id;
-    const tournament = await Tournament.findOneAndUpdate(
-      { _id: req.params.id, createdBy: userId },
-      { isLive: true },
-      { new: true }
-    );
-    if (!tournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
+      if (!tournament) return res.status(404).json({ message: "Not Found" });
+      res.json(tournament);
+    } catch (err) {
+      res.status(500).json({ message: "Server Error" });
     }
-    res.json(tournament);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-export const updateLiveScores = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?._id;
-    const { scores } = req.body;
-    const tournament = await Tournament.findOneAndUpdate(
-      { _id: req.params.id, createdBy: userId },
-      { liveScores: scores },
-      { new: true }
-    );
-    if (!tournament) {
-      res.status(404).json({ message: 'Tournament not found' });
-      return;
-    }
-    res.json(tournament);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
   }
 };
