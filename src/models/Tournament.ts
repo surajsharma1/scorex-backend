@@ -3,54 +3,62 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface ITournament extends Document {
   name: string;
   description?: string;
-  format: string;
+  format: string; // T20, ODI, Test
   startDate: Date;
-  numberOfTeams: number;
-  status: 'upcoming' | 'active' | 'completed';
+  endDate?: Date;
+  status: 'upcoming' | 'ongoing' | 'completed'; // Changed 'active' to 'ongoing' for frontend compatibility
+  
+  // Relationships
+  teams: mongoose.Types.ObjectId[];
+  organizer: mongoose.Types.ObjectId; // Renamed from createdBy to match Controller
+  matches: mongoose.Types.ObjectId[];
+
+  // Live Data for Ticker/Carousel
   isLive: boolean;
   liveMatchUrl?: string;
-  liveScores?: {
-    team1: { name: string; score: number; wickets: number; overs: number };
-    team2: { name: string; score: number; wickets: number; overs: number };
-    currentRunRate: number;
-    requiredRunRate: number;
-    target: number;
-    lastFiveOvers: string;
-  };
-  createdBy: mongoose.Types.ObjectId;
-  deleted?: boolean;
+  
+  // Soft Delete
+  deleted: boolean;
   deletedAt?: Date;
 }
 
 const tournamentSchema = new Schema<ITournament>(
   {
-    name: { type: String, required: true },
-    description: String,
-    format: { type: String, required: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String },
+    format: { type: String, required: true, default: 'T20' },
+    
     startDate: { type: Date, required: true },
-    numberOfTeams: { type: Number, required: true },
-    status: { type: String, enum: ['upcoming', 'active', 'completed'], default: 'upcoming' },
-    isLive: { type: Boolean, default: false },
-    liveScores: {
-      team1: { name: String, score: Number, wickets: Number, overs: Number },
-      team2: { name: String, score: Number, wickets: Number, overs: Number },
-      currentRunRate: Number,
-      requiredRunRate: Number,
-      target: Number,
-      lastFiveOvers: String,
+    endDate: { type: Date },
+    
+    status: { 
+      type: String, 
+      enum: ['upcoming', 'ongoing', 'completed'], 
+      default: 'upcoming',
+      index: true 
     },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    deleted: { type: Boolean, default: false },
+
+    // Arrays of IDs
+    teams: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
+    matches: [{ type: Schema.Types.ObjectId, ref: 'Match' }],
+    
+    organizer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+
+    isLive: { type: Boolean, default: false },
+    liveMatchUrl: { type: String },
+
+    deleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-// Add indexes for performance
-tournamentSchema.index({ status: 1 });
-tournamentSchema.index({ startDate: 1 });
-tournamentSchema.index({ createdBy: 1 });
-tournamentSchema.index({ isLive: 1 });
-tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
+// Indexes for Dashboard & Ticker Performance
+tournamentSchema.index({ status: 1, startDate: -1 }); // Fast sorting for "Live/Upcoming"
+tournamentSchema.index({ deleted: 1, status: 1 });
 
 export default mongoose.model<ITournament>('Tournament', tournamentSchema);
