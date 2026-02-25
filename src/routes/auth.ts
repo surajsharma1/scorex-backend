@@ -4,10 +4,9 @@ import User from '../models/User';
 import passport from 'passport';
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
-import bcrypt from 'bcryptjs';
 import { authLimiter } from '../utils/rateLimiters';
-import auditLogger from '../utils/auditLogger';
-import { validateRequest, registerSchema } from '../utils/validation';
+// Import the new controllers
+import { register, verifyOTP, login } from '../controllers/authController';
 
 const router = express.Router();
 
@@ -15,7 +14,8 @@ export interface AuthRequest extends Request {
   user?: IUser;
 }
 
-// Define protectAuth locally
+// --- Middleware Definitions (Preserved) ---
+
 export const protectAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token;
@@ -59,109 +59,22 @@ export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunc
 
 export const protectAdmin = [protectAuth, authorize('admin')];
 
-// Email register
-router.post('/register', validateRequest(registerSchema), async (req, res) => {
-  try {
-    console.log('Registration request received:', req.body);
-    const { username, email, password, fullName, dob, googleId } = req.body;
+// --- AUTH ROUTES ---
 
-    // Validate required fields
-    if (!username || !email || !password) {
-      console.log('Missing required fields:', { username: !!username, email: !!email, password: !!password });
-      return res.status(400).json({ message: 'Username, email, and password are required' });
-    }
+// 1. Register (Step 1: Validates input & Sends OTP)
+// Note: 'register' from controller includes the validation middleware
+router.post('/register', register); 
 
-    // Additional server-side checks
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      console.log('User already exists with email:', email);
-      return res.status(400).json({ message: 'User already exists' });
-    }
+// 2. Verify OTP (Step 2: Activates user & returns Token)
+router.post('/verify-otp', verifyOTP);
 
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) {
-      console.log('Username already taken:', username);
-      return res.status(400).json({ message: 'Username already taken' });
-    }
+// 3. Login
+router.post('/login', login);
 
-    // Check for common weak passwords (additional security layer)
-    const weakPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
-    if (weakPasswords.includes(password.toLowerCase())) {
-      return res.status(400).json({ message: 'Password is too weak. Please choose a stronger password.' });
-    }
 
-    // Create the user directly (no OTP verification required)
-    const user = await User.create({
-      username,
-      email,
-      password,
-      fullName,
-      dob,
-      googleId,
-      role: 'viewer'
-    });
+// --- OAUTH ROUTES (Preserved) ---
 
-    console.log('User created successfully:', user._id);
-
-    // Generate token directly after registration
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-
-    // Audit log successful registration
-    auditLogger.logUserAction(
-      user._id.toString(),
-      'USER_REGISTERED',
-      'User',
-      user._id.toString(),
-      { username, email },
-      req.ip,
-      req.get('User-Agent')
-    );
-
-    res.status(201).json({ 
-      message: 'Registration successful',
-      token,
-      email: email,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        membership: user.membership
-      }
-    });
-  } catch (error: any) {
-    console.error('Registration error:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Email login
-router.post('/login', async (req, res) => {
-  try {
-    console.log('Login request body:', req.body);
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    const user = await User.findOne({ email });
-    console.log('User found:', user ? 'Yes' : 'No');
-
-    if (user && user.password && (await bcrypt.compare(password, user.password))) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-      res.json({ token });
-    } else {
-      res.status(401).json({ message: 'Invalid credentials' });
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Google OAuth routes
+// Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback', (req, res, next) => {
@@ -178,7 +91,6 @@ router.get('/google/callback', (req, res, next) => {
         const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
         res.redirect(registerUrl);
       } else {
-        // Authentication failed
         console.error('Google OAuth failed:', info);
         return res.status(401).json({ message: 'Unauthorized' });
       }
@@ -195,7 +107,7 @@ router.get('/google/callback', (req, res, next) => {
   })(req, res, next);
 });
 
-// GitHub OAuth routes
+// GitHub OAuth
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 
 router.get('/github/callback', authLimiter, passport.authenticate('github', { failureRedirect: '/' }), async (req, res) => {
