@@ -3,8 +3,8 @@ import { jest } from '@jest/globals';
 
 // Mock mongoose to avoid database connections during tests
 jest.mock('mongoose', () => ({
-  connect: jest.fn().mockResolvedValue(true),
-  disconnect: jest.fn().mockResolvedValue(true),
+  connect: (jest.fn() as any).mockResolvedValue(true),
+  disconnect: (jest.fn() as any).mockResolvedValue(true),
   model: jest.fn().mockReturnValue({}),
   Schema: jest.fn().mockImplementation(() => ({
     pre: jest.fn(),
@@ -18,8 +18,8 @@ jest.mock('mongoose', () => ({
 
 // Mock config
 jest.mock('../config/database', () => ({
-  connectDB: jest.fn().mockResolvedValue(true),
-  disconnectDB: jest.fn().mockResolvedValue(true),
+  connectDB: (jest.fn() as any).mockResolvedValue(true),
+  disconnectDB: (jest.fn() as any).mockResolvedValue(true),
 }));
 
 // Global test timeout
