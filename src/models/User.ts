@@ -6,8 +6,8 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   role: 'viewer' | 'organizer' | 'admin';
-  membership: 'free' | 'premium' | 'pro' | 'premium-level1' | 'premium-level2';
-  membershipExpiry?: Date;
+  membershipLevel: 0 | 1 | 2; // 0=Free, 1=Basic (Static), 2=Premium (Animated)
+  membershipExpiresAt?: Date;
   
   // Auth & Verification Fields
   otp?: string;
@@ -52,17 +52,15 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const userSchema = new Schema<IUser>(
-  {
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, select: false }, // Hide password by default
+const UserSchema: Schema = new Schema({
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String },
     
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     
-    // Membership
-    membership: { type: String, enum: ['free', 'premium', 'pro', 'premium-level1', 'premium-level2'], default: 'free' },
-    membershipExpiry: { type: Date },
+    membershipLevel: { type: Number, default: 0, enum: [0, 1, 2] },
+    membershipExpiresAt: { type: Date },
 
     // Verification Fields (Critical for OTP)
     otp: { type: String, select: false }, // Select false means it won't be returned in queries unless requested
@@ -118,12 +116,11 @@ userSchema.pre('save', async function (next) {
 });
 
 // Method to check password
-userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   // If password is not selected, we cannot compare. 
   // Ensure your controller does .select('+password') if using this method on a query result that hid it.
   if (!this.password) return false; 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.model<IUser>('User', userSchema);
-export default User;
+export default mongoose.model<IUser>('User', UserSchema);

@@ -1,28 +1,40 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IOverlayConfig {
+  backgroundColor?: string;
+  opacity?: number;
+  fontFamily?: string;
+  [key: string]: any;
+}
 
 export interface IOverlay extends Document {
   name: string;
-  tournament: mongoose.Types.ObjectId;
-  match?: mongoose.Types.ObjectId;
   template: string;
-  config: any;
-  elements: any[];
   publicId: string;
+  config: IOverlayConfig;
+  elements: any[];
+  tournament?: mongoose.Types.ObjectId;
+  match?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const overlaySchema = new Schema<IOverlay>(
-  {
-    name: { type: String, required: true },
-    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
-    match: { type: Schema.Types.ObjectId, ref: 'Match' },
-    template: { type: String, required: true },
-    config: { type: Schema.Types.Mixed, required: true },
-    elements: [{ type: Schema.Types.Mixed }],
-    publicId: { type: String, required: true, unique: true },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+const OverlaySchema: Schema = new Schema({
+  name: { type: String, required: true },
+  template: { type: String, required: true, default: 'modern' },
+  publicId: { type: String, required: true, unique: true },
+  config: { 
+    type: Map,
+    of: Schema.Types.Mixed,
+    default: {} 
   },
-  { timestamps: true }
-);
+  elements: { type: Array, default: [] },
+  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
+  match: { type: Schema.Types.ObjectId, ref: 'Match' },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, {
+  timestamps: true
+});
 
-export default mongoose.model<IOverlay>('Overlay', overlaySchema);
+export default mongoose.model<IOverlay>('Overlay', OverlaySchema);
