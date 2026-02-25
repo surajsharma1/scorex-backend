@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.googleLogin = exports.login = exports.verifyOTP = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = __importDefault(require("crypto"));
 const User_1 = __importDefault(require("../models/User"));
 const validation_1 = require("../utils/validation");
 const auditLogger_1 = __importDefault(require("../utils/auditLogger"));
-// Ensure you have this file created as per previous instructions
 const emailService_1 = __importDefault(require("../utils/emailService"));
 // Helper to generate JWT Token
 const signToken = (user) => {
@@ -151,7 +151,7 @@ exports.login = [
                 if (expiryDate < new Date()) {
                     // Membership has expired, reset to free
                     user.membership = 'free';
-                    user.membershipExpiry = null; // or undefined depending on schema
+                    user.membershipExpiry = undefined;
                     await user.save();
                 }
             }
@@ -195,7 +195,7 @@ const googleLogin = async (req, res) => {
             user = await User_1.default.create({
                 username: payload.name || payload.email.split('@')[0],
                 email: payload.email,
-                password: crypto.randomBytes(16).toString('hex'), // Random password
+                password: crypto_1.default.randomBytes(16).toString('hex'), // Random password
                 isVerified: true, // Auto-verify Google users
                 role: 'viewer'
             });

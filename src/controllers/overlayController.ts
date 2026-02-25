@@ -358,7 +358,7 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         });
         matchData = matchResponse.data;
         console.log('Match data fetched:', matchData);
-      } catch (fetchError) {
+      } catch (fetchError: any) {
         console.log('Failed to fetch match data:', fetchError.message);
       }
       
