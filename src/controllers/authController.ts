@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User';
 import { validateRequest, registerSchema, loginSchema } from '../utils/validation';
 import auditLogger from '../utils/auditLogger';
-// Ensure you have this file created as per previous instructions
 import sendEmail from '../utils/emailService'; 
 
 // Helper to generate JWT Token
@@ -176,7 +176,7 @@ export const login = [
         if (expiryDate < new Date()) {
           // Membership has expired, reset to free
           user.membership = 'free';
-          user.membershipExpiry = null; // or undefined depending on schema
+          user.membershipExpiry = undefined;
           await user.save();
         }
       }
