@@ -4,30 +4,14 @@ export interface ITournament extends Document {
     description?: string;
     format: string;
     startDate: Date;
-    numberOfTeams: number;
-    status: 'upcoming' | 'active' | 'completed';
+    endDate?: Date;
+    status: 'upcoming' | 'ongoing' | 'completed';
+    teams: mongoose.Types.ObjectId[];
+    organizer: mongoose.Types.ObjectId;
+    matches: mongoose.Types.ObjectId[];
     isLive: boolean;
     liveMatchUrl?: string;
-    liveScores?: {
-        team1: {
-            name: string;
-            score: number;
-            wickets: number;
-            overs: number;
-        };
-        team2: {
-            name: string;
-            score: number;
-            wickets: number;
-            overs: number;
-        };
-        currentRunRate: number;
-        requiredRunRate: number;
-        target: number;
-        lastFiveOvers: string;
-    };
-    createdBy: mongoose.Types.ObjectId;
-    deleted?: boolean;
+    deleted: boolean;
     deletedAt?: Date;
 }
 declare const _default: mongoose.Model<ITournament, {}, {}, {}, mongoose.Document<unknown, {}, ITournament> & ITournament & {

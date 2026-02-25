@@ -18,8 +18,8 @@ export declare const createTournamentSchema: z.ZodObject<{
     numberOfTeams: z.ZodNumber;
     status: z.ZodOptional<z.ZodEnum<{
         upcoming: "upcoming";
-        active: "active";
         completed: "completed";
+        active: "active";
     }>>;
     liveMatchUrl: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
@@ -31,8 +31,8 @@ export declare const updateTournamentSchema: z.ZodObject<{
     numberOfTeams: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
         upcoming: "upcoming";
-        active: "active";
         completed: "completed";
+        active: "active";
     }>>>;
     liveMatchUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;

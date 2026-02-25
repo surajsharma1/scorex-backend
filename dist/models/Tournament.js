@@ -35,30 +35,32 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const tournamentSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    description: String,
-    format: { type: String, required: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String },
+    format: { type: String, required: true, default: 'T20' },
     startDate: { type: Date, required: true },
-    numberOfTeams: { type: Number, required: true },
-    status: { type: String, enum: ['upcoming', 'active', 'completed'], default: 'upcoming' },
-    isLive: { type: Boolean, default: false },
-    liveScores: {
-        team1: { name: String, score: Number, wickets: Number, overs: Number },
-        team2: { name: String, score: Number, wickets: Number, overs: Number },
-        currentRunRate: Number,
-        requiredRunRate: Number,
-        target: Number,
-        lastFiveOvers: String,
+    endDate: { type: Date },
+    status: {
+        type: String,
+        enum: ['upcoming', 'ongoing', 'completed'],
+        default: 'upcoming',
+        index: true
     },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    deleted: { type: Boolean, default: false },
+    // Arrays of IDs
+    teams: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' }],
+    matches: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' }],
+    organizer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    isLive: { type: Boolean, default: false },
+    liveMatchUrl: { type: String },
+    deleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
-}, { timestamps: true });
-// Add indexes for performance
-tournamentSchema.index({ status: 1 });
-tournamentSchema.index({ startDate: 1 });
-tournamentSchema.index({ createdBy: 1 });
-tournamentSchema.index({ isLive: 1 });
-tournamentSchema.index({ status: 1, startDate: -1 }); // Compound index for status and date sorting
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+// Indexes for Dashboard & Ticker Performance
+tournamentSchema.index({ status: 1, startDate: -1 }); // Fast sorting for "Live/Upcoming"
+tournamentSchema.index({ deleted: 1, status: 1 });
 exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
 //# sourceMappingURL=Tournament.js.map

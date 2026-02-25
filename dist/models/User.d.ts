@@ -6,6 +6,9 @@ export interface IUser extends Document {
     role: 'viewer' | 'organizer' | 'admin';
     membership: 'free' | 'premium' | 'pro' | 'premium-level1' | 'premium-level2';
     membershipExpiry?: Date;
+    otp?: string;
+    otpExpires?: Date;
+    isVerified: boolean;
     googleId?: string;
     githubId?: string;
     fullName?: string;
