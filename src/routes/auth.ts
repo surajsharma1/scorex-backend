@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import { authLimiter } from '../utils/rateLimiters';
 // Import the new controllers
-import { register, verifyOTP, login } from '../controllers/authController';
+import { register, verifyOTP, login, googleLogin } from '../controllers/authController';
 
 const router = express.Router();
 
@@ -71,6 +71,8 @@ router.post('/verify-otp', verifyOTP);
 // 3. Login
 router.post('/login', login);
 
+// 4. Google Login (token-based)
+router.post('/google', googleLogin);
 
 // --- OAUTH ROUTES (Preserved) ---
 

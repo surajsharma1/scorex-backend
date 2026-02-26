@@ -2,10 +2,14 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User';
 import { validateRequest, registerSchema, loginSchema } from '../utils/validation';
 import auditLogger from '../utils/auditLogger';
 import sendEmail from '../utils/emailService'; 
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to convert membershipLevel to string for token
 const getMembershipString = (level: number): string => {
@@ -222,9 +226,6 @@ export const login = [
   }
 ];
 
-import { OAuth2Client } from 'google-auth-library';
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
 export const googleLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.body;
@@ -257,6 +258,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     res.json({ token: jwtToken, user });
 
   } catch (err: any) {
+    console.error('Google login error:', err);
     res.status(500).json({ message: "Google Login Failed" });
   }
 };
