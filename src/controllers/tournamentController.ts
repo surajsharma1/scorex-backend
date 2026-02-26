@@ -28,7 +28,8 @@ export const getTournaments = async (req: Request, res: Response) => {
       return t;
     }));
 
-    res.status(200).json(enhancedTournaments);
+    // Return in format expected by frontend: { tournaments: [...] }
+    res.status(200).json({ tournaments: enhancedTournaments });
   } catch (error: any) {
     console.error('Fetch tournaments error:', error);
     res.status(500).json({ message: 'Failed to fetch tournaments' });

@@ -7,7 +7,8 @@ export const getMatches = async (req: Request, res: Response): Promise<void> => 
   try {
     const { tournament } = req.query;
     const matches = await Match.find(tournament ? { tournament } : {}).populate('team1 team2');
-    res.json(matches);
+    // Return in format expected by frontend: { matches: [...] }
+    res.json({ matches });
   } catch (error) {
     console.error('Get matches error:', error);
     res.status(500).json({ message: 'Server error' });
