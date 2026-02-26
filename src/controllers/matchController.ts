@@ -18,9 +18,9 @@ export const getMatches = async (req: Request, res: Response): Promise<void> => 
 
 export const getLiveMatches = async (req: Request, res: Response) => {
   try {
-    // Include both 'live' and 'ongoing' statuses so they show up!
-    const matches = await Match.find({ status: { $in: ['live', 'ongoing'] } })
-      .populate('teamA teamB')
+    // Include 'live', 'ongoing', and 'scheduled' statuses
+    const matches = await Match.find({ status: { $in: ['live', 'ongoing', 'scheduled'] } })
+      .populate('team1 team2') // Fixed: Changed from teamA teamB to team1 team2
       .sort({ updatedAt: -1 });
 
     res.status(200).json(matches);
