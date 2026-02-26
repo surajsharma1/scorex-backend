@@ -57,6 +57,77 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
   }
 };
 
+export const createSubscription = async (req: Request, res: Response) => {
+  const { planId, cardNumber } = req.body;
+  const user = (req as any).user;
+
+  try {
+    // 1. Process ADMIN FREE PASS
+    if (cardNumber === 'ADMINFREEPASS') {
+      let expiryDays = 0;
+      
+      // Calculate how long to give them based on the planId chosen
+      if (planId === '1-day') expiryDays = 1;
+      else if (planId === '1-week') expiryDays = 7;
+      else if (planId === 'premium-level1') expiryDays = 30; // 1 month
+      else if (planId === 'premium-level2') expiryDays = 365; // 1 year
+
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+      // Save to database
+      user.membership = planId;
+      user.membershipExpiresAt = expiryDate;
+      await user.save();
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Admin pass successfully applied!',
+        membership: user.membership,
+        membershipExpiresAt: user.membershipExpiresAt 
+      });
+    }
+
+    // ... 2. Run Standard Stripe / Payment Gateway Logic Here ...
+
+  } catch (error) {
+    res.status(500).json({ message: 'Payment initiation failed', error });
+  }
+};
+
+// scorex-backend/src/controllers/paymentController.ts
+
+export const processPayment = async (req: Request, res: Response) => {
+  const { planId, cardNumber, duration } = req.body;
+  const user = (req as any).user;
+
+  try {
+    // Admin Override Card
+    if (cardNumber === 'ADMIN-FREE-PASS-2026') {
+      let expiryDays = 0;
+      if (duration === '1_day') expiryDays = 1;
+      else if (duration === '1_week') expiryDays = 7;
+      else if (duration === '1_month') expiryDays = 30;
+      else if (duration === '1_year') expiryDays = 365;
+
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+      // Grant premium automatically
+      user.isPremium = true;
+      user.premiumExpiry = expiryDate;
+      await user.save();
+
+      return res.status(200).json({ message: 'Admin pass accepted. Premium granted!', success: true });
+    }
+
+    // ... Handle your normal Stripe / Payment gateway logic here ...
+    
+  } catch (error) {
+    res.status(500).json({ message: 'Payment failed', error });
+  }
+};
+
 export const confirmPayment = async (req: Request, res: Response) => {
   try {
     if (!stripe) {

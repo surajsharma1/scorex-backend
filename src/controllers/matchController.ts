@@ -14,6 +14,21 @@ export const getMatches = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// scorex-backend/src/controllers/matchController.ts
+
+export const getLiveMatches = async (req: Request, res: Response) => {
+  try {
+    // Include both 'live' and 'ongoing' statuses so they show up!
+    const matches = await Match.find({ status: { $in: ['live', 'ongoing'] } })
+      .populate('teamA teamB')
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json(matches);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching live matches', error });
+  }
+};
+
 export const getMatch = async (req: Request, res: Response): Promise<void> => {
   try {
     const match = await Match.findById(req.params.id)
