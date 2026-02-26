@@ -272,8 +272,11 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // Inject Configuration
+    // Inject Configuration and Socket.io client
+    const socketIoUrl = `${apiBaseUrl.replace('/api/v1', '')}/socket.io/socket.io.js`;
     const injectScript = `
+      <!-- Socket.io client -->
+      <script src="${socketIoUrl}"></script>
       <script>
         window.OVERLAY_CONFIG = {
           matchId: '${matchId || ''}',
@@ -283,11 +286,20 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
           config: ${JSON.stringify(overlay.config || {})}
         };
       </script>
+      <!-- Overlay Engine -->
+      <script src="/overlays/engine.js"></script>
     `;
     
-    const finalHtml = templateContent.includes('</body>') 
-      ? templateContent.replace('</body>', `${injectScript}</body>`)
-      : templateContent + injectScript;
+    let finalHtml = templateContent;
+    
+    // Inject socket.io and engine.js before </body> or at the end
+    if (finalHtml.includes('</body>')) {
+      finalHtml = finalHtml.replace('</body>', `${injectScript}</body>`);
+    } else if (finalHtml.includes('</head>')) {
+      finalHtml = finalHtml.replace('</head>', `${injectScript}</head>`);
+    } else {
+      finalHtml = finalHtml + injectScript;
+    }
 
     res.setHeader('Content-Type', 'text/html');
     res.send(finalHtml);
