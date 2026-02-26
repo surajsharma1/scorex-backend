@@ -136,7 +136,18 @@ export const createMatch = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const matchData = { ...req.body, createdBy: authReq.user._id };
+    // Filter out empty strings for optional ObjectId fields to prevent CastError
+    const { tossWinner, tossChoice, ...restBody } = req.body;
+    
+    const matchData = {
+      ...restBody,
+      createdBy: authReq.user._id,
+      // Only include tossWinner if it's a valid non-empty ObjectId
+      ...(tossWinner && mongoose.Types.ObjectId.isValid(tossWinner) && { tossWinner }),
+      // Only include tossChoice if it's a valid enum value
+      ...(tossChoice && ['bat', 'bowl'].includes(tossChoice) && { tossChoice }),
+    };
+    
     const match = await Match.create(matchData);
     console.log('Match created successfully:', match);
     res.status(201).json(match);
