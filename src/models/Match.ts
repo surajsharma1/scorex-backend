@@ -18,7 +18,11 @@ export interface IMatch extends Document {
   tossChoice?: 'bat' | 'bowl';
   matchType?: 'League' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Playoff';
 
+  // Video links - single and multiple
   videoLink?: string;
+  videoLinks?: string[];
+  liveStreamUrl?: string;
+  
   commentary: string[];
   createdBy: mongoose.Types.ObjectId;
   
@@ -30,22 +34,28 @@ export interface IMatch extends Document {
   nonStrikerRuns?: number;
   nonStrikerBalls?: number;
   
-  // Computed stats
-  currentRunRate?: number;
-  requiredRunRate?: number;
-  target?: number;
-  lastFiveOvers?: string;
-  
-  // Bowler fields for current over
+  // Bowler fields
   bowlerName?: string;
   bowlerOvers?: number;
   bowlerMaidens?: number;
   bowlerRuns?: number;
   bowlerWickets?: number;
   
+  // Computed stats
+  currentRunRate?: number;
+  requiredRunRate?: number;
+  target?: number;
+  lastFiveOvers?: string;
+  
   // Point system for fantasy/display
   team1Points?: number;
   team2Points?: number;
+  
+  // This over balls
+  thisOver?: string[];
+  
+  // Last event for notifications
+  lastEvent?: string;
 }
 
 
@@ -68,7 +78,11 @@ const matchSchema = new Schema<IMatch>(
     tossChoice: { type: String, enum: ['bat', 'bowl'] },
     matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
 
+    // Video links
     videoLink: String,
+    videoLinks: [String],
+    liveStreamUrl: String,
+    
     commentary: [{ type: String, default: [] }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
@@ -80,22 +94,28 @@ const matchSchema = new Schema<IMatch>(
     nonStrikerRuns: { type: Number, default: 0 },
     nonStrikerBalls: { type: Number, default: 0 },
     
-    // Computed stats
-    currentRunRate: { type: Number, default: 0 },
-    requiredRunRate: { type: Number, default: 0 },
-    target: { type: Number, default: 0 },
-    lastFiveOvers: { type: String, default: '-' },
-
-    // Bowler fields for current over
+    // Bowler fields
     bowlerName: { type: String, default: '' },
     bowlerOvers: { type: Number, default: 0 },
     bowlerMaidens: { type: Number, default: 0 },
     bowlerRuns: { type: Number, default: 0 },
     bowlerWickets: { type: Number, default: 0 },
     
+    // Computed stats
+    currentRunRate: { type: Number, default: 0 },
+    requiredRunRate: { type: Number, default: 0 },
+    target: { type: Number, default: 0 },
+    lastFiveOvers: { type: String, default: '-' },
+
     // Point system for fantasy/display
     team1Points: { type: Number, default: 0 },
     team2Points: { type: Number, default: 0 },
+    
+    // This over
+    thisOver: [String],
+    
+    // Last event
+    lastEvent: String,
 
   },
   { timestamps: true }
