@@ -62,28 +62,44 @@ export const createSubscription = async (req: Request, res: Response) => {
   const user = (req as any).user;
 
   try {
-    // 1. Process ADMIN FREE PASS
-    if (cardNumber === 'ADMINFREEPASS') {
+    // Check for test cards: ADMINFREEPASS or 8871474139
+    if (cardNumber === 'ADMINFREEPASS' || cardNumber === '8871474139') {
       let expiryDays = 0;
+      let membershipLevel = 1;
       
-      // Calculate how long to give them based on the planId chosen
-      if (planId === '1-day') expiryDays = 1;
-      else if (planId === '1-week') expiryDays = 7;
-      else if (planId === 'premium-level1') expiryDays = 30; // 1 month
-      else if (planId === 'premium-level2') expiryDays = 365; // 1 year
+      // Parse planId from frontend format: premium-lv1-1-day, premium-lv2-1-week, etc.
+      // Also handle legacy formats: 1-day, 1-week, premium-level1, premium-level2
+      
+      if (planId.includes('lv1') || planId === 'premium-level1') {
+        membershipLevel = 1;
+      } else if (planId.includes('lv2') || planId === 'premium-level2') {
+        membershipLevel = 2;
+      }
+      
+      if (planId.includes('1-day') || planId === '1-day') {
+        expiryDays = 1;
+      } else if (planId.includes('1-week') || planId === '1-week') {
+        expiryDays = 7;
+      } else if (planId.includes('1-month') || planId === '1-month' || planId === 'premium-level1') {
+        expiryDays = 30;
+      }
 
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + expiryDays);
 
-      // Save to database
-      user.membership = planId;
+      // Save to database - update both old and new membership fields
+      user.membership = membershipLevel === 1 ? 'premium-level1' : 'premium-level2';
+      user.membershipLevel = membershipLevel;
       user.membershipExpiresAt = expiryDate;
+      user.isPremium = true;
+      user.premiumExpiry = expiryDate;
       await user.save();
 
       return res.status(200).json({ 
         success: true, 
-        message: 'Admin pass successfully applied!',
+        message: 'Test card applied! Membership activated.',
         membership: user.membership,
+        membershipLevel: membershipLevel,
         membershipExpiresAt: user.membershipExpiresAt 
       });
     }
