@@ -34,9 +34,9 @@ const signToken = (user: any) => {
   );
 };
 
-// --- REGISTER (Step 1: Send OTP) ---
+// --- REGISTER (Auto-verify - OTP disabled for now) ---
 export const register = [
-  validateRequest(registerSchema), // Keep your validation
+  validateRequest(registerSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { username, email, password } = req.body;
@@ -47,68 +47,55 @@ export const register = [
       const existingUser = await User.findOne({ email });
       
       // If user exists AND is verified, stop. 
-      // If they exist but are NOT verified, we can overwrite/resend OTP (optional logic)
       if (existingUser && existingUser.isVerified) {
         auditLogger.logSystemAction('USER_REGISTRATION_FAILED', 'User', undefined, { reason: 'Email already exists', email });
         res.status(400).json({ message: "Email already exists" });
         return;
       }
 
-      // Generate OTP
+      // OTP is disabled - auto-verify users
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins from now
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
       // If unverified user exists, update them. Else create new.
       if (existingUser && !existingUser.isVerified) {
         existingUser.username = username;
-        existingUser.password = password; // Will be hashed by pre-save hook in User model
+        existingUser.password = password;
         existingUser.otp = otp;
         existingUser.otpExpires = otpExpires;
+        existingUser.isVerified = true; // Auto-verify!
         await existingUser.save();
       } else {
         await User.create({
           username,
           email,
           password,
-          role: 'viewer', // Default role
-          membershipLevel: 0, // Default free
+          role: 'viewer',
+          membershipLevel: 0,
           otp,
           otpExpires,
-          isVerified: false
+          isVerified: true // Auto-verify!
         });
       }
 
-      // Send OTP Email
-      const message = `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1>Welcome to ScoreX!</h1>
-          <p>Your verification code is:</p>
-          <h2 style="color: #16a34a; letter-spacing: 5px;">${otp}</h2>
-          <p>This code expires in 10 minutes.</p>
-        </div>
-      `;
+      // Generate token directly (no OTP verification needed)
+      const newUser = await User.findOne({ email });
+      const token = signToken(newUser);
 
-      try {
-        await sendEmail({
-          email,
-          subject: 'Your ScoreX Verification Code',
-          message
-        });
-        
-        auditLogger.logSystemAction('OTP_SENT', 'User', undefined, { email });
-        res.status(200).json({ message: "OTP sent to email. Please verify to complete registration." });
-      } catch (emailError: any) {
-        console.error("Email send failed:", emailError);
-        
-        // Email failed, but we still created the user with OTP
-        // Return success with a special flag so frontend can show different message
-        // The user can request a new OTP later if needed
-        res.status(200).json({ 
-          message: "Registration successful! However, we couldn't send the verification email. Please request a new OTP to verify your account.",
-          emailSent: false,
-          email: email
-        });
-      }
+      auditLogger.logSystemAction('USER_REGISTERED', 'User', newUser?._id, { email, username });
+
+      // Return success with token - user is immediately verified
+      res.status(200).json({ 
+        message: "Registration successful!",
+        token,
+        user: {
+          id: newUser?._id,
+          username: newUser?.username,
+          email: newUser?.email,
+          role: newUser?.role,
+          membership: 'free'
+        }
+      });
 
     } catch (error: any) {
       console.error('Register error:', error);
@@ -117,7 +104,7 @@ export const register = [
   }
 ];
 
-// --- VERIFY OTP (Step 2: Activate User) ---
+// --- VERIFY OTP (Still available for future use) ---
 export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, otp } = req.body;
@@ -136,7 +123,7 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
 
     // Activate User
     user.isVerified = true;
-    user.otp = undefined;       // Clear OTP
+    user.otp = undefined;
     user.otpExpires = undefined; 
     await user.save();
 
@@ -185,9 +172,9 @@ export const login = [
         return;
       }
 
-      // Check Verification Status
+      // Check Verification Status (now always true since we auto-verify)
       if (user.isVerified === false) {
-         res.status(403).json({ message: 'Email not verified. Please register again to get a new OTP.' });
+         res.status(403).json({ message: 'Email not verified. Please register again.' });
          return;
       }
 
@@ -195,7 +182,6 @@ export const login = [
       if (user.membershipLevel !== 0 && user.membershipExpiresAt) {
         const expiryDate = new Date(user.membershipExpiresAt);
         if (expiryDate < new Date()) {
-          // Membership has expired, reset to free
           user.membershipLevel = 0;
           user.membershipExpiresAt = undefined;
           await user.save();
@@ -204,7 +190,6 @@ export const login = [
 
       const token = signToken(user);
 
-      // Audit Log
       auditLogger.logUserAction(
         user._id.toString(),
         'USER_LOGIN',
@@ -250,12 +235,11 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     let user = await User.findOne({ email: payload.email });
 
     if (!user) {
-       // Create new user from Google Data
        user = await User.create({
          username: payload.name || payload.email.split('@')[0],
          email: payload.email,
-         password: crypto.randomBytes(16).toString('hex'), // Random password
-         isVerified: true, // Auto-verify Google users
+         password: crypto.randomBytes(16).toString('hex'),
+         isVerified: true,
          role: 'viewer',
          membershipLevel: 0
        });
