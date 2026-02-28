@@ -99,8 +99,15 @@ export const register = [
         res.status(200).json({ message: "OTP sent to email. Please verify to complete registration." });
       } catch (emailError: any) {
         console.error("Email send failed:", emailError);
-        // We still return 200 or 500 depending on if you want to block registration on email fail
-        res.status(500).json({ message: "Failed to send OTP email. Please try again." });
+        
+        // Email failed, but we still created the user with OTP
+        // Return success with a special flag so frontend can show different message
+        // The user can request a new OTP later if needed
+        res.status(200).json({ 
+          message: "Registration successful! However, we couldn't send the verification email. Please request a new OTP to verify your account.",
+          emailSent: false,
+          email: email
+        });
       }
 
     } catch (error: any) {
