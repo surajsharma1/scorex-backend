@@ -6,7 +6,6 @@ import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User';
 import { validateRequest, registerSchema, loginSchema } from '../utils/validation';
 import auditLogger from '../utils/auditLogger';
-import sendEmail from '../utils/emailService'; 
 
 // Initialize Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -34,7 +33,7 @@ const signToken = (user: any) => {
   );
 };
 
-// --- REGISTER (Auto-verify - OTP disabled for now) ---
+// --- REGISTER (No OTP - instant registration) ---
 export const register = [
   validateRequest(registerSchema),
   async (req: Request, res: Response): Promise<void> => {
@@ -46,53 +45,37 @@ export const register = [
       // Check if user exists
       const existingUser = await User.findOne({ email });
       
-      // If user exists AND is verified, stop. 
-      if (existingUser && existingUser.isVerified) {
+      // If user exists, stop. 
+      if (existingUser) {
         auditLogger.logSystemAction('USER_REGISTRATION_FAILED', 'User', undefined, { reason: 'Email already exists', email });
         res.status(400).json({ message: "Email already exists" });
         return;
       }
 
-      // OTP is disabled - auto-verify users
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+      // Create new user - no OTP verification needed
+      const newUser = await User.create({
+        username,
+        email,
+        password,
+        role: 'viewer',
+        membershipLevel: 0,
+        isVerified: true // Auto-verify - no OTP
+      });
 
-      // If unverified user exists, update them. Else create new.
-      if (existingUser && !existingUser.isVerified) {
-        existingUser.username = username;
-        existingUser.password = password;
-        existingUser.otp = otp;
-        existingUser.otpExpires = otpExpires;
-        existingUser.isVerified = true; // Auto-verify!
-        await existingUser.save();
-      } else {
-        await User.create({
-          username,
-          email,
-          password,
-          role: 'viewer',
-          membershipLevel: 0,
-          otp,
-          otpExpires,
-          isVerified: true // Auto-verify!
-        });
-      }
-
-      // Generate token directly (no OTP verification needed)
-      const newUser = await User.findOne({ email });
+      // Generate token directly
       const token = signToken(newUser);
 
-      auditLogger.logSystemAction('USER_REGISTERED', 'User', newUser?._id, { email, username });
+      auditLogger.logSystemAction('USER_REGISTERED', 'User', newUser._id, { email, username });
 
-      // Return success with token - user is immediately verified
+      // Return success with token
       res.status(200).json({ 
         message: "Registration successful!",
         token,
         user: {
-          id: newUser?._id,
-          username: newUser?.username,
-          email: newUser?.email,
-          role: newUser?.role,
+          id: newUser._id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
           membership: 'free'
         }
       });
@@ -103,58 +86,6 @@ export const register = [
     }
   }
 ];
-
-// --- VERIFY OTP (Still available for future use) ---
-export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email, otp } = req.body;
-    
-    // Find user with matching Email, OTP, and check if OTP has not expired
-    const user = await User.findOne({ 
-      email, 
-      otp, 
-      otpExpires: { $gt: new Date() } 
-    });
-
-    if (!user) {
-      res.status(400).json({ message: "Invalid or expired OTP" });
-      return;
-    }
-
-    // Activate User
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined; 
-    await user.save();
-
-    // Generate Token
-    const token = signToken(user);
-
-    auditLogger.logUserAction(
-      user._id.toString(),
-      'USER_VERIFIED',
-      'User',
-      user._id.toString(),
-      { email },
-      req.ip || '',
-      req.get('User-Agent') || ''
-    );
-
-    res.status(200).json({
-      status: 'success',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }
-    });
-  } catch (error: any) {
-    console.error('Verify OTP error:', error);
-    res.status(500).json({ message: error.message });
-  }
-};
 
 // --- LOGIN ---
 export const login = [
