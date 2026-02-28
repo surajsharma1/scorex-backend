@@ -51,7 +51,10 @@ const matchSchema = new mongoose_1.Schema({
     tossWinner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
     tossChoice: { type: String, enum: ['bat', 'bowl'] },
     matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
+    // Video links
     videoLink: String,
+    videoLinks: [String],
+    liveStreamUrl: String,
     commentary: [{ type: String, default: [] }],
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     // Striker/Non-striker fields for live scoring
@@ -61,20 +64,24 @@ const matchSchema = new mongoose_1.Schema({
     nonStrikerName: { type: String, default: '' },
     nonStrikerRuns: { type: Number, default: 0 },
     nonStrikerBalls: { type: Number, default: 0 },
-    // Computed stats
-    currentRunRate: { type: Number, default: 0 },
-    requiredRunRate: { type: Number, default: 0 },
-    target: { type: Number, default: 0 },
-    lastFiveOvers: { type: String, default: '-' },
-    // Bowler fields for current over
+    // Bowler fields
     bowlerName: { type: String, default: '' },
     bowlerOvers: { type: Number, default: 0 },
     bowlerMaidens: { type: Number, default: 0 },
     bowlerRuns: { type: Number, default: 0 },
     bowlerWickets: { type: Number, default: 0 },
+    // Computed stats
+    currentRunRate: { type: Number, default: 0 },
+    requiredRunRate: { type: Number, default: 0 },
+    target: { type: Number, default: 0 },
+    lastFiveOvers: { type: String, default: '-' },
     // Point system for fantasy/display
     team1Points: { type: Number, default: 0 },
     team2Points: { type: Number, default: 0 },
+    // This over
+    thisOver: [String],
+    // Last event
+    lastEvent: String,
 }, { timestamps: true });
 // Add indexes for performance
 matchSchema.index({ tournament: 1 });

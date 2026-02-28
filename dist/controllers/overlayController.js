@@ -146,40 +146,46 @@ const deleteOverlay = async (req, res) => {
     }
 };
 exports.deleteOverlay = deleteOverlay;
-const getOverlayTemplates = async () => {
-    return [
-        // --- LEVEL 1: STATIC (Basic Designs) ---
-        { id: 'lvl1-classic.html', name: 'Classic Test', level: 1, description: 'Traditional white/red design' },
-        { id: 'lvl1-modern-blue.html', name: 'Modern Blue', level: 1, description: 'Clean blue header style' },
-        { id: 'lvl1-minimal-dark.html', name: 'Dark Minimal', level: 1, description: 'High contrast dark mode' },
-        { id: 'lvl1-broadcast-bar.html', name: 'Bottom Bar', level: 1, description: 'Standard TV broadcast bottom bar' },
-        { id: 'lvl1-side-panel.html', name: 'Side Panel', level: 1, description: 'Vertical side panel stats' },
-        { id: 'lvl1-retro-board.html', name: 'Retro Board', level: 1, description: '90s style digital board' },
-        { id: 'lvl1-paper-style.html', name: 'Paper Score', level: 1, description: 'Paper texture background' },
-        { id: 'lvl1-high-vis.html', name: 'High Vis', level: 1, description: 'Yellow/Black high visibility' },
-        { id: 'lvl1-clean-slate.html', name: 'Clean Slate', level: 1, description: 'Grey and white professional' },
-        { id: 'lvl1-box-score.html', name: 'Box Score', level: 1, description: 'Compact box design' },
-        { id: 'lvl1-red-card.html', name: 'Red Card', level: 1, description: 'Bold red team focus' },
-        { id: 'lvl1-grass-theme.html', name: 'Grass Roots', level: 1, description: 'Green texture theme' },
-        { id: 'lvl1-simple-text.html', name: 'Text Only', level: 1, description: 'Just the facts' },
-        // --- LEVEL 2: ANIMATED (Premium Designs with Notifications) ---
-        { id: 'lvl2-neon-pulse.html', name: 'Neon Pulse', level: 2, type: 'animated', description: 'Glowing neon edges with pulse' },
-        { id: 'lvl2-cyber-glitch.html', name: 'Cyber Glitch', level: 2, type: 'animated', description: 'Cyberpunk glitch effects on score change' },
-        { id: 'lvl2-gold-rush.html', name: 'Gold Rush', level: 2, type: 'animated', description: 'Golden particle effects' },
-        { id: 'lvl2-flame-thrower.html', name: 'Flame Thrower', level: 2, type: 'animated', description: 'Fire animations on boundaries' },
-        { id: 'lvl2-water-flow.html', name: 'Aqua Flow', level: 2, type: 'animated', description: 'Fluid liquid background' },
-        { id: 'lvl2-tech-hud.html', name: 'Sci-Fi HUD', level: 2, type: 'animated', description: 'Iron Man style HUD interface' },
-        { id: 'lvl2-glass-morphism.html', name: 'Glass Motion', level: 2, type: 'animated', description: 'Frosted glass with moving gradients' },
-        { id: 'lvl2-speed-racer.html', name: 'Speed Racer', level: 2, type: 'animated', description: 'Fast sliding animations' },
-        { id: 'lvl2-thunder-strike.html', name: 'Thunder', level: 2, type: 'animated', description: 'Lightning effects on wickets' },
-        { id: 'lvl2-cosmic-orbit.html', name: 'Cosmic', level: 2, type: 'animated', description: 'Rotating celestial bodies' },
-        { id: 'lvl2-matrix-rain.html', name: 'The Matrix', level: 2, type: 'animated', description: 'Digital code rain background' },
-        { id: 'lvl2-vinyl-spin.html', name: 'Vinyl', level: 2, type: 'animated', description: 'Spinning record style' },
-        { id: 'lvl2-broadcast-pro.html', name: 'ESPN Style', level: 2, type: 'animated', description: 'Professional TV animations' },
-        { id: 'lvl2-particle-storm.html', name: 'Particles', level: 2, type: 'animated', description: 'Exploding particles on 6s' },
-        { id: 'lvl2-hologram.html', name: 'Hologram', level: 2, type: 'animated', description: '3D Holographic projection effect' },
-        { id: 'lvl2-rgb-split.html', name: 'RGB Split', level: 2, type: 'animated', description: 'Chromatic aberration effects' },
-    ];
+// scorex-backend/src/controllers/overlayController.ts
+// Update your getTemplates or getOverlays function to include all designs
+const getOverlayTemplates = async (req, res) => {
+    try {
+        const templates = [
+            { id: 'lvl1-broadcast-bar', name: 'Level 1: Broadcast Bar', url: '/overlays/lvl1-broadcast-bar.html' },
+            { id: 'lvl1-curved-compact', name: 'Level 1: Curved Compact', url: '/overlays/lvl1-curved-compact.html' },
+            { id: 'lvl1-dark-angular', name: 'Level 1: Dark Angular', url: '/overlays/lvl1-dark-angular.html' },
+            { id: 'lvl1-grass-theme', name: 'Level 1: Grass Theme', url: '/overlays/lvl1-grass-theme.html' },
+            { id: 'lvl1-high-vis', name: 'Level 1: High Visibility', url: '/overlays/lvl1-high-vis.html' },
+            { id: 'lvl1-minimal-dark', name: 'Level 1: Minimal Dark', url: '/overlays/lvl1-minimal-dark.html' },
+            { id: 'lvl1-modern-bar', name: 'Level 1: Modern Bar', url: '/overlays/lvl1-modern-bar.html' },
+            { id: 'lvl1-modern-blue', name: 'Level 1: Modern Blue', url: '/overlays/lvl1-modern-blue.html' },
+            { id: 'lvl1-paper-style', name: 'Level 1: Paper Style', url: '/overlays/lvl1-paper-style.html' },
+            { id: 'lvl1-red-card', name: 'Level 1: Red Card', url: '/overlays/lvl1-red-card.html' },
+            { id: 'lvl1-retro-board', name: 'Level 1: Retro Board', url: '/overlays/lvl1-retro-board.html' },
+            { id: 'lvl1-side-panel', name: 'Level 1: Side Panel', url: '/overlays/lvl1-side-panel.html' },
+            { id: 'lvl1-simple-text', name: 'Level 1: Simple Text', url: '/overlays/lvl1-simple-text.html' },
+            { id: 'lvl2-broadcast-pro', name: 'Level 2: Broadcast Pro', url: '/overlays/lvl2-broadcast-pro.html' },
+            { id: 'lvl2-cosmic-orbit', name: 'Level 2: Cosmic Orbit', url: '/overlays/lvl2-cosmic-orbit.html' },
+            { id: 'lvl2-cyber-glitch', name: 'Level 2: Cyber Glitch', url: '/overlays/lvl2-cyber-glitch.html' },
+            { id: 'lvl2-flame-thrower', name: 'Level 2: Flame Thrower', url: '/overlays/lvl2-flame-thrower.html' },
+            { id: 'lvl2-glass-morphism', name: 'Level 2: Glass Morphism', url: '/overlays/lvl2-glass-morphism.html' },
+            { id: 'lvl2-gold-rush', name: 'Level 2: Gold Rush', url: '/overlays/lvl2-gold-rush.html' },
+            { id: 'lvl2-hologram', name: 'Level 2: Hologram', url: '/overlays/lvl2-hologram.html' },
+            { id: 'lvl2-matrix-rain', name: 'Level 2: Matrix Rain', url: '/overlays/lvl2-matrix-rain.html' },
+            { id: 'lvl2-neon-pulse', name: 'Level 2: Neon Pulse', url: '/overlays/lvl2-neon-pulse.html' },
+            { id: 'lvl2-particle-storm', name: 'Level 2: Particle Storm', url: '/overlays/lvl2-particle-storm.html' },
+            { id: 'lvl2-rgb-split', name: 'Level 2: RGB Split', url: '/overlays/lvl2-rgb-split.html' },
+            { id: 'lvl2-speed-racer', name: 'Level 2: Speed Racer', url: '/overlays/lvl2-speed-racer.html' },
+            { id: 'lvl2-tech-hud', name: 'Level 2: Tech HUD', url: '/overlays/lvl2-tech-hud.html' },
+            { id: 'lvl2-thunder-strike', name: 'Level 2: Thunder Strike', url: '/overlays/lvl2-thunder-strike.html' },
+            { id: 'lvl2-vinyl-spin', name: 'Level 2: Vinyl Spin', url: '/overlays/lvl2-vinyl-spin.html' },
+            { id: 'lvl2-water-flow', name: 'Level 2: Water Flow', url: '/overlays/lvl2-water-flow.html' }
+        ];
+        res.status(200).json(templates);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching overlays' });
+    }
 };
 exports.getOverlayTemplates = getOverlayTemplates;
 const serveOverlay = async (req, res) => {
@@ -240,8 +246,11 @@ const serveOverlay = async (req, res) => {
           </html>`;
             }
         }
-        // Inject Configuration
+        // Inject Configuration and Socket.io client
+        const socketIoUrl = `${apiBaseUrl.replace('/api/v1', '')}/socket.io/socket.io.js`;
         const injectScript = `
+      <!-- Socket.io client -->
+      <script src="${socketIoUrl}"></script>
       <script>
         window.OVERLAY_CONFIG = {
           matchId: '${matchId || ''}',
@@ -251,10 +260,20 @@ const serveOverlay = async (req, res) => {
           config: ${JSON.stringify(overlay.config || {})}
         };
       </script>
+      <!-- Overlay Engine -->
+      <script src="/overlays/engine.js"></script>
     `;
-        const finalHtml = templateContent.includes('</body>')
-            ? templateContent.replace('</body>', `${injectScript}</body>`)
-            : templateContent + injectScript;
+        let finalHtml = templateContent;
+        // Inject socket.io and engine.js before </body> or at the end
+        if (finalHtml.includes('</body>')) {
+            finalHtml = finalHtml.replace('</body>', `${injectScript}</body>`);
+        }
+        else if (finalHtml.includes('</head>')) {
+            finalHtml = finalHtml.replace('</head>', `${injectScript}</head>`);
+        }
+        else {
+            finalHtml = finalHtml + injectScript;
+        }
         res.setHeader('Content-Type', 'text/html');
         res.send(finalHtml);
     }

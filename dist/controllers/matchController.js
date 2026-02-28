@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCommentary = exports.addCommentary = exports.deleteMatch = exports.updateMatchScore = exports.updateMatch = exports.createMatch = exports.getMatch = exports.getMatches = void 0;
+exports.getCommentary = exports.addCommentary = exports.deleteMatch = exports.updateMatchScore = exports.updateMatch = exports.createMatch = exports.getMatch = exports.getLiveMatches = exports.getMatches = void 0;
 const Match_1 = __importDefault(require("../models/Match"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const server_1 = require("../server");
@@ -11,7 +11,8 @@ const getMatches = async (req, res) => {
     try {
         const { tournament } = req.query;
         const matches = await Match_1.default.find(tournament ? { tournament } : {}).populate('team1 team2');
-        res.json(matches);
+        // Return in format expected by frontend: { matches: [...] }
+        res.json({ matches });
     }
     catch (error) {
         console.error('Get matches error:', error);
@@ -19,6 +20,20 @@ const getMatches = async (req, res) => {
     }
 };
 exports.getMatches = getMatches;
+// scorex-backend/src/controllers/matchController.ts
+const getLiveMatches = async (req, res) => {
+    try {
+        // Include 'live', 'ongoing', and 'scheduled' statuses
+        const matches = await Match_1.default.find({ status: { $in: ['live', 'ongoing', 'scheduled'] } })
+            .populate('team1 team2') // Fixed: Changed from teamA teamB to team1 team2
+            .sort({ updatedAt: -1 });
+        res.status(200).json(matches);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error fetching live matches', error });
+    }
+};
+exports.getLiveMatches = getLiveMatches;
 const getMatch = async (req, res) => {
     try {
         const match = await Match_1.default.findById(req.params.id)
@@ -113,7 +128,26 @@ const createMatch = async (req, res) => {
             res.status(401).json({ message: 'User not authenticated' });
             return;
         }
-        const matchData = { ...req.body, createdBy: authReq.user._id };
+        // Filter out empty strings for optional ObjectId fields to prevent CastError
+        const { tossWinner, tossChoice, ...restBody } = req.body;
+        // Validate tossWinner: must be a non-empty string AND a valid ObjectId (24 hex chars)
+        const isValidObjectId = (value) => {
+            if (typeof value !== 'string' || value.length === 0)
+                return false;
+            return mongoose.Types.ObjectId.isValid(value) && value.length === 24 && /^[a-fA-F0-9]+$/.test(value);
+        };
+        // Validate tossChoice: must be a non-empty string and one of the valid enum values
+        const isValidTossChoice = (value) => {
+            return typeof value === 'string' && value.length > 0 && ['bat', 'bowl'].includes(value);
+        };
+        const matchData = {
+            ...restBody,
+            createdBy: authReq.user._id,
+            // Only include tossWinner if it's a valid non-empty ObjectId
+            ...(isValidObjectId(tossWinner) && { tossWinner }),
+            // Only include tossChoice if it's a valid enum value
+            ...(isValidTossChoice(tossChoice) && { tossChoice }),
+        };
         const match = await Match_1.default.create(matchData);
         console.log('Match created successfully:', match);
         res.status(201).json(match);

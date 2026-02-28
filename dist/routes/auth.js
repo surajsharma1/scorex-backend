@@ -9,7 +9,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const passport_1 = __importDefault(require("passport"));
 const rateLimiters_1 = require("../utils/rateLimiters");
-// Import the new controllers
+// Import the new controllers (no verifyOTP - OTP completely removed)
 const authController_1 = require("../controllers/authController");
 const router = express_1.default.Router();
 // --- Middleware Definitions (Preserved) ---
@@ -58,13 +58,12 @@ const protectOrganizer = (req, res, next) => {
 exports.protectOrganizer = protectOrganizer;
 exports.protectAdmin = [exports.protectAuth, (0, exports.authorize)('admin')];
 // --- AUTH ROUTES ---
-// 1. Register (Step 1: Validates input & Sends OTP)
-// Note: 'register' from controller includes the validation middleware
+// 1. Register (No OTP - instant registration)
 router.post('/register', authController_1.register);
-// 2. Verify OTP (Step 2: Activates user & returns Token)
-router.post('/verify-otp', authController_1.verifyOTP);
-// 3. Login
+// 2. Login
 router.post('/login', authController_1.login);
+// 3. Google Login (token-based)
+router.post('/google', authController_1.googleLogin);
 // --- OAUTH ROUTES (Preserved) ---
 // Google OAuth
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
@@ -88,10 +87,10 @@ router.get('/google/callback', (req, res, next) => {
             }
         }
         else {
-            // Existing user: generate token and redirect to dashboard
+            // Existing user: generate token and redirect to login page (which will process the token)
             try {
                 const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-                res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
+                res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
             }
             catch (error) {
                 console.error('Token generation error:', error);
@@ -106,7 +105,7 @@ router.get('/github/callback', rateLimiters_1.authLimiter, passport_1.default.au
     try {
         const user = req.user;
         const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
     }
     catch (error) {
         console.error('GitHub OAuth callback error:', error);

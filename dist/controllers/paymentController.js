@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPaymentHistory = exports.confirmPayment = exports.createPaymentIntent = void 0;
+exports.getPaymentHistory = exports.confirmPayment = exports.processPayment = exports.createSubscription = exports.createPaymentIntent = void 0;
 const stripe_1 = __importDefault(require("stripe"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
@@ -56,6 +56,86 @@ const createPaymentIntent = async (req, res) => {
     }
 };
 exports.createPaymentIntent = createPaymentIntent;
+const createSubscription = async (req, res) => {
+    const { planId, cardNumber } = req.body;
+    const user = req.user;
+    try {
+        // Check for test cards: ADMINFREEPASS or 8871474139
+        if (cardNumber === 'ADMINFREEPASS' || cardNumber === '8871474139') {
+            let expiryDays = 0;
+            let membershipLevel = 1;
+            // Parse planId from frontend format: premium-lv1-1-day, premium-lv2-1-week, etc.
+            // Also handle legacy formats: 1-day, 1-week, premium-level1, premium-level2
+            if (planId.includes('lv1') || planId === 'premium-level1') {
+                membershipLevel = 1;
+            }
+            else if (planId.includes('lv2') || planId === 'premium-level2') {
+                membershipLevel = 2;
+            }
+            if (planId.includes('1-day') || planId === '1-day') {
+                expiryDays = 1;
+            }
+            else if (planId.includes('1-week') || planId === '1-week') {
+                expiryDays = 7;
+            }
+            else if (planId.includes('1-month') || planId === '1-month' || planId === 'premium-level1') {
+                expiryDays = 30;
+            }
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + expiryDays);
+            // Save to database - update both old and new membership fields
+            user.membership = membershipLevel === 1 ? 'premium-level1' : 'premium-level2';
+            user.membershipLevel = membershipLevel;
+            user.membershipExpiresAt = expiryDate;
+            user.isPremium = true;
+            user.premiumExpiry = expiryDate;
+            await user.save();
+            return res.status(200).json({
+                success: true,
+                message: 'Test card applied! Membership activated.',
+                membership: user.membership,
+                membershipLevel: membershipLevel,
+                membershipExpiresAt: user.membershipExpiresAt
+            });
+        }
+        // ... 2. Run Standard Stripe / Payment Gateway Logic Here ...
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Payment initiation failed', error });
+    }
+};
+exports.createSubscription = createSubscription;
+// scorex-backend/src/controllers/paymentController.ts
+const processPayment = async (req, res) => {
+    const { planId, cardNumber, duration } = req.body;
+    const user = req.user;
+    try {
+        // Admin Override Card
+        if (cardNumber === 'ADMIN-FREE-PASS-2026') {
+            let expiryDays = 0;
+            if (duration === '1_day')
+                expiryDays = 1;
+            else if (duration === '1_week')
+                expiryDays = 7;
+            else if (duration === '1_month')
+                expiryDays = 30;
+            else if (duration === '1_year')
+                expiryDays = 365;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + expiryDays);
+            // Grant premium automatically
+            user.isPremium = true;
+            user.premiumExpiry = expiryDate;
+            await user.save();
+            return res.status(200).json({ message: 'Admin pass accepted. Premium granted!', success: true });
+        }
+        // ... Handle your normal Stripe / Payment gateway logic here ...
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Payment failed', error });
+    }
+};
+exports.processPayment = processPayment;
 const confirmPayment = async (req, res) => {
     try {
         if (!stripe) {

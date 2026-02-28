@@ -215,9 +215,11 @@ app.get('/api/v1/health', async (req, res) => {
     }
 });
 // Serve overlays from frontend public folder - use path.resolve for reliability
-const overlaysPath = path_1.default.resolve(__dirname, '../../scorex-frontend/scorex-frontend/public/overlays');
+// Path from scorex-backend/scorex-backend/src/server.ts goes: ../../../ = d:/github/scorex-frontend/scorex-frontend/public
+const overlaysPath = path_1.default.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
 app.use('/overlays', express_1.default.static(overlaysPath));
 app.use('/overlay', express_1.default.static(overlaysPath)); // Legacy path support
+console.log('Serving overlays from:', overlaysPath);
 // Socket.io
 exports.io.on('connection', (socket) => {
     logger_1.default.info(`User connected: ${socket.id}`);

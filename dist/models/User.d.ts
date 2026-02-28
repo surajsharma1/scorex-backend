@@ -32,7 +32,7 @@ export interface IUser extends Document {
         paymentIntentId: string;
         status: string;
         date: Date;
-    };
+    }[];
     deleted: boolean;
     deletedAt?: Date;
     createdAt: Date;

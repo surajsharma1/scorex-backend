@@ -29,7 +29,8 @@ const getTournaments = async (req, res) => {
             }
             return t;
         }));
-        res.status(200).json(enhancedTournaments);
+        // Return in format expected by frontend: { tournaments: [...] }
+        res.status(200).json({ tournaments: enhancedTournaments });
     }
     catch (error) {
         console.error('Fetch tournaments error:', error);
