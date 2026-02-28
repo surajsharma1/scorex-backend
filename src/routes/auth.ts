@@ -5,8 +5,8 @@ import passport from 'passport';
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/User';
 import { authLimiter } from '../utils/rateLimiters';
-// Import the new controllers
-import { register, verifyOTP, login, googleLogin } from '../controllers/authController';
+// Import the new controllers (no verifyOTP - OTP completely removed)
+import { register, login, googleLogin } from '../controllers/authController';
 
 const router = express.Router();
 
@@ -61,17 +61,13 @@ export const protectAdmin = [protectAuth, authorize('admin')];
 
 // --- AUTH ROUTES ---
 
-// 1. Register (Step 1: Validates input & Sends OTP)
-// Note: 'register' from controller includes the validation middleware
+// 1. Register (No OTP - instant registration)
 router.post('/register', register); 
 
-// 2. Verify OTP (Step 2: Activates user & returns Token)
-router.post('/verify-otp', verifyOTP);
-
-// 3. Login
+// 2. Login
 router.post('/login', login);
 
-// 4. Google Login (token-based)
+// 3. Google Login (token-based)
 router.post('/google', googleLogin);
 
 // --- OAUTH ROUTES (Preserved) ---
@@ -116,7 +112,7 @@ router.get('/github/callback', authLimiter, passport.authenticate('github', { fa
   try {
     const user = req.user as any;
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
   } catch (error) {
     console.error('GitHub OAuth callback error:', error);
     res.redirect('/login');
