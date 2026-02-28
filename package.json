@@ -75,5 +75,8 @@
     "typescript"
   ],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "debug": "^4.3.4"
+  }
 }
