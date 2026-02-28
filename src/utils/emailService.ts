@@ -63,11 +63,13 @@ const sendEmail = async (options: EmailOptions): Promise<void> => {
   const emailUsername = process.env.EMAIL_USERNAME || process.env.EMAIL_USER;
   const emailAppPassword = process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_PASS;
 
-  // 1. Create a Transporter with timeout settings (Gmail)
+  console.log('Using Gmail SMTP (port 465 with SSL)...');
+  
+  // Use Gmail with port 465 (SSL) - More likely to work on cloud platforms
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true, // SSL
     auth: {
       user: emailUsername,
       pass: emailAppPassword
@@ -77,15 +79,15 @@ const sendEmail = async (options: EmailOptions): Promise<void> => {
     socketTimeout: 30000
   } as nodemailer.TransportOptions);
 
-  // 2. Define Email Options
+  // Define Email Options
   const mailOptions = {
     from: `ScoreX Team <${emailUsername}>`,
     to: options.email,
     subject: options.subject,
-    html: options.message, // We use HTML for better styling
+    html: options.message,
   };
 
-  // 3. Send Email with timeout handling
+  // Send Email with timeout handling
   try {
     // Use Promise.race to implement timeout
     const sendPromise = transporter.sendMail(mailOptions);
