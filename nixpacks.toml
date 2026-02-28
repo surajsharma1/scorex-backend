@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "typescript"]
+nixPkgs = ["nodejs_22", "typescript"]
 
 [phases.build]
-cmds = ["npm install --legacy-peer-deps", "npm run build"]
+cmds = ["rm -rf node_modules package-lock.json", "npm install", "npm run build"]
 
 [start]
 cmd = "npm start"
