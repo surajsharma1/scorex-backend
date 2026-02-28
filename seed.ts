@@ -35,6 +35,7 @@ const seedData = async () => {
       bio: 'System administrator and tournament manager.',
       fullName: 'Admin User',
       dob: new Date('1990-01-01'),
+      isVerified: true,
     });
 
     // Create organizer user
@@ -48,6 +49,7 @@ const seedData = async () => {
       bio: 'Professional tournament organizer and cricket enthusiast.',
       fullName: 'Organizer User',
       dob: new Date('1985-05-15'),
+      isVerified: true,
     });
 
     // Create viewer user
@@ -61,6 +63,7 @@ const seedData = async () => {
       bio: 'Cricket fan and tournament spectator.',
       fullName: 'Viewer User',
       dob: new Date('1995-10-20'),
+      isVerified: true,
     });
 
     // Create surajsharma424255@gmail.com as admin user
@@ -74,9 +77,8 @@ const seedData = async () => {
       bio: 'System administrator.',
       fullName: 'Suraj Sharma',
       dob: new Date('1990-01-15'),
+      isVerified: true,
     });
-
-
 
     // Create sample friends
     const friendsData = [
@@ -108,12 +110,13 @@ const seedData = async () => {
     await Club.insertMany(clubsData);
 
     console.log('Database seeded successfully with:');
-    console.log('- 3 users (admin, organizer, viewer)');
+    console.log('- 4 users (admin, organizer, viewer, suraj) - all verified');
     console.log('- 1 friend relationship');
     console.log('- 2 clubs');
     console.log('\nAdmin login: admin@example.com / admin123');
     console.log('Organizer login: organizer@example.com / organizer123');
     console.log('Viewer login: viewer@example.com / viewer123');
+    console.log('Suraj login: surajsharma424255@gmail.com / suraj123');
 
     process.exit(0);
   } catch (error) {

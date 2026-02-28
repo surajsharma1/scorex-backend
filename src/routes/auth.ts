@@ -97,10 +97,10 @@ router.get('/google/callback', (req, res, next) => {
         return res.status(401).json({ message: 'Unauthorized' });
       }
     } else {
-      // Existing user: generate token and redirect to dashboard
+      // Existing user: generate token and redirect to login page (which will process the token)
       try {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?token=${token}`);
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
       } catch (error) {
         console.error('Token generation error:', error);
         res.status(500).json({ message: 'Internal server error' });
