@@ -96,7 +96,7 @@ const seedData = async () => {
     await Club.insertMany(clubsData);
 
     console.log('Database seeded successfully with:');
-    console.log('- 4 users (admin, organizer, viewer, suraj) - all verified');
+    console.log('- 3 users (admin, organizer, viewer) - all verified');
     console.log('- 1 friend relationship');
     console.log('- 2 clubs');
     console.log('\nAdmin login: admin@example.com / admin123');
