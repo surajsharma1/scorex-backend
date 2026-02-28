@@ -77,6 +77,6 @@
   "author": "Your Name",
   "license": "MIT",
   "overrides": {
-    "debug": "^4.3.4"
+    "debug": "^4.3.7"
   }
 }
