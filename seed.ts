@@ -63,6 +63,19 @@ const seedData = async () => {
       dob: new Date('1995-10-20'),
     });
 
+    // Create surajsharma424255@gmail.com as admin user
+    const surajPassword = await bcrypt.hash('suraj123', 10);
+    const suraj = await User.create({
+      username: 'suraj',
+      email: 'surajsharma424255@gmail.com',
+      password: surajPassword,
+      role: 'admin',
+      profilePicture: 'https://via.placeholder.com/150/FF6600/FFFFFF?text=Suraj',
+      bio: 'System administrator.',
+      fullName: 'Suraj Sharma',
+      dob: new Date('1990-01-15'),
+    });
+
 
 
     // Create sample friends
