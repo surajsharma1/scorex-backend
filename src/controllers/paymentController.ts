@@ -9,7 +9,7 @@ let stripe: Stripe | null = null;
 try {
   if (stripeSecretKey) {
     stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2026-01-28.clover',
+      apiVersion: '2026-02-25.clover',
     });
   }
 } catch (error) {
