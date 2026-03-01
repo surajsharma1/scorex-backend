@@ -8,6 +8,17 @@ export interface IUser extends Document {
   role: 'viewer' | 'organizer' | 'admin';
   membershipLevel: 0 | 1 | 2; // 0=Free, 1=Basic (Static), 2=Premium (Animated)
   membershipExpiresAt?: Date;
+  membershipStartedAt?: Date; // When the current membership started
+  
+  // Membership Timeline - History of all membership status changes
+  membershipTimeline?: {
+    level: number;
+    status: 'active' | 'expired' | 'upgraded' | 'downgraded' | 'cancelled';
+    startedAt: Date;
+    endedAt?: Date;
+    paymentId?: string;
+    notes?: string;
+  }[];
   
   // Auth & Verification Fields
   otp?: string;
@@ -62,6 +73,17 @@ const UserSchema: Schema = new Schema({
     
     membershipLevel: { type: Number, default: 0, enum: [0, 1, 2] },
     membershipExpiresAt: { type: Date },
+    membershipStartedAt: { type: Date },
+
+    // Membership Timeline - tracks all membership status changes
+    membershipTimeline: [{
+      level: { type: Number, required: true },
+      status: { type: String, enum: ['active', 'expired', 'upgraded', 'downgraded', 'cancelled'], default: 'active' },
+      startedAt: { type: Date, default: Date.now },
+      endedAt: { type: Date },
+      paymentId: { type: String },
+      notes: { type: String }
+    }],
 
     // Verification Fields (Critical for OTP)
     otp: { type: String, select: false }, // Select false means it won't be returned in queries unless requested
