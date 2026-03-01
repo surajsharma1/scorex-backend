@@ -6,7 +6,8 @@ import {
   updateOverlay, 
   deleteOverlay, 
   getOverlayTemplates,
-  serveOverlay
+  serveOverlay,
+  getMembershipStatus
 } from '../controllers/overlayController';
 import { protect } from '../middleware/auth';
 
@@ -26,6 +27,12 @@ router.get('/', (req, res, next) => {
 router.get('/templates', (req, res, next) => {
   (protect as any)(req, res, () => {
     getOverlayTemplates(req as any, res as any);
+  });
+});
+
+router.get('/membership-status', (req, res, next) => {
+  (protect as any)(req, res, () => {
+    getMembershipStatus(req as any, res as any);
   });
 });
 

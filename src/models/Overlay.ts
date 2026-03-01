@@ -16,6 +16,9 @@ export interface IOverlay extends Document {
   tournament?: mongoose.Types.ObjectId;
   match?: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
+  // Membership tracking fields
+  requiredMembershipLevel: number; // 0=Free, 1=Basic, 2=Premium
+  membershipAtCreation: number; // Store the membership level when overlay was created
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,7 +35,18 @@ const OverlaySchema: Schema = new Schema({
   elements: { type: Array, default: [] },
   tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
   match: { type: Schema.Types.ObjectId, ref: 'Match' },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  // Membership tracking fields
+  requiredMembershipLevel: { 
+    type: Number, 
+    default: 1, 
+    enum: [0, 1, 2] 
+  }, // Minimum membership required to access (1 = Basic, 2 = Premium)
+  membershipAtCreation: { 
+    type: Number, 
+    default: 0, 
+    enum: [0, 1, 2] 
+  } // Membership level when overlay was created
 }, {
   timestamps: true
 });
