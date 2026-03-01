@@ -9,7 +9,7 @@
     "build": "tsc",
     "test": "jest",
     "seed": "ts-node seed.ts",
-    "postinstall": "npm install debug@4.3.7 --force"
+    "postinstall": "npm cache clean --force && npm install debug@4.3.7 --force"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
@@ -77,8 +77,5 @@
     "typescript"
   ],
   "author": "Your Name",
-  "license": "MIT",
-  "overrides": {
-    "debug": "^4.3.7"
-  }
+  "license": "MIT"
 }
