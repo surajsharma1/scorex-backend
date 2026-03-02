@@ -184,32 +184,119 @@ export const updateMatch = async (req: Request, res: Response): Promise<void> =>
 
 export const updateMatchScore = async (req: Request, res: Response): Promise<void> => {
   try {
-    const match = await Match.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('team1 team2');
-    if (match) {
-      io.emit('scoreUpdate', { matchId: match._id, match });
+    const updateData = req.body;
+    
+    // Check if this is a full LiveScores object (from ScoreboardUpdate)
+    // LiveScores has team1/team2 objects with nested batsmen/bowler arrays
+    if (updateData.team1 && updateData.team2 && updateData.team1.batsmen) {
+      // Extract individual score values from the LiveScores object
+      const flatUpdate: any = {};
+      
+      // Team 1 data
+      if (updateData.team1) {
+        flatUpdate.score1 = updateData.team1.score || 0;
+        flatUpdate.wickets1 = updateData.team1.wickets || 0;
+        flatUpdate.overs1 = updateData.team1.overs || 0;
+        flatUpdate.balls1 = updateData.team1.balls || 0;
+        
+        // Extract batsmen data
+        if (updateData.team1.batsmen && updateData.team1.batsmen.length > 0) {
+          flatUpdate.strikerName = updateData.team1.batsmen[0]?.name || '';
+          flatUpdate.strikerRuns = updateData.team1.batsmen[0]?.runs || 0;
+          flatUpdate.strikerBalls = updateData.team1.batsmen[0]?.balls || 0;
+        }
+        if (updateData.team1.batsmen && updateData.team1.batsmen.length > 1) {
+          flatUpdate.nonStrikerName = updateData.team1.batsmen[1]?.name || '';
+          flatUpdate.nonStrikerRuns = updateData.team1.batsmen[1]?.runs || 0;
+          flatUpdate.nonStrikerBalls = updateData.team1.batsmen[1]?.balls || 0;
+        }
+        
+        // Extract bowler data
+        if (updateData.team1.bowler) {
+          flatUpdate.bowlerName = updateData.team1.bowler.name || '';
+          flatUpdate.bowlerOvers = updateData.team1.bowler.overs || 0;
+          flatUpdate.bowlerRuns = updateData.team1.bowler.runs || 0;
+          flatUpdate.bowlerWickets = updateData.team1.bowler.wickets || 0;
+          flatUpdate.bowlerMaidens = updateData.team1.bowler.maidens || 0;
+        }
+      }
+      
+      // Team 2 data
+      if (updateData.team2) {
+        flatUpdate.score2 = updateData.team2.score || 0;
+        flatUpdate.wickets2 = updateData.team2.wickets || 0;
+        flatUpdate.overs2 = updateData.team2.overs || 0;
+        flatUpdate.balls2 = updateData.team2.balls || 0;
+      }
+      
+      // Match info
+      flatUpdate.battingTeam = updateData.battingTeam || 'team1';
+      flatUpdate.currentRunRate = updateData.currentRunRate || 0;
+      flatUpdate.requiredRunRate = updateData.requiredRunRate || 0;
+      flatUpdate.target = updateData.target || 0;
+      flatUpdate.lastFiveOvers = updateData.lastFiveOvers || '';
+      flatUpdate.innings = updateData.innings || 1;
+      
+      // Update match with flat fields
+      var match = await Match.findByIdAndUpdate(req.params.id, flatUpdate, { new: true }).populate('team1 team2');
+      
+      // Also save the full LiveScores object for ScoreboardUpdate compatibility
+      if (match) {
+        await Match.findByIdAndUpdate(req.params.id, { 
+          liveScores: updateData,
+          score1: flatUpdate.score1,
+          score2: flatUpdate.score2,
+          wickets1: flatUpdate.wickets1,
+          wickets2: flatUpdate.wickets2,
+          overs1: flatUpdate.overs1,
+          overs2: flatUpdate.overs2,
+          battingTeam: flatUpdate.battingTeam
+        });
+        
+        match = await Match.findById(req.params.id).populate('team1 team2');
+      }
+      
+      if (match) {
+        io.emit('scoreUpdate', { matchId: match._id, match });
 
-      const liveScores = {
-        team1: {
-          name: (match.team1 as any).name || 'Team 1',
-          score: match.score1 || 0,
-          wickets: match.wickets1 || 0,
-          overs: match.overs1 || 0,
-        },
-        team2: {
-          name: (match.team2 as any).name || 'Team 2',
-          score: match.score2 || 0,
-          wickets: match.wickets2 || 0,
-          overs: match.overs2 || 0,
-        },
-        currentRunRate: 0,
-        requiredRunRate: 0,
-        target: 0,
-        lastFiveOvers: '-',
-      };
+        // Also sync to tournament liveScores for backward compatibility
+        const liveScores = {
+          team1: {
+            name: (match.team1 as any).name || 'Team 1',
+            score: match.score1 || 0,
+            wickets: match.wickets1 || 0,
+            overs: match.overs1 || 0,
+            balls: (match as any).balls1 || 0,
+            batsmen: updateData.team1?.batsmen || [],
+            bowler: updateData.team1?.bowler || null,
+          },
+          team2: {
+            name: (match.team2 as any).name || 'Team 2',
+            score: match.score2 || 0,
+            wickets: match.wickets2 || 0,
+            overs: match.overs2 || 0,
+            balls: (match as any).balls2 || 0,
+          },
+          battingTeam: updateData.battingTeam || 'team1',
+          currentRunRate: updateData.currentRunRate || 0,
+          requiredRunRate: updateData.requiredRunRate || 0,
+          target: updateData.target || 0,
+          lastFiveOvers: updateData.lastFiveOvers || '',
+          innings: updateData.innings || 1,
+        };
 
-      await Tournament.findByIdAndUpdate(match.tournament, { liveScores });
+        await Tournament.findByIdAndUpdate(match.tournament, { liveScores });
+      }
+    } else {
+      // Legacy format - direct flat fields
+      const match = await Match.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('team1 team2');
+      if (match) {
+        io.emit('scoreUpdate', { matchId: match._id, match });
+      }
     }
-    res.json(match);
+    
+    const finalMatch = await Match.findById(req.params.id).populate('team1 team2');
+    res.json(finalMatch);
   } catch (error) {
     console.error('Update match score error:', error);
     res.status(500).json({ message: 'Server error' });
