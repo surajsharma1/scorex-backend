@@ -13,9 +13,35 @@ export interface ITournament extends Document {
   organizer: mongoose.Types.ObjectId; // Renamed from createdBy to match Controller
   matches: mongoose.Types.ObjectId[];
 
-  // Live Data for Ticker/Carousel
+// Live Data for Ticker/Carousel
   isLive: boolean;
   liveMatchUrl?: string;
+  
+  // Live Scores - stored for Scoreboard/Overlay
+  liveScores?: {
+    team1: {
+      name: string;
+      score: number;
+      wickets: number;
+      overs: number;
+      balls: number;
+      batsmen: any[];
+      bowler: any | null;
+    };
+    team2: {
+      name: string;
+      score: number;
+      wickets: number;
+      overs: number;
+      balls: number;
+    };
+    battingTeam: 'team1' | 'team2';
+    currentRunRate: number;
+    requiredRunRate: number;
+    target: number;
+    lastFiveOvers: string;
+    innings: number;
+  };
   
   // Soft Delete
   deleted: boolean;
@@ -44,8 +70,11 @@ const tournamentSchema = new Schema<ITournament>(
     
     organizer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
-    isLive: { type: Boolean, default: false },
+isLive: { type: Boolean, default: false },
     liveMatchUrl: { type: String },
+
+    // Live Scores field for Scoreboard/Overlay
+    liveScores: { type: Schema.Types.Mixed },
 
     deleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
