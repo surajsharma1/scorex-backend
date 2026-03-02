@@ -45,14 +45,23 @@ const checkUserMembership = async (userId: mongoose.Types.ObjectId): Promise<{ h
   };
 };
 
+// URL expiry duration in milliseconds (24 hours)
+const URL_EXPIRY_DURATION = 24 * 60 * 60 * 1000;
+
 export const regenerateOverlayUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
     // Generate a secure random UUID
     const newPublicId = uuidv4();
+    // Set new expiry time (24 hours from now)
+    const newExpiry = new Date(Date.now() + URL_EXPIRY_DURATION);
+    
     const overlay = await Overlay.findOneAndUpdate(
       { _id: req.params.id, createdBy: user._id },
-      { publicId: newPublicId },
+      { 
+        publicId: newPublicId,
+        urlExpiresAt: newExpiry
+      },
       { new: true }
     );
 
@@ -61,9 +70,12 @@ export const regenerateOverlayUrl = async (req: Request, res: Response): Promise
       return;
     }
     const baseUrl = getBaseUrl();
+    const publicUrl = `${baseUrl}/overlays/public/${newPublicId}?template=${overlay.template}`;
     res.json({ 
       publicId: newPublicId,
-      url: `${baseUrl}/overlays/public/${newPublicId}` 
+      url: publicUrl,
+      urlExpiresAt: newExpiry,
+      publicUrl
     });
   } catch (error) {
     console.error('Error regenerating link:', error);
@@ -107,7 +119,7 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
     // Determine required membership level (default to user's current level)
     const membershipLevel = requiredMembershipLevel || membership.level;
 
-    const overlayData: any = {
+const overlayData: any = {
       name: name.trim(),
       template: template.trim(),
       config: config || {},
@@ -115,7 +127,8 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
       publicId: uuidv4(),
       createdBy: user._id,
       requiredMembershipLevel: membershipLevel, // Store the required membership level
-      membershipAtCreation: membership.level // Store membership level at creation
+      membershipAtCreation: membership.level, // Store membership level at creation
+      urlExpiresAt: new Date(Date.now() + URL_EXPIRY_DURATION) // Set URL expiry to 24 hours
     };
 
     if (tournament && mongoose.Types.ObjectId.isValid(tournament)) {
@@ -126,15 +139,17 @@ export const createOverlay = async (req: Request, res: Response): Promise<void> 
       overlayData.match = new mongoose.Types.ObjectId(match);
     }
 
-    const overlay = await Overlay.create(overlayData);
+const overlay = await Overlay.create(overlayData);
     
     const templateName = overlay.template;
-    const publicUrl = `${getBaseUrl()}/overlays/public/${overlay.publicId}?template=${templateName}`;
+    const baseUrl = getBaseUrl();
+    const publicUrl = `${baseUrl}/overlays/public/${overlay.publicId}?template=${templateName}`;
     
     res.status(201).json({
       ...overlay.toObject(),
       publicUrl,
-      templateName
+      templateName,
+      urlExpiresAt: overlay.urlExpiresAt
     });
   } catch (error) {
     console.error('Overlay creation error:', error);
