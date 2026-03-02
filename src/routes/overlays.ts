@@ -7,7 +7,8 @@ import {
   deleteOverlay, 
   getOverlayTemplates,
   serveOverlay,
-  getMembershipStatus
+  getMembershipStatus,
+  regenerateOverlayUrl
 } from '../controllers/overlayController';
 import { protect } from '../middleware/auth';
 
@@ -57,6 +58,12 @@ router.put('/:id', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
   (protect as any)(req, res, () => {
     deleteOverlay(req as any, res as any);
+  });
+});
+
+router.post('/:id/regenerate', (req, res, next) => {
+  (protect as any)(req, res, () => {
+    regenerateOverlayUrl(req as any, res as any);
   });
 });
 
