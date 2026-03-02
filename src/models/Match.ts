@@ -56,6 +56,9 @@ export interface IMatch extends Document {
   
   // Last event for notifications
   lastEvent?: string;
+  
+  // Overlay linked to this match
+  overlayId?: mongoose.Types.ObjectId;
 }
 
 
@@ -116,6 +119,9 @@ const matchSchema = new Schema<IMatch>(
     
     // Last event
     lastEvent: String,
+
+    // Overlay linked to this match
+    overlayId: { type: Schema.Types.ObjectId, ref: 'Overlay' },
 
   },
   { timestamps: true }
