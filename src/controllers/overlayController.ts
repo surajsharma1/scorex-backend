@@ -140,7 +140,16 @@ const overlayData: any = {
       overlayData.match = new mongoose.Types.ObjectId(match);
     }
 
-const overlay = await Overlay.create(overlayData);
+    const overlay = await Overlay.create(overlayData);
+    
+    // Update the Match's overlayId if a match was specified
+    if (match && mongoose.Types.ObjectId.isValid(match)) {
+      try {
+        await Match.findByIdAndUpdate(match, { overlayId: overlay._id });
+      } catch (err) {
+        console.error('Error updating match with overlayId:', err);
+      }
+    }
     
     const templateName = overlay.template;
     const baseUrl = getBaseUrl();
