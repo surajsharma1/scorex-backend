@@ -34,11 +34,21 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// Get allowed origins from environment
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',')
+  : ['http://localhost:3000', 'https://scorex-live.vercel.app'];
+
 export const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  // Handle ping/pong for keepalive
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 // Connect to MongoDB

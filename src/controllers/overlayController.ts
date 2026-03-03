@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import Overlay from '../models/Overlay';
+import Match from '../models/Match';
 import Team from '../models/Team';
 import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
