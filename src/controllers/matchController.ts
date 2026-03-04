@@ -152,3 +152,32 @@ export const getMatchById = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const getAllMatches = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { tournament, status } = req.query;
+    
+    // Build filter object
+    const filter: any = {};
+    if (tournament) {
+      filter.tournament = tournament;
+    }
+    if (status) {
+      filter.status = status;
+    }
+
+    const matches = await Match.find(filter)
+      .populate('teamA')
+      .populate('teamB')
+      .populate('tournament')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ 
+      success: true, 
+      data: matches,
+      count: matches.length 
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,7 +1,7 @@
-import { Router, RequestHandler } from 'express';
-import { 
+import { Router, RequestHandler } from 'express';import { 
   createMatch, 
-  getMatchById, 
+  getMatchById,
+  getAllMatches,
   startMatch, 
   scoreBall, 
   undoLastBall 
@@ -9,6 +9,9 @@ import {
 import { protect } from '../middleware/auth';
 
 const router = Router();
+
+// Public route to view all matches (supports filtering via query params)
+router.get('/', getAllMatches);
 
 // Public route to view live scores
 router.get('/:id', getMatchById);
