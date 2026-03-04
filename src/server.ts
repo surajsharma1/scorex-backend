@@ -10,6 +10,12 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
 import connectDB from './config/database';
+import jwt from 'jsonwebtoken';
+import MongoStore from 'connect-mongo';
+import rateLimit from 'express-rate-limit';
+import logger from './utils/logger';
+
+// Route Imports
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
 import bracketRoutes from './routes/brackets';
@@ -18,20 +24,19 @@ import matchRoutes from './routes/matches';
 import userRoutes from './routes/users';
 import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
-import User from './models/User';
-import jwt from 'jsonwebtoken';
-import MongoStore from 'connect-mongo';
 import authRoutes from './routes/auth';
 import friendRoutes from './routes/friends';
 import clubRoutes from './routes/clubs';
 import paymentRoutes from './routes/payments';
 import messageRoutes from './routes/messages';
 import leaderboardRoutes from './routes/leaderboard';
-import logger from './utils/logger';
-import rateLimit from 'express-rate-limit';
+import User from './models/User';
 
 dotenv.config();
 
+// ==========================================
+// 1. INITIALIZATION & SETUP
+// ==========================================
 const app = express();
 const server = createServer(app);
 
@@ -47,47 +52,42 @@ export const io = new Server(server, {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
-  // Handle ping/pong for keepalive
   pingTimeout: 60000,
   pingInterval: 25000,
 });
 
-// CRITICAL: Make the 'io' instance available globally so our controllers can trigger broadcasts
+// Make 'io' globally available to controllers
 app.set('io', io);
 
-// Connect to MongoDB
+// Connect to Database
 connectDB();
 
-// Passport config
+// Trust proxy for rate limiting (Important for Render/Vercel)
+app.set('trust proxy', 1);
+
+
+// ==========================================
+// 2. PASSPORT STRATEGIES (OAUTH)
+// ==========================================
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-     callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
+    callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
-      if (user) {
-        done(null, user);
-        return;
-      }
-      // Check if user exists by email
+      if (user) return done(null, user);
+
       const email = profile.emails?.[0].value;
       user = await User.findOne({ email });
       if (user) {
-        // Associate Google ID with existing user
         user.googleId = profile.id;
         await user.save();
-        done(null, user);
-        return;
+        return done(null, user);
       }
-      // New user: store pending info in session, don't create user yet
-      const pendingGoogleUser = {
-        googleId: profile.id,
-        email,
-        fullName: profile.displayName,
-      };
-      // Store in session for callback
+
+      const pendingGoogleUser = { googleId: profile.id, email, fullName: profile.displayName };
       done(null, false, { pendingGoogleUser });
     } catch (error) {
       done(error, undefined);
@@ -97,7 +97,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Google OAuth not configured.');
 }
 
-// GitHub OAuth
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
@@ -106,21 +105,16 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   }, async (_accessToken: string, _refreshToken: string, profile: any, done: (error: any, user?: any) => void) => {
     try {
       let user = await User.findOne({ githubId: profile.id });
-      if (user) {
-        done(null, user);
-        return;
-      }
-      // Check if user exists by email
+      if (user) return done(null, user);
+
       const email = profile.emails?.[0].value;
       user = await User.findOne({ email });
       if (user) {
-        // Associate GitHub ID with existing user
         user.githubId = profile.id;
         await user.save();
-        done(null, user);
-        return;
+        return done(null, user);
       }
-      // New user: create account
+
       user = await User.create({
         username: profile.username || profile.displayName,
         email,
@@ -142,8 +136,12 @@ passport.deserializeUser(async (id, done) => {
   done(null, user);
 });
 
-// Middleware
+
+// ==========================================
+// 3. GLOBAL MIDDLEWARE
+// ==========================================
 app.use(helmet());
+
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
@@ -151,22 +149,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Debug middleware to log request bodies for troubleshooting
+// 🚨 CRITICAL FIX: Body parsers placed here before any routes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Debug Logging
 app.use((req, res, next) => {
   if (req.method === 'POST' || req.method === 'PUT') {
     console.log(`[${req.method}] ${req.path} - Content-Type: ${req.headers['content-type']}`);
-    console.log('Request body:', req.body);
+    console.log('Request body keys:', Object.keys(req.body)); // Logs keys to avoid dumping massive payloads
   }
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Trust proxy setting for rate limiting in production
-app.set('trust proxy', 1);
-
-// Session middleware added here
+// Sessions
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_prod',
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
@@ -178,19 +174,31 @@ app.use(session({
   },
 }));
 
-// Rate limiting
+// Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, 
+  max: 100,
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/', limiter);
 
-// Passport middleware
+// Passport Init
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Routes
+
+// ==========================================
+// 4. STATIC FILES
+// ==========================================
+const overlaysPath = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
+app.use('/overlays', express.static(overlaysPath));
+app.use('/overlay', express.static(overlaysPath));
+console.log('Serving overlays from:', overlaysPath);
+
+
+// ==========================================
+// 5. API ROUTES
+// ==========================================
 app.use('/api/v1/tournaments', tournamentRoutes);
 app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/brackets', bracketRoutes);
@@ -205,145 +213,27 @@ app.use('/api/v1/clubs', clubRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/leaderboard', leaderboardRoutes);
-app.use(express.json());
 
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
   try {
-    // Check database connection
     const mongoose = require('mongoose');
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-
-    // Check Redis connection
     const cacheService = require('./utils/cache').cacheService;
     const redisStatus = cacheService.isConnected ? 'connected' : 'disconnected';
 
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      services: {
-        database: dbStatus,
-        redis: redisStatus,
-      },
+      services: { database: dbStatus, redis: redisStatus },
       uptime: process.uptime(),
     });
   } catch (error) {
-    res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: (error as Error).message,
-    });
+    res.status(503).json({ status: 'unhealthy', error: (error as Error).message });
   }
 });
 
-// Serve overlays from frontend public folder - use path.resolve for reliability
-// Path from scorex-backend/scorex-backend/src/server.ts goes: ../../../ = d:/github/scorex-frontend/scorex-frontend/public
-const overlaysPath = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
-app.use('/overlays', express.static(overlaysPath));
-app.use('/overlay', express.static(overlaysPath)); // Legacy path support
-console.log('Serving overlays from:', overlaysPath);
-
-// Socket.io Connection Logic
-io.on('connection', (socket) => {
-  logger.info(`User connected: ${socket.id}`);
-  console.log(`New client connected: ${socket.id}`);
-
-  // When a user opens a live match page, they join a "room" specific to that match (From your snippet)
-  socket.on('join_match', (matchId: string) => {
-    socket.join(matchId);
-    console.log(`Socket ${socket.id} joined match room: ${matchId}`);
-  });
-
-  // Join tournament room for real-time score updates
-  socket.on('joinTournament', (tournamentId: string) => {
-    socket.join(tournamentId);
-    logger.info(`User ${socket.id} joined tournament: ${tournamentId}`);
-  });
-
-  // Leave tournament room
-  socket.on('leaveTournament', (tournamentId: string) => {
-    socket.leave(tournamentId);
-    logger.info(`User ${socket.id} left tournament: ${tournamentId}`);
-  });
-
-  // Join match room for detailed updates (Legacy support)
-  socket.on('joinMatch', (matchId: string) => {
-    socket.join(`match:${matchId}`);
-    logger.info(`User ${socket.id} joined match: ${matchId}`);
-  });
-
-  // Leave match room
-  socket.on('leaveMatch', (matchId: string) => {
-    socket.leave(`match:${matchId}`);
-    logger.info(`User ${socket.id} left match: ${matchId}`);
-  });
-
-  // Update score - broadcast to all users in the tournament
-  socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
-    io.to(data.tournamentId).emit('scoreUpdate', data);
-    logger.info(`Score update for tournament ${data.tournamentId}:`, data.match);
-  });
-
-  // Match status update - broadcast to all users in the match
-  socket.on('updateMatchStatus', (data: { matchId: string; tournamentId: string; status: string }) => {
-    io.to(`match:${data.matchId}`).emit('matchStatusUpdate', data);
-    io.to(data.tournamentId).emit('matchStatusUpdate', data);
-    logger.info(`Match status update: ${data.matchId} - ${data.status}`);
-  });
-
-  // Tournament update - broadcast to all users in the tournament
-  socket.on('updateTournament', (data: { tournamentId: string; tournament: any }) => {
-    io.to(data.tournamentId).emit('tournamentUpdate', data);
-    logger.info(`Tournament update for ${data.tournamentId}:`, data.tournament);
-  });
-
-  // Live notification - broadcast to all connected users
-  socket.on('sendNotification', (data: { userId?: string; message: string; type: string }) => {
-    if (data.userId) {
-      // Send to specific user
-      io.to(`user:${data.userId}`).emit('notification', data);
-    } else {
-      // Broadcast to all users
-      io.emit('notification', data);
-    }
-    logger.info(`Notification sent: ${data.type} - ${data.message}`);
-  });
-
-  // Join user-specific room for notifications
-  socket.on('joinUserRoom', (userId: string) => {
-    socket.join(`user:${userId}`);
-    logger.info(`User ${socket.id} joined user room: ${userId}`);
-  });
-
-  // Handle typing indicators for chat
-  socket.on('typing', (data: { roomId: string; userId: string; isTyping: boolean }) => {
-    socket.to(data.roomId).emit('userTyping', data);
-  });
-
-  // Handle chat messages
-  socket.on('sendMessage', (data: { roomId: string; message: any }) => {
-    io.to(data.roomId).emit('newMessage', data.message);
-    logger.info(`New message in room ${data.roomId}`);
-  });
-
-  // Disconnect handling
-  socket.on('disconnect', () => {
-    logger.info(`User disconnected: ${socket.id}`);
-    console.log(`Client disconnected: ${socket.id}`);
-  });
-});
-
-// Error handling
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', err);
-  res.status(500).json({ message: 'Something went wrong!' });
-});
-
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running with WebSockets on port ${PORT}`);
-});
-
+// Auto-Login Route (Moved up from the bottom)
 app.get('/api/auth/auto-login', async (req, res) => {
   const user = await User.findOne({ email: 'default@example.com' });
   if (!user) {
@@ -353,6 +243,91 @@ app.get('/api/auth/auto-login', async (req, res) => {
   }
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!);
   res.json({ token });
+});
+
+
+// ==========================================
+// 6. GLOBAL ERROR HANDLER (MUST BE LAST MIDDLEWARE)
+// ==========================================
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error('Unhandled error:', err);
+  res.status(500).json({ message: 'Something went wrong!', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
+});
+
+
+// ==========================================
+// 7. WEBSOCKETS (SOCKET.IO) LOGIC
+// ==========================================
+io.on('connection', (socket) => {
+  logger.info(`User connected: ${socket.id}`);
+
+  socket.on('join_match', (matchId: string) => {
+    socket.join(matchId);
+    console.log(`Socket ${socket.id} joined match room: ${matchId}`);
+  });
+
+  socket.on('joinTournament', (tournamentId: string) => {
+    socket.join(tournamentId);
+    logger.info(`User ${socket.id} joined tournament: ${tournamentId}`);
+  });
+
+  socket.on('leaveTournament', (tournamentId: string) => {
+    socket.leave(tournamentId);
+  });
+
+  socket.on('joinMatch', (matchId: string) => {
+    socket.join(`match:${matchId}`);
+  });
+
+  socket.on('leaveMatch', (matchId: string) => {
+    socket.leave(`match:${matchId}`);
+  });
+
+  socket.on('updateScore', (data: { tournamentId: string; match: any }) => {
+    io.to(data.tournamentId).emit('scoreUpdate', data);
+  });
+
+  socket.on('updateMatchStatus', (data: { matchId: string; tournamentId: string; status: string }) => {
+    io.to(`match:${data.matchId}`).emit('matchStatusUpdate', data);
+    io.to(data.tournamentId).emit('matchStatusUpdate', data);
+  });
+
+  socket.on('updateTournament', (data: { tournamentId: string; tournament: any }) => {
+    io.to(data.tournamentId).emit('tournamentUpdate', data);
+  });
+
+  socket.on('sendNotification', (data: { userId?: string; message: string; type: string }) => {
+    if (data.userId) {
+      io.to(`user:${data.userId}`).emit('notification', data);
+    } else {
+      io.emit('notification', data);
+    }
+  });
+
+  socket.on('joinUserRoom', (userId: string) => {
+    socket.join(`user:${userId}`);
+  });
+
+  socket.on('typing', (data: { roomId: string; userId: string; isTyping: boolean }) => {
+    socket.to(data.roomId).emit('userTyping', data);
+  });
+
+  socket.on('sendMessage', (data: { roomId: string; message: any }) => {
+    io.to(data.roomId).emit('newMessage', data.message);
+  });
+
+  socket.on('disconnect', () => {
+    logger.info(`User disconnected: ${socket.id}`);
+  });
+});
+
+
+// ==========================================
+// 8. START SERVER
+// ==========================================
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running with WebSockets on port ${PORT}`);
 });
 
 export default app;
