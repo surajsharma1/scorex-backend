@@ -157,10 +157,10 @@ export const getAllMatches = async (req: Request, res: Response, next: NextFunct
   try {
     const { tournament, status } = req.query;
     
-    // Build filter object
+    // Build filter object - Note: Match model uses 'tournamentId' not 'tournament'
     const filter: any = {};
     if (tournament) {
-      filter.tournament = tournament;
+      filter.tournamentId = tournament;
     }
     if (status) {
       filter.status = status;
@@ -169,7 +169,7 @@ export const getAllMatches = async (req: Request, res: Response, next: NextFunct
     const matches = await Match.find(filter)
       .populate('teamA')
       .populate('teamB')
-      .populate('tournament')
+      .populate('tournamentId')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ 
