@@ -250,8 +250,49 @@ app.get('/api/auth/auto-login', async (req, res) => {
 // 6. GLOBAL ERROR HANDLER (MUST BE LAST MIDDLEWARE)
 // ==========================================
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', err);
-  res.status(500).json({ message: 'Something went wrong!', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
+  logger.error('Unhandled error:', { 
+    message: err.message, 
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: process.env.NODE_ENV === 'development' ? req.body : undefined
+  });
+  
+  // Provide more detailed error in development
+  const errorResponse: any = { 
+    message: err.message || 'Internal Server Error' 
+  };
+  
+  if (process.env.NODE_ENV === 'development') {
+    errorResponse.stack = err.stack;
+    errorResponse.details = err;
+  }
+  
+  // Handle specific error types with appropriate status codes
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ 
+      message: 'Validation Error', 
+      errors: Object.values(err.errors).map((e: any) => e.message),
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  }
+  
+  if (err.name === 'CastError') {
+    return res.status(400).json({ 
+      message: 'Invalid ID format',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  }
+  
+  if (err.code === 11000) {
+    return res.status(400).json({ 
+      message: 'Duplicate entry',
+      field: Object.keys(err.keyValue)[0],
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  }
+  
+  res.status(err.statusCode || 500).json(errorResponse);
 });
 
 

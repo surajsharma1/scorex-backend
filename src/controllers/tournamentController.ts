@@ -2,10 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import Tournament from '../models/Tournament';
 import Team from '../models/Team';
 import Match from '../models/Match';
+import logger from '../utils/logger';
 
 // Create a new tournament
 export const createTournament = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    logger.info('Creating tournament:', { body: req.body, userId: (req as any).user?._id });
+    
     const { name, organizer, startDate, endDate, location, locationType, type } = req.body;
     
     // Safely extract the user ID using 'any' casting
@@ -16,8 +19,14 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
       createdBy: userId 
     });
 
+    logger.info('Tournament created successfully:', { tournamentId: tournament._id });
     res.status(201).json({ success: true, data: tournament });
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('Create tournament error:', { 
+      error: error.message, 
+      stack: error.stack,
+      body: req.body 
+    });
     next(error);
   }
 };
@@ -27,7 +36,8 @@ export const getTournaments = async (req: Request, res: Response, next: NextFunc
   try {
     const tournaments = await Tournament.find().populate('teams', 'name logo');
     res.status(200).json({ success: true, count: tournaments.length, data: tournaments });
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('Get tournaments error:', { error: error.message, stack: error.stack });
     next(error);
   }
 };
@@ -42,7 +52,8 @@ export const getTournamentById = async (req: Request, res: Response, next: NextF
     if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
 
     res.status(200).json({ success: true, data: tournament });
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('Get tournament by ID error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
     next(error);
   }
 };
@@ -62,7 +73,8 @@ export const addTeamToTournament = async (req: Request, res: Response, next: Nex
     await tournament.save();
 
     res.status(200).json({ success: true, data: tournament });
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('Add team to tournament error:', { error: error.message, stack: error.stack });
     next(error);
   }
 };
@@ -103,7 +115,8 @@ export const generateFixtures = async (req: Request, res: Response, next: NextFu
     await tournament.save();
 
     res.status(201).json({ success: true, message: `Generated ${createdMatches.length} fixtures`, data: createdMatches });
-  } catch (error) {
+  } catch (error: any) {
+    logger.error('Generate fixtures error:', { error: error.message, stack: error.stack });
     next(error);
   }
 };

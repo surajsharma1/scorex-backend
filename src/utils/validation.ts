@@ -34,12 +34,12 @@ export const loginSchema = z.object({
 // Tournament validation schemas
 export const createTournamentSchema = z.object({
   name: z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  format: z.string().min(1, 'Format is required'),
-  startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid date format'),
-  numberOfTeams: z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
-  status: z.enum(['upcoming', 'active', 'completed']).optional(),
-  liveMatchUrl: z.string().url('Invalid URL format').optional(),
+  organizer: z.string().min(1, 'Organizer is required').max(100, 'Organizer name must be less than 100 characters'),
+  startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid start date format'),
+  endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid end date format'),
+  location: z.string().min(1, 'Location is required').max(200, 'Location must be less than 200 characters'),
+  locationType: z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium'], 'Invalid location type'),
+  type: z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom'], 'Invalid tournament type'),
 });
 
 export const updateTournamentSchema = createTournamentSchema.partial();
