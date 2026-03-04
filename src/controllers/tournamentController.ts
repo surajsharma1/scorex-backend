@@ -9,6 +9,15 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
   try {
     logger.info('Creating tournament:', { body: req.body, userId: (req as any).user?._id });
     
+    // Handle undefined body - this shouldn't happen but has been observed in production
+    if (!req.body) {
+      logger.error('Request body is undefined! This indicates a body parser issue.');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid request: body is missing. Please ensure Content-Type is application/json' 
+      });
+    }
+    
     // Extract all possible fields from frontend and backend formats
     const { 
       name, 
@@ -23,6 +32,14 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
       teams 
     } = req.body;
     
+    // Validate name is provided (only required field)
+    if (!name) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Tournament name is required' 
+      });
+    }
+    
     // Safely extract the user ID using 'any' casting
     const userId = (req as any).user?._id || (req as any).user?.id;
 
@@ -30,8 +47,8 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
     const tournamentData: any = {
       name,
       organizer: organizer || 'Unknown Organizer', // Default organizer
-      startDate, 
-      endDate: endDate || startDate, // Default to startDate if no endDate
+      startDate: startDate || new Date().toISOString(), 
+      endDate: endDate || startDate || new Date().toISOString(),
       location: location || 'TBD', // Default location
       locationType: locationType || 'Outdoor', // Default location type
       type: type || 'League', // Default tournament type

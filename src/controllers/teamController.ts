@@ -12,11 +12,22 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
     const query = req.query.tournament ? { tournament: req.query.tournament } : {};
     const total = await Team.countDocuments(query);
-    const teams = await Team.find(query)
-      .populate('tournament')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    
+    let teams;
+    try {
+      teams = await Team.find(query)
+        .populate('tournament')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    } catch (populateError) {
+      // Fallback if populate fails (e.g., schema mismatch)
+      logger.warn('Tournament populate failed, returning teams without tournament data:', { error: populateError });
+      teams = await Team.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     const result = {
       teams,
