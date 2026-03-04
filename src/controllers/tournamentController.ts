@@ -9,15 +9,39 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
   try {
     logger.info('Creating tournament:', { body: req.body, userId: (req as any).user?._id });
     
-    const { name, organizer, startDate, endDate, location, locationType, type } = req.body;
+    // Extract all possible fields from frontend and backend formats
+    const { 
+      name, 
+      description,
+      organizer, 
+      startDate, 
+      endDate, 
+      location, 
+      locationType, 
+      type,
+      format,
+      teams 
+    } = req.body;
     
     // Safely extract the user ID using 'any' casting
     const userId = (req as any).user?._id || (req as any).user?.id;
 
-    const tournament = await Tournament.create({
-      name, organizer, startDate, endDate, location, locationType, type,
-      createdBy: userId 
-    });
+    // Provide defaults for required fields if not provided
+    const tournamentData: any = {
+      name,
+      organizer: organizer || 'Unknown Organizer', // Default organizer
+      startDate, 
+      endDate: endDate || startDate, // Default to startDate if no endDate
+      location: location || 'TBD', // Default location
+      locationType: locationType || 'Outdoor', // Default location type
+      type: type || 'League', // Default tournament type
+      createdBy: userId,
+      // Optional fields
+      ...(description && { description }),
+      teams: teams || [], // Frontend can pass team IDs
+    };
+
+    const tournament = await Tournament.create(tournamentData);
 
     logger.info('Tournament created successfully:', { tournamentId: tournament._id });
     res.status(201).json({ success: true, data: tournament });

@@ -32,14 +32,19 @@ export const loginSchema = z.object({
 });
 
 // Tournament validation schemas
+// Note: This schema accepts the frontend payload format
+// Additional fields are validated and mapped in the controller
 export const createTournamentSchema = z.object({
   name: z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
-  organizer: z.string().min(1, 'Organizer is required').max(100, 'Organizer name must be less than 100 characters'),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  organizer: z.string().max(100, 'Organizer name must be less than 100 characters').optional(),
   startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid start date format'),
-  endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid end date format'),
-  location: z.string().min(1, 'Location is required').max(200, 'Location must be less than 200 characters'),
-  locationType: z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium'], 'Invalid location type'),
-  type: z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom'], 'Invalid tournament type'),
+  endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
+  location: z.string().max(200, 'Location must be less than 200 characters').optional(),
+  locationType: z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium']).optional(),
+  type: z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom']).optional(),
+  format: z.string().optional(), // Frontend format field (T20, ODI, etc.)
+  teams: z.array(z.string()).optional(), // Frontend teams array
 });
 
 export const updateTournamentSchema = createTournamentSchema.partial();
