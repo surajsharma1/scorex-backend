@@ -9,7 +9,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import session from 'express-session';
-import connectDB from './config/database';
+import connectDB, { getDbStatus } from './config/database';
 import jwt from 'jsonwebtoken';
 import MongoStore from 'connect-mongo';
 import rateLimit from 'express-rate-limit';
@@ -217,19 +217,26 @@ app.use('/api/v1/leaderboard', leaderboardRoutes);
 // Health check endpoint
 app.get('/api/v1/health', async (req, res) => {
   try {
-    const mongoose = require('mongoose');
-    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const dbStatus = getDbStatus();
     const cacheService = require('./utils/cache').cacheService;
     const redisStatus = cacheService.isConnected ? 'connected' : 'disconnected';
 
-    res.status(200).json({
-      status: 'healthy',
+    const isHealthy = dbStatus.status === 'connected';
+    
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'healthy' : 'unhealthy',
       timestamp: new Date().toISOString(),
-      services: { database: dbStatus, redis: redisStatus },
+      services: { 
+        database: dbStatus.status,
+        redis: redisStatus 
+      },
       uptime: process.uptime(),
     });
   } catch (error) {
-    res.status(503).json({ status: 'unhealthy', error: (error as Error).message });
+    res.status(503).json({ 
+      status: 'unhealthy', 
+      error: (error as Error).message 
+    });
   }
 });
 

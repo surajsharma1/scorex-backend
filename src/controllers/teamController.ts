@@ -6,6 +6,17 @@ import logger from '../utils/logger';
 
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Check if database is connected first
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      logger.error('Database not connected:', { readyState: mongoose.connection.readyState });
+      res.status(503).json({ 
+        message: 'Database unavailable. Please try again later.',
+        code: 'DB_NOT_CONNECTED'
+      });
+      return;
+    }
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
