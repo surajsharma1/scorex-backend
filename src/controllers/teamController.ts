@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Team from '../models/Team';
 import Player from '../models/Player';
 import User from '../models/User';
@@ -7,7 +8,6 @@ import logger from '../utils/logger';
 export const getTeams = async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if database is connected first
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState !== 1) {
       logger.error('Database not connected:', { readyState: mongoose.connection.readyState });
       res.status(503).json({ 
@@ -22,29 +22,38 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
     const skip = (page - 1) * limit;
 
     const query = req.query.tournament ? { tournament: req.query.tournament } : {};
-    const total = await Team.countDocuments(query);
-    
-    let teams;
-    try {
-      teams = await Team.find(query)
-        .populate('tournament')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-    } catch (populateError) {
-      // Fallback if populate fails (e.g., schema mismatch)
-      logger.warn('Tournament populate failed, returning teams without tournament data:', { error: populateError });
-      teams = await Team.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+
+    // First, get total count
+    const total = await Team.countDocuments(query).catch(countError => {
+      logger.error('Count documents error:', { error: countError });
+      return 0;
+    });
+
+    // Get teams without populate first (more reliable)
+    let teams = await Team.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .catch(queryError => {
+        logger.error('Find teams error:', { error: queryError });
+        return [];
+      });
+
+    // Try to populate tournament data separately, don't fail if it doesn't work
+    if (teams.length > 0) {
+      try {
+        teams = await Team.populate(teams, { path: 'tournament', select: 'name status' });
+      } catch (populateError) {
+        logger.warn('Tournament populate failed:', { error: populateError });
+        // Teams still available without populated tournament data
+      }
     }
 
     const result = {
       teams,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit) || 1,
         totalItems: total,
         itemsPerPage: limit,
         hasNext: page * limit < total,
@@ -55,7 +64,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
     res.json(result);
   } catch (error) {
     logger.error('Get teams error:', { error: error instanceof Error ? error.message : 'Unknown error' });
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 

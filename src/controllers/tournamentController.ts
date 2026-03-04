@@ -75,11 +75,29 @@ export const createTournament = async (req: Request, res: Response, next: NextFu
 // Get all tournaments
 export const getTournaments = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const tournaments = await Tournament.find().populate('teams', 'name logo');
+    // Check if database is connected
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      logger.error('Database not connected:', { readyState: mongoose.connection.readyState });
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database unavailable. Please try again later.',
+        code: 'DB_NOT_CONNECTED'
+      });
+    }
+
+    const tournaments = await Tournament.find()
+      .populate('teams', 'name logo color')
+      .sort({ createdAt: -1 })
+      .catch(populateError => {
+        logger.warn('Teams populate failed, returning tournaments without teams:', { error: populateError });
+        return Tournament.find().sort({ createdAt: -1 });
+      });
+    
     res.status(200).json({ success: true, count: tournaments.length, data: tournaments });
   } catch (error: any) {
     logger.error('Get tournaments error:', { error: error.message, stack: error.stack });
-    next(error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
