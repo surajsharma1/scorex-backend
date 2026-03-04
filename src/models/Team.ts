@@ -1,35 +1,37 @@
-import mongoose, { Document, Schema } from 'mongoose';
-
-export interface IPlayer {
-  name: string;
-  role: string;
-  jerseyNumber: string;
-  image?: string;
-}
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface ITeam extends Document {
   name: string;
-  color: string;
   logo?: string;
-  tournament: mongoose.Types.ObjectId;
-  players: mongoose.Types.ObjectId[]; // Referenced players
-  createdBy: mongoose.Types.ObjectId;
-  deleted?: boolean;
-  deletedAt?: Date;
-  registrationFee?: number;
-  isPaid?: boolean;
+  captain?: Types.ObjectId;
+  players: Types.ObjectId[];
+  statistics: {
+    matchesPlayed: number;
+    won: number;
+    lost: number;
+    tied: number;
+    points: number;
+    netRunRate: number;
+  };
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const teamSchema = new Schema<ITeam>(
-  {
-    name: { type: String, required: true },
-    color: { type: String, required: true },
-    logo: String,
-    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+const TeamSchema = new Schema<ITeam>({
+  name: { type: String, required: true, trim: true },
+  logo: { type: String },
+  captain: { type: Schema.Types.ObjectId, ref: 'User' },
+  players: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  statistics: {
+    matchesPlayed: { type: Number, default: 0 },
+    won: { type: Number, default: 0 },
+    lost: { type: Number, default: 0 },
+    tied: { type: Number, default: 0 },
+    points: { type: Number, default: 0 },
+    netRunRate: { type: Number, default: 0.000 }
   },
-  { timestamps: true }
-);
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
 
-export default mongoose.model<ITeam>('Team', teamSchema);
+export default mongoose.model<ITeam>('Team', TeamSchema);

@@ -34,33 +34,39 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const tournamentSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
-    description: { type: String },
-    format: { type: String, required: true, default: 'T20' },
+const TournamentSchema = new mongoose_1.Schema({
+    name: { type: String, required: true, trim: true, maxlength: 150 },
+    organizer: { type: String, required: true, trim: true },
     startDate: { type: Date, required: true },
-    endDate: { type: Date },
-    status: {
+    endDate: { type: Date, required: true },
+    location: { type: String, required: true },
+    locationType: {
         type: String,
-        enum: ['upcoming', 'ongoing', 'completed'],
-        default: 'upcoming',
-        index: true
+        enum: ['Indoor', 'Outdoor', 'Street', 'Stadium'],
+        required: true
     },
-    // Arrays of IDs
+    type: {
+        type: String,
+        enum: ['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom'],
+        required: true
+    },
     teams: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' }],
     matches: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' }],
-    organizer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    isLive: { type: Boolean, default: false },
-    liveMatchUrl: { type: String },
-    deleted: { type: Boolean, default: false, index: true },
-    deletedAt: { type: Date },
-}, {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    status: {
+        type: String,
+        enum: ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'],
+        default: 'Upcoming'
+    },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
+// Validation to ensure logical dates
+TournamentSchema.pre('save', function (next) {
+    if (this.endDate < this.startDate) {
+        next(new Error('Tournament end date cannot be before the start date.'));
+    }
+    else {
+        next();
+    }
 });
-// Indexes for Dashboard & Ticker Performance
-tournamentSchema.index({ status: 1, startDate: -1 }); // Fast sorting for "Live/Upcoming"
-tournamentSchema.index({ deleted: 1, status: 1 });
-exports.default = mongoose_1.default.model('Tournament', tournamentSchema);
+exports.default = mongoose_1.default.model('Tournament', TournamentSchema);
 //# sourceMappingURL=Tournament.js.map

@@ -6,6 +6,15 @@ export interface IUser extends Document {
     role: 'viewer' | 'organizer' | 'admin';
     membershipLevel: 0 | 1 | 2;
     membershipExpiresAt?: Date;
+    membershipStartedAt?: Date;
+    membershipTimeline?: {
+        level: number;
+        status: 'active' | 'expired' | 'upgraded' | 'downgraded' | 'cancelled';
+        startedAt: Date;
+        endedAt?: Date;
+        paymentId?: string;
+        notes?: string;
+    }[];
     otp?: string;
     otpExpires?: Date;
     isVerified: boolean;

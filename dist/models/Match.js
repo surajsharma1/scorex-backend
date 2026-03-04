@@ -34,60 +34,73 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const matchSchema = new mongoose_1.Schema({
-    tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    team1: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
-    team2: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
-    date: { type: Date, required: true },
-    venue: String,
-    status: { type: String, enum: ['scheduled', 'ongoing', 'completed'], default: 'scheduled' },
-    score1: { type: Number, default: 0 },
-    score2: { type: Number, default: 0 },
-    wickets1: { type: Number, default: 0 },
-    wickets2: { type: Number, default: 0 },
-    overs1: { type: Number, default: 0 },
-    overs2: { type: Number, default: 0 },
-    winner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
-    tossWinner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
-    tossChoice: { type: String, enum: ['bat', 'bowl'] },
-    matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
-    // Video links
-    videoLink: String,
-    videoLinks: [String],
-    liveStreamUrl: String,
-    commentary: [{ type: String, default: [] }],
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    // Striker/Non-striker fields for live scoring
-    strikerName: { type: String, default: '' },
-    strikerRuns: { type: Number, default: 0 },
-    strikerBalls: { type: Number, default: 0 },
-    nonStrikerName: { type: String, default: '' },
-    nonStrikerRuns: { type: Number, default: 0 },
-    nonStrikerBalls: { type: Number, default: 0 },
-    // Bowler fields
-    bowlerName: { type: String, default: '' },
-    bowlerOvers: { type: Number, default: 0 },
-    bowlerMaidens: { type: Number, default: 0 },
-    bowlerRuns: { type: Number, default: 0 },
-    bowlerWickets: { type: Number, default: 0 },
-    // Computed stats
-    currentRunRate: { type: Number, default: 0 },
-    requiredRunRate: { type: Number, default: 0 },
-    target: { type: Number, default: 0 },
-    lastFiveOvers: { type: String, default: '-' },
-    // Point system for fantasy/display
-    team1Points: { type: Number, default: 0 },
-    team2Points: { type: Number, default: 0 },
-    // This over
-    thisOver: [String],
-    // Last event
-    lastEvent: String,
+const BallSchema = new mongoose_1.Schema({
+    overNumber: { type: Number, required: true },
+    ballNumber: { type: Number, required: true },
+    bowler: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
+    striker: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
+    nonStriker: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
+    runsOffBat: { type: Number, default: 0 },
+    extras: { type: Number, default: 0 },
+    extraType: { type: String, enum: ['None', 'WD', 'NB', 'B', 'LB', 'Penalty'], default: 'None' },
+    isWicket: { type: Boolean, default: false },
+    wicketType: {
+        type: String,
+        enum: [
+            'None', 'Bowled', 'Caught', 'Stumped', 'LBW', 'Run Out',
+            'Mankad', 'Retired', 'Hit Wicket', 'Obstructing the Field',
+            'Hit the Ball Twice', 'Timed Out', 'Over the Fence', 'One Hand One Bounce'
+        ],
+        default: 'None'
+    },
+    outPlayer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' },
+    fielder: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' },
+    timestamp: { type: Date, default: Date.now }
+});
+const InningsSchema = new mongoose_1.Schema({
+    battingTeam: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
+    bowlingTeam: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
+    totalRuns: { type: Number, default: 0 },
+    totalWickets: { type: Number, default: 0 },
+    totalOversBowled: { type: Number, default: 0 },
+    extrasTotal: { type: Number, default: 0 },
+    ballByBall: [BallSchema]
+});
+const MatchSchema = new mongoose_1.Schema({
+    tournamentId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
+    matchName: { type: String, required: true },
+    teamA: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
+    teamB: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
+    venue: { type: String, required: true },
+    matchDate: { type: Date, required: true },
+    format: {
+        type: String,
+        enum: ['T10', 'T20', 'Club', '100', 'ODI', 'Test', 'Custom'],
+        required: true
+    },
+    maxOvers: { type: Number, required: true },
+    playersPerSide: { type: Number, min: 2, max: 11, default: 11 },
+    customRules: {
+        lastManStanding: { type: Boolean, default: false }
+    },
+    toss: {
+        winner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
+        decision: { type: String, enum: ['Bat', 'Bowl', 'Pending'], default: 'Pending' }
+    },
+    currentInnings: { type: Number, default: 1 },
+    firstInnings: InningsSchema,
+    secondInnings: InningsSchema,
+    status: {
+        type: String,
+        enum: ['Scheduled', 'Toss Completed', 'First Innings', 'Second Innings', 'Completed', 'Abandoned'],
+        default: 'Scheduled'
+    },
+    result: {
+        winner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
+        margin: { type: String },
+        isDraw: { type: Boolean, default: false }
+    },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
-// Add indexes for performance
-matchSchema.index({ tournament: 1 });
-matchSchema.index({ date: 1 });
-matchSchema.index({ status: 1 });
-matchSchema.index({ createdBy: 1 });
-matchSchema.index({ tournament: 1, date: -1 });
-exports.default = mongoose_1.default.model('Match', matchSchema);
+exports.default = mongoose_1.default.model('Match', MatchSchema);
 //# sourceMappingURL=Match.js.map

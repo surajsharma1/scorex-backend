@@ -1,124 +1,109 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Tournament from '../models/Tournament';
+import Team from '../models/Team';
 import Match from '../models/Match';
 
-// Public endpoint for Ticker/Carousel
-export const getTournaments = async (req: Request, res: Response) => {
+// Create a new tournament
+export const createTournament = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // 1. Get recent tournaments
-    const tournaments = await Tournament.find({ deleted: false })
-      .sort({ startDate: -1 })
-      .limit(10)
-      .lean(); // Convert to plain JS objects for modification
+    const { name, organizer, startDate, endDate, location, locationType, type } = req.body;
+    
+    // Safely extract the user ID using 'any' casting
+    const userId = (req as any).user?._id || (req as any).user?.id;
 
-    // 2. Enhance with live match data if needed (Optional but "creative")
-    // This is a simple implementation to get "current runs"
-    const enhancedTournaments = await Promise.all(tournaments.map(async (t: any) => {
-      if (t.status === 'ongoing') {
-        // Find the latest ongoing match for this tournament
-        const activeMatch = await Match.findOne({ 
-          tournament: t._id, 
-          status: 'ongoing' 
-        }).select('score1 wickets1 score2 wickets2 battingTeam').sort({ updatedAt: -1 });
-        
-        if (activeMatch) {
-          t.activeMatch = activeMatch;
+    const tournament = await Tournament.create({
+      name, organizer, startDate, endDate, location, locationType, type,
+      createdBy: userId 
+    });
+
+    res.status(201).json({ success: true, data: tournament });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get all tournaments
+export const getTournaments = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournaments = await Tournament.find().populate('teams', 'name logo');
+    res.status(200).json({ success: true, count: tournaments.length, data: tournaments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get single tournament
+export const getTournamentById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id)
+      .populate('teams')
+      .populate({ path: 'matches', select: 'matchName teamA teamB matchDate status format' });
+
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+
+    res.status(200).json({ success: true, data: tournament });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Add Team
+export const addTeamToTournament = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { teamId } = req.body;
+    const tournament = await Tournament.findById(req.params.id);
+    
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    if (tournament.teams.includes(teamId)) {
+      return res.status(400).json({ success: false, message: 'Team already in tournament' });
+    }
+
+    tournament.teams.push(teamId);
+    await tournament.save();
+
+    res.status(200).json({ success: true, data: tournament });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Auto-generate Fixtures
+export const generateFixtures = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id).populate('teams');
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    if (tournament.teams.length < 2) return res.status(400).json({ success: false, message: 'Need at least 2 teams' });
+
+    const matchesToCreate = [];
+    const teams = tournament.teams;
+    const userId = (req as any).user?._id || (req as any).user?.id;
+
+    if (tournament.type === 'Round Robin') {
+      let matchCount = 1;
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          matchesToCreate.push({
+            tournamentId: tournament._id,
+            matchName: `Match ${matchCount}`,
+            teamA: teams[i]._id,
+            teamB: teams[j]._id,
+            venue: tournament.location,
+            matchDate: tournament.startDate,
+            format: 'T20',
+            maxOvers: 20,
+            createdBy: userId
+          });
+          matchCount++;
         }
       }
-      return t;
-    }));
-
-    // Return in format expected by frontend: { tournaments: [...] }
-    res.status(200).json({ tournaments: enhancedTournaments });
-  } catch (error: any) {
-    console.error('Fetch tournaments error:', error);
-    res.status(500).json({ message: 'Failed to fetch tournaments' });
-  }
-};
-
-export const getTournament = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const tournament = await Tournament.findById(id);
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
     }
-    res.status(200).json(tournament);
-  } catch (error: any) {
-    console.error('Fetch tournament error:', error);
-    res.status(500).json({ message: 'Failed to fetch tournament' });
-  }
-};
 
-export const createTournament = async (req: Request, res: Response) => {
-  try {
-    const { name, startDate, endDate, format, teams } = req.body;
-    // Ensure user is attached by auth middleware
-    const organizer = (req as any).user ? (req as any).user._id : null; 
-    
-    const newTournament = await Tournament.create({
-      name, startDate, endDate, format, teams, organizer, status: 'upcoming'
-    });
-    res.status(201).json(newTournament);
-  } catch(e: any) {
-    res.status(500).json({message: e.message});
-  }
-};
+    const createdMatches = await Match.insertMany(matchesToCreate);
+    tournament.matches.push(...createdMatches.map(m => m._id as any));
+    await tournament.save();
 
-export const updateTournament = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    const tournament = await Tournament.findByIdAndUpdate(id, updates, { new: true });
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.status(200).json(tournament);
-  } catch (error: any) {
-    console.error('Update tournament error:', error);
-    res.status(500).json({ message: 'Failed to update tournament' });
-  }
-};
-
-export const deleteTournament = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const tournament = await Tournament.findByIdAndUpdate(id, { deleted: true }, { new: true });
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.status(200).json({ message: 'Tournament deleted successfully' });
-  } catch (error: any) {
-    console.error('Delete tournament error:', error);
-    res.status(500).json({ message: 'Failed to delete tournament' });
-  }
-};
-
-export const goLive = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const tournament = await Tournament.findByIdAndUpdate(id, { status: 'ongoing' }, { new: true });
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.status(200).json(tournament);
-  } catch (error: any) {
-    console.error('Go live error:', error);
-    res.status(500).json({ message: 'Failed to start tournament' });
-  }
-};
-
-export const updateLiveScores = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { scores } = req.body;
-    const tournament = await Tournament.findByIdAndUpdate(id, { liveScores: scores }, { new: true });
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.status(200).json(tournament);
-  } catch (error: any) {
-    console.error('Update live scores error:', error);
-    res.status(500).json({ message: 'Failed to update live scores' });
+    res.status(201).json({ success: true, message: `Generated ${createdMatches.length} fixtures`, data: createdMatches });
+  } catch (error) {
+    next(error);
   }
 };

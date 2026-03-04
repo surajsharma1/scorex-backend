@@ -17,9 +17,9 @@ export declare const createTournamentSchema: z.ZodObject<{
     startDate: z.ZodString;
     numberOfTeams: z.ZodNumber;
     status: z.ZodOptional<z.ZodEnum<{
+        active: "active";
         upcoming: "upcoming";
         completed: "completed";
-        active: "active";
     }>>;
     liveMatchUrl: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
@@ -30,9 +30,9 @@ export declare const updateTournamentSchema: z.ZodObject<{
     startDate: z.ZodOptional<z.ZodString>;
     numberOfTeams: z.ZodOptional<z.ZodNumber>;
     status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+        active: "active";
         upcoming: "upcoming";
         completed: "completed";
-        active: "active";
     }>>>;
     liveMatchUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
@@ -85,10 +85,10 @@ export declare const updateMatchSchema: z.ZodObject<{
         team2: z.ZodNumber;
     }, z.core.$strip>>;
     status: z.ZodOptional<z.ZodEnum<{
+        cancelled: "cancelled";
         completed: "completed";
         scheduled: "scheduled";
         in_progress: "in_progress";
-        cancelled: "cancelled";
     }>>;
 }, z.core.$strip>;
 export declare const validateRequest: (schema: z.ZodSchema) => (req: any, res: any, next: any) => any;

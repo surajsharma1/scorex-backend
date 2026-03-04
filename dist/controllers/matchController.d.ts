@@ -1,11 +1,7 @@
-import { Request, Response } from 'express';
-export declare const getMatches: (req: Request, res: Response) => Promise<void>;
-export declare const getLiveMatches: (req: Request, res: Response) => Promise<void>;
-export declare const getMatch: (req: Request, res: Response) => Promise<void>;
-export declare const createMatch: (req: Request, res: Response) => Promise<void>;
-export declare const updateMatch: (req: Request, res: Response) => Promise<void>;
-export declare const updateMatchScore: (req: Request, res: Response) => Promise<void>;
-export declare const deleteMatch: (req: Request, res: Response) => Promise<void>;
-export declare const addCommentary: (req: Request, res: Response) => Promise<void>;
-export declare const getCommentary: (req: Request, res: Response) => Promise<void>;
+import { Request, Response, NextFunction } from 'express';
+export declare const createMatch: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const startMatch: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const scoreBall: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const undoLastBall: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getMatchById: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=matchController.d.ts.map

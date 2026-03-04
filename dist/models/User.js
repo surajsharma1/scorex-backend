@@ -45,6 +45,16 @@ const UserSchema = new mongoose_1.Schema({
     role: { type: String, enum: ['viewer', 'organizer', 'admin'], default: 'viewer' },
     membershipLevel: { type: Number, default: 0, enum: [0, 1, 2] },
     membershipExpiresAt: { type: Date },
+    membershipStartedAt: { type: Date },
+    // Membership Timeline - tracks all membership status changes
+    membershipTimeline: [{
+            level: { type: Number, required: true },
+            status: { type: String, enum: ['active', 'expired', 'upgraded', 'downgraded', 'cancelled'], default: 'active' },
+            startedAt: { type: Date, default: Date.now },
+            endedAt: { type: Date },
+            paymentId: { type: String },
+            notes: { type: String }
+        }],
     // Verification Fields (Critical for OTP)
     otp: { type: String, select: false }, // Select false means it won't be returned in queries unless requested
     otpExpires: { type: Date, select: false },

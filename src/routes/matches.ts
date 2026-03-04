@@ -1,29 +1,27 @@
-import express from 'express';
-import {
-  getMatches,
-  getMatch,
-  createMatch,
-  updateMatch,
-  deleteMatch,
-  updateMatchScore,
-  addCommentary,
-  getCommentary,
+import { Router, RequestHandler } from 'express';
+import { 
+  createMatch, 
+  getMatchById, 
+  startMatch, 
+  scoreBall, 
+  undoLastBall 
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
-import { AuthRequest } from '../middleware/auth';
 
-const router = express.Router();
+const router = Router();
 
-// Public routes - anyone can view matches
-router.get('/', getMatches);
-router.get('/:id', getMatch); // Get single match for overlay data
-router.get('/:id/commentary', getCommentary);
+// Public route to view live scores
+router.get('/:id', getMatchById);
 
-// Protected routes - require authentication
-router.post('/', protect as any, createMatch);
-router.put('/:id', protect as any, updateMatch);
-router.put('/:id/score', protect as any, updateMatchScore);
-router.post('/:id/commentary', protect as any, addCommentary);
-router.delete('/:id', protect as any, deleteMatch);
+// Protected Routes
+router.use(protect as unknown as RequestHandler);
+
+// Match management
+router.post('/', createMatch);
+router.put('/:id/start', startMatch);
+
+// Live Scoring Engine
+router.post('/:id/score', scoreBall);
+router.post('/:id/undo', undoLastBall);
 
 export default router;

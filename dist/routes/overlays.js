@@ -21,6 +21,11 @@ router.get('/templates', (req, res, next) => {
         (0, overlayController_1.getOverlayTemplates)(req, res);
     });
 });
+router.get('/membership-status', (req, res, next) => {
+    auth_1.protect(req, res, () => {
+        (0, overlayController_1.getMembershipStatus)(req, res);
+    });
+});
 router.post('/', (req, res, next) => {
     auth_1.protect(req, res, () => {
         (0, overlayController_1.createOverlay)(req, res);
@@ -39,6 +44,11 @@ router.put('/:id', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
     auth_1.protect(req, res, () => {
         (0, overlayController_1.deleteOverlay)(req, res);
+    });
+});
+router.post('/:id/regenerate', (req, res, next) => {
+    auth_1.protect(req, res, () => {
+        (0, overlayController_1.regenerateOverlayUrl)(req, res);
     });
 });
 exports.default = router;

@@ -46,7 +46,23 @@ const OverlaySchema = new mongoose_1.Schema({
     elements: { type: Array, default: [] },
     tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
     match: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    // Membership tracking fields
+    requiredMembershipLevel: {
+        type: Number,
+        default: 1,
+        enum: [0, 1, 2]
+    }, // Minimum membership required to access (1 = Basic, 2 = Premium)
+    membershipAtCreation: {
+        type: Number,
+        default: 0,
+        enum: [0, 1, 2]
+    }, // Membership level when overlay was created
+    // URL expiry tracking - 24 hours from creation/regeneration
+    urlExpiresAt: {
+        type: Date,
+        default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // Default: 24 hours from now
+    }
 }, {
     timestamps: true
 });

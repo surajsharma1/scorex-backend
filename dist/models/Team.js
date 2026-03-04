@@ -34,13 +34,20 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const teamSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    color: { type: String, required: true },
-    logo: String,
-    tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    players: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' }],
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+const TeamSchema = new mongoose_1.Schema({
+    name: { type: String, required: true, trim: true },
+    logo: { type: String },
+    captain: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    players: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
+    statistics: {
+        matchesPlayed: { type: Number, default: 0 },
+        won: { type: Number, default: 0 },
+        lost: { type: Number, default: 0 },
+        tied: { type: Number, default: 0 },
+        points: { type: Number, default: 0 },
+        netRunRate: { type: Number, default: 0.000 }
+    },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
-exports.default = mongoose_1.default.model('Team', teamSchema);
+exports.default = mongoose_1.default.model('Team', TeamSchema);
 //# sourceMappingURL=Team.js.map

@@ -1,24 +1,23 @@
-import mongoose, { Document } from 'mongoose';
-export interface IPlayer {
-    name: string;
-    role: string;
-    jerseyNumber: string;
-    image?: string;
-}
+import mongoose, { Document, Types } from 'mongoose';
 export interface ITeam extends Document {
     name: string;
-    color: string;
     logo?: string;
-    tournament: mongoose.Types.ObjectId;
-    players: mongoose.Types.ObjectId[];
-    createdBy: mongoose.Types.ObjectId;
-    deleted?: boolean;
-    deletedAt?: Date;
-    registrationFee?: number;
-    isPaid?: boolean;
+    captain?: Types.ObjectId;
+    players: Types.ObjectId[];
+    statistics: {
+        matchesPlayed: number;
+        won: number;
+        lost: number;
+        tied: number;
+        points: number;
+        netRunRate: number;
+    };
+    createdBy: Types.ObjectId;
+    createdAt: Date;
+    updatedAt: Date;
 }
 declare const _default: mongoose.Model<ITeam, {}, {}, {}, mongoose.Document<unknown, {}, ITeam> & ITeam & {
-    _id: mongoose.Types.ObjectId;
+    _id: Types.ObjectId;
 }, any>;
 export default _default;
 //# sourceMappingURL=Team.d.ts.map

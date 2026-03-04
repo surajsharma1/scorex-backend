@@ -38,18 +38,22 @@ const server = createServer(app);
 // Get allowed origins from environment
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',')
-  : ['http://localhost:3000', 'https://scorex-live.vercel.app'];
+  : ['http://localhost:3000', 'http://localhost:5173', 'https://scorex-live.vercel.app'];
 
+// Initialize Socket.io with CORS
 export const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   },
   // Handle ping/pong for keepalive
   pingTimeout: 60000,
   pingInterval: 25000,
 });
+
+// CRITICAL: Make the 'io' instance available globally so our controllers can trigger broadcasts
+app.set('io', io);
 
 // Connect to MongoDB
 connectDB();
@@ -141,7 +145,7 @@ passport.deserializeUser(async (id, done) => {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -238,9 +242,16 @@ app.use('/overlays', express.static(overlaysPath));
 app.use('/overlay', express.static(overlaysPath)); // Legacy path support
 console.log('Serving overlays from:', overlaysPath);
 
-// Socket.io
+// Socket.io Connection Logic
 io.on('connection', (socket) => {
   logger.info(`User connected: ${socket.id}`);
+  console.log(`New client connected: ${socket.id}`);
+
+  // When a user opens a live match page, they join a "room" specific to that match (From your snippet)
+  socket.on('join_match', (matchId: string) => {
+    socket.join(matchId);
+    console.log(`Socket ${socket.id} joined match room: ${matchId}`);
+  });
 
   // Join tournament room for real-time score updates
   socket.on('joinTournament', (tournamentId: string) => {
@@ -254,7 +265,7 @@ io.on('connection', (socket) => {
     logger.info(`User ${socket.id} left tournament: ${tournamentId}`);
   });
 
-  // Join match room for detailed updates
+  // Join match room for detailed updates (Legacy support)
   socket.on('joinMatch', (matchId: string) => {
     socket.join(`match:${matchId}`);
     logger.info(`User ${socket.id} joined match: ${matchId}`);
@@ -317,6 +328,7 @@ io.on('connection', (socket) => {
   // Disconnect handling
   socket.on('disconnect', () => {
     logger.info(`User disconnected: ${socket.id}`);
+    console.log(`Client disconnected: ${socket.id}`);
   });
 });
 
@@ -327,9 +339,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 const PORT = process.env.PORT || 5000;
-console.log(`Starting server on port ${PORT}`);
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running with WebSockets on port ${PORT}`);
 });
 
 app.get('/api/auth/auto-login', async (req, res) => {

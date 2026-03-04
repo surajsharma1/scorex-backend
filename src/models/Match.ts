@@ -1,137 +1,138 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export interface IMatch extends Document {
-  tournament: mongoose.Types.ObjectId;
-  team1: mongoose.Types.ObjectId;
-  team2: mongoose.Types.ObjectId;
-  date: Date;
-  venue?: string;
-  status: 'scheduled' | 'ongoing' | 'completed';
-  score1?: number;
-  score2?: number;
-  wickets1?: number;
-  wickets2?: number;
-  overs1?: number;
-  overs2?: number;
-  winner?: mongoose.Types.ObjectId;
-  tossWinner?: mongoose.Types.ObjectId;
-  tossChoice?: 'bat' | 'bowl';
-  matchType?: 'League' | 'Quarter-Final' | 'Semi-Final' | 'Final' | 'Playoff';
-
-  // Video links - single and multiple
-  videoLink?: string;
-  videoLinks?: string[];
-  liveStreamUrl?: string;
-  
-  commentary: string[];
-  createdBy: mongoose.Types.ObjectId;
-  
-  // Striker/Non-striker fields for live scoring
-  strikerName?: string;
-  strikerRuns?: number;
-  strikerBalls?: number;
-  nonStrikerName?: string;
-  nonStrikerRuns?: number;
-  nonStrikerBalls?: number;
-  
-  // Bowler fields
-  bowlerName?: string;
-  bowlerOvers?: number;
-  bowlerMaidens?: number;
-  bowlerRuns?: number;
-  bowlerWickets?: number;
-  
-  // Computed stats
-  currentRunRate?: number;
-  requiredRunRate?: number;
-  target?: number;
-  lastFiveOvers?: string;
-  
-  // Point system for fantasy/display
-  team1Points?: number;
-  team2Points?: number;
-  
-  // This over balls
-  thisOver?: string[];
-  
-  // Last event for notifications
-  lastEvent?: string;
-  
-  // Overlay linked to this match
-  overlayId?: mongoose.Types.ObjectId;
+// Represents a single delivery in the match for live scoring and undo features
+export interface IBall {
+  overNumber: number;
+  ballNumber: number; // 1 to 6 (or more if extras)
+  bowler: Types.ObjectId;
+  striker: Types.ObjectId;
+  nonStriker: Types.ObjectId;
+  runsOffBat: number; // 0, 1, 2, 3, 4, 5, 6, 7, etc.
+  extras: number;
+  extraType: 'None' | 'WD' | 'NB' | 'B' | 'LB' | 'Penalty';
+  isWicket: boolean;
+  wicketType: 'None' | 'Bowled' | 'Caught' | 'Stumped' | 'LBW' | 'Run Out' | 'Mankad' | 'Retired' | 'Hit Wicket' | 'Obstructing the Field' | 'Hit the Ball Twice' | 'Timed Out' | 'Over the Fence' | 'One Hand One Bounce';
+  outPlayer?: Types.ObjectId;
+  fielder?: Types.ObjectId;
+  timestamp: Date;
 }
 
+export interface IInnings {
+  battingTeam: Types.ObjectId;
+  bowlingTeam: Types.ObjectId;
+  totalRuns: number;
+  totalWickets: number;
+  totalOversBowled: number; // e.g., 4.2
+  extrasTotal: number;
+  ballByBall: IBall[];
+}
 
-const matchSchema = new Schema<IMatch>(
-  {
-    tournament: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    team1: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
-    team2: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
-    date: { type: Date, required: true },
-    venue: String,
-    status: { type: String, enum: ['scheduled', 'ongoing', 'completed'], default: 'scheduled' },
-    score1: { type: Number, default: 0 },
-    score2: { type: Number, default: 0 },
-    wickets1: { type: Number, default: 0 },
-    wickets2: { type: Number, default: 0 },
-    overs1: { type: Number, default: 0 },
-    overs2: { type: Number, default: 0 },
-    winner: { type: Schema.Types.ObjectId, ref: 'Team' },
-    tossWinner: { type: Schema.Types.ObjectId, ref: 'Team' },
-    tossChoice: { type: String, enum: ['bat', 'bowl'] },
-    matchType: { type: String, enum: ['League', 'Quarter-Final', 'Semi-Final', 'Final', 'Playoff'] },
+export interface IMatch extends Document {
+  tournamentId: Types.ObjectId;
+  matchName: string; // e.g., "Qualifier 1" or "Final"
+  teamA: Types.ObjectId;
+  teamB: Types.ObjectId;
+  venue: string;
+  matchDate: Date;
+  
+  // Format details
+  format: 'T10' | 'T20' | 'Club' | '100' | 'ODI' | 'Test' | 'Custom';
+  maxOvers: number;
+  playersPerSide: number; // custom from 2 to 11
+  customRules: {
+    overTheFenceOut: boolean;
+    lastManStanding: boolean;
+  };
 
-    // Video links
-    videoLink: String,
-    videoLinks: [String],
-    liveStreamUrl: String,
-    
-    commentary: [{ type: String, default: [] }],
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  // Live Match State
+  toss: {
+    winner?: Types.ObjectId;
+    decision: 'Bat' | 'Bowl' | 'Pending';
+  };
+  currentInnings: 1 | 2 | 3 | 4; // 3 and 4 used for Test matches
+  firstInnings?: IInnings;
+  secondInnings?: IInnings;
+  
+  status: 'Scheduled' | 'Toss Completed' | 'First Innings' | 'Second Innings' | 'Completed' | 'Abandoned';
+  result?: {
+    winner?: Types.ObjectId;
+    margin?: string; // e.g., "Team A won by 4 wickets"
+    isDraw: boolean;
+  };
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-    // Striker/Non-striker fields for live scoring
-    strikerName: { type: String, default: '' },
-    strikerRuns: { type: Number, default: 0 },
-    strikerBalls: { type: Number, default: 0 },
-    nonStrikerName: { type: String, default: '' },
-    nonStrikerRuns: { type: Number, default: 0 },
-    nonStrikerBalls: { type: Number, default: 0 },
-    
-    // Bowler fields
-    bowlerName: { type: String, default: '' },
-    bowlerOvers: { type: Number, default: 0 },
-    bowlerMaidens: { type: Number, default: 0 },
-    bowlerRuns: { type: Number, default: 0 },
-    bowlerWickets: { type: Number, default: 0 },
-    
-    // Computed stats
-    currentRunRate: { type: Number, default: 0 },
-    requiredRunRate: { type: Number, default: 0 },
-    target: { type: Number, default: 0 },
-    lastFiveOvers: { type: String, default: '-' },
-
-    // Point system for fantasy/display
-    team1Points: { type: Number, default: 0 },
-    team2Points: { type: Number, default: 0 },
-    
-    // This over
-    thisOver: [String],
-    
-    // Last event
-    lastEvent: String,
-
-    // Overlay linked to this match
-    overlayId: { type: Schema.Types.ObjectId, ref: 'Overlay' },
-
+const BallSchema = new Schema<IBall>({
+  overNumber: { type: Number, required: true },
+  ballNumber: { type: Number, required: true },
+  bowler: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  striker: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  nonStriker: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  runsOffBat: { type: Number, default: 0 },
+  extras: { type: Number, default: 0 },
+  extraType: { type: String, enum: ['None', 'WD', 'NB', 'B', 'LB', 'Penalty'], default: 'None' },
+  isWicket: { type: Boolean, default: false },
+  wicketType: { 
+    type: String, 
+    enum: [
+      'None', 'Bowled', 'Caught', 'Stumped', 'LBW', 'Run Out', 
+      'Mankad', 'Retired', 'Hit Wicket', 'Obstructing the Field', 
+      'Hit the Ball Twice', 'Timed Out', 'Over the Fence', 'One Hand One Bounce'
+    ],
+    default: 'None'
   },
-  { timestamps: true }
-);
+  outPlayer: { type: Schema.Types.ObjectId, ref: 'Player' },
+  fielder: { type: Schema.Types.ObjectId, ref: 'Player' },
+  timestamp: { type: Date, default: Date.now }
+});
 
-// Add indexes for performance
-matchSchema.index({ tournament: 1 });
-matchSchema.index({ date: 1 });
-matchSchema.index({ status: 1 });
-matchSchema.index({ createdBy: 1 });
-matchSchema.index({ tournament: 1, date: -1 });
+const InningsSchema = new Schema<IInnings>({
+  battingTeam: { type: Schema.Types.ObjectId, ref: 'Team' },
+  bowlingTeam: { type: Schema.Types.ObjectId, ref: 'Team' },
+  totalRuns: { type: Number, default: 0 },
+  totalWickets: { type: Number, default: 0 },
+  totalOversBowled: { type: Number, default: 0 },
+  extrasTotal: { type: Number, default: 0 },
+  ballByBall: [BallSchema]
+});
 
-export default mongoose.model<IMatch>('Match', matchSchema);
+const MatchSchema = new Schema<IMatch>({
+  tournamentId: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
+  matchName: { type: String, required: true },
+  teamA: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+  teamB: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+  venue: { type: String, required: true },
+  matchDate: { type: Date, required: true },
+  format: { 
+    type: String, 
+    enum: ['T10', 'T20', 'Club', '100', 'ODI', 'Test', 'Custom'], 
+    required: true 
+  },
+  maxOvers: { type: Number, required: true },
+  playersPerSide: { type: Number, min: 2, max: 11, default: 11 },
+  customRules: {
+    lastManStanding: { type: Boolean, default: false }
+  },
+  toss: {
+    winner: { type: Schema.Types.ObjectId, ref: 'Team' },
+    decision: { type: String, enum: ['Bat', 'Bowl', 'Pending'], default: 'Pending' }
+  },
+  currentInnings: { type: Number, default: 1 },
+  firstInnings: InningsSchema,
+  secondInnings: InningsSchema,
+  status: { 
+    type: String, 
+    enum: ['Scheduled', 'Toss Completed', 'First Innings', 'Second Innings', 'Completed', 'Abandoned'], 
+    default: 'Scheduled' 
+  },
+  result: {
+    winner: { type: Schema.Types.ObjectId, ref: 'Team' },
+    margin: { type: String },
+    isDraw: { type: Boolean, default: false }
+  },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
+
+export default mongoose.model<IMatch>('Match', MatchSchema);

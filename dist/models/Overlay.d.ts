@@ -14,6 +14,9 @@ export interface IOverlay extends Document {
     tournament?: mongoose.Types.ObjectId;
     match?: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
+    requiredMembershipLevel: number;
+    membershipAtCreation: number;
+    urlExpiresAt: Date;
     createdAt: Date;
     updatedAt: Date;
 }
