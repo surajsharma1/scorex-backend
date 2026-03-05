@@ -68,28 +68,40 @@ router.post('/google', authController_1.googleLogin);
 // Google OAuth
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', (req, res, next) => {
+    console.log('[Google OAuth] Callback route hit:', {
+        query: req.query,
+        params: req.params,
+        path: req.path
+    });
     passport_1.default.authenticate('google', (err, user, info) => {
+        console.log('[Google OAuth] Passport authenticate result:', {
+            err: err?.message,
+            user: user ? { id: user._id, email: user.email } : null,
+            info: info
+        });
         if (err) {
             console.error('Google OAuth error:', err);
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: 'Unauthorized', error: err.message });
         }
         if (!user) {
             if (info && info.pendingGoogleUser) {
                 // New user: redirect to register with prefilled details
                 const { email, fullName, googleId } = info.pendingGoogleUser;
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+                console.log('[Google OAuth] Redirecting new user to register:', { email, fullName, googleId });
                 const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
                 res.redirect(registerUrl);
             }
             else {
-                console.error('Google OAuth failed:', info);
-                return res.status(401).json({ message: 'Unauthorized' });
+                console.error('Google OAuth failed - no user and no info:', info);
+                return res.status(401).json({ message: 'Unauthorized', reason: 'No user found' });
             }
         }
         else {
             // Existing user: generate token and redirect to login page (which will process the token)
             try {
                 const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+                console.log('[Google OAuth] Existing user, redirecting with token');
                 res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
             }
             catch (error) {

@@ -3,12 +3,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMatchById = exports.undoLastBall = exports.scoreBall = exports.startMatch = exports.createMatch = void 0;
+exports.getAllMatches = exports.getMatchById = exports.undoLastBall = exports.scoreBall = exports.startMatch = exports.createMatch = void 0;
 const Match_1 = __importDefault(require("../models/Match"));
 const createMatch = async (req, res, next) => {
     try {
         const userId = req.user?._id || req.user?.id;
-        const match = await Match_1.default.create({ ...req.body, createdBy: userId });
+        // Map frontend field names to backend field names
+        const matchData = {
+            tournamentId: req.body.tournament || req.body.tournamentId,
+            matchName: req.body.matchName || `Match ${new Date().toLocaleDateString()}`,
+            teamA: req.body.team1 || req.body.teamA,
+            teamB: req.body.team2 || req.body.teamB,
+            venue: req.body.venue || 'TBD',
+            matchDate: req.body.date || req.body.matchDate || new Date(),
+            format: req.body.format || req.body.matchType || 'Club',
+            maxOvers: req.body.maxOvers || 20,
+            playersPerSide: req.body.playersPerSide || 11,
+            videoLink: req.body.videoLink || req.body.videoLinks?.[0] || '',
+            videoLinks: req.body.videoLinks || [],
+        };
+        const match = await Match_1.default.create({ ...matchData, createdBy: userId });
         res.status(201).json({ success: true, data: match });
     }
     catch (error) {
@@ -78,10 +92,12 @@ const scoreBall = async (req, res, next) => {
             }
         }
         await match.save();
-        // Broadcast update
+        // Broadcast update to both room formats for compatibility
         const io = req.app.get('io');
-        if (io)
+        if (io) {
             io.to(matchId).emit('match_updated', match);
+            io.to(`match:${matchId}`).emit('match_updated', match);
+        }
         res.status(200).json({ success: true, data: match });
     }
     catch (error) {
@@ -124,10 +140,12 @@ const undoLastBall = async (req, res, next) => {
             // Logic to revert status back to Live if needed
         }
         await match.save();
-        // Broadcast undo
+        // Broadcast undo to both room formats for compatibility
         const io = req.app.get('io');
-        if (io)
+        if (io) {
             io.to(matchId).emit('match_updated', match);
+            io.to(`match:${matchId}`).emit('match_updated', match);
+        }
         res.status(200).json({ success: true, data: match });
     }
     catch (error) {
@@ -138,6 +156,8 @@ exports.undoLastBall = undoLastBall;
 const getMatchById = async (req, res, next) => {
     try {
         const match = await Match_1.default.findById(req.params.id).populate('teamA').populate('teamB');
+        if (!match)
+            return res.status(404).json({ success: false, message: 'Match not found' });
         res.status(200).json({ success: true, data: match });
     }
     catch (error) {
@@ -145,4 +165,31 @@ const getMatchById = async (req, res, next) => {
     }
 };
 exports.getMatchById = getMatchById;
+const getAllMatches = async (req, res, next) => {
+    try {
+        const { tournament, status } = req.query;
+        // Build filter object - Note: Match model uses 'tournamentId' not 'tournament'
+        const filter = {};
+        if (tournament) {
+            filter.tournamentId = tournament;
+        }
+        if (status) {
+            filter.status = status;
+        }
+        const matches = await Match_1.default.find(filter)
+            .populate('teamA')
+            .populate('teamB')
+            .populate('tournamentId')
+            .sort({ createdAt: -1 });
+        res.status(200).json({
+            success: true,
+            data: matches,
+            count: matches.length
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getAllMatches = getAllMatches;
 //# sourceMappingURL=matchController.js.map

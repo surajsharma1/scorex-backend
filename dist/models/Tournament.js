@@ -36,19 +36,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const TournamentSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true, maxlength: 150 },
-    organizer: { type: String, required: true, trim: true },
+    organizer: { type: String, default: 'Unknown Organizer' },
     startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
-    location: { type: String, required: true },
+    endDate: { type: Date },
+    location: { type: String, default: 'TBD' },
     locationType: {
         type: String,
         enum: ['Indoor', 'Outdoor', 'Street', 'Stadium'],
-        required: true
+        default: 'Outdoor'
     },
     type: {
         type: String,
         enum: ['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom'],
-        required: true
+        default: 'League'
     },
     teams: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' }],
     matches: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' }],

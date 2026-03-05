@@ -3,22 +3,57 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateFixtures = exports.addTeamToTournament = exports.getTournamentById = exports.getTournaments = exports.createTournament = void 0;
+exports.getTournamentMatches = exports.deleteTournament = exports.generateFixtures = exports.addTeamToTournament = exports.getTournamentById = exports.getTournaments = exports.createTournament = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const Match_1 = __importDefault(require("../models/Match"));
+const logger_1 = __importDefault(require("../utils/logger"));
 // Create a new tournament
 const createTournament = async (req, res, next) => {
     try {
-        const { name, organizer, startDate, endDate, location, locationType, type } = req.body;
+        logger_1.default.info('Creating tournament:', { body: req.body, userId: req.user?._id });
+        // Handle undefined body - this shouldn't happen but has been observed in production
+        if (!req.body) {
+            logger_1.default.error('Request body is undefined! This indicates a body parser issue.');
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid request: body is missing. Please ensure Content-Type is application/json'
+            });
+        }
+        // Extract all possible fields from frontend and backend formats
+        const { name, description, organizer, startDate, endDate, location, locationType, type, format, teams } = req.body;
+        // Validate name is provided (only required field)
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tournament name is required'
+            });
+        }
         // Safely extract the user ID using 'any' casting
         const userId = req.user?._id || req.user?.id;
-        const tournament = await Tournament_1.default.create({
-            name, organizer, startDate, endDate, location, locationType, type,
-            createdBy: userId
-        });
+        // Provide defaults for required fields if not provided
+        const tournamentData = {
+            name,
+            organizer: organizer || 'Unknown Organizer', // Default organizer
+            startDate: startDate || new Date().toISOString(),
+            endDate: endDate || startDate || new Date().toISOString(),
+            location: location || 'TBD', // Default location
+            locationType: locationType || 'Outdoor', // Default location type
+            type: type || 'League', // Default tournament type
+            createdBy: userId,
+            // Optional fields
+            ...(description && { description }),
+            teams: teams || [], // Frontend can pass team IDs
+        };
+        const tournament = await Tournament_1.default.create(tournamentData);
+        logger_1.default.info('Tournament created successfully:', { tournamentId: tournament._id });
         res.status(201).json({ success: true, data: tournament });
     }
     catch (error) {
+        logger_1.default.error('Create tournament error:', {
+            error: error.message,
+            stack: error.stack,
+            body: req.body
+        });
         next(error);
     }
 };
@@ -26,11 +61,28 @@ exports.createTournament = createTournament;
 // Get all tournaments
 const getTournaments = async (req, res, next) => {
     try {
-        const tournaments = await Tournament_1.default.find().populate('teams', 'name logo');
+        // Check if database is connected
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            logger_1.default.error('Database not connected:', { readyState: mongoose.connection.readyState });
+            return res.status(503).json({
+                success: false,
+                message: 'Database unavailable. Please try again later.',
+                code: 'DB_NOT_CONNECTED'
+            });
+        }
+        const tournaments = await Tournament_1.default.find()
+            .populate('teams', 'name logo color')
+            .sort({ createdAt: -1 })
+            .catch(populateError => {
+            logger_1.default.warn('Teams populate failed, returning tournaments without teams:', { error: populateError });
+            return Tournament_1.default.find().sort({ createdAt: -1 });
+        });
         res.status(200).json({ success: true, count: tournaments.length, data: tournaments });
     }
     catch (error) {
-        next(error);
+        logger_1.default.error('Get tournaments error:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 exports.getTournaments = getTournaments;
@@ -45,6 +97,7 @@ const getTournamentById = async (req, res, next) => {
         res.status(200).json({ success: true, data: tournament });
     }
     catch (error) {
+        logger_1.default.error('Get tournament by ID error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
         next(error);
     }
 };
@@ -64,6 +117,7 @@ const addTeamToTournament = async (req, res, next) => {
         res.status(200).json({ success: true, data: tournament });
     }
     catch (error) {
+        logger_1.default.error('Add team to tournament error:', { error: error.message, stack: error.stack });
         next(error);
     }
 };
@@ -104,8 +158,61 @@ const generateFixtures = async (req, res, next) => {
         res.status(201).json({ success: true, message: `Generated ${createdMatches.length} fixtures`, data: createdMatches });
     }
     catch (error) {
+        logger_1.default.error('Generate fixtures error:', { error: error.message, stack: error.stack });
         next(error);
     }
 };
 exports.generateFixtures = generateFixtures;
+// Delete Tournament
+const deleteTournament = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({ success: false, message: 'Tournament not found' });
+        }
+        // Check if user is authorized to delete (owner or admin)
+        const userId = req.user?._id || req.user?.id;
+        const userRole = req.user?.role;
+        if (tournament.createdBy?.toString() !== userId && userRole !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Not authorized to delete this tournament' });
+        }
+        // Delete associated matches
+        if (tournament.matches && tournament.matches.length > 0) {
+            await Match_1.default.deleteMany({ _id: { $in: tournament.matches } });
+        }
+        // Delete the tournament
+        await Tournament_1.default.findByIdAndDelete(req.params.id);
+        logger_1.default.info('Tournament deleted:', { tournamentId: req.params.id, userId });
+        res.status(200).json({ success: true, message: 'Tournament deleted successfully' });
+    }
+    catch (error) {
+        logger_1.default.error('Delete tournament error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
+        next(error);
+    }
+};
+exports.deleteTournament = deleteTournament;
+// Get Tournament Matches
+const getTournamentMatches = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({ success: false, message: 'Tournament not found' });
+        }
+        // Get matches from the tournament's matches array
+        const matches = await Match_1.default.find({ _id: { $in: tournament.matches } })
+            .populate('teamA')
+            .populate('teamB')
+            .sort({ matchDate: -1 });
+        res.status(200).json({
+            success: true,
+            data: matches,
+            count: matches.length
+        });
+    }
+    catch (error) {
+        logger_1.default.error('Get tournament matches error:', { error: error.message, tournamentId: req.params.id });
+        next(error);
+    }
+};
+exports.getTournamentMatches = getTournamentMatches;
 //# sourceMappingURL=tournamentController.js.map

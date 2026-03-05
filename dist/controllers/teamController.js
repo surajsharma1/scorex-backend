@@ -4,27 +4,59 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addPlayerByUsername = exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeams = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Player_1 = __importDefault(require("../models/Player"));
 const User_1 = __importDefault(require("../models/User"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const getTeams = async (req, res) => {
     try {
+        // Check if database is connected first
+        if (mongoose_1.default.connection.readyState !== 1) {
+            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
+            res.status(503).json({
+                message: 'Database unavailable. Please try again later.',
+                code: 'DB_NOT_CONNECTED'
+            });
+            return;
+        }
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         const query = req.query.tournament ? { tournament: req.query.tournament } : {};
-        const total = await Team_1.default.countDocuments(query);
-        const teams = await Team_1.default.find(query)
-            .populate('tournament')
+        // First, get total count
+        const total = await Team_1.default.countDocuments(query).catch(countError => {
+            logger_1.default.error('Count documents error:', { error: countError });
+            return 0;
+        });
+        // Get teams without populate first (more reliable)
+        let teams = await Team_1.default.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(limit);
+            .limit(limit)
+            .catch(queryError => {
+            logger_1.default.error('Find teams error:', { error: queryError });
+            return [];
+        });
+        // Try to populate tournament data separately, don't fail if it doesn't work
+        if (teams.length > 0) {
+            try {
+                teams = await Team_1.default.populate(teams, {
+                    path: 'tournament',
+                    select: 'name status',
+                    strictPopulate: false
+                });
+            }
+            catch (populateError) {
+                logger_1.default.warn('Tournament populate failed:', { error: populateError });
+                // Teams still available without populated tournament data
+            }
+        }
         const result = {
             teams,
             pagination: {
                 currentPage: page,
-                totalPages: Math.ceil(total / limit),
+                totalPages: Math.ceil(total / limit) || 1,
                 totalItems: total,
                 itemsPerPage: limit,
                 hasNext: page * limit < total,
@@ -34,8 +66,8 @@ const getTeams = async (req, res) => {
         res.json(result);
     }
     catch (error) {
-        logger_1.default.error('Get teams error:', { error: error instanceof Error ? error.message : 'Unknown error' });
-        res.status(500).json({ message: 'Server error' });
+        logger_1.default.error('Get teams error:', { error: error instanceof Error ? error.message : String(error) });
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 exports.getTeams = getTeams;

@@ -11,29 +11,43 @@ exports.registerSchema = zod_1.z.object({
     email: zod_1.z.string()
         .email('Invalid email format')
         .max(254, 'Email is too long'), // RFC 5321 limit
-    password: zod_1.z.string()
+    password: zod_1.z.preprocess((val) => (val === '' || val === undefined ? undefined : val), zod_1.z.string()
         .min(6, 'Password must be at least 6 characters')
         .max(100, 'Password must be less than 100 characters')
-        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character'),
+        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character')
+        .optional() // Optional for Google signup
+    ),
+    googleId: zod_1.z.string().optional(), // Google OAuth signup
     fullName: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string()
         .min(2, 'Full name must be at least 2 characters')
         .max(100, 'Full name must be less than 100 characters')
         .optional()),
     dob: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string().optional()),
+}).refine((data) => {
+    // Either password or googleId must be provided
+    return !!data.password || !!data.googleId;
+}, {
+    message: 'Either password or Google sign-up is required',
+    path: ['password'],
 });
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
     password: zod_1.z.string().min(1, 'Password is required'),
 });
 // Tournament validation schemas
+// Note: This schema accepts the frontend payload format
+// Additional fields are validated and mapped in the controller
 exports.createTournamentSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
     description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
-    format: zod_1.z.string().min(1, 'Format is required'),
-    startDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid date format'),
-    numberOfTeams: zod_1.z.number().int().min(2, 'Must allow at least 2 teams').max(100, 'Cannot exceed 100 teams'),
-    status: zod_1.z.enum(['upcoming', 'active', 'completed']).optional(),
-    liveMatchUrl: zod_1.z.string().url('Invalid URL format').optional(),
+    organizer: zod_1.z.string().max(100, 'Organizer name must be less than 100 characters').optional(),
+    startDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date format'),
+    endDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
+    location: zod_1.z.string().max(200, 'Location must be less than 200 characters').optional(),
+    locationType: zod_1.z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium']).optional(),
+    type: zod_1.z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom']).optional(),
+    format: zod_1.z.string().optional(), // Frontend format field (T20, ODI, etc.)
+    teams: zod_1.z.array(zod_1.z.string()).optional(), // Frontend teams array
 });
 exports.updateTournamentSchema = exports.createTournamentSchema.partial();
 // Team validation schemas

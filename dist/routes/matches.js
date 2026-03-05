@@ -4,6 +4,8 @@ const express_1 = require("express");
 const matchController_1 = require("../controllers/matchController");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
+// Public route to view all matches (supports filtering via query params)
+router.get('/', matchController_1.getAllMatches);
 // Public route to view live scores
 router.get('/:id', matchController_1.getMatchById);
 // Protected Routes

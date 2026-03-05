@@ -1,6 +1,8 @@
 import mongoose, { Document, Types } from 'mongoose';
 export interface ITeam extends Document {
     name: string;
+    color?: string;
+    tournament?: Types.ObjectId;
     logo?: string;
     captain?: Types.ObjectId;
     players: Types.ObjectId[];

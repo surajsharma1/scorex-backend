@@ -7,8 +7,18 @@ exports.deleteBracket = exports.updateBracket = exports.generateBracket = export
 const Bracket_1 = __importDefault(require("../models/Bracket"));
 const getBrackets = async (req, res) => {
     try {
-        const brackets = await Bracket_1.default.find({ createdBy: req.user?._id }) // Type assertion
-            .populate('tournament');
+        let brackets = await Bracket_1.default.find({ createdBy: req.user?._id });
+        // Try to populate tournament, but don't fail if it doesn't work
+        try {
+            brackets = await Bracket_1.default.populate(brackets, {
+                path: 'tournament',
+                strictPopulate: false
+            });
+        }
+        catch (populateError) {
+            console.warn('Bracket tournament populate warning:', populateError);
+            // Return brackets without populated tournament data
+        }
         res.json(brackets);
     }
     catch (error) {

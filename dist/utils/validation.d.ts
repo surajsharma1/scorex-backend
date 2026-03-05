@@ -2,7 +2,8 @@ import { z } from 'zod';
 export declare const registerSchema: z.ZodObject<{
     username: z.ZodString;
     email: z.ZodString;
-    password: z.ZodString;
+    password: z.ZodPipe<z.ZodTransform<{} | null | undefined, unknown>, z.ZodOptional<z.ZodString>>;
+    googleId: z.ZodOptional<z.ZodString>;
     fullName: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
     dob: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
@@ -13,28 +14,50 @@ export declare const loginSchema: z.ZodObject<{
 export declare const createTournamentSchema: z.ZodObject<{
     name: z.ZodString;
     description: z.ZodOptional<z.ZodString>;
-    format: z.ZodString;
+    organizer: z.ZodOptional<z.ZodString>;
     startDate: z.ZodString;
-    numberOfTeams: z.ZodNumber;
-    status: z.ZodOptional<z.ZodEnum<{
-        active: "active";
-        upcoming: "upcoming";
-        completed: "completed";
+    endDate: z.ZodOptional<z.ZodString>;
+    location: z.ZodOptional<z.ZodString>;
+    locationType: z.ZodOptional<z.ZodEnum<{
+        Indoor: "Indoor";
+        Outdoor: "Outdoor";
+        Street: "Street";
+        Stadium: "Stadium";
     }>>;
-    liveMatchUrl: z.ZodOptional<z.ZodString>;
+    type: z.ZodOptional<z.ZodEnum<{
+        "Round Robin": "Round Robin";
+        Knockout: "Knockout";
+        "Groups + Knockout": "Groups + Knockout";
+        "Double Elimination": "Double Elimination";
+        League: "League";
+        Custom: "Custom";
+    }>>;
+    format: z.ZodOptional<z.ZodString>;
+    teams: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }, z.core.$strip>;
 export declare const updateTournamentSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    format: z.ZodOptional<z.ZodString>;
+    organizer: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     startDate: z.ZodOptional<z.ZodString>;
-    numberOfTeams: z.ZodOptional<z.ZodNumber>;
-    status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
-        active: "active";
-        upcoming: "upcoming";
-        completed: "completed";
+    endDate: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    location: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    locationType: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+        Indoor: "Indoor";
+        Outdoor: "Outdoor";
+        Street: "Street";
+        Stadium: "Stadium";
     }>>>;
-    liveMatchUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    type: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+        "Round Robin": "Round Robin";
+        Knockout: "Knockout";
+        "Groups + Knockout": "Groups + Knockout";
+        "Double Elimination": "Double Elimination";
+        League: "League";
+        Custom: "Custom";
+    }>>>;
+    format: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    teams: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString>>>;
 }, z.core.$strip>;
 export declare const createTeamSchema: z.ZodObject<{
     name: z.ZodString;
@@ -86,9 +109,9 @@ export declare const updateMatchSchema: z.ZodObject<{
     }, z.core.$strip>>;
     status: z.ZodOptional<z.ZodEnum<{
         cancelled: "cancelled";
-        completed: "completed";
         scheduled: "scheduled";
         in_progress: "in_progress";
+        completed: "completed";
     }>>;
 }, z.core.$strip>;
 export declare const validateRequest: (schema: z.ZodSchema) => (req: any, res: any, next: any) => any;

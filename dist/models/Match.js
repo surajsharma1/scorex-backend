@@ -81,6 +81,7 @@ const MatchSchema = new mongoose_1.Schema({
     maxOvers: { type: Number, required: true },
     playersPerSide: { type: Number, min: 2, max: 11, default: 11 },
     customRules: {
+        overTheFenceOut: { type: Boolean, default: false },
         lastManStanding: { type: Boolean, default: false }
     },
     toss: {
