@@ -212,3 +212,29 @@ export const deleteTournament = async (req: Request, res: Response, next: NextFu
     next(error);
   }
 };
+
+// Get Tournament Matches
+export const getTournamentMatches = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    
+    if (!tournament) {
+      return res.status(404).json({ success: false, message: 'Tournament not found' });
+    }
+
+    // Get matches from the tournament's matches array
+    const matches = await Match.find({ _id: { $in: tournament.matches } })
+      .populate('teamA')
+      .populate('teamB')
+      .sort({ matchDate: -1 });
+
+    res.status(200).json({ 
+      success: true, 
+      data: matches,
+      count: matches.length 
+    });
+  } catch (error: any) {
+    logger.error('Get tournament matches error:', { error: error.message, tournamentId: req.params.id });
+    next(error);
+  }
+};
