@@ -252,6 +252,41 @@ app.get('/api/v1/health', async (req, res) => {
   }
 });
 
+// 🔧 DEBUG: List all available routes - helpful for debugging 404 issues
+app.get('/api/v1/routes', (req, res) => {
+  const routes: string[] = [];
+  
+  // Collect all registered routes
+  app._router?.stack?.forEach((middleware: any) => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+    } else if (middleware.name === 'router') {
+      // Routes registered on nested routers
+      middleware.handle?.stack?.forEach((handler: any) => {
+        if (handler.route) {
+          const path = handler.route.path;
+          const methods = Object.keys(handler.route.methods).join(',').toUpperCase();
+          // Get the base path from the router
+          const basePath = middleware.regexp.source
+            .replace('\\/?', '')
+            .replace('(?=\\/|$)', '')
+            .replace(/\\\//g, '/')
+            .replace(/\(\?:.*?\)/g, '');
+          routes.push(`${methods} /${basePath}${path}`);
+        }
+      });
+    }
+  });
+
+  res.json({
+    message: 'Available API routes',
+    baseUrl: '/api/v1',
+    routes: routes.sort(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Auto-Login Route (Moved up from the bottom)
 app.get('/api/auth/auto-login', async (req, res) => {
   const user = await User.findOne({ email: 'default@example.com' });
@@ -268,6 +303,36 @@ app.get('/api/auth/auto-login', async (req, res) => {
 // ==========================================
 // 6. GLOBAL ERROR HANDLER (MUST BE LAST MIDDLEWARE)
 // ==========================================
+
+// 🔧 Catch-all for unmatched API routes - provides helpful error message
+app.use('/api', (req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Cannot ${req.method} ${req.path}`,
+    error: 'Endpoint not found',
+    availableEndpoints: {
+      health: '/api/v1/health',
+      routes: '/api/v1/routes (debug)',
+      auth: '/api/v1/auth/*',
+      tournaments: '/api/v1/tournaments/*',
+      matches: '/api/v1/matches/*',
+      teams: '/api/v1/teams/*',
+      users: '/api/v1/users/*',
+      overlays: '/api/v1/overlays/*'
+    },
+    hint: 'Make sure the backend is deployed with the latest code containing all routes'
+  });
+});
+
+// Fallback for non-API routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Cannot ${req.method} ${req.path}`,
+    error: 'Not found'
+  });
+});
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', { 
     message: err.message, 
