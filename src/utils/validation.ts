@@ -9,10 +9,15 @@ export const registerSchema = z.object({
   email: z.string()
     .email('Invalid email format')
     .max(254, 'Email is too long'), // RFC 5321 limit
-  password: z.string()
-    .min(6, 'Password must be at least 6 characters')
-    .max(100, 'Password must be less than 100 characters')
-    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character'),
+  password: z.preprocess(
+    (val) => (val === '' || val === undefined ? undefined : val),
+    z.string()
+      .min(6, 'Password must be at least 6 characters')
+      .max(100, 'Password must be less than 100 characters')
+      .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character')
+      .optional() // Optional for Google signup
+  ),
+  googleId: z.string().optional(), // Google OAuth signup
   fullName: z.preprocess(
     (val) => (val === '' ? undefined : val),
     z.string()
@@ -24,6 +29,12 @@ export const registerSchema = z.object({
     (val) => (val === '' ? undefined : val),
     z.string().optional()
   ),
+}).refine((data) => {
+  // Either password or googleId must be provided
+  return !!data.password || !!data.googleId;
+}, {
+  message: 'Either password or Google sign-up is required',
+  path: ['password'],
 });
 
 export const loginSchema = z.object({

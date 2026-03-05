@@ -38,25 +38,48 @@ export const register = [
   validateRequest(registerSchema),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { username, email, password } = req.body;
+      const { username, email, password, googleId } = req.body;
       
-      console.log('Register attempt:', { email, username });
+      console.log('Register attempt:', { email, username, hasGoogleId: !!googleId });
 
       // Check if user exists
       const existingUser = await User.findOne({ email });
       
       // If user exists, stop. 
       if (existingUser) {
+        // If user exists but has googleId, check if it's the same Google account
+        if (googleId && existingUser.googleId === googleId) {
+          // Same Google user, allow login by generating token
+          const token = signToken(existingUser);
+          res.status(200).json({ 
+            message: "Login successful!",
+            token,
+            user: {
+              id: existingUser._id,
+              username: existingUser.username,
+              email: existingUser.email,
+              role: existingUser.role,
+              membership: getMembershipString(existingUser.membershipLevel || 0)
+            }
+          });
+          return;
+        }
+        
         auditLogger.logSystemAction('USER_REGISTRATION_FAILED', 'User', undefined, { reason: 'Email already exists', email });
         res.status(400).json({ message: "Email already exists" });
         return;
       }
 
+      // For Google signup, we might not have a password
+      // Generate a random password if not provided
+      const finalPassword = password || crypto.randomBytes(16).toString('hex');
+
       // Create new user - no OTP verification needed
       const newUser = await User.create({
         username,
         email,
-        password,
+        password: finalPassword,
+        googleId: googleId || undefined, // Store Google ID if provided
         role: 'viewer',
         membershipLevel: 0,
         isVerified: true // Auto-verify - no OTP
@@ -65,11 +88,11 @@ export const register = [
       // Generate token directly
       const token = signToken(newUser);
 
-      auditLogger.logSystemAction('USER_REGISTERED', 'User', newUser._id, { email, username });
+      auditLogger.logSystemAction('USER_REGISTERED', 'User', newUser._id, { email, username, isGoogleSignup: !!googleId });
 
       // Return success with token
       res.status(200).json({ 
-        message: "Registration successful!",
+        message: googleId ? "Google registration successful!" : "Registration successful!",
         token,
         user: {
           id: newUser._id,
