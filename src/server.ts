@@ -45,7 +45,7 @@ const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',')
   : ['http://localhost:3000', 'http://localhost:5173', 'https://scorex-live.vercel.app'];
 
-// Initialize Socket.io with CORS
+// Initialize Socket.io with CORS and improved configuration
 export const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -54,6 +54,18 @@ export const io = new Server(server, {
   },
   pingTimeout: 60000,
   pingInterval: 25000,
+  // Improve connection handling
+  connectTimeout: 10000,
+  // Allow retries for polling transport
+  transports: ['websocket', 'polling'],
+  // Handle HTTP long-polling specifically
+  allowUpgrades: true,
+  // Cookie configuration for session
+  cookie: {
+    name: 'io',
+    httpOnly: true,
+    sameSite: 'lax',
+  },
 });
 
 // Make 'io' globally available to controllers
@@ -306,8 +318,31 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // ==========================================
 // 7. WEBSOCKETS (SOCKET.IO) LOGIC
 // ==========================================
+
+// Socket.IO middleware for connection tracking and logging
+io.use((socket, next) => {
+  const sessionID = socket.id;
+  const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId;
+  
+  console.log(`[Socket.IO] New connection attempt - Session: ${sessionID}, User: ${userId}`);
+  
+  // Add session info to socket
+  socket.data.sessionID = sessionID;
+  socket.data.connectedAt = new Date();
+  
+  next();
+});
+
+// Connection handling with improved error management
 io.on('connection', (socket) => {
   logger.info(`User connected: ${socket.id}`);
+
+  // Handle client request for new session (fix for stale session IDs)
+  socket.on('request_new_session', () => {
+    console.log(`[Socket.IO] Client ${socket.id} requested new session`);
+    socket.disconnect(true);
+    // The client should reconnect automatically
+  });
 
   socket.on('join_match', (matchId: string) => {
     socket.join(matchId);
@@ -364,8 +399,23 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('newMessage', data.message);
   });
 
-  socket.on('disconnect', () => {
-    logger.info(`User disconnected: ${socket.id}`);
+  socket.on('disconnect', (reason) => {
+    logger.info(`User disconnected: ${socket.id}, reason: ${reason}`);
+    
+    // If server disconnected the client (not client-initiated), log it
+    if (reason === 'io server disconnect' || reason === 'transport close') {
+      console.log(`[Socket.IO] Server-initiated disconnect for ${socket.id}, reason: ${reason}`);
+    }
+  });
+  
+  // Handle reconnection
+  socket.on('reconnect', (attemptNumber) => {
+    console.log(`[Socket.IO] Client ${socket.id} reconnected after ${attemptNumber} attempts`);
+  });
+  
+  // Handle reconnection attempt
+  socket.on('reconnect_attempt', (attemptNumber) => {
+    console.log(`[Socket.IO] Client ${socket.id} attempting reconnect #${attemptNumber}`);
   });
 });
 
