@@ -409,11 +409,32 @@ io.on('connection', (socket) => {
     // The client should reconnect automatically
   });
 
+  // Handle both room formats for compatibility
+  // Old format: join_match -> joins 'matchId'
+  // New format: joinMatch -> joins 'match:${matchId}'
   socket.on('join_match', (matchId: string) => {
     socket.join(matchId);
-    console.log(`Socket ${socket.id} joined match room: ${matchId}`);
+    socket.join(`match:${matchId}`); // Also join new format for compatibility
+    console.log(`Socket ${socket.id} joined match room: ${matchId} (both formats)`);
   });
 
+  socket.on('joinMatch', (matchId: string) => {
+    socket.join(`match:${matchId}`);
+    socket.join(matchId); // Also join old format for compatibility
+    console.log(`Socket ${socket.id} joined match room: match:${matchId} (both formats)`);
+  });
+
+  socket.on('leave_match', (matchId: string) => {
+    socket.leave(matchId);
+    socket.leave(`match:${matchId}`);
+  });
+
+  socket.on('leaveMatch', (matchId: string) => {
+    socket.leave(`match:${matchId}`);
+    socket.leave(matchId);
+  });
+
+  // Legacy event handlers (kept for backward compatibility)
   socket.on('joinTournament', (tournamentId: string) => {
     socket.join(tournamentId);
     logger.info(`User ${socket.id} joined tournament: ${tournamentId}`);
@@ -421,14 +442,6 @@ io.on('connection', (socket) => {
 
   socket.on('leaveTournament', (tournamentId: string) => {
     socket.leave(tournamentId);
-  });
-
-  socket.on('joinMatch', (matchId: string) => {
-    socket.join(`match:${matchId}`);
-  });
-
-  socket.on('leaveMatch', (matchId: string) => {
-    socket.leave(`match:${matchId}`);
   });
 
   socket.on('updateScore', (data: { tournamentId: string; match: any }) => {

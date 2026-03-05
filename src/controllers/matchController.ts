@@ -98,9 +98,12 @@ export const scoreBall = async (req: Request, res: Response, next: NextFunction)
 
     await match.save();
 
-    // Broadcast update
+    // Broadcast update to both room formats for compatibility
     const io = req.app.get('io');
-    if (io) io.to(matchId).emit('match_updated', match);
+    if (io) {
+      io.to(matchId).emit('match_updated', match);
+      io.to(`match:${matchId}`).emit('match_updated', match);
+    }
 
     res.status(200).json({ success: true, data: match });
   } catch (error) {
@@ -150,9 +153,12 @@ export const undoLastBall = async (req: Request, res: Response, next: NextFuncti
 
     await match.save();
 
-    // Broadcast undo
+    // Broadcast undo to both room formats for compatibility
     const io = req.app.get('io');
-    if (io) io.to(matchId).emit('match_updated', match);
+    if (io) {
+      io.to(matchId).emit('match_updated', match);
+      io.to(`match:${matchId}`).emit('match_updated', match);
+    }
 
     res.status(200).json({ success: true, data: match });
   } catch (error) {
