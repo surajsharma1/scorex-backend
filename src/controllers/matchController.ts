@@ -4,7 +4,23 @@ import Match, { IBall } from '../models/Match';
 export const createMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user?._id || (req as any).user?.id;
-    const match = await Match.create({ ...req.body, createdBy: userId });
+    
+    // Map frontend field names to backend field names
+    const matchData = {
+      tournamentId: req.body.tournament || req.body.tournamentId,
+      matchName: req.body.matchName || `Match ${new Date().toLocaleDateString()}`,
+      teamA: req.body.team1 || req.body.teamA,
+      teamB: req.body.team2 || req.body.teamB,
+      venue: req.body.venue || 'TBD',
+      matchDate: req.body.date || req.body.matchDate || new Date(),
+      format: req.body.format || req.body.matchType || 'Club',
+      maxOvers: req.body.maxOvers || 20,
+      playersPerSide: req.body.playersPerSide || 11,
+      videoLink: req.body.videoLink || req.body.videoLinks?.[0] || '',
+      videoLinks: req.body.videoLinks || [],
+    };
+
+    const match = await Match.create({ ...matchData, createdBy: userId });
     res.status(201).json({ success: true, data: match });
   } catch (error) {
     next(error);
