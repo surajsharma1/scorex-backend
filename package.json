@@ -8,7 +8,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "test": "jest",
-    "seed": "ts-node seed.ts"
+    "seed": "ts-node seed.ts",
+    "postinstall": "npm rebuild debug"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
