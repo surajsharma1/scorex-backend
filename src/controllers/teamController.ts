@@ -42,7 +42,11 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
     // Try to populate tournament data separately, don't fail if it doesn't work
     if (teams.length > 0) {
       try {
-        teams = await Team.populate(teams, { path: 'tournament', select: 'name status' });
+        teams = await Team.populate(teams, { 
+          path: 'tournament', 
+          select: 'name status',
+          strictPopulate: false 
+        });
       } catch (populateError) {
         logger.warn('Tournament populate failed:', { error: populateError });
         // Teams still available without populated tournament data
@@ -63,7 +67,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
     res.json(result);
   } catch (error) {
-    logger.error('Get teams error:', { error: error instanceof Error ? error.message : 'Unknown error' });
+    logger.error('Get teams error:', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
