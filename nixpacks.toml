@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_22", "typescript"]
 
 [phases.build]
-cmds = ["npm ci --legacy-peer-deps", "npm run build"]
+cmds = ["rm -rf node_modules package-lock.json", "npm install --legacy-peer-deps", "npm run build"]
 
 [start]
 cmd = "npm start"
