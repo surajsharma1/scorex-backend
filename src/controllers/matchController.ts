@@ -169,6 +169,7 @@ export const undoLastBall = async (req: Request, res: Response, next: NextFuncti
 export const getMatchById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id).populate('teamA').populate('teamB');
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     res.status(200).json({ success: true, data: match });
   } catch (error) {
     next(error);

@@ -4,8 +4,19 @@ import Tournament from '../models/Tournament';
 
 export const getBrackets = async (req: Request, res: Response): Promise<void> => {
   try {
-    const brackets = await Bracket.find({ createdBy: (req as any).user?._id })  // Type assertion
-      .populate('tournament');
+    let brackets = await Bracket.find({ createdBy: (req as any).user?._id });
+    
+    // Try to populate tournament, but don't fail if it doesn't work
+    try {
+      brackets = await Bracket.populate(brackets, { 
+        path: 'tournament',
+        strictPopulate: false 
+      });
+    } catch (populateError) {
+      console.warn('Bracket tournament populate warning:', populateError);
+      // Return brackets without populated tournament data
+    }
+    
     res.json(brackets);
   } catch (error) {
     console.error('Get brackets error:', error);
