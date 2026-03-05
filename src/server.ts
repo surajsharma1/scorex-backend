@@ -88,20 +88,39 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
   }, async (_accessToken, _refreshToken, profile, done) => {
     try {
+      console.log('[Google OAuth] Callback received:', { 
+        profileId: profile.id, 
+        emails: profile.emails,
+        displayName: profile.displayName 
+      });
+      
       let user = await User.findOne({ googleId: profile.id });
-      if (user) return done(null, user);
+      if (user) {
+        console.log('[Google OAuth] Existing user found by googleId:', user.email);
+        return done(null, user);
+      }
 
-      const email = profile.emails?.[0].value;
+      const email = profile.emails?.[0]?.value;
+      console.log('[Google OAuth] Email from profile:', email);
+      
+      if (!email) {
+        console.error('[Google OAuth] No email found in profile');
+        return done(new Error('No email found from Google'), undefined);
+      }
+      
       user = await User.findOne({ email });
       if (user) {
+        console.log('[Google OAuth] Existing user found by email, linking Google ID');
         user.googleId = profile.id;
         await user.save();
         return done(null, user);
       }
 
+      console.log('[Google OAuth] New user, creating pending user');
       const pendingGoogleUser = { googleId: profile.id, email, fullName: profile.displayName };
       done(null, false, { pendingGoogleUser });
     } catch (error) {
+      console.error('[Google OAuth] Error in callback:', error);
       done(error, undefined);
     }
   }));
