@@ -496,10 +496,11 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('newMessage', data.message);
   });
 
-  socket.on('disconnect', (reason) => {
+  socket.on('disconnect', (reason: string) => {
     logger.info(`User disconnected: ${socket.id}, reason: ${reason}`);
     
     // If server disconnected the client (not client-initiated), log it
+    // Using type-safe string comparisons
     if (reason === 'io server disconnect' || reason === 'transport close') {
       console.log(`[Socket.IO] Server-initiated disconnect for ${socket.id}, reason: ${reason}`);
     }
