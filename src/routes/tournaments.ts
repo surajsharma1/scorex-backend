@@ -4,7 +4,8 @@ import {
   getTournaments, 
   getTournamentById, 
   addTeamToTournament, 
-  generateFixtures 
+  generateFixtures,
+  deleteTournament
 } from '../controllers/tournamentController';
 import { protect } from '../middleware/auth'; 
 import { validateRequest, createTournamentSchema } from '../utils/validation';
@@ -19,6 +20,7 @@ router.get('/:id', getTournamentById);
 router.use(protect as unknown as RequestHandler); 
 
 router.post('/', validateRequest(createTournamentSchema), createTournament);
+router.delete('/:id', deleteTournament);
 router.post('/:id/teams', addTeamToTournament);
 router.post('/:id/fixtures', generateFixtures);
 

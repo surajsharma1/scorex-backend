@@ -179,3 +179,36 @@ export const generateFixtures = async (req: Request, res: Response, next: NextFu
     next(error);
   }
 };
+
+// Delete Tournament
+export const deleteTournament = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    
+    if (!tournament) {
+      return res.status(404).json({ success: false, message: 'Tournament not found' });
+    }
+
+    // Check if user is authorized to delete (owner or admin)
+    const userId = (req as any).user?._id || (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+    
+    if (tournament.createdBy?.toString() !== userId && userRole !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this tournament' });
+    }
+
+    // Delete associated matches
+    if (tournament.matches && tournament.matches.length > 0) {
+      await Match.deleteMany({ _id: { $in: tournament.matches } });
+    }
+
+    // Delete the tournament
+    await Tournament.findByIdAndDelete(req.params.id);
+
+    logger.info('Tournament deleted:', { tournamentId: req.params.id, userId });
+    res.status(200).json({ success: true, message: 'Tournament deleted successfully' });
+  } catch (error: any) {
+    logger.error('Delete tournament error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
+    next(error);
+  }
+};
