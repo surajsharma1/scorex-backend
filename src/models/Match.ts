@@ -4,16 +4,17 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IBall {
   overNumber: number;
   ballNumber: number; // 1 to 6 (or more if extras)
-  bowler: Types.ObjectId;
-  striker: Types.ObjectId;
-  nonStriker: Types.ObjectId;
+  // Accept either ObjectId or player name string for flexibility
+  bowler: Types.ObjectId | string;
+  striker: Types.ObjectId | string;
+  nonStriker: Types.ObjectId | string;
   runsOffBat: number; // 0, 1, 2, 3, 4, 5, 6, 7, etc.
   extras: number;
   extraType: 'None' | 'WD' | 'NB' | 'B' | 'LB' | 'Penalty';
   isWicket: boolean;
   wicketType: 'None' | 'Bowled' | 'Caught' | 'Stumped' | 'LBW' | 'Run Out' | 'Mankad' | 'Retired' | 'Hit Wicket' | 'Obstructing the Field' | 'Hit the Ball Twice' | 'Timed Out' | 'Over the Fence' | 'One Hand One Bounce';
-  outPlayer?: Types.ObjectId;
-  fielder?: Types.ObjectId;
+  outPlayer?: Types.ObjectId | string;
+  fielder?: Types.ObjectId | string;
   timestamp: Date;
 }
 
@@ -67,9 +68,10 @@ export interface IMatch extends Document {
 const BallSchema = new Schema<IBall>({
   overNumber: { type: Number, required: true },
   ballNumber: { type: Number, required: true },
-  bowler: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
-  striker: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
-  nonStriker: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  // Accept either ObjectId or player name string for flexibility
+  bowler: { type: Schema.Types.Mixed, required: true },
+  striker: { type: Schema.Types.Mixed, required: true },
+  nonStriker: { type: Schema.Types.Mixed, required: true },
   runsOffBat: { type: Number, default: 0 },
   extras: { type: Number, default: 0 },
   extraType: { type: String, enum: ['None', 'WD', 'NB', 'B', 'LB', 'Penalty'], default: 'None' },
@@ -83,8 +85,8 @@ const BallSchema = new Schema<IBall>({
     ],
     default: 'None'
   },
-  outPlayer: { type: Schema.Types.ObjectId, ref: 'Player' },
-  fielder: { type: Schema.Types.ObjectId, ref: 'Player' },
+  outPlayer: { type: Schema.Types.Mixed },
+  fielder: { type: Schema.Types.Mixed },
   timestamp: { type: Date, default: Date.now }
 });
 

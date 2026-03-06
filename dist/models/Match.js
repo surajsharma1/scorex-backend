@@ -37,9 +37,10 @@ const mongoose_1 = __importStar(require("mongoose"));
 const BallSchema = new mongoose_1.Schema({
     overNumber: { type: Number, required: true },
     ballNumber: { type: Number, required: true },
-    bowler: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
-    striker: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
-    nonStriker: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player', required: true },
+    // Accept either ObjectId or player name string for flexibility
+    bowler: { type: mongoose_1.Schema.Types.Mixed, required: true },
+    striker: { type: mongoose_1.Schema.Types.Mixed, required: true },
+    nonStriker: { type: mongoose_1.Schema.Types.Mixed, required: true },
     runsOffBat: { type: Number, default: 0 },
     extras: { type: Number, default: 0 },
     extraType: { type: String, enum: ['None', 'WD', 'NB', 'B', 'LB', 'Penalty'], default: 'None' },
@@ -53,8 +54,8 @@ const BallSchema = new mongoose_1.Schema({
         ],
         default: 'None'
     },
-    outPlayer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' },
-    fielder: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Player' },
+    outPlayer: { type: mongoose_1.Schema.Types.Mixed },
+    fielder: { type: mongoose_1.Schema.Types.Mixed },
     timestamp: { type: Date, default: Date.now }
 });
 const InningsSchema = new mongoose_1.Schema({

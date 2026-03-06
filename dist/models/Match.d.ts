@@ -2,16 +2,16 @@ import mongoose, { Document, Types } from 'mongoose';
 export interface IBall {
     overNumber: number;
     ballNumber: number;
-    bowler: Types.ObjectId;
-    striker: Types.ObjectId;
-    nonStriker: Types.ObjectId;
+    bowler: Types.ObjectId | string;
+    striker: Types.ObjectId | string;
+    nonStriker: Types.ObjectId | string;
     runsOffBat: number;
     extras: number;
     extraType: 'None' | 'WD' | 'NB' | 'B' | 'LB' | 'Penalty';
     isWicket: boolean;
     wicketType: 'None' | 'Bowled' | 'Caught' | 'Stumped' | 'LBW' | 'Run Out' | 'Mankad' | 'Retired' | 'Hit Wicket' | 'Obstructing the Field' | 'Hit the Ball Twice' | 'Timed Out' | 'Over the Fence' | 'One Hand One Bounce';
-    outPlayer?: Types.ObjectId;
-    fielder?: Types.ObjectId;
+    outPlayer?: Types.ObjectId | string;
+    fielder?: Types.ObjectId | string;
     timestamp: Date;
 }
 export interface IInnings {
