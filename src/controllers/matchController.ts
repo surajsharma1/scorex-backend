@@ -1,6 +1,47 @@
 import { Request, Response, NextFunction } from 'express';
 import Match, { IBall } from '../models/Match';
 
+// Controller for simple score updates (PUT /:id/score)
+export const updateMatchScore = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const matchId = req.params.id;
+    const { 
+      score1, score2, wickets1, wickets2, overs1, overs2, 
+      status, strikerName, nonStrikerName, bowlerName 
+    } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    // Update only the provided fields
+    if (score1 !== undefined) match.score1 = score1;
+    if (score2 !== undefined) match.score2 = score2;
+    if (wickets1 !== undefined) match.wickets1 = wickets1;
+    if (wickets2 !== undefined) match.wickets2 = wickets2;
+    if (overs1 !== undefined) match.overs1 = overs1;
+    if (overs2 !== undefined) match.overs2 = overs2;
+    if (status !== undefined) match.status = status;
+    if (strikerName !== undefined) match.strikerName = strikerName;
+    if (nonStrikerName !== undefined) match.nonStrikerName = nonStrikerName;
+    if (bowlerName !== undefined) match.bowlerName = bowlerName;
+
+    await match.save();
+
+    // Broadcast update via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(matchId).emit('match_updated', match);
+      io.to(`match:${matchId}`).emit('match_updated', match);
+    }
+
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user?._id || (req as any).user?.id;
