@@ -16,15 +16,6 @@ try {
   console.warn('Stripe not configured:', error);
 }
 
-// Helper to convert membershipLevel to string
-const getMembershipString = (level: number): string => {
-  switch (level) {
-    case 1: return 'basic';
-    case 2: return 'premium';
-    default: return 'free';
-  }
-};
-
 export const createPaymentIntent = async (req: Request, res: Response) => {
   try {
     if (!stripe) {
@@ -55,6 +46,29 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
     console.error('Error creating payment intent:', error);
     res.status(500).json({ error: 'Failed to create payment intent' });
   }
+};
+
+// Helper to convert membershipLevel to string for token
+const getMembershipString = (level: number): string => {
+  switch (level) {
+    case 1: return 'basic';
+    case 2: return 'premium';
+    default: return 'free';
+  }
+};
+
+// Helper to generate JWT Token
+const signToken = (user: any) => {
+  return jwt.sign(
+    { 
+      id: user._id, 
+      role: user.role, 
+      membership: getMembershipString(user.membershipLevel || 0),
+      membershipExpiresAt: user.membershipExpiresAt ? user.membershipExpiresAt.toISOString() : null
+    },
+    process.env.JWT_SECRET!,
+    { expiresIn: '30d' }
+  );
 };
 
 export const createSubscription = async (req: Request, res: Response) => {
@@ -95,12 +109,16 @@ export const createSubscription = async (req: Request, res: Response) => {
       user.premiumExpiry = expiryDate;
       await user.save();
 
+      // Generate new JWT token with updated membership
+      const newToken = signToken(user);
+
       return res.status(200).json({ 
         success: true, 
         message: 'Test card applied! Membership activated.',
         membership: user.membership,
         membershipLevel: membershipLevel,
-        membershipExpiresAt: user.membershipExpiresAt 
+        membershipExpiresAt: user.membershipExpiresAt,
+        token: newToken // Return new token with updated membership
       });
     }
 
