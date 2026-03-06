@@ -5,8 +5,7 @@ import {
   getAllMatches,
   startMatch, 
   scoreBall, 
-  undoLastBall,
-  updateMatchScore
+  undoLastBall
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
 
@@ -25,10 +24,7 @@ router.use(protect as unknown as RequestHandler);
 router.post('/', createMatch);
 router.put('/:id/start', startMatch);
 
-// Live Scoring Engine
-// PUT for simple score updates (used by TournamentDetail/ScoreboardUpdate)
-router.put('/:id/score', updateMatchScore);
-// POST for ball-by-ball scoring (used by LiveScoring)
+// Live Scoring Engine - ball-by-ball scoring
 router.post('/:id/score', scoreBall);
 router.post('/:id/undo', undoLastBall);
 
