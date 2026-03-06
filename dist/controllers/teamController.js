@@ -128,9 +128,23 @@ const deleteTeam = async (req, res) => {
 exports.deleteTeam = deleteTeam;
 const addPlayer = async (req, res) => {
     try {
+        // Check if database is connected first
+        if (mongoose_1.default.connection.readyState !== 1) {
+            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
+            res.status(503).json({
+                message: 'Database unavailable. Please try again later.',
+                code: 'DB_NOT_CONNECTED'
+            });
+            return;
+        }
         const team = await Team_1.default.findById(req.params.teamId);
         if (!team) {
             res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        // Validate required fields
+        if (!req.body.name || !req.body.role || !req.body.jerseyNumber) {
+            res.status(400).json({ message: 'Missing required fields: name, role, jerseyNumber' });
             return;
         }
         // Create a new Player document
@@ -151,14 +165,27 @@ const addPlayer = async (req, res) => {
     }
     catch (error) {
         logger_1.default.error('Add player error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, body: req.body });
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 exports.addPlayer = addPlayer;
 const addPlayerByUsername = async (req, res) => {
     try {
+        // Check if database is connected first
+        if (mongoose_1.default.connection.readyState !== 1) {
+            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
+            res.status(503).json({
+                message: 'Database unavailable. Please try again later.',
+                code: 'DB_NOT_CONNECTED'
+            });
+            return;
+        }
         const { username } = req.body;
         const teamId = req.params.teamId;
+        if (!username) {
+            res.status(400).json({ message: 'Username is required' });
+            return;
+        }
         // Find user by username
         const user = await User_1.default.findOne({ username, deleted: { $ne: true } });
         if (!user) {
@@ -192,7 +219,7 @@ const addPlayerByUsername = async (req, res) => {
     }
     catch (error) {
         logger_1.default.error('Add player by username error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, username: req.body.username });
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 exports.addPlayerByUsername = addPlayerByUsername;

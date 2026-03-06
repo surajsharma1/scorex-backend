@@ -19,14 +19,6 @@ try {
 catch (error) {
     console.warn('Stripe not configured:', error);
 }
-// Helper to convert membershipLevel to string
-const getMembershipString = (level) => {
-    switch (level) {
-        case 1: return 'basic';
-        case 2: return 'premium';
-        default: return 'free';
-    }
-};
 const createPaymentIntent = async (req, res) => {
     try {
         if (!stripe) {
@@ -56,6 +48,23 @@ const createPaymentIntent = async (req, res) => {
     }
 };
 exports.createPaymentIntent = createPaymentIntent;
+// Helper to convert membershipLevel to string for token
+const getMembershipString = (level) => {
+    switch (level) {
+        case 1: return 'basic';
+        case 2: return 'premium';
+        default: return 'free';
+    }
+};
+// Helper to generate JWT Token
+const signToken = (user) => {
+    return jsonwebtoken_1.default.sign({
+        id: user._id,
+        role: user.role,
+        membership: getMembershipString(user.membershipLevel || 0),
+        membershipExpiresAt: user.membershipExpiresAt ? user.membershipExpiresAt.toISOString() : null
+    }, process.env.JWT_SECRET, { expiresIn: '30d' });
+};
 const createSubscription = async (req, res) => {
     const { planId, cardNumber } = req.body;
     const user = req.user;
@@ -90,12 +99,15 @@ const createSubscription = async (req, res) => {
             user.isPremium = true;
             user.premiumExpiry = expiryDate;
             await user.save();
+            // Generate new JWT token with updated membership
+            const newToken = signToken(user);
             return res.status(200).json({
                 success: true,
                 message: 'Test card applied! Membership activated.',
                 membership: user.membership,
                 membershipLevel: membershipLevel,
-                membershipExpiresAt: user.membershipExpiresAt
+                membershipExpiresAt: user.membershipExpiresAt,
+                token: newToken // Return new token with updated membership
             });
         }
         // ... 2. Run Standard Stripe / Payment Gateway Logic Here ...

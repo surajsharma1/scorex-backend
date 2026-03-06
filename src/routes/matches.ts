@@ -5,8 +5,7 @@ import {
   getAllMatches,
   startMatch, 
   scoreBall, 
-  undoLastBall,
-  updateMatchScore
+  undoLastBall
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
 import mongoose from 'mongoose';
@@ -51,7 +50,6 @@ router.put('/:id/start', validateMatchId, startMatch);
 
 // Live Scoring Engine - ball-by-ball scoring
 router.post('/:id/score', validateMatchId, scoreBall);
-router.put('/:id/score', validateMatchId, updateMatchScore);
 router.post('/:id/undo', validateMatchId, undoLastBall);
 
 export default router;
