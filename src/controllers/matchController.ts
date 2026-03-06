@@ -100,8 +100,23 @@ export const scoreBall = async (req: Request, res: Response, next: NextFunction)
     
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    
+    // Auto-start match if not active (allows scoring without explicit toss)
     if (!['First Innings', 'Second Innings'].includes(match.status)) {
-      return res.status(400).json({ success: false, message: 'Match is not active' });
+      // Default: Team A bats first, Team B bowls
+      match.status = 'First Innings';
+      match.currentInnings = 1;
+      match.toss = { winner: match.teamA, decision: 'Bat' };
+      match.firstInnings = {
+        battingTeam: match.teamA,
+        bowlingTeam: match.teamB,
+        totalRuns: 0,
+        totalWickets: 0,
+        totalOversBowled: 0,
+        extrasTotal: 0,
+        ballByBall: []
+      };
+      await match.save();
     }
 
     const innings = match.currentInnings === 1 ? match.firstInnings! : match.secondInnings!;
