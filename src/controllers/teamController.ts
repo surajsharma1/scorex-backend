@@ -54,13 +54,14 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Populate players for each team - handle both populated and unpopulated cases
+    // IMPORTANT: Use 'Player' (capital P) to match how the model is registered
     if (teams.length > 0) {
       try {
         teams = await Team.populate(teams, {
           path: 'players',
-          model: 'Player',
+          model: Player,  // Use the imported model directly instead of string
           strictPopulate: false,
-          select: 'name role jerseyNumber image stats'  // Select only needed fields
+          select: 'name role jerseyNumber image stats'
         });
       } catch (playerPopulateError) {
         logger.warn('Players populate failed:', { error: playerPopulateError });
