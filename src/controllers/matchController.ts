@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import Match, { IBall } from '../models/Match';
+import logger from '../utils/logger';
 
 export const createMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -28,17 +29,39 @@ export const createMatch = async (req: Request, res: Response, next: NextFunctio
 
 export const getMatchById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Populate teams AND their players
+    // Populate teams AND their players with explicit select
     const match = await Match.findById(req.params.id)
       .populate({
         path: 'teamA',
-        populate: { path: 'players' }
+        select: 'name color players logo shortName statistics',
+        populate: {
+          path: 'players',
+          select: 'name role jerseyNumber image stats',
+          model: 'Player'
+        }
       })
       .populate({
         path: 'teamB',
-        populate: { path: 'players' }
-      });
+        select: 'name color players logo shortName statistics',
+        populate: {
+          path: 'players',
+          select: 'name role jerseyNumber image stats',
+          model: 'Player'
+        }
+      })
+      .populate('tournamentId', 'name status type');
+    
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    
+    // Log for debugging
+    logger.info('Match retrieved:', {
+      matchId: req.params.id,
+      teamA: match.teamA?.name,
+      teamAPlayers: match.teamA?.players?.length,
+      teamB: match.teamB?.name,
+      teamBPlayers: match.teamB?.players?.length
+    });
+    
     res.status(200).json({ success: true, data: match });
   } catch (error) {
     next(error);
@@ -60,13 +83,23 @@ export const getAllMatches = async (req: Request, res: Response, next: NextFunct
     const matches = await Match.find(filter)
       .populate({
         path: 'teamA',
-        populate: { path: 'players' }
+        select: 'name color players logo shortName statistics',
+        populate: {
+          path: 'players',
+          select: 'name role jerseyNumber image stats',
+          model: 'Player'
+        }
       })
       .populate({
         path: 'teamB',
-        populate: { path: 'players' }
+        select: 'name color players logo shortName statistics',
+        populate: {
+          path: 'players',
+          select: 'name role jerseyNumber image stats',
+          model: 'Player'
+        }
       })
-      .populate('tournamentId')
+      .populate('tournamentId', 'name status type')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ 

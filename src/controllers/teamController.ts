@@ -53,17 +53,25 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Populate players for each team
+    // Populate players for each team - handle both populated and unpopulated cases
     if (teams.length > 0) {
       try {
         teams = await Team.populate(teams, {
           path: 'players',
           model: 'Player',
-          strictPopulate: false
+          strictPopulate: false,
+          select: 'name role jerseyNumber image stats'  // Select only needed fields
         });
       } catch (playerPopulateError) {
         logger.warn('Players populate failed:', { error: playerPopulateError });
+        // Keep teams without populated players - they'll just show as empty
       }
+      
+      // Ensure each team has a players array even if empty
+      teams = teams.map(team => ({
+        ...team.toObject(),
+        players: team.players || []
+      }));
     }
 
     const result = {
