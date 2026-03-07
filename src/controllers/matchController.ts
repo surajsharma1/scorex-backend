@@ -238,29 +238,20 @@ export const deleteMatch = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-// Save toss result
 export const saveToss = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { tossWinnerId, decision } = req.body;
     const match = await Match.findById(req.params.id);
-    
-    if (!match) {
-      return res.status(404).json({ success: false, message: 'Match not found' });
-    }
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
 
-    // Update toss info
-    match.toss = {
-      winner: tossWinnerId,
-      decision: decision || 'Pending'
-    };
-    match.status = 'Toss Completed';
-
+    match.toss = { winner: tossWinnerId, decision };
     await match.save();
     res.status(200).json({ success: true, data: match });
   } catch (error) {
     next(error);
   }
 };
+
 
 // Save player selections (batting order, bowling order, current on-field players)
 export const savePlayerSelections = async (req: Request, res: Response, next: NextFunction) => {

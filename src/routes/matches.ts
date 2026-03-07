@@ -66,6 +66,7 @@ router.put('/:id/players', validateMatchId, savePlayerSelections);
 router.put('/:id/bowler', validateMatchId, changeBowler);
 router.put('/:id/striker', validateMatchId, updateStriker);
 router.put('/:id/nonstriker', validateMatchId, updateNonStriker);
+router.put('/:id/toss', saveToss);
 
 // Tournament statistics
 router.get('/stats/:tournamentId', getTournamentStats);
