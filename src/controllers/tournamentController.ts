@@ -222,10 +222,16 @@ export const getTournamentMatches = async (req: Request, res: Response, next: Ne
       return res.status(404).json({ success: false, message: 'Tournament not found' });
     }
 
-    // Get matches from the tournament's matches array
+    // Get matches from the tournament's matches array and populate team players
     const matches = await Match.find({ _id: { $in: tournament.matches } })
-      .populate('teamA')
-      .populate('teamB')
+      .populate({
+        path: 'teamA',
+        populate: { path: 'players' }
+      })
+      .populate({
+        path: 'teamB', 
+        populate: { path: 'players' }
+      })
       .sort({ matchDate: -1 });
 
     res.status(200).json({ 

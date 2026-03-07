@@ -28,7 +28,16 @@ export const createMatch = async (req: Request, res: Response, next: NextFunctio
 
 export const getMatchById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const match = await Match.findById(req.params.id).populate('teamA').populate('teamB');
+    // Populate teams AND their players
+    const match = await Match.findById(req.params.id)
+      .populate({
+        path: 'teamA',
+        populate: { path: 'players' }
+      })
+      .populate({
+        path: 'teamB',
+        populate: { path: 'players' }
+      });
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     res.status(200).json({ success: true, data: match });
   } catch (error) {
@@ -49,8 +58,14 @@ export const getAllMatches = async (req: Request, res: Response, next: NextFunct
     }
 
     const matches = await Match.find(filter)
-      .populate('teamA')
-      .populate('teamB')
+      .populate({
+        path: 'teamA',
+        populate: { path: 'players' }
+      })
+      .populate({
+        path: 'teamB',
+        populate: { path: 'players' }
+      })
       .populate('tournamentId')
       .sort({ createdAt: -1 });
 
