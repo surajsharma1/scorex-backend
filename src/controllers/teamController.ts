@@ -53,6 +53,19 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // Populate players for each team
+    if (teams.length > 0) {
+      try {
+        teams = await Team.populate(teams, {
+          path: 'players',
+          model: 'Player',
+          strictPopulate: false
+        });
+      } catch (playerPopulateError) {
+        logger.warn('Players populate failed:', { error: playerPopulateError });
+      }
+    }
+
     const result = {
       teams,
       pagination: {
@@ -76,16 +89,57 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
   try {
     logger.info('Creating team:', { body: req.body, userId: (req as any).user?._id });
 
+    // First, create the team
     const teamData = {
       name: req.body.name,
       color: req.body.color,
       tournament: req.body.tournament,
       logo: req.file ? `/uploads/${req.file.filename}` : undefined,
-      createdBy: (req as any).user?._id,  // Type assertion
+      createdBy: (req as any).user?._id,
+      players: [], // Initialize with empty array
     };
 
     const team = await Team.create(teamData);
     logger.info('Team created successfully:', { teamId: team._id });
+
+    // If players are provided in the request, create them and add to team
+    const players = req.body.players;
+    if (Array.isArray(players) && players.length > 0) {
+      const createdPlayers = [];
+      
+      // Valid roles from Player model
+      const validRoles = ['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'];
+      
+      for (const player of players) {
+        if (player.name && player.name.trim()) {
+          // Normalize role - capitalize first letter
+          let playerRole = player.role || 'Batsman';
+          // Check if role is valid, otherwise default to Batsman
+          if (!validRoles.includes(playerRole)) {
+            playerRole = 'Batsman';
+          }
+          
+          const playerData = {
+            name: player.name,
+            role: playerRole,
+            jerseyNumber: player.jerseyNumber || '0',
+            team: team._id,
+          };
+          
+          const newPlayer = await Player.create(playerData);
+          createdPlayers.push(newPlayer);
+        }
+      }
+      
+      // Add player ObjectIds to team
+      if (createdPlayers.length > 0) {
+        team.players = createdPlayers.map(p => p._id);
+        await team.save();
+        
+        // Populate players in the response
+        await team.populate('players');
+      }
+    }
 
     res.status(201).json(team);
   } catch (error) {
