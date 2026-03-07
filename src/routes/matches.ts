@@ -5,7 +5,13 @@ import {
   getAllMatches,
   startMatch, 
   scoreBall, 
-  undoLastBall
+  undoLastBall,
+  saveToss,
+  savePlayerSelections,
+  changeBowler,
+  updateStriker,
+  updateNonStriker,
+  getTournamentStats
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
 import mongoose from 'mongoose';
@@ -51,5 +57,15 @@ router.put('/:id/start', validateMatchId, startMatch);
 // Live Scoring Engine - ball-by-ball scoring
 router.post('/:id/score', validateMatchId, scoreBall);
 router.post('/:id/undo', validateMatchId, undoLastBall);
+
+// New endpoints for enhanced live scoring
+router.put('/:id/toss', validateMatchId, saveToss);
+router.put('/:id/players', validateMatchId, savePlayerSelections);
+router.put('/:id/bowler', validateMatchId, changeBowler);
+router.put('/:id/striker', validateMatchId, updateStriker);
+router.put('/:id/nonstriker', validateMatchId, updateNonStriker);
+
+// Tournament statistics
+router.get('/stats/:tournamentId', getTournamentStats);
 
 export default router;

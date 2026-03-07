@@ -18,6 +18,32 @@ export interface IBall {
   timestamp: Date;
 }
 
+// Individual Player Statistics
+export interface IPlayerBattingStats {
+  playerId: string;
+  playerName: string;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  dismissal?: string;
+  dismissalType?: string;
+  fielder?: string;
+  bowler?: string;
+}
+
+export interface IPlayerBowlingStats {
+  playerId: string;
+  playerName: string;
+  overs: number;
+  maidens: number;
+  runs: number;
+  wickets: number;
+  wide: number;
+  noBall: number;
+}
+
+// Enhanced Innings with full player stats
 export interface IInnings {
   battingTeam: Types.ObjectId;
   bowlingTeam: Types.ObjectId;
@@ -26,6 +52,19 @@ export interface IInnings {
   totalOversBowled: number; // e.g., 4.2
   extrasTotal: number;
   ballByBall: IBall[];
+  // Full batting lineup with stats
+  battingLineup: IPlayerBattingStats[];
+  // Bowling lineup with stats
+  bowlingLineup: IPlayerBowlingStats[];
+  // Current players on field
+  strikerId?: string;
+  strikerName?: string;
+  nonStrikerId?: string;
+  nonStrikerName?: string;
+  currentBowlerId?: string;
+  currentBowlerName?: string;
+  // Over tracking
+  currentOverBalls: (number | string)[]; // Array of runs/wickets for current over
 }
 
 export interface IMatch extends Document {
@@ -49,6 +88,13 @@ export interface IMatch extends Document {
   toss: {
     winner?: Types.ObjectId;
     decision: 'Bat' | 'Bowl' | 'Pending';
+  };
+  // Player selections for the match
+  playerSelections?: {
+    team1Players: { id: string; name: string }[];
+    team2Players: { id: string; name: string }[];
+    battingOrder: string[]; // Array of player IDs in batting order
+    bowlingOrder: string[]; // Array of player IDs in bowling order
   };
   currentInnings: 1 | 2 | 3 | 4; // 3 and 4 used for Test matches
   firstInnings?: IInnings;
@@ -90,6 +136,31 @@ const BallSchema = new Schema<IBall>({
   timestamp: { type: Date, default: Date.now }
 });
 
+// Player Stats Sub-schemas
+const PlayerBattingStatsSchema = new Schema<IPlayerBattingStats>({
+  playerId: { type: String, required: true },
+  playerName: { type: String, required: true },
+  runs: { type: Number, default: 0 },
+  balls: { type: Number, default: 0 },
+  fours: { type: Number, default: 0 },
+  sixes: { type: Number, default: 0 },
+  dismissal: { type: String },
+  dismissalType: { type: String },
+  fielder: { type: String },
+  bowler: { type: String }
+});
+
+const PlayerBowlingStatsSchema = new Schema<IPlayerBowlingStats>({
+  playerId: { type: String, required: true },
+  playerName: { type: String, required: true },
+  overs: { type: Number, default: 0 },
+  maidens: { type: Number, default: 0 },
+  runs: { type: Number, default: 0 },
+  wickets: { type: Number, default: 0 },
+  wide: { type: Number, default: 0 },
+  noBall: { type: Number, default: 0 }
+});
+
 const InningsSchema = new Schema<IInnings>({
   battingTeam: { type: Schema.Types.ObjectId, ref: 'Team' },
   bowlingTeam: { type: Schema.Types.ObjectId, ref: 'Team' },
@@ -97,7 +168,30 @@ const InningsSchema = new Schema<IInnings>({
   totalWickets: { type: Number, default: 0 },
   totalOversBowled: { type: Number, default: 0 },
   extrasTotal: { type: Number, default: 0 },
-  ballByBall: [BallSchema]
+  ballByBall: [BallSchema],
+  battingLineup: [PlayerBattingStatsSchema],
+  bowlingLineup: [PlayerBowlingStatsSchema],
+  strikerId: { type: String },
+  strikerName: { type: String },
+  nonStrikerId: { type: String },
+  nonStrikerName: { type: String },
+  currentBowlerId: { type: String },
+  currentBowlerName: { type: String },
+  currentOverBalls: [{ type: Schema.Types.Mixed }]
+});
+
+// Player Selections Schema
+const PlayerSelectionsSchema = new Schema({
+  team1Players: [{
+    id: { type: String, required: true },
+    name: { type: String, required: true }
+  }],
+  team2Players: [{
+    id: { type: String, required: true },
+    name: { type: String, required: true }
+  }],
+  battingOrder: [{ type: String }],
+  bowlingOrder: [{ type: String }]
 });
 
 const MatchSchema = new Schema<IMatch>({
@@ -122,6 +216,7 @@ const MatchSchema = new Schema<IMatch>({
     winner: { type: Schema.Types.ObjectId, ref: 'Team' },
     decision: { type: String, enum: ['Bat', 'Bowl', 'Pending'], default: 'Pending' }
   },
+  playerSelections: PlayerSelectionsSchema,
   currentInnings: { type: Number, default: 1 },
   firstInnings: InningsSchema,
   secondInnings: InningsSchema,
@@ -139,3 +234,4 @@ const MatchSchema = new Schema<IMatch>({
 }, { timestamps: true });
 
 export default mongoose.model<IMatch>('Match', MatchSchema);
+

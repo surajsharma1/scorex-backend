@@ -219,3 +219,267 @@ export const getAllMatches = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
+
+// Save toss result
+export const saveToss = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { tossWinnerId, decision } = req.body;
+    const match = await Match.findById(req.params.id);
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    // Update toss info
+    match.toss = {
+      winner: tossWinnerId,
+      decision: decision || 'Pending'
+    };
+    match.status = 'Toss Completed';
+
+    await match.save();
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Save player selections (batting order, bowling order, current on-field players)
+export const savePlayerSelections = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { 
+      team1Players, 
+      team2Players, 
+      battingOrder, 
+      bowlingOrder,
+      strikerId,
+      strikerName,
+      nonStrikerId,
+      nonStrikerName,
+      bowlerId,
+      bowlerName
+    } = req.body;
+    
+    const match = await Match.findById(req.params.id);
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    // Save player selections
+    match.playerSelections = {
+      team1Players: team1Players || [],
+      team2Players: team2Players || [],
+      battingOrder: battingOrder || [],
+      bowlingOrder: bowlingOrder || []
+    };
+
+    // Initialize innings with current players if starting
+    if (!match.firstInnings) {
+      const battingTeamId = match.toss.decision === 'Bat' ? match.toss.winner : 
+        (match.toss.winner?.toString() === match.teamA.toString() ? match.teamB : match.teamA);
+      const bowlingTeamId = battingTeamId.toString() === match.teamA.toString() ? match.teamB : match.teamA;
+
+      match.firstInnings = {
+        battingTeam: battingTeamId,
+        bowlingTeam: bowlingTeamId,
+        totalRuns: 0,
+        totalWickets: 0,
+        totalOversBowled: 0,
+        extrasTotal: 0,
+        ballByBall: [],
+        battingLineup: [],
+        bowlingLineup: [],
+        strikerId: strikerId,
+        strikerName: strikerName,
+        nonStrikerId: nonStrikerId,
+        nonStrikerName: nonStrikerName,
+        currentBowlerId: bowlerId,
+        currentBowlerName: bowlerName,
+        currentOverBalls: []
+      };
+      match.status = 'First Innings';
+      match.currentInnings = 1;
+    } else {
+      // Update current players in existing innings
+      if (match.firstInnings && match.currentInnings === 1) {
+        match.firstInnings.strikerId = strikerId;
+        match.firstInnings.strikerName = strikerName;
+        match.firstInnings.nonStrikerId = nonStrikerId;
+        match.firstInnings.nonStrikerName = nonStrikerName;
+        match.firstInnings.currentBowlerId = bowlerId;
+        match.firstInnings.currentBowlerName = bowlerName;
+      } else if (match.secondInnings && match.currentInnings === 2) {
+        match.secondInnings.strikerId = strikerId;
+        match.secondInnings.strikerName = strikerName;
+        match.secondInnings.nonStrikerId = nonStrikerId;
+        match.secondInnings.nonStrikerName = nonStrikerName;
+        match.secondInnings.currentBowlerId = bowlerId;
+        match.secondInnings.currentBowlerName = bowlerName;
+      }
+    }
+
+    await match.save();
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Change bowler (called after each over)
+export const changeBowler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { newBowlerId, newBowlerName } = req.body;
+    const match = await Match.findById(req.params.id);
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    const innings = match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
+    if (!innings) {
+      return res.status(400).json({ success: false, message: 'Innings not started' });
+    }
+
+    // Update bowler
+    innings.currentBowlerId = newBowlerId;
+    innings.currentBowlerName = newBowlerName;
+    // Reset current over balls
+    innings.currentOverBalls = [];
+
+    await match.save();
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update striker (for wicket or manual change)
+export const updateStriker = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { newStrikerId, newStrikerName } = req.body;
+    const match = await Match.findById(req.params.id);
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    const innings = match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
+    if (!innings) {
+      return res.status(400).json({ success: false, message: 'Innings not started' });
+    }
+
+    innings.strikerId = newStrikerId;
+    innings.strikerName = newStrikerName;
+
+    await match.save();
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update non-striker (for manual change)
+export const updateNonStriker = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { newNonStrikerId, newNonStrikerName } = req.body;
+    const match = await Match.findById(req.params.id);
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    const innings = match.currentInnings === 1 ? match.firstInnings : match.secondInnings;
+    if (!innings) {
+      return res.status(400).json({ success: false, message: 'Innings not started' });
+    }
+
+    innings.nonStrikerId = newNonStrikerId;
+    innings.nonStrikerName = newNonStrikerName;
+
+    await match.save();
+    res.status(200).json({ success: true, data: match });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get tournament statistics
+export const getTournamentStats = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { tournamentId } = req.params;
+    
+    const matches = await Match.find({ tournamentId })
+      .populate('teamA')
+      .populate('teamB');
+
+    // Aggregate player statistics
+    const playerStats: { [key: string]: any } = {};
+
+    matches.forEach(match => {
+      const inningsList = [match.firstInnings, match.secondInnings].filter(Boolean);
+      
+      inningsList.forEach(innings => {
+        if (!innings?.battingLineup) return;
+        
+        innings.battingLineup.forEach((player: any) => {
+          if (!playerStats[player.playerId]) {
+            playerStats[player.playerId] = {
+              playerId: player.playerId,
+              playerName: player.playerName,
+              matches: 0,
+              runs: 0,
+              balls: 0,
+              fours: 0,
+              sixes: 0,
+              wickets: 0,
+              overs: 0
+            };
+          }
+          playerStats[player.playerId].matches++;
+          playerStats[player.playerId].runs += player.runs || 0;
+          playerStats[player.playerId].balls += player.balls || 0;
+          playerStats[player.playerId].fours += player.fours || 0;
+          playerStats[player.playerId].sixes += player.sixes || 0;
+        });
+
+        if (innings.bowlingLineup) {
+          innings.bowlingLineup.forEach((player: any) => {
+            if (!playerStats[player.playerId]) {
+              playerStats[player.playerId] = {
+                playerId: player.playerId,
+                playerName: player.playerName,
+                matches: 0,
+                runs: 0,
+                balls: 0,
+                fours: 0,
+                sixes: 0,
+                wickets: 0,
+                overs: 0
+              };
+            }
+            playerStats[player.playerId].wickets += player.wickets || 0;
+            playerStats[player.playerId].overs += player.overs || 0;
+          });
+        }
+      });
+    });
+
+    // Convert to array and calculate derived stats
+    const statsArray = Object.values(playerStats).map((player: any) => ({
+      ...player,
+      strikeRate: player.balls > 0 ? ((player.runs / player.balls) * 100).toFixed(2) : 0,
+      average: player.matches > 0 ? (player.runs / player.matches).toFixed(2) : 0,
+      economy: player.overs > 0 ? (player.runs / player.overs).toFixed(2) : 0
+    }));
+
+    // Sort by runs (default)
+    statsArray.sort((a: any, b: any) => b.runs - a.runs);
+
+    res.status(200).json({ 
+      success: true, 
+      data: statsArray 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
