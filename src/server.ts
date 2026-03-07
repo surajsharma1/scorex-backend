@@ -31,6 +31,7 @@ import paymentRoutes from './routes/payments';
 import messageRoutes from './routes/messages';
 import leaderboardRoutes from './routes/leaderboard';
 import User from './models/User';
+import Player from './models/Player';
 
 dotenv.config();
 
