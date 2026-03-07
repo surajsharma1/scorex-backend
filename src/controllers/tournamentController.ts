@@ -105,7 +105,7 @@ export const getTournaments = async (req: Request, res: Response, next: NextFunc
 export const getTournamentById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tournament = await Tournament.findById(req.params.id)
-      .populate({ path: 'teams', populate: { path: 'players' } })
+      .populate('teams')
       .populate({ path: 'matches', select: 'matchName teamA teamB matchDate status format' });
 
     if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
