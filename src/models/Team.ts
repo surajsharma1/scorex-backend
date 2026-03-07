@@ -26,7 +26,7 @@ const TeamSchema = new Schema<ITeam>({
   tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },// <-- Added tournament (ensure 'Tournament' matches your actual tournament model name)
   logo: { type: String },
   captain: { type: Schema.Types.ObjectId, ref: 'User' },
-  players: [{ type: Schema.Types.ObjectId, ref: 'players' }],     // Note: see warning below
+  players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
   statistics: {
     matchesPlayed: { type: Number, default: 0 },
     won: { type: Number, default: 0 },
