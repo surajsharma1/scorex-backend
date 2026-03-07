@@ -3,6 +3,7 @@ import {
   createMatch, 
   getMatchById,
   getAllMatches,
+  deleteMatch,
   startMatch, 
   scoreBall, 
   undoLastBall,
@@ -52,6 +53,7 @@ router.use(protect as unknown as RequestHandler);
 
 // Match management
 router.post('/', createMatch);
+router.delete('/:id', validateMatchId, deleteMatch);
 router.put('/:id/start', validateMatchId, startMatch);
 
 // Live Scoring Engine - ball-by-ball scoring
