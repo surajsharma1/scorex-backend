@@ -45,7 +45,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
         teams = await Team.populate(teams, { 
           path: 'tournament', 
           select: 'name status',
-          strictPopulate: false 
+          strictPopulate: true 
         });
       } catch (populateError) {
         logger.warn('Tournament populate failed:', { error: populateError });
