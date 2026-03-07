@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Tournament from '../models/Tournament';
 import Team from '../models/Team';
 import Match from '../models/Match';
+import Player from '../models/Player';
 import logger from '../utils/logger';
 
 // Create a new tournament
@@ -111,7 +112,7 @@ export const getTournamentById = async (req: Request, res: Response, next: NextF
         populate: {
           path: 'players',
           select: 'name role jerseyNumber image stats',
-          model: 'Player'
+          model: Player  // Use the imported Player model
         }
       })
       .populate({
