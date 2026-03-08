@@ -11,6 +11,7 @@ import {
   changeBowler,
   updateStriker,
   updateNonStriker,
+  deleteMatch,
   getTournamentStats
 } from '../controllers/matchController';
 
@@ -20,6 +21,7 @@ const router = Router();
 router.post('/', createMatch);
 router.get('/', getAllMatches);
 router.get('/:id', getMatchById);
+router.delete('/:id', deleteMatch);
 
 // Toss and player selection routes
 router.put('/:id/toss', saveToss);

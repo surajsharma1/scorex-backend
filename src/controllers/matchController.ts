@@ -388,6 +388,21 @@ export const undoLastBall = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+// Delete a match
+export const deleteMatch = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const match = await Match.findByIdAndDelete(req.params.id);
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+    
+    res.status(200).json({ success: true, message: 'Match deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get tournament statistics
 export const getTournamentStats = async (req: Request, res: Response, next: NextFunction) => {
   try {
