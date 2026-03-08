@@ -64,7 +64,7 @@ export const updateTournamentSchema = createTournamentSchema.partial();
 export const createTeamSchema = z.object({
   name: z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
   color: z.string().min(1, 'Color is required'),
-  tournament: z.string().min(1, 'Tournament is required'),
+  tournament: z.string().optional(), // Made optional - teams can be created without tournament
 });
 
 export const updateTeamSchema = createTeamSchema.partial();
