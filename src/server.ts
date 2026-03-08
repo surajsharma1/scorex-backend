@@ -15,9 +15,14 @@ import MongoStore from 'connect-mongo';
 import rateLimit from 'express-rate-limit';
 import logger from './utils/logger';
 
-// Import all models to ensure they're registered in Mongoose
-// This prevents "Schema hasn't been registered for model" errors
+// Connect to Database FIRST - this must happen before any model operations
+connectDB();
+
+// Import all models AFTER database connection to ensure they're registered properly
+// This prevents "Schema hasn't been registered for model" errors in production
 import './models/index';
+import User from './models/User';
+import Player from './models/Player';
 
 // Route Imports
 import tournamentRoutes from './routes/tournaments';
@@ -34,9 +39,8 @@ import clubRoutes from './routes/clubs';
 import paymentRoutes from './routes/payments';
 import messageRoutes from './routes/messages';
 import leaderboardRoutes from './routes/leaderboard';
-import User from './models/User';
-import Player from './models/Player';
 
+// Load environment variables
 dotenv.config();
 
 // ==========================================
@@ -75,9 +79,6 @@ export const io = new Server(server, {
 
 // Make 'io' globally available to controllers
 app.set('io', io);
-
-// Connect to Database
-connectDB();
 
 // Trust proxy for rate limiting (Important for Render/Vercel)
 app.set('trust proxy', 1);
