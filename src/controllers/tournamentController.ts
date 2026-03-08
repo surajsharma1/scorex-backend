@@ -238,48 +238,71 @@ export const deleteTournament = async (req: Request, res: Response, next: NextFu
 // Get Tournament Matches
 export const getTournamentMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const tournament = await Tournament.findById(req.params.id);
+    const { id } = req.params;
+    
+    const tournament = await Tournament.findById(id);
     
     if (!tournament) {
       return res.status(404).json({ success: false, message: 'Tournament not found' });
     }
 
-    if (!tournament.matches || tournament.matches.length === 0) {
-      return res.status(200).json({ 
-        success: true, 
-        data: [],
-        count: 0 
-      });
+    let matches;
+    
+    // First try to get matches from tournament's matches array
+    if (tournament.matches && tournament.matches.length > 0) {
+      matches = await Match.find({ _id: { $in: tournament.matches } })
+        .populate({
+          path: 'teamA',
+          select: 'name color players logo shortName statistics',
+          populate: { 
+            path: 'players',
+            select: 'name role jerseyNumber image stats',
+            model: 'Player'
+          }
+        })
+        .populate({
+          path: 'teamB',
+          select: 'name color players logo shortName statistics',
+          populate: { 
+            path: 'players',
+            select: 'name role jerseyNumber image stats',
+            model: 'Player'
+          }
+        })
+        .populate('tournamentId', 'name status type')
+        .sort({ matchDate: -1 });
     }
-
-    // Get matches from the tournament's matches array and populate team players
-    const matches = await Match.find({ _id: { $in: tournament.matches } })
-      .populate({
-        path: 'teamA',
-        select: 'name color players logo shortName statistics',
-        populate: { 
-          path: 'players',
-          select: 'name role jerseyNumber image stats',
-          model: 'Player'
-        }
-      })
-      .populate({
-        path: 'teamB',
-        select: 'name color players logo shortName statistics',
-        populate: { 
-          path: 'players',
-          select: 'name role jerseyNumber image stats',
-          model: 'Player'
-        }
-      })
-      .populate('tournamentId', 'name status type')
-      .sort({ matchDate: -1 });
+    
+    // If no matches found in array, try querying by tournamentId field in Match
+    if (!matches || matches.length === 0) {
+      matches = await Match.find({ tournamentId: id })
+        .populate({
+          path: 'teamA',
+          select: 'name color players logo shortName statistics',
+          populate: { 
+            path: 'players',
+            select: 'name role jerseyNumber image stats',
+            model: 'Player'
+          }
+        })
+        .populate({
+          path: 'teamB',
+          select: 'name color players logo shortName statistics',
+          populate: { 
+            path: 'players',
+            select: 'name role jerseyNumber image stats',
+            model: 'Player'
+          }
+        })
+        .populate('tournamentId', 'name status type')
+        .sort({ matchDate: -1 });
+    }
 
     // Log for debugging
     logger.info('Tournament matches retrieved:', { 
-      tournamentId: req.params.id, 
-      matchCount: matches.length,
-      sampleMatch: matches[0] ? {
+      tournamentId: id, 
+      matchCount: matches?.length || 0,
+      sampleMatch: matches?.[0] ? {
         id: matches[0]._id,
         teamA: matches[0].teamA?.name,
         teamAPlayers: matches[0].teamA?.players?.length,
@@ -290,8 +313,8 @@ export const getTournamentMatches = async (req: Request, res: Response, next: Ne
 
     res.status(200).json({ 
       success: true, 
-      data: matches,
-      count: matches.length 
+      data: matches || [],
+      count: matches?.length || 0 
     });
   } catch (error: any) {
     logger.error('Get tournament matches error:', { error: error.message, tournamentId: req.params.id });
