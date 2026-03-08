@@ -14,29 +14,30 @@ import {
   deleteMatch,
   getTournamentStats
 } from '../controllers/matchController';
+import { protect } from '../middleware/auth';
 
 const router = Router();
 
-// Basic CRUD routes
-router.post('/', createMatch);
+// Public routes - view matches
 router.get('/', getAllMatches);
-router.get('/:id', getMatchById);
-router.delete('/:id', deleteMatch);
-
-// Toss and player selection routes
-router.put('/:id/toss', saveToss);
-router.put('/:id/players', savePlayerSelections);
-router.put('/:id/bowler', changeBowler);
-router.put('/:id/striker', updateStriker);
-router.put('/:id/nonstriker', updateNonStriker);
-
-// Match scoring routes
-router.put('/:id/start', startMatch);
-router.put('/:id/score', scoreBall);
-router.put('/:id/undo', undoLastBall);
-
-// Tournament statistics
 router.get('/stats/:tournamentId', getTournamentStats);
+router.get('/:id', getMatchById);
+
+// Protected routes - create/modify matches
+router.post('/', protect as any, createMatch);
+router.delete('/:id', protect as any, deleteMatch);
+
+// Match setup and scoring
+router.put('/:id/toss', protect as any, saveToss);
+router.put('/:id/players', protect as any, savePlayerSelections);
+router.put('/:id/start', protect as any, startMatch);
+router.put('/:id/score', protect as any, scoreBall);
+router.put('/:id/undo', protect as any, undoLastBall);
+
+// Player management during match
+router.put('/:id/bowler', protect as any, changeBowler);
+router.put('/:id/striker', protect as any, updateStriker);
+router.put('/:id/nonstriker', protect as any, updateNonStriker);
 
 export default router;
 

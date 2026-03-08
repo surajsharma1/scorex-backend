@@ -18,12 +18,11 @@ router.get('/', getTournaments);
 router.get('/:id', getTournamentById);
 router.get('/:id/matches', getTournamentMatches);
 
-// Protected Routes - Cast to RequestHandler to satisfy TypeScript strict mode
-router.use(protect as unknown as RequestHandler); 
-
-router.post('/', validateRequest(createTournamentSchema), createTournament);
-router.delete('/:id', deleteTournament);
-router.post('/:id/teams', addTeamToTournament);
-router.post('/:id/fixtures', generateFixtures);
+// Protected Routes
+router.post('/', protect as RequestHandler, validateRequest(createTournamentSchema), createTournament);
+router.delete('/:id', protect as RequestHandler, deleteTournament);
+router.post('/:id/teams', protect as RequestHandler, addTeamToTournament);
+router.post('/:id/fixtures', protect as RequestHandler, generateFixtures);
 
 export default router;
+
