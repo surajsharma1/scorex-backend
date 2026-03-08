@@ -146,7 +146,10 @@ export const createTeam = async (req: Request, res: Response): Promise<void> => 
         await team.save();
         
         // Populate players in the response
-        await team.populate('players');
+        await team.populate({
+          path: 'players',
+          model: Player
+        });
       }
     }
 
@@ -229,7 +232,10 @@ export const addPlayer = async (req: Request, res: Response): Promise<void> => {
     await team.save();
 
     // Populate the player in the response
-    await team.populate('players');
+    await team.populate({
+      path: 'players',
+      model: Player
+    });
     res.status(201).json(team);
   } catch (error) {
     logger.error('Add player error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, body: req.body });
@@ -290,7 +296,10 @@ export const addPlayerByUsername = async (req: Request, res: Response): Promise<
     await team.save();
 
     // Populate the player in the response
-    await team.populate('players');
+    await team.populate({
+      path: 'players',
+      model: Player
+    });
     res.status(201).json(team);
   } catch (error) {
     logger.error('Add player by username error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, username: req.body.username });
