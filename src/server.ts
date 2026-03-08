@@ -15,6 +15,10 @@ import MongoStore from 'connect-mongo';
 import rateLimit from 'express-rate-limit';
 import logger from './utils/logger';
 
+// Import all models to ensure they're registered in Mongoose
+// This prevents "Schema hasn't been registered for model" errors
+import './models/index';
+
 // Route Imports
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';
