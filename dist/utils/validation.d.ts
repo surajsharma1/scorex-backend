@@ -2,7 +2,7 @@ import { z } from 'zod';
 export declare const registerSchema: z.ZodObject<{
     username: z.ZodString;
     email: z.ZodString;
-    password: z.ZodPipe<z.ZodTransform<{} | null | undefined, unknown>, z.ZodOptional<z.ZodString>>;
+    password: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
     googleId: z.ZodOptional<z.ZodString>;
     fullName: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
     dob: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
