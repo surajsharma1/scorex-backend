@@ -1,16 +1,17 @@
 import express from 'express';
 import { protect } from '../middleware/auth';
-import { createPaymentIntent, confirmPayment, getPaymentHistory, createSubscription } from '../controllers/paymentController';
+import { getPlans, getMembership, purchaseMembership, extendMembership, cancelMembership, getPaymentHistory } from '../controllers/paymentController';
 
 const router = express.Router();
 
-// Protected routes
-router.post('/create-payment-intent', protect as any, createPaymentIntent);
-router.post('/create-intent', protect as any, createPaymentIntent); // Alias for frontend compatibility
-router.post('/confirm', protect as any, confirmPayment);
-router.get('/history', protect as any, getPaymentHistory);
+// Public routes
+router.get('/plans', getPlans);
 
-// Subscription route - for test card payments
-router.post('/subscribe', protect as any, createSubscription as any);
+// Protected routes
+router.get('/membership', protect as any, getMembership);
+router.post('/purchase', protect as any, purchaseMembership);
+router.post('/extend', protect as any, extendMembership);
+router.post('/cancel', protect as any, cancelMembership);
+router.get('/history', protect as any, getPaymentHistory);
 
 export default router;

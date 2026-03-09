@@ -1,14 +1,40 @@
 import express from 'express';
-import { getNotificationPreferences, updateNotificationPreferences, getProfile, updateProfile, searchUsers } from '../controllers/userController';
 import { protect } from '../middleware/auth';
 import User from '../models/User';
+
+interface AuthRequest extends express.Request {
+  user?: {
+    id: string;
+    role?: string;
+  };
+}
 
 const router = express.Router();
 
 // Public route - anyone can search users
-router.get('/search', searchUsers as any);
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || (q as string).length < 2) {
+      return res.json({ users: [] });
+    }
+    
+    const users = await User.find({
+      $or: [
+        { username: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } }
+      ]
+    })
+      .select('username email fullName profilePicture')
+      .limit(20);
+    
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-// Protected routes - require authentication
+// Apply auth middleware to all routes below
 router.use(protect as any);
 
 // Admin middleware check helper
@@ -31,13 +57,90 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// Notification preferences
-router.get('/notifications/preferences', getNotificationPreferences);
-router.put('/notifications/preferences', updateNotificationPreferences);
+// Get current user's profile
+router.get('/profile', async (req, res) => {
+  try {
+    const user = await User.findById(req.user?.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-// Profile management
-router.get('/profile', getProfile);
-router.put('/profile', updateProfile);
+// Update current user's profile
+router.put('/profile', async (req, res) => {
+  try {
+    const { fullName, bio, profilePicture } = req.body;
+    
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (fullName) user.fullName = fullName;
+    if (bio) user.bio = bio;
+    if (profilePicture) user.profilePicture = profilePicture;
+    
+    await user.save();
+    
+    res.json({ 
+      message: 'Profile updated',
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        bio: user.bio,
+        profilePicture: user.profilePicture
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get notification preferences
+router.get('/notifications/preferences', async (req, res) => {
+  try {
+    const user = await User.findById(req.user?.id).select('notificationPreferences');
+    res.json(user?.notificationPreferences || {});
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update notification preferences
+router.put('/notifications/preferences', async (req, res) => {
+  try {
+    const { email, push, sms, tournamentUpdates, matchResults, systemAnnouncements } = req.body;
+    
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    user.notificationPreferences = {
+      email: email ?? user.notificationPreferences?.email ?? true,
+      push: push ?? user.notificationPreferences?.push ?? true,
+      sms: sms ?? user.notificationPreferences?.sms ?? false,
+      tournamentUpdates: tournamentUpdates ?? user.notificationPreferences?.tournamentUpdates ?? true,
+      matchResults: matchResults ?? user.notificationPreferences?.matchResults ?? true,
+      systemAnnouncements: systemAnnouncements ?? user.notificationPreferences?.systemAnnouncements ?? true
+    };
+    
+    await user.save();
+    
+    res.json({ 
+      message: 'Preferences updated',
+      notificationPreferences: user.notificationPreferences 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // ==================== ADMIN ROUTES ====================
 
@@ -161,5 +264,5 @@ router.put('/:id/membership', isAdminMiddleware, async (req, res) => {
   }
 });
 
-
 export default router;
+

@@ -16,7 +16,5 @@ router.post('/:clubId/join', auth_1.protect, clubController_1.joinClub);
 router.post('/:clubId/leave', auth_1.protect, clubController_1.leaveClub);
 router.put('/:clubId', auth_1.protect, clubController_1.updateClub);
 router.delete('/:clubId', auth_1.protect, clubController_1.deleteClub);
-router.post('/:clubId/members', auth_1.protect, clubController_1.addMember);
-router.delete('/:clubId/members/:userId', auth_1.protect, clubController_1.removeMember);
 exports.default = router;
 //# sourceMappingURL=clubs.js.map

@@ -7,12 +7,13 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const paymentController_1 = require("../controllers/paymentController");
 const router = express_1.default.Router();
+// Public routes
+router.get('/plans', paymentController_1.getPlans);
 // Protected routes
-router.post('/create-payment-intent', auth_1.protect, paymentController_1.createPaymentIntent);
-router.post('/create-intent', auth_1.protect, paymentController_1.createPaymentIntent); // Alias for frontend compatibility
-router.post('/confirm', auth_1.protect, paymentController_1.confirmPayment);
+router.get('/membership', auth_1.protect, paymentController_1.getMembership);
+router.post('/purchase', auth_1.protect, paymentController_1.purchaseMembership);
+router.post('/extend', auth_1.protect, paymentController_1.extendMembership);
+router.post('/cancel', auth_1.protect, paymentController_1.cancelMembership);
 router.get('/history', auth_1.protect, paymentController_1.getPaymentHistory);
-// Subscription route - for test card payments
-router.post('/subscribe', auth_1.protect, paymentController_1.createSubscription);
 exports.default = router;
 //# sourceMappingURL=payments.js.map

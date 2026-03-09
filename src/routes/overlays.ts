@@ -1,8 +1,8 @@
 import express from 'express';
 import { 
-  createOverlay, 
   getOverlays, 
   getOverlay, 
+  createOverlay, 
   updateOverlay, 
   deleteOverlay, 
   getOverlayTemplates,
@@ -15,56 +15,21 @@ import { protect } from '../middleware/auth';
 const router = express.Router();
 
 // Public route for serving the overlay HTML (OBS/Browser Source)
-// This must come BEFORE the protect middleware
 router.get('/public/:id', serveOverlay);
 
-// Protected routes (require login) - using type assertion to bypass type issues
-router.get('/', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    getOverlays(req as any, res as any);
-  });
-});
+// Public route for templates (no auth needed to view available templates)
+router.get('/templates', getOverlayTemplates);
 
-router.get('/templates', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    getOverlayTemplates(req as any, res as any);
-  });
-});
+// Public route for membership status
+router.get('/membership-status', protect as any, getMembershipStatus);
 
-router.get('/membership-status', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    getMembershipStatus(req as any, res as any);
-  });
-});
-
-router.post('/', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    createOverlay(req as any, res as any);
-  });
-});
-
-router.get('/:id', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    getOverlay(req as any, res as any);
-  });
-});
-
-router.put('/:id', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    updateOverlay(req as any, res as any);
-  });
-});
-
-router.delete('/:id', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    deleteOverlay(req as any, res as any);
-  });
-});
-
-router.post('/:id/regenerate', (req, res, next) => {
-  (protect as any)(req, res, () => {
-    regenerateOverlayUrl(req as any, res as any);
-  });
-});
+// Protected routes - CRUD operations
+router.get('/', protect as any, getOverlays as any);
+router.get('/:id', protect as any, getOverlay as any);
+router.post('/', protect as any, createOverlay as any);
+router.put('/:id', protect as any, updateOverlay as any);
+router.delete('/:id', protect as any, deleteOverlay as any);
+router.post('/:id/regenerate', protect as any, regenerateOverlayUrl as any);
 
 export default router;
+

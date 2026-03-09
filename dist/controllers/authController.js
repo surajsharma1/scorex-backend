@@ -8,7 +8,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.githubCallback = exports.githubAuth = exports.googleCallback = exports.googleAuth = exports.resetPassword = exports.forgotPassword = exports.changePassword = exports.updateProfile = exports.getMe = exports.login = exports.register = void 0;
+exports.logout = exports.githubCallback = exports.githubAuth = exports.googleLogin = exports.googleCallback = exports.googleAuth = exports.resetPassword = exports.forgotPassword = exports.changePassword = exports.updateProfile = exports.getMe = exports.login = exports.register = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 // ==========================================
@@ -433,6 +433,72 @@ const googleCallback = async (req, res, next) => {
     }
 };
 exports.googleCallback = googleCallback;
+// @desc    Google Login (token-based - for frontend)
+// @route   POST /api/v1/auth/google
+// @access  Public
+const googleLogin = async (req, res, next) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide Google ID token'
+            });
+        }
+        const { OAuth2Client } = require('google-auth-library');
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        if (!payload) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid Google token'
+            });
+        }
+        // Find or create user
+        let user = await User_1.default.findOne({ googleId: payload.sub });
+        if (!user) {
+            user = await User_1.default.findOne({ email: payload.email?.toLowerCase() });
+            if (user) {
+                user.googleId = payload.sub;
+                await user.save();
+            }
+            else {
+                user = await User_1.default.create({
+                    username: payload.name?.replace(/\s/g, '').toLowerCase() || `user_${Date.now()}`,
+                    email: payload.email?.toLowerCase(),
+                    fullName: payload.name,
+                    googleId: payload.sub,
+                    isVerified: true,
+                    role: 'viewer'
+                });
+            }
+        }
+        const token = generateToken(user._id.toString());
+        res.json({
+            success: true,
+            message: 'Google login successful',
+            data: {
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    fullName: user.fullName,
+                    role: user.role,
+                    membershipLevel: user.membershipLevel
+                },
+                token
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.googleLogin = googleLogin;
 // @desc    GitHub OAuth
 // @route   GET /api/v1/auth/github
 // @access  Public
@@ -488,11 +554,11 @@ const githubCallback = async (req, res, next) => {
             return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_email`);
         }
         // Find or create user
-        let user = await User_1.default.findOne({ githubId: userData.id.toString() });
+        let user = await User_1.default.findOne({ githubId: userData.id?.toString() });
         if (!user) {
             user = await User_1.default.findOne({ email: primaryEmail.toLowerCase() });
             if (user) {
-                user.githubId = userData.id.toString();
+                user.githubId = userData.id?.toString();
                 await user.save();
             }
             else {
@@ -500,7 +566,7 @@ const githubCallback = async (req, res, next) => {
                     username: userData.login,
                     email: primaryEmail.toLowerCase(),
                     fullName: userData.name || userData.login,
-                    githubId: userData.id.toString(),
+                    githubId: userData.id?.toString(),
                     profilePicture: userData.avatar_url,
                     isVerified: true,
                     role: 'viewer'
@@ -536,6 +602,7 @@ exports.default = {
     resetPassword: exports.resetPassword,
     googleAuth: exports.googleAuth,
     googleCallback: exports.googleCallback,
+    googleLogin: exports.googleLogin,
     githubAuth: exports.githubAuth,
     githubCallback: exports.githubCallback,
     logout: exports.logout

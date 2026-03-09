@@ -16,6 +16,7 @@ export declare const forgotPassword: (req: Request, res: Response, next: NextFun
 export declare const resetPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 export declare const googleAuth: (req: Request, res: Response) => void;
 export declare const googleCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const googleLogin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 export declare const githubAuth: (req: Request, res: Response) => void;
 export declare const githubCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 export declare const logout: (req: AuthRequest, res: Response) => Promise<void>;
@@ -29,6 +30,7 @@ declare const _default: {
     resetPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     googleAuth: (req: Request, res: Response) => void;
     googleCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+    googleLogin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     githubAuth: (req: Request, res: Response) => void;
     githubCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
     logout: (req: AuthRequest, res: Response) => Promise<void>;

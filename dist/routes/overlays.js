@@ -8,48 +8,17 @@ const overlayController_1 = require("../controllers/overlayController");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Public route for serving the overlay HTML (OBS/Browser Source)
-// This must come BEFORE the protect middleware
 router.get('/public/:id', overlayController_1.serveOverlay);
-// Protected routes (require login) - using type assertion to bypass type issues
-router.get('/', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.getOverlays)(req, res);
-    });
-});
-router.get('/templates', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.getOverlayTemplates)(req, res);
-    });
-});
-router.get('/membership-status', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.getMembershipStatus)(req, res);
-    });
-});
-router.post('/', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.createOverlay)(req, res);
-    });
-});
-router.get('/:id', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.getOverlay)(req, res);
-    });
-});
-router.put('/:id', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.updateOverlay)(req, res);
-    });
-});
-router.delete('/:id', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.deleteOverlay)(req, res);
-    });
-});
-router.post('/:id/regenerate', (req, res, next) => {
-    auth_1.protect(req, res, () => {
-        (0, overlayController_1.regenerateOverlayUrl)(req, res);
-    });
-});
+// Public route for templates (no auth needed to view available templates)
+router.get('/templates', overlayController_1.getOverlayTemplates);
+// Public route for membership status
+router.get('/membership-status', auth_1.protect, overlayController_1.getMembershipStatus);
+// Protected routes - CRUD operations
+router.get('/', auth_1.protect, overlayController_1.getOverlays);
+router.get('/:id', auth_1.protect, overlayController_1.getOverlay);
+router.post('/', auth_1.protect, overlayController_1.createOverlay);
+router.put('/:id', auth_1.protect, overlayController_1.updateOverlay);
+router.delete('/:id', auth_1.protect, overlayController_1.deleteOverlay);
+router.post('/:id/regenerate', auth_1.protect, overlayController_1.regenerateOverlayUrl);
 exports.default = router;
 //# sourceMappingURL=overlays.js.map

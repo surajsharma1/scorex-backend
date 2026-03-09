@@ -492,6 +492,80 @@ export const googleCallback = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+// @desc    Google Login (token-based - for frontend)
+// @route   POST /api/v1/auth/google
+// @access  Public
+export const googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide Google ID token'
+      });
+    }
+    
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    
+    if (!payload) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Google token'
+      });
+    }
+    
+    // Find or create user
+    let user = await User.findOne({ googleId: payload.sub });
+    
+    if (!user) {
+      user = await User.findOne({ email: payload.email?.toLowerCase() });
+      
+      if (user) {
+        user.googleId = payload.sub;
+        await user.save();
+      } else {
+        user = await User.create({
+          username: payload.name?.replace(/\s/g, '').toLowerCase() || `user_${Date.now()}`,
+          email: payload.email?.toLowerCase(),
+          fullName: payload.name,
+          googleId: payload.sub,
+          isVerified: true,
+          role: 'viewer'
+        });
+      }
+    }
+    
+    const token = generateToken(user._id.toString());
+    
+    res.json({
+      success: true,
+      message: 'Google login successful',
+      data: {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          membershipLevel: user.membershipLevel
+        },
+        token
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    GitHub OAuth
 // @route   GET /api/v1/auth/github
 // @access  Public
@@ -528,7 +602,7 @@ export const githubCallback = async (req: Request, res: Response, next: NextFunc
       })
     });
     
-    const tokenData = await tokenResponse.json();
+    const tokenData = await tokenResponse.json() as { access_token?: string };
     
     if (!tokenData.access_token) {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
@@ -541,7 +615,7 @@ export const githubCallback = async (req: Request, res: Response, next: NextFunc
       }
     });
     
-    const userData = await userResponse.json();
+    const userData = await userResponse.json() as { id?: number; login?: string; name?: string; avatar_url?: string };
     
     // Get user email
     const emailResponse = await fetch('https://api.github.com/user/emails', {
@@ -550,28 +624,28 @@ export const githubCallback = async (req: Request, res: Response, next: NextFunc
       }
     });
     
-    const emails = await emailResponse.json();
-    const primaryEmail = emails.find((e: any) => e.primary)?.email || emails[0]?.email;
+    const emails = await emailResponse.json() as Array<{ primary?: boolean; email?: string }>;
+    const primaryEmail = emails.find((e) => e.primary)?.email || emails[0]?.email;
     
     if (!primaryEmail) {
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_email`);
     }
     
     // Find or create user
-    let user = await User.findOne({ githubId: userData.id.toString() });
+    let user = await User.findOne({ githubId: userData.id?.toString() });
     
     if (!user) {
       user = await User.findOne({ email: primaryEmail.toLowerCase() });
       
       if (user) {
-        user.githubId = userData.id.toString();
+        user.githubId = userData.id?.toString();
         await user.save();
       } else {
         user = await User.create({
           username: userData.login,
           email: primaryEmail.toLowerCase(),
           fullName: userData.name || userData.login,
-          githubId: userData.id.toString(),
+          githubId: userData.id?.toString(),
           profilePicture: userData.avatar_url,
           isVerified: true,
           role: 'viewer'
@@ -608,6 +682,7 @@ export default {
   resetPassword,
   googleAuth,
   googleCallback,
+  googleLogin,
   githubAuth,
   githubCallback,
   logout
