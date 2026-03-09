@@ -25,12 +25,12 @@ export declare const createTournamentSchema: z.ZodObject<{
         Stadium: "Stadium";
     }>>;
     type: z.ZodOptional<z.ZodEnum<{
+        Custom: "Custom";
+        League: "League";
         "Round Robin": "Round Robin";
         Knockout: "Knockout";
         "Groups + Knockout": "Groups + Knockout";
         "Double Elimination": "Double Elimination";
-        League: "League";
-        Custom: "Custom";
     }>>;
     format: z.ZodOptional<z.ZodString>;
     teams: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -49,12 +49,12 @@ export declare const updateTournamentSchema: z.ZodObject<{
         Stadium: "Stadium";
     }>>>;
     type: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+        Custom: "Custom";
+        League: "League";
         "Round Robin": "Round Robin";
         Knockout: "Knockout";
         "Groups + Knockout": "Groups + Knockout";
         "Double Elimination": "Double Elimination";
-        League: "League";
-        Custom: "Custom";
     }>>>;
     format: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     teams: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString>>>;
@@ -62,12 +62,12 @@ export declare const updateTournamentSchema: z.ZodObject<{
 export declare const createTeamSchema: z.ZodObject<{
     name: z.ZodString;
     color: z.ZodString;
-    tournament: z.ZodString;
+    tournament: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateTeamSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     color: z.ZodOptional<z.ZodString>;
-    tournament: z.ZodOptional<z.ZodString>;
+    tournament: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const addPlayerSchema: z.ZodObject<{
     name: z.ZodString;
@@ -109,9 +109,9 @@ export declare const updateMatchSchema: z.ZodObject<{
     }, z.core.$strip>>;
     status: z.ZodOptional<z.ZodEnum<{
         cancelled: "cancelled";
-        scheduled: "scheduled";
-        in_progress: "in_progress";
         completed: "completed";
+        in_progress: "in_progress";
+        scheduled: "scheduled";
     }>>;
 }, z.core.$strip>;
 export declare const validateRequest: (schema: z.ZodSchema) => (req: any, res: any, next: any) => any;

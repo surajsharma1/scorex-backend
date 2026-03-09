@@ -1,7 +1,12 @@
+/**
+ * Friend Model
+ * Friends system
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 import mongoose, { Document } from 'mongoose';
 export interface IFriend extends Document {
-    from: mongoose.Types.ObjectId;
-    to: mongoose.Types.ObjectId;
+    user: mongoose.Types.ObjectId;
+    friend: mongoose.Types.ObjectId;
     status: 'pending' | 'accepted' | 'blocked';
     createdAt: Date;
     updatedAt: Date;

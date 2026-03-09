@@ -1,4 +1,9 @@
 "use strict";
+/**
+ * Overlay Model
+ * Broadcast overlay templates
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -35,36 +40,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const OverlaySchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    template: { type: String, required: true, default: 'modern' },
-    publicId: { type: String, required: true, unique: true },
-    config: {
-        type: Map,
-        of: mongoose_1.Schema.Types.Mixed,
-        default: {}
-    },
-    elements: { type: Array, default: [] },
-    tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
-    match: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
-    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    // Membership tracking fields
-    requiredMembershipLevel: {
-        type: Number,
-        default: 1,
-        enum: [0, 1, 2]
-    }, // Minimum membership required to access (1 = Basic, 2 = Premium)
-    membershipAtCreation: {
-        type: Number,
-        default: 0,
-        enum: [0, 1, 2]
-    }, // Membership level when overlay was created
-    // URL expiry tracking - 24 hours from creation/regeneration
-    urlExpiresAt: {
-        type: Date,
-        default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // Default: 24 hours from now
-    }
-}, {
-    timestamps: true
-});
+    name: { type: String, required: true, trim: true },
+    description: { type: String },
+    thumbnail: { type: String },
+    html: { type: String, required: true },
+    css: { type: String },
+    level: { type: Number, enum: [1, 2], default: 1 },
+    category: { type: String, default: 'broadcast' },
+    isPremium: { type: Boolean, default: false },
+    createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+OverlaySchema.index({ level: 1 });
+OverlaySchema.index({ isPremium: 1 });
+OverlaySchema.index({ category: 1 });
 exports.default = mongoose_1.default.model('Overlay', OverlaySchema);
 //# sourceMappingURL=Overlay.js.map

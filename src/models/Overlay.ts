@@ -1,61 +1,42 @@
-import mongoose, { Schema, Document } from 'mongoose';
+/**
+ * Overlay Model
+ * Broadcast overlay templates
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 
-export interface IOverlayConfig {
-  backgroundColor?: string;
-  opacity?: number;
-  fontFamily?: string;
-  [key: string]: any;
-}
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IOverlay extends Document {
   name: string;
-  template: string;
-  publicId: string;
-  config: IOverlayConfig;
-  elements: any[];
-  tournament?: mongoose.Types.ObjectId;
-  match?: mongoose.Types.ObjectId;
-  createdBy: mongoose.Types.ObjectId;
-  // Membership tracking fields
-  requiredMembershipLevel: number; // 0=Free, 1=Basic, 2=Premium
-  membershipAtCreation: number; // Store the membership level when overlay was created
-  // URL expiry tracking
-  urlExpiresAt: Date; // When the overlay URL expires (24 hours from creation/regeneration)
+  description?: string;
+  thumbnail?: string;
+  html: string;
+  css?: string;
+  level: 1 | 2;
+  category: string;
+  isPremium: boolean;
+  createdBy?: mongoose.Types.ObjectId;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const OverlaySchema: Schema = new Schema({
-  name: { type: String, required: true },
-  template: { type: String, required: true, default: 'modern' },
-  publicId: { type: String, required: true, unique: true },
-  config: { 
-    type: Map,
-    of: Schema.Types.Mixed,
-    default: {} 
-  },
-  elements: { type: Array, default: [] },
-  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },
-  match: { type: Schema.Types.ObjectId, ref: 'Match' },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  // Membership tracking fields
-  requiredMembershipLevel: { 
-    type: Number, 
-    default: 1, 
-    enum: [0, 1, 2] 
-  }, // Minimum membership required to access (1 = Basic, 2 = Premium)
-  membershipAtCreation: { 
-    type: Number, 
-    default: 0, 
-    enum: [0, 1, 2] 
-  }, // Membership level when overlay was created
-  // URL expiry tracking - 24 hours from creation/regeneration
-  urlExpiresAt: { 
-    type: Date, 
-    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // Default: 24 hours from now
-  }
-}, {
-  timestamps: true
-});
+  name: { type: String, required: true, trim: true },
+  description: { type: String },
+  thumbnail: { type: String },
+  html: { type: String, required: true },
+  css: { type: String },
+  level: { type: Number, enum: [1, 2], default: 1 },
+  category: { type: String, default: 'broadcast' },
+  isPremium: { type: Boolean, default: false },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+
+OverlaySchema.index({ level: 1 });
+OverlaySchema.index({ isPremium: 1 });
+OverlaySchema.index({ category: 1 });
 
 export default mongoose.model<IOverlay>('Overlay', OverlaySchema);
+

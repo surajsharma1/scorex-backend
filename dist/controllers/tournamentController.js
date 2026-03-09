@@ -1,218 +1,505 @@
 "use strict";
+/**
+ * Tournament Controller
+ * Tournament management with bracket generation
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTournamentMatches = exports.deleteTournament = exports.generateFixtures = exports.addTeamToTournament = exports.getTournamentById = exports.getTournaments = exports.createTournament = void 0;
+exports.searchTournaments = exports.getMyOrganizedTournaments = exports.getTournamentStats = exports.endTournament = exports.startTournament = exports.generateBracket = exports.removeTeam = exports.addTeam = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getFeaturedTournaments = exports.getOngoingTournaments = exports.getUpcomingTournaments = exports.getTournaments = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
-const Match_1 = __importDefault(require("../models/Match"));
-const logger_1 = __importDefault(require("../utils/logger"));
-// Create a new tournament
-const createTournament = async (req, res, next) => {
+const Team_1 = __importDefault(require("../models/Team"));
+// @desc    Get all tournaments
+// @route   GET /api/v1/tournaments
+// @access  Public
+const getTournaments = async (req, res, next) => {
     try {
-        logger_1.default.info('Creating tournament:', { body: req.body, userId: req.user?._id });
-        // Handle undefined body - this shouldn't happen but has been observed in production
-        if (!req.body) {
-            logger_1.default.error('Request body is undefined! This indicates a body parser issue.');
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid request: body is missing. Please ensure Content-Type is application/json'
-            });
-        }
-        // Extract all possible fields from frontend and backend formats
-        const { name, description, organizer, startDate, endDate, location, locationType, type, format, teams } = req.body;
-        // Validate name is provided (only required field)
-        if (!name) {
-            return res.status(400).json({
-                success: false,
-                message: 'Tournament name is required'
-            });
-        }
-        // Safely extract the user ID using 'any' casting
-        const userId = req.user?._id || req.user?.id;
-        // Provide defaults for required fields if not provided
-        const tournamentData = {
-            name,
-            organizer: organizer || 'Unknown Organizer', // Default organizer
-            startDate: startDate || new Date().toISOString(),
-            endDate: endDate || startDate || new Date().toISOString(),
-            location: location || 'TBD', // Default location
-            locationType: locationType || 'Outdoor', // Default location type
-            type: type || 'League', // Default tournament type
-            createdBy: userId,
-            // Optional fields
-            ...(description && { description }),
-            teams: teams || [], // Frontend can pass team IDs
-        };
-        const tournament = await Tournament_1.default.create(tournamentData);
-        logger_1.default.info('Tournament created successfully:', { tournamentId: tournament._id });
-        res.status(201).json({ success: true, data: tournament });
+        const { status, type, organizer, limit = 20, page = 1 } = req.query;
+        const query = { isPublic: true };
+        if (status)
+            query.status = status;
+        if (type)
+            query.type = type;
+        if (organizer)
+            query.organizer = organizer;
+        const tournaments = await Tournament_1.default.find(query)
+            .populate('organizer', 'username email')
+            .sort({ startDate: 1 })
+            .limit(Number(limit))
+            .skip((Number(page) - 1) * Number(limit));
+        const total = await Tournament_1.default.countDocuments(query);
+        res.json({
+            success: true,
+            data: tournaments,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / Number(limit))
+            }
+        });
     }
     catch (error) {
-        logger_1.default.error('Create tournament error:', {
-            error: error.message,
-            stack: error.stack,
-            body: req.body
+        next(error);
+    }
+};
+exports.getTournaments = getTournaments;
+// @desc    Get upcoming tournaments
+// @route   GET /api/v1/tournaments/upcoming
+// @access  Public
+const getUpcomingTournaments = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 10;
+        const tournaments = await Tournament_1.default.getUpcoming(limit);
+        res.json({
+            success: true,
+            data: tournaments
         });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getUpcomingTournaments = getUpcomingTournaments;
+// @desc    Get ongoing tournaments
+// @route   GET /api/v1/tournaments/ongoing
+// @access  Public
+const getOngoingTournaments = async (req, res, next) => {
+    try {
+        const tournaments = await Tournament_1.default.getOngoing();
+        res.json({
+            success: true,
+            data: tournaments
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getOngoingTournaments = getOngoingTournaments;
+// @desc    Get featured tournaments
+// @route   GET /api/v1/tournaments/featured
+// @access  Public
+const getFeaturedTournaments = async (req, res, next) => {
+    try {
+        const limit = Number(req.query.limit) || 5;
+        const tournaments = await Tournament_1.default.getFeatured(limit);
+        res.json({
+            success: true,
+            data: tournaments
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getFeaturedTournaments = getFeaturedTournaments;
+// @desc    Get single tournament
+// @route   GET /api/v1/tournaments/:id
+// @access  Public
+const getTournament = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id)
+            .populate('organizer', 'username email fullName')
+            .populate('teams', 'name shortName logo players')
+            .populate('matches')
+            .populate('winner', 'name shortName')
+            .populate('runnerUp', 'name shortName');
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        res.json({
+            success: true,
+            data: tournament
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getTournament = getTournament;
+// @desc    Create tournament
+// @route   POST /api/v1/tournaments
+// @access  Private
+const createTournament = async (req, res, next) => {
+    try {
+        const { name, description, logo, banner, startDate, endDate, registrationDeadline, location, locationType, address, type, format, maxTeams, minTeams, overs, rules, prize, entryFee, isPublic } = req.body;
+        const tournament = await Tournament_1.default.create({
+            name,
+            description,
+            logo,
+            banner,
+            organizer: req.user?.id,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : undefined,
+            location,
+            locationType,
+            address,
+            type: type || 'round_robin',
+            format: format || 'T20',
+            maxTeams: maxTeams || 8,
+            minTeams: minTeams || 4,
+            overs: overs || 20,
+            rules,
+            prize,
+            entryFee: entryFee || 0,
+            isPublic: isPublic !== false,
+            status: 'draft'
+        });
+        await tournament.populate('organizer', 'username email');
+        res.status(201).json({
+            success: true,
+            message: 'Tournament created successfully',
+            data: tournament
+        });
+    }
+    catch (error) {
         next(error);
     }
 };
 exports.createTournament = createTournament;
-// Get all tournaments
-const getTournaments = async (req, res, next) => {
+// @desc    Update tournament
+// @route   PUT /api/v1/tournaments/:id
+// @access  Private (Organizer/Admin)
+const updateTournament = async (req, res, next) => {
     try {
-        // Check if database is connected
-        const mongoose = require('mongoose');
-        if (mongoose.connection.readyState !== 1) {
-            logger_1.default.error('Database not connected:', { readyState: mongoose.connection.readyState });
-            return res.status(503).json({
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
                 success: false,
-                message: 'Database unavailable. Please try again later.',
-                code: 'DB_NOT_CONNECTED'
+                message: 'Tournament not found'
             });
         }
-        const tournaments = await Tournament_1.default.find()
-            .populate('teams', 'name logo color')
-            .sort({ createdAt: -1 })
-            .catch(populateError => {
-            logger_1.default.warn('Teams populate failed, returning tournaments without teams:', { error: populateError });
-            return Tournament_1.default.find().sort({ createdAt: -1 });
-        });
-        res.status(200).json({ success: true, count: tournaments.length, data: tournaments });
-    }
-    catch (error) {
-        logger_1.default.error('Get tournaments error:', { error: error.message, stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error', error: error.message });
-    }
-};
-exports.getTournaments = getTournaments;
-// Get single tournament
-const getTournamentById = async (req, res, next) => {
-    try {
-        const tournament = await Tournament_1.default.findById(req.params.id)
-            .populate('teams')
-            .populate({ path: 'matches', select: 'matchName teamA teamB matchDate status format' });
-        if (!tournament)
-            return res.status(404).json({ success: false, message: 'Tournament not found' });
-        res.status(200).json({ success: true, data: tournament });
-    }
-    catch (error) {
-        logger_1.default.error('Get tournament by ID error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
-        next(error);
-    }
-};
-exports.getTournamentById = getTournamentById;
-// Add Team
-const addTeamToTournament = async (req, res, next) => {
-    try {
-        const { teamId } = req.body;
-        const tournament = await Tournament_1.default.findById(req.params.id);
-        if (!tournament)
-            return res.status(404).json({ success: false, message: 'Tournament not found' });
-        if (tournament.teams.includes(teamId)) {
-            return res.status(400).json({ success: false, message: 'Team already in tournament' });
+        // Check ownership
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this tournament'
+            });
         }
-        tournament.teams.push(teamId);
-        await tournament.save();
-        res.status(200).json({ success: true, data: tournament });
-    }
-    catch (error) {
-        logger_1.default.error('Add team to tournament error:', { error: error.message, stack: error.stack });
-        next(error);
-    }
-};
-exports.addTeamToTournament = addTeamToTournament;
-// Auto-generate Fixtures
-const generateFixtures = async (req, res, next) => {
-    try {
-        const tournament = await Tournament_1.default.findById(req.params.id).populate('teams');
-        if (!tournament)
-            return res.status(404).json({ success: false, message: 'Tournament not found' });
-        if (tournament.teams.length < 2)
-            return res.status(400).json({ success: false, message: 'Need at least 2 teams' });
-        const matchesToCreate = [];
-        const teams = tournament.teams;
-        const userId = req.user?._id || req.user?.id;
-        if (tournament.type === 'Round Robin') {
-            let matchCount = 1;
-            for (let i = 0; i < teams.length; i++) {
-                for (let j = i + 1; j < teams.length; j++) {
-                    matchesToCreate.push({
-                        tournamentId: tournament._id,
-                        matchName: `Match ${matchCount}`,
-                        teamA: teams[i]._id,
-                        teamB: teams[j]._id,
-                        venue: tournament.location,
-                        matchDate: tournament.startDate,
-                        format: 'T20',
-                        maxOvers: 20,
-                        createdBy: userId
-                    });
-                    matchCount++;
-                }
+        const allowedUpdates = [
+            'name', 'description', 'logo', 'banner', 'location', 'locationType',
+            'address', 'rules', 'prize', 'entryFee', 'isPublic', 'isFeatured',
+            'streamUrl', 'registrationDeadline'
+        ];
+        allowedUpdates.forEach(field => {
+            if (req.body[field] !== undefined) {
+                tournament[field] = req.body[field];
             }
-        }
-        const createdMatches = await Match_1.default.insertMany(matchesToCreate);
-        tournament.matches.push(...createdMatches.map(m => m._id));
+        });
         await tournament.save();
-        res.status(201).json({ success: true, message: `Generated ${createdMatches.length} fixtures`, data: createdMatches });
+        res.json({
+            success: true,
+            message: 'Tournament updated',
+            data: tournament
+        });
     }
     catch (error) {
-        logger_1.default.error('Generate fixtures error:', { error: error.message, stack: error.stack });
         next(error);
     }
 };
-exports.generateFixtures = generateFixtures;
-// Delete Tournament
+exports.updateTournament = updateTournament;
+// @desc    Delete tournament
+// @route   DELETE /api/v1/tournaments/:id
+// @access  Private (Organizer/Admin)
 const deleteTournament = async (req, res, next) => {
     try {
         const tournament = await Tournament_1.default.findById(req.params.id);
         if (!tournament) {
-            return res.status(404).json({ success: false, message: 'Tournament not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
         }
-        // Check if user is authorized to delete (owner or admin)
-        const userId = req.user?._id || req.user?.id;
-        const userRole = req.user?.role;
-        if (tournament.createdBy?.toString() !== userId && userRole !== 'admin') {
-            return res.status(403).json({ success: false, message: 'Not authorized to delete this tournament' });
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this tournament'
+            });
         }
-        // Delete associated matches
-        if (tournament.matches && tournament.matches.length > 0) {
-            await Match_1.default.deleteMany({ _id: { $in: tournament.matches } });
-        }
-        // Delete the tournament
-        await Tournament_1.default.findByIdAndDelete(req.params.id);
-        logger_1.default.info('Tournament deleted:', { tournamentId: req.params.id, userId });
-        res.status(200).json({ success: true, message: 'Tournament deleted successfully' });
+        tournament.status = 'cancelled';
+        await tournament.save();
+        res.json({
+            success: true,
+            message: 'Tournament cancelled'
+        });
     }
     catch (error) {
-        logger_1.default.error('Delete tournament error:', { error: error.message, stack: error.stack, tournamentId: req.params.id });
         next(error);
     }
 };
 exports.deleteTournament = deleteTournament;
-// Get Tournament Matches
-const getTournamentMatches = async (req, res, next) => {
+// @desc    Add team to tournament
+// @route   POST /api/v1/tournaments/:id/teams
+// @access  Private
+const addTeam = async (req, res, next) => {
     try {
+        const { teamId } = req.body;
         const tournament = await Tournament_1.default.findById(req.params.id);
         if (!tournament) {
-            return res.status(404).json({ success: false, message: 'Tournament not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
         }
-        // Get matches from the tournament's matches array
-        const matches = await Match_1.default.find({ _id: { $in: tournament.matches } })
-            .populate('teamA')
-            .populate('teamB')
-            .sort({ matchDate: -1 });
-        res.status(200).json({
+        // Check if team exists
+        const team = await Team_1.default.findById(teamId);
+        if (!team) {
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
+        }
+        await tournament.addTeam(teamId);
+        // Also add to team's tournaments
+        if (!team.tournaments.includes(tournament._id)) {
+            team.tournaments.push(tournament._id);
+            await team.save();
+        }
+        res.json({
             success: true,
-            data: matches,
-            count: matches.length
+            message: 'Team added to tournament',
+            data: tournament
         });
     }
     catch (error) {
-        logger_1.default.error('Get tournament matches error:', { error: error.message, tournamentId: req.params.id });
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+exports.addTeam = addTeam;
+// @desc    Remove team from tournament
+// @route   DELETE /api/v1/tournaments/:id/teams/:teamId
+// @access  Private (Organizer/Admin)
+const removeTeam = async (req, res, next) => {
+    try {
+        const { teamId } = req.params;
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        await tournament.removeTeam(teamId);
+        res.json({
+            success: true,
+            message: 'Team removed from tournament'
+        });
+    }
+    catch (error) {
         next(error);
     }
 };
-exports.getTournamentMatches = getTournamentMatches;
+exports.removeTeam = removeTeam;
+// @desc    Generate bracket
+// @route   POST /api/v1/tournaments/:id/bracket
+// @access  Private (Organizer/Admin)
+const generateBracket = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        if (tournament.bracketGenerated) {
+            return res.status(400).json({
+                success: false,
+                message: 'Bracket already generated'
+            });
+        }
+        await tournament.generateBracket();
+        res.json({
+            success: true,
+            message: 'Bracket generated successfully',
+            data: tournament
+        });
+    }
+    catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+exports.generateBracket = generateBracket;
+// @desc    Start tournament
+// @route   POST /api/v1/tournaments/:id/start
+// @access  Private (Organizer/Admin)
+const startTournament = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        await tournament.startTournament();
+        res.json({
+            success: true,
+            message: 'Tournament started',
+            data: tournament
+        });
+    }
+    catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+exports.startTournament = startTournament;
+// @desc    End tournament
+// @route   POST /api/v1/tournaments/:id/end
+// @access  Private (Organizer/Admin)
+const endTournament = async (req, res, next) => {
+    try {
+        const { winnerId } = req.body;
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        if (tournament.organizer.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        await tournament.endTournament(winnerId);
+        res.json({
+            success: true,
+            message: 'Tournament ended',
+            data: tournament
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.endTournament = endTournament;
+// @desc    Get tournament stats
+// @route   GET /api/v1/tournaments/:id/stats
+// @access  Public
+const getTournamentStats = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id)
+            .populate('teams', 'name shortName tournamentStats points netRunRate')
+            .populate('matches');
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        // Calculate points table for round robin
+        if (tournament.type === 'round_robin' || tournament.type === 'league') {
+            await tournament.calculatePointsTable();
+        }
+        res.json({
+            success: true,
+            data: {
+                tournament,
+                pointsTable: tournament.pointsTable,
+                matches: tournament.matches,
+                stats: {
+                    totalTeams: tournament.teams?.length || 0,
+                    totalMatches: tournament.matches?.length || 0,
+                    completedMatches: tournament.matches?.filter((m) => m.status === 'completed').length || 0
+                }
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getTournamentStats = getTournamentStats;
+// @desc    Get my tournaments (organized by user)
+// @route   GET /api/v1/tournaments/my/organized
+// @access  Private
+const getMyOrganizedTournaments = async (req, res, next) => {
+    try {
+        const tournaments = await Tournament_1.default.getByOrganizer(req.user?.id);
+        res.json({
+            success: true,
+            data: tournaments
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getMyOrganizedTournaments = getMyOrganizedTournaments;
+// @desc    Search tournaments
+// @route   GET /api/v1/tournaments/search
+// @access  Public
+const searchTournaments = async (req, res, next) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search query required'
+            });
+        }
+        const tournaments = await Tournament_1.default.search(q);
+        res.json({
+            success: true,
+            data: tournaments
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.searchTournaments = searchTournaments;
+exports.default = {
+    getTournaments: exports.getTournaments,
+    getUpcomingTournaments: exports.getUpcomingTournaments,
+    getOngoingTournaments: exports.getOngoingTournaments,
+    getFeaturedTournaments: exports.getFeaturedTournaments,
+    getTournament: exports.getTournament,
+    createTournament: exports.createTournament,
+    updateTournament: exports.updateTournament,
+    deleteTournament: exports.deleteTournament,
+    addTeam: exports.addTeam,
+    removeTeam: exports.removeTeam,
+    generateBracket: exports.generateBracket,
+    startTournament: exports.startTournament,
+    endTournament: exports.endTournament,
+    getTournamentStats: exports.getTournamentStats,
+    getMyOrganizedTournaments: exports.getMyOrganizedTournaments,
+    searchTournaments: exports.searchTournaments
+};
 //# sourceMappingURL=tournamentController.js.map

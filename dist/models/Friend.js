@@ -1,4 +1,9 @@
 "use strict";
+/**
+ * Friend Model
+ * Friends system
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -34,12 +39,12 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const friendSchema = new mongoose_1.Schema({
-    from: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    to: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+const FriendSchema = new mongoose_1.Schema({
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    friend: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
 }, { timestamps: true });
-// Ensure unique friend requests (no duplicates)
-friendSchema.index({ from: 1, to: 1 }, { unique: true });
-exports.default = mongoose_1.default.model('Friend', friendSchema);
+FriendSchema.index({ user: 1, friend: 1 }, { unique: true });
+FriendSchema.index({ user: 1, status: 1 });
+exports.default = mongoose_1.default.model('Friend', FriendSchema);
 //# sourceMappingURL=Friend.js.map

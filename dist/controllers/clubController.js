@@ -1,242 +1,413 @@
 "use strict";
+/**
+ * Club Controller
+ * Club management with roles
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeMember = exports.addMember = exports.deleteClub = exports.updateClub = exports.leaveClub = exports.joinClub = exports.getClub = exports.searchClubs = exports.getClubs = exports.createClub = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
+exports.getMyClubs = exports.removeMember = exports.addViceLeader = exports.approveJoinRequest = exports.leaveClub = exports.joinClub = exports.deleteClub = exports.updateClub = exports.createClub = exports.getClub = exports.getClubs = void 0;
 const Club_1 = __importDefault(require("../models/Club"));
-const logger_1 = __importDefault(require("../utils/logger"));
-const createClub = async (req, res) => {
+// @desc    Get all clubs
+// @route   GET /api/v1/clubs
+// @access  Public
+const getClubs = async (req, res, next) => {
     try {
-        const { name, description } = req.body;
-        const userId = req.user?._id;
-        if (!name) {
-            return res.status(400).json({ message: 'Club name is required' });
+        const { type, search, limit = 20, page = 1 } = req.query;
+        const query = { isActive: true };
+        if (type)
+            query.type = type;
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
         }
-        const club = new Club_1.default({
-            name,
-            description,
-            members: [userId],
-            createdBy: userId
+        const clubs = await Club_1.default.find(query)
+            .populate('owner', 'username email fullName')
+            .populate('members', 'username email fullName')
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip((Number(page) - 1) * Number(limit));
+        const total = await Club_1.default.countDocuments(query);
+        res.json({
+            success: true,
+            data: clubs,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / Number(limit))
+            }
         });
-        await club.save();
-        logger_1.default.info(`Club created: ${name} by ${userId}`);
-        res.status(201).json({ message: 'Club created successfully', club });
     }
     catch (error) {
-        if (error?.code === 11000) {
-            return res.status(400).json({ message: 'Club name already exists' });
-        }
-        logger_1.default.error('Error creating club:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
-exports.createClub = createClub;
-const getClubs = async (req, res) => {
-    try {
-        const clubs = await Club_1.default.find()
-            .populate('members', 'username profilePicture')
-            .populate('createdBy', 'username');
-        res.json(clubs);
-    }
-    catch (error) {
-        logger_1.default.error('Error getting clubs:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
 exports.getClubs = getClubs;
-const searchClubs = async (req, res) => {
+// @desc    Get single club
+// @route   GET /api/v1/clubs/:id
+// @access  Public
+const getClub = async (req, res, next) => {
     try {
-        const { query } = req.query;
-        if (!query || typeof query !== 'string') {
-            res.status(400).json({ message: 'Query parameter is required' });
-            return;
-        }
-        const clubs = await Club_1.default.find({
-            $or: [
-                { name: { $regex: query, $options: 'i' } },
-                { description: { $regex: query, $options: 'i' } }
-            ]
-        })
-            .populate('members', 'username profilePicture')
-            .populate('createdBy', 'username')
-            .limit(10);
-        res.json(clubs);
-    }
-    catch (error) {
-        logger_1.default.error('Error searching clubs:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
-exports.searchClubs = searchClubs;
-const getClub = async (req, res) => {
-    try {
-        const { clubId } = req.params;
-        const club = await Club_1.default.findById(clubId)
-            .populate('members', 'username profilePicture bio')
-            .populate('createdBy', 'username');
+        const club = await Club_1.default.findById(req.params.id)
+            .populate('owner', 'username email fullName profilePicture')
+            .populate('members', 'username email fullName profilePicture')
+            .populate('viceLeaders', 'username email fullName profilePicture')
+            .populate('joinRequests', 'username email fullName');
         if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
         }
-        res.json({ club });
+        res.json({
+            success: true,
+            data: club
+        });
     }
     catch (error) {
-        logger_1.default.error('Error getting club:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
 exports.getClub = getClub;
-const joinClub = async (req, res) => {
+// @desc    Create club
+// @route   POST /api/v1/clubs
+// @access  Private
+const createClub = async (req, res, next) => {
     try {
-        const { clubId } = req.params;
-        const userId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
-        if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
-        }
-        if (club.members.includes(userId)) {
-            return res.status(400).json({ message: 'Already a member of this club' });
-        }
-        club.members.push(userId);
-        await club.save();
-        logger_1.default.info(`User ${userId} joined club ${clubId}`);
-        res.json({ message: 'Joined club successfully', club });
+        const { name, description, logo, type, location, isPublic } = req.body;
+        const club = await Club_1.default.create({
+            name,
+            description,
+            logo,
+            type: type || 'public',
+            location,
+            isPublic: isPublic !== false,
+            owner: req.user?.id,
+            members: [req.user?.id],
+            viceLeaders: [],
+            joinRequests: []
+        });
+        await club.populate('owner', 'username email');
+        res.status(201).json({
+            success: true,
+            message: 'Club created successfully',
+            data: club
+        });
     }
     catch (error) {
-        logger_1.default.error('Error joining club:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
-exports.joinClub = joinClub;
-const leaveClub = async (req, res) => {
+exports.createClub = createClub;
+// @desc    Update club
+// @route   PUT /api/v1/clubs/:id
+// @access  Private (Owner/Vice-Leader)
+const updateClub = async (req, res, next) => {
     try {
-        const { clubId } = req.params;
-        const userId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
+        const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
         }
-        if (!club.members.includes(userId)) {
-            return res.status(400).json({ message: 'Not a member of this club' });
+        const isOwner = club.owner.toString() === req.user?.id;
+        const isViceLeader = club.viceLeaders.some((v) => v.toString() === req.user?.id);
+        if (!isOwner && !isViceLeader && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this club'
+            });
         }
-        if (club.createdBy.toString() === userId) {
-            return res.status(400).json({ message: 'Club creator cannot leave the club' });
-        }
-        club.members = club.members.filter(member => member.toString() !== userId);
-        await club.save();
-        logger_1.default.info(`User ${userId} left club ${clubId}`);
-        res.json({ message: 'Left club successfully' });
-    }
-    catch (error) {
-        logger_1.default.error('Error leaving club:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
-exports.leaveClub = leaveClub;
-const updateClub = async (req, res) => {
-    try {
-        const { clubId } = req.params;
-        const { name, description } = req.body;
-        const userId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
-        if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
-        }
-        if (club.createdBy.toString() !== userId?.toString()) {
-            return res.status(403).json({ message: 'Only club creator can update the club' });
-        }
+        const { name, description, logo, type, location, isPublic } = req.body;
         if (name)
             club.name = name;
-        if (description !== undefined)
+        if (description)
             club.description = description;
+        if (logo)
+            club.logo = logo;
+        if (type)
+            club.type = type;
+        if (location)
+            club.location = location;
+        if (isPublic !== undefined)
+            club.isPublic = isPublic;
         await club.save();
-        logger_1.default.info(`Club updated: ${clubId}`);
-        res.json({ message: 'Club updated successfully', club });
+        res.json({
+            success: true,
+            message: 'Club updated',
+            data: club
+        });
     }
     catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: 'Club name already exists' });
-        }
-        logger_1.default.error('Error updating club:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
 exports.updateClub = updateClub;
-const deleteClub = async (req, res) => {
+// @desc    Delete club
+// @route   DELETE /api/v1/clubs/:id
+// @access  Private (Owner only)
+const deleteClub = async (req, res, next) => {
     try {
-        const { clubId } = req.params;
-        const userId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
+        const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
         }
-        if (club.createdBy.toString() !== userId) {
-            return res.status(403).json({ message: 'Only club creator can delete the club' });
+        if (club.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Only owner can delete club'
+            });
         }
-        await Club_1.default.findByIdAndDelete(clubId);
-        logger_1.default.info(`Club deleted: ${clubId}`);
-        res.json({ message: 'Club deleted successfully' });
+        club.isActive = false;
+        await club.save();
+        res.json({
+            success: true,
+            message: 'Club deleted'
+        });
     }
     catch (error) {
-        logger_1.default.error('Error deleting club:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
 exports.deleteClub = deleteClub;
-const addMember = async (req, res) => {
+// @desc    Join club
+// @route   POST /api/v1/clubs/:id/join
+// @access  Private
+const joinClub = async (req, res, next) => {
     try {
-        const { clubId } = req.params;
-        const { userId } = req.body;
-        const currentUserId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
+        const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
         }
-        if (club.createdBy.toString() !== currentUserId?.toString()) {
-            return res.status(403).json({ message: 'Only club creator can add members' });
+        if (club.members.some((m) => m.toString() === req.user?.id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Already a member of this club'
+            });
         }
-        const userObjectId = new mongoose_1.default.Types.ObjectId(userId);
-        if (club.members.some(member => member.toString() === userId)) {
-            return res.status(400).json({ message: 'User is already a member of this club' });
+        if (club.joinRequests.some((r) => r.toString() === req.user?.id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Join request already pending'
+            });
         }
-        club.members.push(userObjectId);
-        await club.save();
-        logger_1.default.info(`User ${userId} added to club ${clubId} by ${currentUserId}`);
-        res.json({ message: 'Member added successfully', club });
+        if (club.isPublic) {
+            club.members.push(req.user?.id);
+            await club.save();
+            res.json({
+                success: true,
+                message: 'Joined club successfully'
+            });
+        }
+        else {
+            club.joinRequests.push(req.user?.id);
+            await club.save();
+            res.json({
+                success: true,
+                message: 'Join request submitted'
+            });
+        }
     }
     catch (error) {
-        logger_1.default.error('Error adding member:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
     }
 };
-exports.addMember = addMember;
-const removeMember = async (req, res) => {
+exports.joinClub = joinClub;
+// @desc    Leave club
+// @route   POST /api/v1/clubs/:id/leave
+// @access  Private
+const leaveClub = async (req, res, next) => {
     try {
-        const { clubId, userId } = req.params;
-        const currentUserId = req.user?._id;
-        const club = await Club_1.default.findById(clubId);
+        const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({ message: 'Club not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
         }
-        if (club.createdBy.toString() !== currentUserId?.toString()) {
-            return res.status(403).json({ message: 'Only club creator can remove members' });
+        if (club.owner.toString() === req.user?.id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Owner cannot leave club'
+            });
         }
-        if (club.createdBy.toString() === userId) {
-            return res.status(400).json({ message: 'Cannot remove the club creator' });
-        }
-        if (!club.members.some(member => member.toString() === userId)) {
-            return res.status(400).json({ message: 'User is not a member of this club' });
-        }
-        club.members = club.members.filter(member => member.toString() !== userId);
+        club.members = club.members.filter((m) => m.toString() !== req.user?.id);
+        club.viceLeaders = club.viceLeaders.filter((v) => v.toString() !== req.user?.id);
+        club.joinRequests = club.joinRequests.filter((r) => r.toString() !== req.user?.id);
         await club.save();
-        logger_1.default.info(`User ${userId} removed from club ${clubId} by ${currentUserId}`);
-        res.json({ message: 'Member removed successfully', club });
+        res.json({
+            success: true,
+            message: 'Left club successfully'
+        });
     }
     catch (error) {
-        logger_1.default.error('Error removing member:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        next(error);
+    }
+};
+exports.leaveClub = leaveClub;
+// @desc    Approve join request
+// @route   POST /api/v1/clubs/:id/approve/:userId
+// @access  Private (Owner/Vice-Leader)
+const approveJoinRequest = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const club = await Club_1.default.findById(req.params.id);
+        if (!club) {
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+        }
+        const isOwner = club.owner.toString() === req.user?.id;
+        const isViceLeader = club.viceLeaders.some((v) => v.toString() === req.user?.id);
+        if (!isOwner && !isViceLeader && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        if (!club.joinRequests.some((r) => r.toString() === userId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'No join request from this user'
+            });
+        }
+        club.members.push(userId);
+        club.joinRequests = club.joinRequests.filter((r) => r.toString() !== userId);
+        await club.save();
+        res.json({
+            success: true,
+            message: 'Join request approved'
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.approveJoinRequest = approveJoinRequest;
+// @desc    Add vice leader
+// @route   POST /api/v1/clubs/:id/vice-leader/:userId
+// @access  Private (Owner only)
+const addViceLeader = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const club = await Club_1.default.findById(req.params.id);
+        if (!club) {
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+        }
+        if (club.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Only owner can add vice leaders'
+            });
+        }
+        if (!club.members.some((m) => m.toString() === userId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'User must be a member first'
+            });
+        }
+        club.viceLeaders.push(userId);
+        await club.save();
+        res.json({
+            success: true,
+            message: 'Vice leader added'
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.addViceLeader = addViceLeader;
+// @desc    Remove member
+// @route   DELETE /api/v1/clubs/:id/members/:userId
+// @access  Private (Owner/Vice-Leader)
+const removeMember = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const club = await Club_1.default.findById(req.params.id);
+        if (!club) {
+            return res.status(404).json({
+                success: false,
+                message: 'Club not found'
+            });
+        }
+        const isOwner = club.owner.toString() === req.user?.id;
+        const isViceLeader = club.viceLeaders.some((v) => v.toString() === req.user?.id);
+        if (!isOwner && !isViceLeader && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        if (userId === club.owner.toString()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot remove owner'
+            });
+        }
+        club.members = club.members.filter((m) => m.toString() !== userId);
+        club.viceLeaders = club.viceLeaders.filter((v) => v.toString() !== userId);
+        await club.save();
+        res.json({
+            success: true,
+            message: 'Member removed'
+        });
+    }
+    catch (error) {
+        next(error);
     }
 };
 exports.removeMember = removeMember;
+// @desc    Get user's clubs
+// @route   GET /api/v1/clubs/my
+// @access  Private
+const getMyClubs = async (req, res, next) => {
+    try {
+        const clubs = await Club_1.default.find({
+            $or: [
+                { owner: req.user?.id },
+                { members: req.user?.id }
+            ],
+            isActive: true
+        })
+            .populate('owner', 'username email')
+            .sort({ createdAt: -1 });
+        res.json({
+            success: true,
+            data: clubs
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getMyClubs = getMyClubs;
+exports.default = {
+    getClubs: exports.getClubs,
+    getClub: exports.getClub,
+    createClub: exports.createClub,
+    updateClub: exports.updateClub,
+    deleteClub: exports.deleteClub,
+    joinClub: exports.joinClub,
+    leaveClub: exports.leaveClub,
+    approveJoinRequest: exports.approveJoinRequest,
+    addViceLeader: exports.addViceLeader,
+    removeMember: exports.removeMember,
+    getMyClubs: exports.getMyClubs
+};
 //# sourceMappingURL=clubController.js.map

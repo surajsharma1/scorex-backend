@@ -1,3 +1,8 @@
+/**
+ * User Model
+ * Complete user authentication and profile management
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 import mongoose, { Document } from 'mongoose';
 export interface IUser extends Document {
     username: string;
@@ -47,6 +52,7 @@ export interface IUser extends Document {
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
+    isMembershipActive(): boolean;
 }
 declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
     _id: mongoose.Types.ObjectId;

@@ -1,226 +1,358 @@
 "use strict";
+/**
+ * Team Controller
+ * Team and player management
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addPlayerByUsername = exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeams = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
+exports.searchTeams = exports.getUserTeams = exports.getTeamPlayers = exports.removePlayer = exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeam = exports.getTeams = void 0;
 const Team_1 = __importDefault(require("../models/Team"));
 const Player_1 = __importDefault(require("../models/Player"));
-const User_1 = __importDefault(require("../models/User"));
-const logger_1 = __importDefault(require("../utils/logger"));
-const getTeams = async (req, res) => {
+// @desc    Get all teams
+// @route   GET /api/v1/teams
+// @access  Public
+const getTeams = async (req, res, next) => {
     try {
-        // Check if database is connected first
-        if (mongoose_1.default.connection.readyState !== 1) {
-            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
-            res.status(503).json({
-                message: 'Database unavailable. Please try again later.',
-                code: 'DB_NOT_CONNECTED'
-            });
-            return;
+        const { search, owner, tournament, limit = 20, page = 1 } = req.query;
+        const query = { isActive: true };
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { shortName: { $regex: search, $options: 'i' } }
+            ];
         }
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
-        const query = req.query.tournament ? { tournament: req.query.tournament } : {};
-        // First, get total count
-        const total = await Team_1.default.countDocuments(query).catch(countError => {
-            logger_1.default.error('Count documents error:', { error: countError });
-            return 0;
-        });
-        // Get teams without populate first (more reliable)
-        let teams = await Team_1.default.find(query)
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .catch(queryError => {
-            logger_1.default.error('Find teams error:', { error: queryError });
-            return [];
-        });
-        // Try to populate tournament data separately, don't fail if it doesn't work
-        if (teams.length > 0) {
-            try {
-                teams = await Team_1.default.populate(teams, {
-                    path: 'tournament',
-                    select: 'name status',
-                    strictPopulate: false
-                });
-            }
-            catch (populateError) {
-                logger_1.default.warn('Tournament populate failed:', { error: populateError });
-                // Teams still available without populated tournament data
-            }
-        }
-        const result = {
-            teams,
+        if (owner)
+            query.owner = owner;
+        if (tournament)
+            query.tournaments = tournament;
+        const teams = await Team_1.default.find(query)
+            .populate('owner', 'username email')
+            .populate('players')
+            .sort({ points: -1 })
+            .limit(Number(limit))
+            .skip((Number(page) - 1) * Number(limit));
+        const total = await Team_1.default.countDocuments(query);
+        res.json({
+            success: true,
+            data: teams,
             pagination: {
-                currentPage: page,
-                totalPages: Math.ceil(total / limit) || 1,
-                totalItems: total,
-                itemsPerPage: limit,
-                hasNext: page * limit < total,
-                hasPrev: page > 1
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / Number(limit))
             }
-        };
-        res.json(result);
+        });
     }
     catch (error) {
-        logger_1.default.error('Get teams error:', { error: error instanceof Error ? error.message : String(error) });
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        next(error);
     }
 };
 exports.getTeams = getTeams;
-const createTeam = async (req, res) => {
+// @desc    Get single team
+// @route   GET /api/v1/teams/:id
+// @access  Public
+const getTeam = async (req, res, next) => {
     try {
-        logger_1.default.info('Creating team:', { body: req.body, userId: req.user?._id });
-        const teamData = {
-            name: req.body.name,
-            color: req.body.color,
-            tournament: req.body.tournament,
-            logo: req.file ? `/uploads/${req.file.filename}` : undefined,
-            createdBy: req.user?._id, // Type assertion
-        };
-        const team = await Team_1.default.create(teamData);
-        logger_1.default.info('Team created successfully:', { teamId: team._id });
-        res.status(201).json(team);
+        const team = await Team_1.default.findById(req.params.id)
+            .populate('owner', 'username email fullName')
+            .populate('players')
+            .populate('captain')
+            .populate('viceCaptain')
+            .populate('tournaments', 'name status');
+        if (!team) {
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
+        }
+        res.json({
+            success: true,
+            data: team
+        });
     }
     catch (error) {
-        logger_1.default.error('Team creation error:', { error: error instanceof Error ? error.message : 'Unknown error', body: req.body });
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ message: 'Server error', error: message });
+        next(error);
+    }
+};
+exports.getTeam = getTeam;
+// @desc    Create team
+// @route   POST /api/v1/teams
+// @access  Private
+const createTeam = async (req, res, next) => {
+    try {
+        const { name, shortName, description, logo } = req.body;
+        const team = await Team_1.default.create({
+            name,
+            shortName,
+            description,
+            logo,
+            owner: req.user?.id,
+            players: [],
+            tournamentStats: {
+                tournamentsPlayed: 0,
+                tournamentsWon: 0,
+                tournamentsLost: 0,
+                matchesPlayed: 0,
+                matchesWon: 0,
+                matchesLost: 0,
+                matchesTied: 0,
+                matchesNoResult: 0
+            },
+            points: 0,
+            netRunRate: 0
+        });
+        await team.populate('owner', 'username email');
+        res.status(201).json({
+            success: true,
+            message: 'Team created successfully',
+            data: team
+        });
+    }
+    catch (error) {
+        next(error);
     }
 };
 exports.createTeam = createTeam;
-const updateTeam = async (req, res) => {
+// @desc    Update team
+// @route   PUT /api/v1/teams/:id
+// @access  Private (Owner/Admin)
+const updateTeam = async (req, res, next) => {
     try {
-        const updateData = {
-            ...req.body,
-            logo: req.file ? `/uploads/${req.file.filename}` : undefined,
-        };
-        const team = await Team_1.default.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        const team = await Team_1.default.findById(req.params.id);
         if (!team) {
-            res.status(404).json({ message: 'Team not found' });
-            return;
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
         }
-        res.json(team);
+        // Check ownership
+        if (team.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this team'
+            });
+        }
+        const { name, shortName, description, logo, captain, viceCaptain } = req.body;
+        if (name)
+            team.name = name;
+        if (shortName)
+            team.shortName = shortName;
+        if (description)
+            team.description = description;
+        if (logo)
+            team.logo = logo;
+        if (captain)
+            team.captain = captain;
+        if (viceCaptain)
+            team.viceCaptain = viceCaptain;
+        await team.save();
+        res.json({
+            success: true,
+            message: 'Team updated',
+            data: team
+        });
     }
     catch (error) {
-        logger_1.default.error('Update team error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.id });
-        res.status(500).json({ message: 'Server error' });
+        next(error);
     }
 };
 exports.updateTeam = updateTeam;
-const deleteTeam = async (req, res) => {
+// @desc    Delete team
+// @route   DELETE /api/v1/teams/:id
+// @access  Private (Owner/Admin)
+const deleteTeam = async (req, res, next) => {
     try {
-        const team = await Team_1.default.findByIdAndDelete(req.params.id);
+        const team = await Team_1.default.findById(req.params.id);
         if (!team) {
-            res.status(404).json({ message: 'Team not found' });
-            return;
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
         }
-        res.json({ message: 'Team deleted' });
+        if (team.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this team'
+            });
+        }
+        team.isActive = false;
+        await team.save();
+        res.json({
+            success: true,
+            message: 'Team deleted'
+        });
     }
     catch (error) {
-        logger_1.default.error('Delete team error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.id });
-        res.status(500).json({ message: 'Server error' });
+        next(error);
     }
 };
 exports.deleteTeam = deleteTeam;
-const addPlayer = async (req, res) => {
+// @desc    Add player to team
+// @route   POST /api/v1/teams/:id/players
+// @access  Private (Owner/Admin)
+const addPlayer = async (req, res, next) => {
     try {
-        // Check if database is connected first
-        if (mongoose_1.default.connection.readyState !== 1) {
-            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
-            res.status(503).json({
-                message: 'Database unavailable. Please try again later.',
-                code: 'DB_NOT_CONNECTED'
-            });
-            return;
-        }
-        const team = await Team_1.default.findById(req.params.teamId);
+        const { playerId, isCaptain, isViceCaptain } = req.body;
+        const team = await Team_1.default.findById(req.params.id);
         if (!team) {
-            res.status(404).json({ message: 'Team not found' });
-            return;
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
         }
-        // Validate required fields
-        if (!req.body.name || !req.body.role || !req.body.jerseyNumber) {
-            res.status(400).json({ message: 'Missing required fields: name, role, jerseyNumber' });
-            return;
+        if (team.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
         }
-        // Create a new Player document
-        const playerData = {
-            name: req.body.name,
-            role: req.body.role,
-            jerseyNumber: req.body.jerseyNumber,
-            team: req.params.teamId,
-            userId: req.body.userId || req.user?._id, // Link to user if provided
-            ...(req.file && { image: `/uploads/${req.file.filename}` }),
-        };
-        const player = await Player_1.default.create(playerData);
-        team.players.push(player._id);
+        // Check if player exists
+        const player = await Player_1.default.findById(playerId);
+        if (!player) {
+            return res.status(404).json({
+                success: false,
+                message: 'Player not found'
+            });
+        }
+        // Add player to team
+        await team.addPlayer(playerId);
+        // Set captain/vice-captain if requested
+        if (isCaptain) {
+            team.captain = playerId;
+        }
+        if (isViceCaptain) {
+            team.viceCaptain = playerId;
+        }
         await team.save();
-        // Populate the player in the response
-        await team.populate('players');
-        res.status(201).json(team);
+        res.json({
+            success: true,
+            message: 'Player added to team',
+            data: team
+        });
     }
     catch (error) {
-        logger_1.default.error('Add player error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, body: req.body });
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Player already in team'
+            });
+        }
+        next(error);
     }
 };
 exports.addPlayer = addPlayer;
-const addPlayerByUsername = async (req, res) => {
+// @desc    Remove player from team
+// @route   DELETE /api/v1/teams/:id/players/:playerId
+// @access  Private (Owner/Admin)
+const removePlayer = async (req, res, next) => {
     try {
-        // Check if database is connected first
-        if (mongoose_1.default.connection.readyState !== 1) {
-            logger_1.default.error('Database not connected:', { readyState: mongoose_1.default.connection.readyState });
-            res.status(503).json({
-                message: 'Database unavailable. Please try again later.',
-                code: 'DB_NOT_CONNECTED'
-            });
-            return;
-        }
-        const { username } = req.body;
-        const teamId = req.params.teamId;
-        if (!username) {
-            res.status(400).json({ message: 'Username is required' });
-            return;
-        }
-        // Find user by username
-        const user = await User_1.default.findOne({ username, deleted: { $ne: true } });
-        if (!user) {
-            res.status(404).json({ message: 'User not found' });
-            return;
-        }
-        // Check if user is already a player in this team
-        const existingPlayer = await Player_1.default.findOne({ userId: user._id, team: teamId });
-        if (existingPlayer) {
-            res.status(400).json({ message: 'User is already a player in this team' });
-            return;
-        }
-        const team = await Team_1.default.findById(teamId);
+        const { playerId } = req.params;
+        const team = await Team_1.default.findById(req.params.id);
         if (!team) {
-            res.status(404).json({ message: 'Team not found' });
-            return;
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
         }
-        // Create player with user reference
-        const player = await Player_1.default.create({
-            name: user.username,
-            role: req.body.role || 'Batsman',
-            jerseyNumber: req.body.jerseyNumber || '0',
-            team: teamId,
-            userId: user._id,
-        });
-        team.players.push(player._id);
+        if (team.owner.toString() !== req.user?.id && req.user?.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+        await team.removePlayer(playerId);
+        // Remove captain/vice-captain if player removed
+        if (team.captain?.toString() === playerId) {
+            team.captain = undefined;
+        }
+        if (team.viceCaptain?.toString() === playerId) {
+            team.viceCaptain = undefined;
+        }
         await team.save();
-        // Populate the player in the response
-        await team.populate('players');
-        res.status(201).json(team);
+        res.json({
+            success: true,
+            message: 'Player removed from team'
+        });
     }
     catch (error) {
-        logger_1.default.error('Add player by username error:', { error: error instanceof Error ? error.message : 'Unknown error', teamId: req.params.teamId, username: req.body.username });
-        res.status(500).json({ message: 'Server error', error: error instanceof Error ? error.message : 'Unknown error' });
+        next(error);
     }
 };
-exports.addPlayerByUsername = addPlayerByUsername;
+exports.removePlayer = removePlayer;
+// @desc    Get team players
+// @route   GET /api/v1/teams/:id/players
+// @access  Public
+const getTeamPlayers = async (req, res, next) => {
+    try {
+        const team = await Team_1.default.findById(req.params.id)
+            .populate('players');
+        if (!team) {
+            return res.status(404).json({
+                success: false,
+                message: 'Team not found'
+            });
+        }
+        res.json({
+            success: true,
+            data: team.players
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getTeamPlayers = getTeamPlayers;
+// @desc    Get user's teams
+// @route   GET /api/v1/teams/user/:userId
+// @access  Public
+const getUserTeams = async (req, res, next) => {
+    try {
+        const teams = await Team_1.default.getByOwner(req.params.userId);
+        res.json({
+            success: true,
+            data: teams
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getUserTeams = getUserTeams;
+// @desc    Search teams
+// @route   GET /api/v1/teams/search
+// @access  Public
+const searchTeams = async (req, res, next) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search query required'
+            });
+        }
+        const teams = await Team_1.default.search(q);
+        res.json({
+            success: true,
+            data: teams
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.searchTeams = searchTeams;
+exports.default = {
+    getTeams: exports.getTeams,
+    getTeam: exports.getTeam,
+    createTeam: exports.createTeam,
+    updateTeam: exports.updateTeam,
+    deleteTeam: exports.deleteTeam,
+    addPlayer: exports.addPlayer,
+    removePlayer: exports.removePlayer,
+    getTeamPlayers: exports.getTeamPlayers,
+    getUserTeams: exports.getUserTeams,
+    searchTeams: exports.searchTeams
+};
 //# sourceMappingURL=teamController.js.map

@@ -1,22 +1,20 @@
+/**
+ * Overlay Model
+ * Broadcast overlay templates
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 import mongoose, { Document } from 'mongoose';
-export interface IOverlayConfig {
-    backgroundColor?: string;
-    opacity?: number;
-    fontFamily?: string;
-    [key: string]: any;
-}
 export interface IOverlay extends Document {
     name: string;
-    template: string;
-    publicId: string;
-    config: IOverlayConfig;
-    elements: any[];
-    tournament?: mongoose.Types.ObjectId;
-    match?: mongoose.Types.ObjectId;
-    createdBy: mongoose.Types.ObjectId;
-    requiredMembershipLevel: number;
-    membershipAtCreation: number;
-    urlExpiresAt: Date;
+    description?: string;
+    thumbnail?: string;
+    html: string;
+    css?: string;
+    level: 1 | 2;
+    category: string;
+    isPremium: boolean;
+    createdBy?: mongoose.Types.ObjectId;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

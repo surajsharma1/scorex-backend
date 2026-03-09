@@ -1,61 +1,140 @@
-import mongoose, { Document, Types } from 'mongoose';
-export interface IBall {
-    overNumber: number;
-    ballNumber: number;
-    bowler: Types.ObjectId | string;
-    striker: Types.ObjectId | string;
-    nonStriker: Types.ObjectId | string;
-    runsOffBat: number;
-    extras: number;
-    extraType: 'None' | 'WD' | 'NB' | 'B' | 'LB' | 'Penalty';
-    isWicket: boolean;
-    wicketType: 'None' | 'Bowled' | 'Caught' | 'Stumped' | 'LBW' | 'Run Out' | 'Mankad' | 'Retired' | 'Hit Wicket' | 'Obstructing the Field' | 'Hit the Ball Twice' | 'Timed Out' | 'Over the Fence' | 'One Hand One Bounce';
-    outPlayer?: Types.ObjectId | string;
-    fielder?: Types.ObjectId | string;
-    timestamp: Date;
+/**
+ * Match Model
+ * Complete cricket match and scoring system
+ * Following PROJECT_ALGORITHM.md specifications
+ */
+import mongoose, { Document } from 'mongoose';
+export type OutType = 'caught' | 'bowled' | 'lbw' | 'run out' | 'stumped' | 'hit wicket' | 'obstructing the field' | 'timed out' | 'handled the ball';
+export type ExtraType = 'no ball' | 'wide' | 'bye' | 'leg bye';
+export type MatchStatus = 'upcoming' | 'live' | 'completed' | 'cancelled';
+export type MatchFormat = 'T10' | 'T20' | 'ODI' | 'Test';
+export type InningsStatus = 'pending' | 'in_progress' | 'completed';
+export interface IBatsman {
+    playerId: mongoose.Types.ObjectId;
+    runs: number;
+    balls: number;
+    fours: number;
+    sixes: number;
+    isOut: boolean;
+    outType?: OutType;
+    outBy?: mongoose.Types.ObjectId;
+    outAtBalls?: number;
+}
+export interface IBowler {
+    playerId: mongoose.Types.ObjectId;
+    overs: number;
+    maidens: number;
+    runsConceded: number;
+    wickets: number;
+    wides: number;
+    noBalls: number;
+}
+export interface IExtras {
+    wides: number;
+    noBalls: number;
+    byes: number;
+    legByes: number;
+    total: number;
 }
 export interface IInnings {
-    battingTeam: Types.ObjectId;
-    bowlingTeam: Types.ObjectId;
-    totalRuns: number;
-    totalWickets: number;
-    totalOversBowled: number;
-    extrasTotal: number;
-    ballByBall: IBall[];
+    teamId: mongoose.Types.ObjectId;
+    status: InningsStatus;
+    score: number;
+    wickets: number;
+    overs: number;
+    balls: number;
+    runRate: number;
+    requiredRuns?: number;
+    requiredRunRate?: number;
+    targetScore?: number;
+    extras: IExtras;
+    batsmen: IBatsman[];
+    bowlers: IBowler[];
+    fallOfWickets: {
+        wicket: number;
+        score: number;
+        overs: number;
+        playerId: mongoose.Types.ObjectId;
+    }[];
+    powerPlay?: {
+        start: number;
+        end: number;
+        runs: number;
+        wickets: number;
+    };
+}
+export interface IOver {
+    overNumber: number;
+    bowlerId: mongoose.Types.ObjectId;
+    runs: number;
+    wickets: number;
+    extras: number;
+    balls: {
+        runs: number;
+        isWide: boolean;
+        isNoBall: boolean;
+        isWicket: boolean;
+        outType?: OutType;
+    }[];
 }
 export interface IMatch extends Document {
-    tournamentId: Types.ObjectId;
-    matchName: string;
-    teamA: Types.ObjectId;
-    teamB: Types.ObjectId;
+    name: string;
+    tournamentId?: mongoose.Types.ObjectId;
+    round?: string;
+    matchNumber?: number;
+    team1: mongoose.Types.ObjectId;
+    team2: mongoose.Types.ObjectId;
     venue: string;
-    matchDate: Date;
-    format: 'T10' | 'T20' | 'Club' | '100' | 'ODI' | 'Test' | 'Custom';
-    maxOvers: number;
-    playersPerSide: number;
-    customRules: {
-        overTheFenceOut: boolean;
-        lastManStanding: boolean;
-    };
-    toss: {
-        winner?: Types.ObjectId;
-        decision: 'Bat' | 'Bowl' | 'Pending';
-    };
-    currentInnings: 1 | 2 | 3 | 4;
-    firstInnings?: IInnings;
-    secondInnings?: IInnings;
-    status: 'Scheduled' | 'Toss Completed' | 'First Innings' | 'Second Innings' | 'Completed' | 'Abandoned';
-    result?: {
-        winner?: Types.ObjectId;
-        margin?: string;
-        isDraw: boolean;
-    };
-    createdBy: Types.ObjectId;
+    date: Date;
+    time?: string;
+    format: MatchFormat;
+    status: MatchStatus;
+    tossWinner?: mongoose.Types.ObjectId;
+    tossDecision?: 'bat' | 'bowl';
+    innings: IInnings[];
+    currentInnings: number;
+    team1Score: number;
+    team1Wickets: number;
+    team1Overs: number;
+    team2Score: number;
+    team2Wickets: number;
+    team2Overs: number;
+    winner?: mongoose.Types.ObjectId;
+    resultType?: 'win' | 'draw' | 'tie' | 'no result';
+    margin?: string;
+    playerOfMatch?: mongoose.Types.ObjectId;
+    currentOver: number;
+    currentBall: number;
+    lastBowler?: mongoose.Types.ObjectId;
+    striker?: mongoose.Types.ObjectId;
+    nonStriker?: mongoose.Types.ObjectId;
+    overHistory: IOver[];
+    streamUrl?: string;
+    streamEmbedUrl?: string;
+    overlayId?: mongoose.Types.ObjectId;
+    overlayUrl?: string;
+    scorerId?: mongoose.Types.ObjectId;
+    notes?: string;
     createdAt: Date;
     updatedAt: Date;
+    startMatch(tossWinnerId: mongoose.Types.ObjectId, decision: 'bat' | 'bowl'): Promise<void>;
+    addBall(ballData: {
+        runs: number;
+        isWide?: boolean;
+        isNoBall?: boolean;
+        isWicket?: boolean;
+        outType?: OutType;
+        byes?: number;
+        legByes?: number;
+    }): Promise<IMatch>;
+    calculateRunRate(): number;
+    calculateRequiredRunRate(): number | null;
+    endInnings(): Promise<void>;
+    endMatch(winnerId?: mongoose.Types.ObjectId, resultType?: string): Promise<void>;
+    getScoreDisplay(): string;
 }
 declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch> & IMatch & {
-    _id: Types.ObjectId;
+    _id: mongoose.Types.ObjectId;
 }, any>;
 export default _default;
 //# sourceMappingURL=Match.d.ts.map

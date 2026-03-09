@@ -1,23 +1,27 @@
+/**
+ * Friend Model
+ * Friends system
+ * Following PROJECT_ALGORITHM.md specifications
+ */
+
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IFriend extends Document {
-  from: mongoose.Types.ObjectId;
-  to: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  friend: mongoose.Types.ObjectId;
   status: 'pending' | 'accepted' | 'blocked';
   createdAt: Date;
   updatedAt: Date;
 }
 
-const friendSchema = new Schema<IFriend>(
-  {
-    from: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    to: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
-  },
-  { timestamps: true }
-);
+const FriendSchema: Schema = new Schema({
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  friend: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
+}, { timestamps: true });
 
-// Ensure unique friend requests (no duplicates)
-friendSchema.index({ from: 1, to: 1 }, { unique: true });
+FriendSchema.index({ user: 1, friend: 1 }, { unique: true });
+FriendSchema.index({ user: 1, status: 1 });
 
-export default mongoose.model<IFriend>('Friend', friendSchema);
+export default mongoose.model<IFriend>('Friend', FriendSchema);
+

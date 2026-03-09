@@ -1,43 +1,58 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import {
+  getMatches,
+  getMatch,
   createMatch,
-  getMatchById,
-  getAllMatches,
-  startMatch,
-  scoreBall,
-  undoLastBall,
-  saveToss,
-  savePlayerSelections,
-  changeBowler,
-  updateStriker,
-  updateNonStriker,
+  updateMatch,
   deleteMatch,
-  getTournamentStats
+  startMatch,
+  addBall,
+  setStriker,
+  setNonStriker,
+  setBowler,
+  endInnings,
+  endMatch,
+  getLiveMatches,
+  getUpcomingMatches,
+  updateMatchStatus,
+  setMatchOverlay
 } from '../controllers/matchController';
 import { protect } from '../middleware/auth';
 
 const router = Router();
 
-// Public routes - view matches
-router.get('/', getAllMatches);
-router.get('/stats/:tournamentId', getTournamentStats);
-router.get('/:id', getMatchById);
+// Public routes
+router.get('/', getMatches);
+router.get('/live', getLiveMatches);
+router.get('/upcoming', getUpcomingMatches);
+router.get('/:id', getMatch);
 
-// Protected routes - create/modify matches
-router.post('/', protect as any, createMatch);
-router.delete('/:id', protect as any, deleteMatch);
+// Protected routes
+router.post('/', protect, createMatch);
+router.put('/:id', protect, updateMatch);
+router.delete('/:id', protect, deleteMatch);
 
-// Match setup and scoring
-router.put('/:id/toss', protect as any, saveToss);
-router.put('/:id/players', protect as any, savePlayerSelections);
-router.put('/:id/start', protect as any, startMatch);
-router.put('/:id/score', protect as any, scoreBall);
-router.put('/:id/undo', protect as any, undoLastBall);
+// Match setup
+router.put('/:id/start', protect, startMatch);
+router.put('/:id/toss', protect, async (req: any, res: any, next: any) => {
+  // Toss is handled in startMatch
+  res.status(400).json({ message: 'Use /start endpoint for toss' });
+});
 
-// Player management during match
-router.put('/:id/bowler', protect as any, changeBowler);
-router.put('/:id/striker', protect as any, updateStriker);
-router.put('/:id/nonstriker', protect as any, updateNonStriker);
+// Scoring
+router.post('/:id/score', protect, addBall);
+
+// Player management
+router.put('/:id/striker', protect, setStriker);
+router.put('/:id/non-striker', protect, setNonStriker);
+router.put('/:id/bowler', protect, setBowler);
+
+// Match control
+router.post('/:id/end-innings', protect, endInnings);
+router.post('/:id/end', protect, endMatch);
+router.put('/:id/status', protect, updateMatchStatus);
+
+// Overlay
+router.put('/:id/overlay', protect, setMatchOverlay);
 
 export default router;
-

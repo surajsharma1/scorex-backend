@@ -1,7 +1,7 @@
 "use strict";
 /**
- * Bracket Model
- * Tournament bracket system
+ * Message Model
+ * Chat messages
  * Following PROJECT_ALGORITHM.md specifications
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
@@ -39,20 +39,16 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const BracketSchema = new mongoose_1.Schema({
-    tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament', required: true },
-    type: { type: String, enum: ['knockout', 'double_elimination', 'round_robin'], required: true },
-    rounds: [{
-            name: { type: String, required: true },
-            matches: [{
-                    matchId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
-                    team1: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
-                    team2: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
-                    winner: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' },
-                    nextMatchId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' }
-                }]
-        }]
+const MessageSchema = new mongoose_1.Schema({
+    sender: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    recipient: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+    roomId: { type: String },
+    content: { type: String, required: true },
+    isRead: { type: Boolean, default: false },
 }, { timestamps: true });
-BracketSchema.index({ tournament: 1 });
-exports.default = mongoose_1.default.model('Bracket', BracketSchema);
-//# sourceMappingURL=Bracket.js.map
+MessageSchema.index({ sender: 1 });
+MessageSchema.index({ recipient: 1 });
+MessageSchema.index({ roomId: 1 });
+MessageSchema.index({ createdAt: -1 });
+exports.default = mongoose_1.default.model('Message', MessageSchema);
+//# sourceMappingURL=Message.js.map

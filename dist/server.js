@@ -53,6 +53,12 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const logger_1 = __importDefault(require("./utils/logger"));
+// Connect to Database FIRST - this must happen before any model operations
+(0, database_1.default)();
+// Import all models AFTER database connection to ensure they're registered properly
+// This prevents "Schema hasn't been registered for model" errors in production
+require("./models/index");
+const User_1 = __importDefault(require("./models/User"));
 // Route Imports
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));
@@ -68,7 +74,7 @@ const clubs_1 = __importDefault(require("./routes/clubs"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const messages_1 = __importDefault(require("./routes/messages"));
 const leaderboard_1 = __importDefault(require("./routes/leaderboard"));
-const User_1 = __importDefault(require("./models/User"));
+// Load environment variables
 dotenv_1.default.config();
 // ==========================================
 // 1. INITIALIZATION & SETUP
@@ -103,8 +109,6 @@ exports.io = new socket_io_1.Server(server, {
 });
 // Make 'io' globally available to controllers
 app.set('io', exports.io);
-// Connect to Database
-(0, database_1.default)();
 // Trust proxy for rate limiting (Important for Render/Vercel)
 app.set('trust proxy', 1);
 // ==========================================

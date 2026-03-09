@@ -1,6 +1,20 @@
-import { Request, Response } from 'express';
-export declare const getPlayerLeaderboard: (req: Request, res: Response) => Promise<void>;
-export declare const getTeamLeaderboard: (req: Request, res: Response) => Promise<void>;
-export declare const getBattingLeaderboard: (req: Request, res: Response) => Promise<void>;
-export declare const getBowlingLeaderboard: (req: Request, res: Response) => Promise<void>;
+/**
+ * Leaderboard Controller
+ * Global and tournament leaderboards
+ * Following PROJECT_ALGORITHM.md specifications
+ */
+import { Request, Response, NextFunction } from 'express';
+export declare const getGlobalLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const getTournamentLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getMatchLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getOrangeCap: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const getPurpleCap: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+declare const _default: {
+    getGlobalLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+    getTournamentLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+    getMatchLeaderboard: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+    getOrangeCap: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+    getPurpleCap: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+};
+export default _default;
 //# sourceMappingURL=leaderboardController.d.ts.map

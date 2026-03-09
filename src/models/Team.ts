@@ -1,41 +1,302 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+/**
+ * Team Model
+ * Team management with players
+ * Following PROJECT_ALGORITHM.md specifications
+ */
+
+import mongoose, { Document, Schema } from 'mongoose';
+
+// ==========================================
+// INTERFACES
+// ==========================================
 
 export interface ITeam extends Document {
+  // Basic Information
   name: string;
-  color?: string;                  // <-- Added color
-  tournament?: Types.ObjectId;     // <-- Added tournament
+  shortName?: string;
   logo?: string;
-  captain?: Types.ObjectId;
-  players: Types.ObjectId[];
-  statistics: {
+  description?: string;
+  
+  // Team Details
+  owner: mongoose.Types.ObjectId;
+  captain?: mongoose.Types.ObjectId;
+  viceCaptain?: mongoose.Types.ObjectId;
+  
+  // Players
+  players: mongoose.Types.ObjectId[];
+  
+  // Tournament Performance
+  tournamentStats?: {
+    tournamentsPlayed: number;
+    tournamentsWon: number;
+    tournamentsLost: number;
     matchesPlayed: number;
-    won: number;
-    lost: number;
-    tied: number;
-    points: number;
-    netRunRate: number;
+    matchesWon: number;
+    matchesLost: number;
+    matchesTied: number;
+    matchesNoResult: number;
   };
-  createdBy: Types.ObjectId;
+  
+  // Points (for tournament leaderboard)
+  points?: number;
+  netRunRate?: number;
+  
+  // Status
+  isActive: boolean;
+  isVerified: boolean;
+  
+  // Tournaments
+  tournaments: mongoose.Types.ObjectId[];
+  
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  
+  // Methods
+  addPlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
+  removePlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
+  calculateStats(): Promise<void>;
 }
 
-const TeamSchema = new Schema<ITeam>({
-  name: { type: String, required: true, trim: true },
-  color: { type: String },                                     // <-- Added color
-  tournament: { type: Schema.Types.ObjectId, ref: 'Tournament' },// <-- Added tournament (ensure 'Tournament' matches your actual tournament model name)
-  logo: { type: String },
-  captain: { type: Schema.Types.ObjectId, ref: 'User' },
-  players: [{ type: Schema.Types.ObjectId, ref: 'Player' }],
-  statistics: {
-    matchesPlayed: { type: Number, default: 0 },
-    won: { type: Number, default: 0 },
-    lost: { type: Number, default: 0 },
-    tied: { type: Number, default: 0 },
-    points: { type: Number, default: 0 },
-    netRunRate: { type: Number, default: 0.000 }
+// ==========================================
+// SUB-SCHEMAS
+// ==========================================
+
+const TournamentStatsSchema = new Schema({
+  tournamentsPlayed: { type: Number, default: 0 },
+  tournamentsWon: { type: Number, default: 0 },
+  tournamentsLost: { type: Number, default: 0 },
+  matchesPlayed: { type: Number, default: 0 },
+  matchesWon: { type: Number, default: 0 },
+  matchesLost: { type: Number, default: 0 },
+  matchesTied: { type: Number, default: 0 },
+  matchesNoResult: { type: Number, default: 0 },
+}, { _id: false });
+
+// ==========================================
+// MAIN SCHEMA
+// ==========================================
+
+const TeamSchema: Schema = new Schema({
+  // Basic Information
+  name: { 
+    type: String, 
+    required: [true, 'Team name is required'],
+    trim: true,
+    maxlength: [100, 'Team name cannot exceed 100 characters']
   },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
-}, { timestamps: true });
+  shortName: { 
+    type: String, 
+    trim: true,
+    maxlength: [10, 'Short name cannot exceed 10 characters']
+  },
+  logo: { type: String },
+  description: { 
+    type: String, 
+    maxlength: [500, 'Description cannot exceed 500 characters']
+  },
+  
+  // Team Details
+  owner: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'User',
+    required: [true, 'Team owner is required']
+  },
+  captain: { type: Schema.Types.ObjectId, ref: 'Player' },
+  viceCaptain: { type: Schema.Types.ObjectId, ref: 'Player' },
+  
+  // Players
+  players: [{ 
+    type: Schema.Types.ObjectId, 
+    ref: 'Player' 
+  }],
+  
+  // Tournament Performance
+  tournamentStats: { 
+    type: TournamentStatsSchema, 
+    default: () => ({}) 
+  },
+  
+  // Points (for tournament leaderboard)
+  points: { type: Number, default: 0 },
+  netRunRate: { type: Number, default: 0 },
+  
+  // Status
+  isActive: { type: Boolean, default: true },
+  isVerified: { type: Boolean, default: false },
+  
+  // Tournaments
+  tournaments: [{ 
+    type: Schema.Types.ObjectId, 
+    ref: 'Tournament' 
+  }],
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// ==========================================
+// INDEXES
+// ==========================================
+
+TeamSchema.index({ name: 'text' });
+TeamSchema.index({ owner: 1 });
+TeamSchema.index({ players: 1 });
+TeamSchema.index({ tournaments: 1 });
+TeamSchema.index({ points: -1 });
+TeamSchema.index({ isActive: 1 });
+
+// ==========================================
+// VIRTUALS
+// ==========================================
+
+// Virtual for player count
+TeamSchema.virtual('playerCount').get(function() {
+  return this.players ? this.players.length : 0;
+});
+
+// Virtual for win rate
+TeamSchema.virtual('winRate').get(function() {
+  const stats = this.tournamentStats;
+  if (!stats || stats.matchesPlayed === 0) return 0;
+  return (stats.matchesWon / stats.matchesPlayed) * 100;
+});
+
+// Virtual for formatted name
+TeamSchema.virtual('displayName').get(function() {
+  return this.shortName || this.name;
+});
+
+// ==========================================
+// METHODS
+// ==========================================
+
+// Add player to team
+TeamSchema.methods.addPlayer = async function(playerId: mongoose.Types.ObjectId) {
+  if (!this.players.includes(playerId)) {
+    this.players.push(playerId);
+    await this.save();
+  }
+};
+
+// Remove player from team
+TeamSchema.methods.removePlayer = async function(playerId: mongoose.Types.ObjectId) {
+  this.players = this.players.filter(
+    p => p.toString() !== playerId.toString()
+  );
+  await this.save();
+};
+
+// Calculate team statistics from matches
+TeamSchema.methods.calculateStats = async function() {
+  const Match = mongoose.model('Match');
+  
+  // Get all matches for this team
+  const matches = await Match.find({
+    $or: [
+      { team1: this._id },
+      { team2: this._id }
+    ],
+    status: 'completed'
+  });
+  
+  let wins = 0;
+  let losses = 0;
+  let ties = 0;
+  let noResults = 0;
+  let totalRunsScored = 0;
+  let totalOversFaced = 0;
+  let totalRunsConceded = 0;
+  let totalOversBowled = 0;
+  
+  for (const match of matches) {
+    const isTeam1 = match.team1.toString() === this._id.toString();
+    const ourRuns = isTeam1 ? match.team1Score : match.team2Score;
+    const opponentRuns = isTeam1 ? match.team2Score : match.team1Score;
+    const ourOvers = isTeam1 ? match.team1Overs : match.team2Overs;
+    const opponentOvers = isTeam1 ? match.team2Overs : match.team1Overs;
+    
+    totalRunsScored += ourRuns || 0;
+    totalOversFaced += ourOvers || 0;
+    totalRunsConceded += opponentRuns || 0;
+    totalOversBowled += opponentOvers || 0;
+    
+    if (ourRuns > opponentRuns) {
+      wins++;
+    } else if (opponentRuns > ourRuns) {
+      losses++;
+    } else if (match.isNoResult) {
+      noResults++;
+    } else {
+      ties++;
+    }
+  }
+  
+  // Update stats
+  this.tournamentStats = {
+    tournamentsPlayed: this.tournaments?.length || 0,
+    tournamentsWon: 0, // Calculated separately
+    tournamentsLost: 0,
+    matchesPlayed: matches.length,
+    matchesWon: wins,
+    matchesLost: losses,
+    matchesTied: ties,
+    matchesNoResult: noResults
+  };
+  
+  // Calculate points (2 for win, 1 for tie/no result, 0 for loss)
+  this.points = (wins * 2) + (ties * 1) + (noResults * 1);
+  
+  // Calculate net run rate
+  if (totalOversFaced > 0 && totalOversBowled > 0) {
+    const runRateScored = totalRunsScored / totalOversFaced;
+    const runRateConceded = totalRunsConceded / totalOversBowled;
+    this.netRunRate = runRateScored - runRateConceded;
+  }
+  
+  await this.save();
+};
+
+// ==========================================
+// STATIC METHODS
+// ==========================================
+
+// Get top teams by points
+TeamSchema.statics.getTopTeams = function(limit: number = 10) {
+  return this.find({ isActive: true })
+    .sort({ points: -1 })
+    .populate('owner', 'username email')
+    .populate('players')
+    .limit(limit);
+};
+
+// Get teams by owner
+TeamSchema.statics.getByOwner = function(ownerId: mongoose.Types.ObjectId) {
+  return this.find({ owner: ownerId, isActive: true })
+    .populate('players');
+};
+
+// Get teams by tournament
+TeamSchema.statics.getByTournament = function(tournamentId: mongoose.Types.ObjectId) {
+  return this.find({ tournaments: tournamentId, isActive: true })
+    .populate('players');
+};
+
+// Search teams
+TeamSchema.statics.search = function(query: string) {
+  return this.find({ 
+    $or: [
+      { name: { $regex: query, $options: 'i' } },
+      { shortName: { $regex: query, $options: 'i' } }
+    ],
+    isActive: true 
+  });
+};
+
+// ==========================================
+// EXPORT
+// ==========================================
 
 export default mongoose.model<ITeam>('Team', TeamSchema);
+

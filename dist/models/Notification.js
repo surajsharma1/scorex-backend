@@ -1,4 +1,9 @@
 "use strict";
+/**
+ * Notification Model
+ * User notifications
+ * Following PROJECT_ALGORITHM.md specifications
+ */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -34,11 +39,15 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const notificationSchema = new mongoose_1.Schema({
+const NotificationSchema = new mongoose_1.Schema({
     user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    type: { type: String, enum: ['tournament', 'match', 'friend', 'club', 'system', 'membership'], required: true },
+    title: { type: String, required: true },
     message: { type: String, required: true },
-    type: { type: String, enum: ['info', 'warning', 'success'], default: 'info' },
-    read: { type: Boolean, default: false },
+    link: { type: String },
+    isRead: { type: Boolean, default: false },
 }, { timestamps: true });
-exports.default = mongoose_1.default.model('Notification', notificationSchema);
+NotificationSchema.index({ user: 1, isRead: 1 });
+NotificationSchema.index({ createdAt: -1 });
+exports.default = mongoose_1.default.model('Notification', NotificationSchema);
 //# sourceMappingURL=Notification.js.map
