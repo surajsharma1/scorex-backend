@@ -210,12 +210,6 @@ UserSchema.index({ deleted: 1 });
 // VIRTUALS
 // ==========================================
 
-// Virtual for getting user's membership status
-UserSchema.virtual('isMembershipActive').get(function() {
-  if (!this.membershipExpiresAt) return false;
-  return new Date() < this.membershipExpiresAt;
-});
-
 // Virtual for time remaining in membership
 UserSchema.virtual('membershipTimeRemaining').get(function() {
   if (!this.membershipExpiresAt) return null;
