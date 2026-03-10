@@ -50,9 +50,20 @@ const OverlaySchema = new mongoose_1.Schema({
     isPremium: { type: Boolean, default: false },
     createdBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     isActive: { type: Boolean, default: true },
+    // Additional fields
+    template: { type: String },
+    publicId: { type: String },
+    urlExpiresAt: { type: Date },
+    membershipAtCreation: { type: Number, default: 0 },
+    requiredMembershipLevel: { type: Number, default: 0 },
+    match: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Match' },
+    tournament: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
+    config: { type: mongoose_1.Schema.Types.Mixed, default: {} },
+    elements: { type: mongoose_1.Schema.Types.Mixed, default: [] },
 }, { timestamps: true });
 OverlaySchema.index({ level: 1 });
 OverlaySchema.index({ isPremium: 1 });
 OverlaySchema.index({ category: 1 });
+OverlaySchema.index({ createdBy: 1 });
 exports.default = mongoose_1.default.model('Overlay', OverlaySchema);
 //# sourceMappingURL=Overlay.js.map

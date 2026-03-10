@@ -5,9 +5,9 @@
  */
 import mongoose, { Document } from 'mongoose';
 export interface IFriend extends Document {
-    user: mongoose.Types.ObjectId;
-    friend: mongoose.Types.ObjectId;
-    status: 'pending' | 'accepted' | 'blocked';
+    requester: mongoose.Types.ObjectId;
+    recipient: mongoose.Types.ObjectId;
+    status: 'pending' | 'accepted' | 'blocked' | 'rejected';
     createdAt: Date;
     updatedAt: Date;
 }

@@ -33,6 +33,10 @@ export interface ITeam extends Document {
     addPlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
     removePlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
     calculateStats(): Promise<void>;
+    getTopTeams(limit?: number): Promise<any[]>;
+    getByOwner(ownerId: mongoose.Types.ObjectId): Promise<any[]>;
+    getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
+    search(query: string): Promise<any[]>;
 }
 declare const _default: mongoose.Model<ITeam, {}, {}, {}, mongoose.Document<unknown, {}, ITeam> & ITeam & {
     _id: mongoose.Types.ObjectId;

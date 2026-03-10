@@ -14,6 +14,7 @@ export interface IClub extends Document {
     members: mongoose.Types.ObjectId[];
     memberRoles: Map<string, 'owner' | 'vice-leader' | 'member'>;
     type: 'public' | 'initiation_required';
+    isPublic: boolean;
     joinRequests: mongoose.Types.ObjectId[];
     location?: string;
     isActive: boolean;

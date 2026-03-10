@@ -27,7 +27,7 @@ const getFriends = async (req, res, next) => {
             .populate('recipient', 'username email fullName profilePicture isOnline lastSeen')
             .sort({ createdAt: -1 });
         // Transform to get friend details
-        const friends = friendships.map(f => {
+        const friends = friendships.map((f) => {
             const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
             return {
                 _id: f._id,
@@ -70,12 +70,12 @@ const getFriendRequests = async (req, res, next) => {
         res.json({
             success: true,
             data: {
-                incoming: incoming.map(r => ({
+                incoming: incoming.map((r) => ({
                     _id: r._id,
                     user: r.requester,
                     sentAt: r.createdAt
                 })),
-                outgoing: outgoing.map(r => ({
+                outgoing: outgoing.map((r) => ({
                     _id: r._id,
                     user: r.recipient,
                     sentAt: r.createdAt

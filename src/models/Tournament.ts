@@ -118,6 +118,14 @@ export interface ITournament extends Document {
   calculatePointsTable(): Promise<void>;
   startTournament(): Promise<void>;
   endTournament(winnerId?: mongoose.Types.ObjectId): Promise<void>;
+  
+  // Static methods (defined on model, not instance)
+  getUpcoming(limit?: number): Promise<any[]>;
+  getOngoing(): Promise<any[]>;
+  getFeatured(limit?: number): Promise<any[]>;
+  getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<any[]>;
+  getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
+  search(query: string): Promise<any[]>;
 }
 
 // ==========================================

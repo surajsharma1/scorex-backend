@@ -175,6 +175,30 @@ export interface IMatch extends Document {
   createdAt: Date;
   updatedAt: Date;
   
+  // Virtual for scorecard compatibility (maps innings to scorecard format)
+  scorecard?: {
+    batting: Array<{
+      playerId?: mongoose.Types.ObjectId;
+      name?: string;
+      runs: number;
+      balls: number;
+      fours: number;
+      sixes: number;
+      isOut: boolean;
+      outType?: string;
+      dismissal?: string;
+      teamId?: mongoose.Types.ObjectId;
+    }>;
+    bowling: Array<{
+      playerId?: mongoose.Types.ObjectId;
+      name?: string;
+      overs: number;
+      runs: number;
+      wickets: number;
+      teamId?: mongoose.Types.ObjectId;
+    }>;
+  };
+  
   // Methods
   startMatch(tossWinnerId: mongoose.Types.ObjectId, decision: 'bat' | 'bowl'): Promise<void>;
   addBall(ballData: {
@@ -191,6 +215,12 @@ export interface IMatch extends Document {
   endInnings(): Promise<void>;
   endMatch(winnerId?: mongoose.Types.ObjectId, resultType?: string): Promise<void>;
   getScoreDisplay(): string;
+  
+  // Static methods (defined on model, not instance)
+  getLiveMatches(): Promise<any[]>;
+  getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
+  getByTeam(teamId: mongoose.Types.ObjectId): Promise<any[]>;
+  getUpcoming(limit?: number): Promise<any[]>;
 }
 
 // ==========================================

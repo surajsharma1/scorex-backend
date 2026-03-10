@@ -15,6 +15,15 @@ export interface IOverlay extends Document {
     isPremium: boolean;
     createdBy?: mongoose.Types.ObjectId;
     isActive: boolean;
+    template?: string;
+    publicId?: string;
+    urlExpiresAt?: Date;
+    membershipAtCreation?: number;
+    requiredMembershipLevel?: number;
+    match?: mongoose.Types.ObjectId;
+    tournament?: mongoose.Types.ObjectId;
+    config?: Record<string, any>;
+    elements?: any[];
     createdAt: Date;
     updatedAt: Date;
 }

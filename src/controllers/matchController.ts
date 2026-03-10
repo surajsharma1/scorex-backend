@@ -10,6 +10,7 @@ import Match from '../models/Match';
 import Team from '../models/Team';
 import Player from '../models/Player';
 import Tournament from '../models/Tournament';
+import { OutType } from '../models/Match';
 
 // ==========================================
 // TYPES
@@ -24,7 +25,7 @@ interface BallData {
   isWide?: boolean;
   isNoBall?: boolean;
   isWicket?: boolean;
-  outType?: string;
+  outType?: OutType;
   byes?: number;
   legByes?: number;
 }
@@ -528,7 +529,7 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
 // @access  Public
 export const getLiveMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const matches = await Match.getLiveMatches();
+    const matches = await (Match as any).getLiveMatches();
     
     res.json({
       success: true,
@@ -545,7 +546,7 @@ export const getLiveMatches = async (req: Request, res: Response, next: NextFunc
 export const getUpcomingMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = Number(req.query.limit) || 10;
-    const matches = await Match.getUpcoming(limit);
+    const matches = await (Match as any).getUpcoming(limit);
     
     res.json({
       success: true,

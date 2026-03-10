@@ -30,7 +30,7 @@ export const getFriends = async (req: AuthRequest, res: Response, next: NextFunc
       .sort({ createdAt: -1 });
     
     // Transform to get friend details
-    const friends = friendships.map(f => {
+    const friends = friendships.map((f: any) => {
       const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
       return {
         _id: f._id,
@@ -76,12 +76,12 @@ export const getFriendRequests = async (req: AuthRequest, res: Response, next: N
     res.json({
       success: true,
       data: {
-        incoming: incoming.map(r => ({
+        incoming: incoming.map((r: any) => ({
           _id: r._id,
           user: r.requester,
           sentAt: r.createdAt
         })),
-        outgoing: outgoing.map(r => ({
+        outgoing: outgoing.map((r: any) => ({
           _id: r._id,
           user: r.recipient,
           sentAt: r.createdAt
@@ -152,7 +152,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response, next: N
     if (io) {
       io.to(`user:${userId}`).emit('notification', {
         type: 'friend_request',
-        message: `${friendship.requester.username} sent you a friend request`,
+        message: `${(friendship.requester as any).username} sent you a friend request`,
         from: requesterId
       });
     }

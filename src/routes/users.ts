@@ -3,10 +3,7 @@ import { protect } from '../middleware/auth';
 import User from '../models/User';
 
 interface AuthRequest extends express.Request {
-  user?: {
-    id: string;
-    role?: string;
-  };
+  user?: any;
 }
 
 const router = express.Router();
@@ -58,7 +55,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // Get current user's profile
-router.get('/profile', async (req, res) => {
+router.get('/profile', async (req: any, res) => {
   try {
     const user = await User.findById(req.user?.id).select('-password');
     if (!user) {
@@ -71,7 +68,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // Update current user's profile
-router.put('/profile', async (req, res) => {
+router.put('/profile', async (req: any, res) => {
   try {
     const { fullName, bio, profilePicture } = req.body;
     
@@ -103,7 +100,7 @@ router.put('/profile', async (req, res) => {
 });
 
 // Get notification preferences
-router.get('/notifications/preferences', async (req, res) => {
+router.get('/notifications/preferences', async (req: any, res) => {
   try {
     const user = await User.findById(req.user?.id).select('notificationPreferences');
     res.json(user?.notificationPreferences || {});
@@ -113,7 +110,7 @@ router.get('/notifications/preferences', async (req, res) => {
 });
 
 // Update notification preferences
-router.put('/notifications/preferences', async (req, res) => {
+router.put('/notifications/preferences', async (req: any, res) => {
   try {
     const { email, push, sms, tournamentUpdates, matchResults, systemAnnouncements } = req.body;
     

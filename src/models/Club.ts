@@ -27,6 +27,7 @@ export interface IClub extends Document {
   
   // Join Configuration
   type: 'public' | 'initiation_required';
+  isPublic: boolean; // Virtual property derived from type
   joinRequests: mongoose.Types.ObjectId[];
   
   // Location
@@ -125,6 +126,19 @@ ClubSchema.index({ owner: 1 });
 ClubSchema.index({ members: 1 });
 ClubSchema.index({ type: 1 });
 ClubSchema.index({ isActive: 1 });
+
+// ==========================================
+// VIRTUALS
+// ==========================================
+
+// Virtual for isPublic - derived from type field
+ClubSchema.virtual('isPublic').get(function() {
+  return this.type === 'public';
+});
+
+ClubSchema.virtual('isPublic').set(function(value: boolean) {
+  this.type = value ? 'public' : 'initiation_required';
+});
 
 // ==========================================
 // METHODS

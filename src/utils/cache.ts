@@ -59,7 +59,8 @@ export class CacheService {
 
   async get(key: string): Promise<string | null> {
     if (!this.client) return null;
-    return await this.client!.get(key);
+    const result = await this.client!.get(key);
+    return (result as string) ?? null;
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {

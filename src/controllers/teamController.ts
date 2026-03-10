@@ -5,6 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import Team from '../models/Team';
 import Player from '../models/Player';
 
@@ -281,7 +282,7 @@ export const removePlayer = async (req: AuthRequest, res: Response, next: NextFu
       });
     }
     
-    await team.removePlayer(playerId);
+    await team.removePlayer(new mongoose.Types.ObjectId(playerId));
     
     // Remove captain/vice-captain if player removed
     if (team.captain?.toString() === playerId) {
@@ -331,7 +332,7 @@ export const getTeamPlayers = async (req: Request, res: Response, next: NextFunc
 // @access  Public
 export const getUserTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const teams = await Team.getByOwner(req.params.userId);
+    const teams = await (Team as any).getByOwner(req.params.userId);
     
     res.json({
       success: true,
@@ -356,7 +357,7 @@ export const searchTeams = async (req: Request, res: Response, next: NextFunctio
       });
     }
     
-    const teams = await Team.search(q as string);
+    const teams = await (Team as any).search(q as string);
     
     res.json({
       success: true,

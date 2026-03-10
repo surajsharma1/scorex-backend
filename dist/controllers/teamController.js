@@ -9,6 +9,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchTeams = exports.getUserTeams = exports.getTeamPlayers = exports.removePlayer = exports.addPlayer = exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeam = exports.getTeams = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Player_1 = __importDefault(require("../models/Player"));
 // @desc    Get all teams
@@ -262,7 +263,7 @@ const removePlayer = async (req, res, next) => {
                 message: 'Not authorized'
             });
         }
-        await team.removePlayer(playerId);
+        await team.removePlayer(new mongoose_1.default.Types.ObjectId(playerId));
         // Remove captain/vice-captain if player removed
         if (team.captain?.toString() === playerId) {
             team.captain = undefined;

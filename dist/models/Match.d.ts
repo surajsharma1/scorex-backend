@@ -117,6 +117,28 @@ export interface IMatch extends Document {
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
+    scorecard?: {
+        batting: Array<{
+            playerId?: mongoose.Types.ObjectId;
+            name?: string;
+            runs: number;
+            balls: number;
+            fours: number;
+            sixes: number;
+            isOut: boolean;
+            outType?: string;
+            dismissal?: string;
+            teamId?: mongoose.Types.ObjectId;
+        }>;
+        bowling: Array<{
+            playerId?: mongoose.Types.ObjectId;
+            name?: string;
+            overs: number;
+            runs: number;
+            wickets: number;
+            teamId?: mongoose.Types.ObjectId;
+        }>;
+    };
     startMatch(tossWinnerId: mongoose.Types.ObjectId, decision: 'bat' | 'bowl'): Promise<void>;
     addBall(ballData: {
         runs: number;
@@ -132,6 +154,10 @@ export interface IMatch extends Document {
     endInnings(): Promise<void>;
     endMatch(winnerId?: mongoose.Types.ObjectId, resultType?: string): Promise<void>;
     getScoreDisplay(): string;
+    getLiveMatches(): Promise<any[]>;
+    getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
+    getByTeam(teamId: mongoose.Types.ObjectId): Promise<any[]>;
+    getUpcoming(limit?: number): Promise<any[]>;
 }
 declare const _default: mongoose.Model<IMatch, {}, {}, {}, mongoose.Document<unknown, {}, IMatch> & IMatch & {
     _id: mongoose.Types.ObjectId;

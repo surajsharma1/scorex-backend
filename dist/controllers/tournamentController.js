@@ -9,6 +9,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchTournaments = exports.getMyOrganizedTournaments = exports.getTournamentStats = exports.endTournament = exports.startTournament = exports.generateBracket = exports.removeTeam = exports.addTeam = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getFeaturedTournaments = exports.getOngoingTournaments = exports.getUpcomingTournaments = exports.getTournaments = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const Team_1 = __importDefault(require("../models/Team"));
 // @desc    Get all tournaments
@@ -294,7 +295,7 @@ const removeTeam = async (req, res, next) => {
                 message: 'Not authorized'
             });
         }
-        await tournament.removeTeam(teamId);
+        await tournament.removeTeam(new mongoose_1.default.Types.ObjectId(teamId));
         res.json({
             success: true,
             message: 'Team removed from tournament'

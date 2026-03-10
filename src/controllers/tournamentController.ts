@@ -5,6 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import Tournament from '../models/Tournament';
 import Team from '../models/Team';
 import Match from '../models/Match';
@@ -54,7 +55,7 @@ export const getTournaments = async (req: Request, res: Response, next: NextFunc
 export const getUpcomingTournaments = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = Number(req.query.limit) || 10;
-    const tournaments = await Tournament.getUpcoming(limit);
+    const tournaments = await (Tournament as any).getUpcoming(limit);
     
     res.json({
       success: true,
@@ -70,7 +71,7 @@ export const getUpcomingTournaments = async (req: Request, res: Response, next: 
 // @access  Public
 export const getOngoingTournaments = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const tournaments = await Tournament.getOngoing();
+    const tournaments = await (Tournament as any).getOngoing();
     
     res.json({
       success: true,
@@ -87,7 +88,7 @@ export const getOngoingTournaments = async (req: Request, res: Response, next: N
 export const getFeaturedTournaments = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = Number(req.query.limit) || 5;
-    const tournaments = await Tournament.getFeatured(limit);
+    const tournaments = await (Tournament as any).getFeatured(limit);
     
     res.json({
       success: true,
@@ -337,7 +338,7 @@ export const removeTeam = async (req: AuthRequest, res: Response, next: NextFunc
       });
     }
     
-    await tournament.removeTeam(teamId);
+    await tournament.removeTeam(new mongoose.Types.ObjectId(teamId));
     
     res.json({
       success: true,
@@ -506,7 +507,7 @@ export const getTournamentStats = async (req: Request, res: Response, next: Next
 // @access  Private
 export const getMyOrganizedTournaments = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const tournaments = await Tournament.getByOrganizer(req.user?.id);
+    const tournaments = await (Tournament as any).getByOrganizer(req.user?.id);
     
     res.json({
       success: true,
@@ -531,7 +532,7 @@ export const searchTournaments = async (req: Request, res: Response, next: NextF
       });
     }
     
-    const tournaments = await Tournament.search(q as string);
+    const tournaments = await (Tournament as any).search(q as string);
     
     res.json({
       success: true,

@@ -9,6 +9,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMyClubs = exports.removeMember = exports.addViceLeader = exports.approveJoinRequest = exports.leaveClub = exports.joinClub = exports.deleteClub = exports.updateClub = exports.createClub = exports.getClub = exports.getClubs = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const Club_1 = __importDefault(require("../models/Club"));
 // @desc    Get all clubs
 // @route   GET /api/v1/clubs
@@ -203,7 +204,7 @@ const joinClub = async (req, res, next) => {
             });
         }
         if (club.isPublic) {
-            club.members.push(req.user?.id);
+            club.members.push(new mongoose_1.default.Types.ObjectId(req.user?.id));
             await club.save();
             res.json({
                 success: true,
@@ -283,7 +284,7 @@ const approveJoinRequest = async (req, res, next) => {
                 message: 'No join request from this user'
             });
         }
-        club.members.push(userId);
+        club.members.push(new mongoose_1.default.Types.ObjectId(userId));
         club.joinRequests = club.joinRequests.filter((r) => r.toString() !== userId);
         await club.save();
         res.json({
@@ -321,7 +322,7 @@ const addViceLeader = async (req, res, next) => {
                 message: 'User must be a member first'
             });
         }
-        club.viceLeaders.push(userId);
+        club.viceLeaders.push(new mongoose_1.default.Types.ObjectId(userId));
         await club.save();
         res.json({
             success: true,

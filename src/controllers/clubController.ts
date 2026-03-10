@@ -5,6 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import Club from '../models/Club';
 import User from '../models/User';
 
@@ -218,7 +219,7 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
     }
     
     if (club.isPublic) {
-      club.members.push(req.user?.id);
+      club.members.push(new mongoose.Types.ObjectId(req.user?.id));
       await club.save();
       
       res.json({
@@ -308,7 +309,7 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
       });
     }
     
-    club.members.push(userId);
+    club.members.push(new mongoose.Types.ObjectId(userId as string));
     club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
     
     await club.save();
@@ -352,7 +353,7 @@ export const addViceLeader = async (req: AuthRequest, res: Response, next: NextF
       });
     }
     
-    club.viceLeaders.push(userId);
+    club.viceLeaders.push(new mongoose.Types.ObjectId(userId as string));
     await club.save();
     
     res.json({

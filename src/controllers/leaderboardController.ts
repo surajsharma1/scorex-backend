@@ -140,9 +140,10 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
       // Calculate points per player based on tournament matches
       const playerStats: Map<string, any> = new Map();
       
-      for (const match of matches) {
-        if (match.scorecard) {
-          for (const batsman of match.scorecard.batting) {
+    for (const match of matches) {
+        const matchAny = match as any;
+        if (matchAny.scorecard) {
+          for (const batsman of matchAny.scorecard.batting) {
             const existing = playerStats.get(batsman.playerId?.toString()) || {
               runs: 0,
               balls: 0,
@@ -171,7 +172,7 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
             };
             
             existing.wickets += bowler.wickets || 0;
-            existing.catches += bowler.catches || 0;
+            existing.catches += (bowler as any).catches || 0;
             
             playerStats.set(bowler.playerId?.toString(), existing);
           }
@@ -197,7 +198,7 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
         return {
           _id: player._id,
           name: player.name,
-          photo: player.photo,
+          photo: (player as any).photo,
           role: player.role,
           points,
           runs: stats.runs,

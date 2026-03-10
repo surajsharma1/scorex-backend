@@ -54,7 +54,8 @@ class CacheService {
     async get(key) {
         if (!this.client)
             return null;
-        return await this.client.get(key);
+        const result = await this.client.get(key);
+        return result ?? null;
     }
     async set(key, value, ttlSeconds) {
         if (!this.client)
