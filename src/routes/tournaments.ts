@@ -6,7 +6,8 @@ import {
   addTeam, 
   generateBracket,
   deleteTournament,
-  getTournamentStats
+  getTournamentStats,
+  getTournamentMatches
 } from '../controllers/tournamentController';
 import { protect } from '../middleware/auth'; 
 import { validateRequest, createTournamentSchema } from '../utils/validation';
@@ -20,6 +21,7 @@ router.get('/ongoing', getTournaments);
 router.get('/featured', getTournaments);
 router.get('/:id', getTournament);
 router.get('/:id/stats', getTournamentStats);
+router.get('/:id/matches', getTournamentMatches);
 
 // Protected Routes
 router.post('/', protect as RequestHandler, validateRequest(createTournamentSchema), createTournament);

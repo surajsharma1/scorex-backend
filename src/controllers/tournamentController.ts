@@ -502,6 +502,36 @@ export const getTournamentStats = async (req: Request, res: Response, next: Next
   }
 };
 
+// @desc    Get matches for a tournament
+// @route   GET /api/v1/tournaments/:id/matches
+// @access  Public
+export const getTournamentMatches = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    
+    if (!tournament) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tournament not found'
+      });
+    }
+    
+    // Get matches for this tournament
+    const matches = await Match.find({ tournamentId: req.params.id })
+      .populate('team1', 'name shortName logo')
+      .populate('team2', 'name shortName logo')
+      .populate('tournamentId', 'name')
+      .sort({ date: -1 });
+    
+    res.json({
+      success: true,
+      data: matches
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get my tournaments (organized by user)
 // @route   GET /api/v1/tournaments/my/organized
 // @access  Private
@@ -558,6 +588,7 @@ export default {
   startTournament,
   endTournament,
   getTournamentStats,
+  getTournamentMatches,
   getMyOrganizedTournaments,
   searchTournaments
 };
