@@ -52,8 +52,8 @@ export const createTournamentSchema = z.object({
   startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid start date format'),
   endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
   location: z.string().max(200, 'Location must be less than 200 characters').optional(),
-  locationType: z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium']).optional(),
-  type: z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom']).optional(),
+  locationType: z.enum(['indoor', 'outdoor', 'both']).optional(),
+  type: z.enum(['round_robin', 'knockout', 'double_elimination', 'league', 'group_stage']).optional(),
   format: z.string().optional(), // Frontend format field (T20, ODI, etc.)
   teams: z.array(z.string()).optional(), // Frontend teams array
 });
