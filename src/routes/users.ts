@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { protect } from '../middleware/auth';
 import User from '../models/User';
 

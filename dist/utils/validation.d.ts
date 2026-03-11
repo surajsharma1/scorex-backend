@@ -18,20 +18,8 @@ export declare const createTournamentSchema: z.ZodObject<{
     startDate: z.ZodString;
     endDate: z.ZodOptional<z.ZodString>;
     location: z.ZodOptional<z.ZodString>;
-    locationType: z.ZodOptional<z.ZodEnum<{
-        Indoor: "Indoor";
-        Outdoor: "Outdoor";
-        Street: "Street";
-        Stadium: "Stadium";
-    }>>;
-    type: z.ZodOptional<z.ZodEnum<{
-        Custom: "Custom";
-        League: "League";
-        "Round Robin": "Round Robin";
-        Knockout: "Knockout";
-        "Groups + Knockout": "Groups + Knockout";
-        "Double Elimination": "Double Elimination";
-    }>>;
+    locationType: z.ZodOptional<z.ZodString>;
+    type: z.ZodOptional<z.ZodString>;
     format: z.ZodOptional<z.ZodString>;
     teams: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }, z.core.$strip>;
@@ -42,20 +30,8 @@ export declare const updateTournamentSchema: z.ZodObject<{
     startDate: z.ZodOptional<z.ZodString>;
     endDate: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     location: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    locationType: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
-        Indoor: "Indoor";
-        Outdoor: "Outdoor";
-        Street: "Street";
-        Stadium: "Stadium";
-    }>>>;
-    type: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
-        Custom: "Custom";
-        League: "League";
-        "Round Robin": "Round Robin";
-        Knockout: "Knockout";
-        "Groups + Knockout": "Groups + Knockout";
-        "Double Elimination": "Double Elimination";
-    }>>>;
+    locationType: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     format: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     teams: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString>>>;
 }, z.core.$strip>;

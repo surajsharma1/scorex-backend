@@ -1,4 +1,4 @@
-/**
+  /**
  * Friend Controller
  * Friends management system
  * Following PROJECT_ALGORITHM.md specifications
@@ -30,18 +30,18 @@ export const getFriends = async (req: AuthRequest, res: Response, next: NextFunc
       .sort({ createdAt: -1 });
     
     // Transform to get friend details
-    const friends = friendships.map((f: any) => {
-      const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
+    const friends = friendships.map((f) => {
+      const friend = (f.requester as any)._id.toString() === userId ? f.recipient : f.requester;
       return {
         _id: f._id,
         friend: {
-          _id: friend._id,
-          username: friend.username,
-          email: friend.email,
-          fullName: friend.fullName,
-          profilePicture: friend.profilePicture,
-          isOnline: friend.isOnline,
-          lastSeen: friend.lastSeen
+          _id: (friend as any)._id,
+          username: (friend as any).username,
+          email: (friend as any).email,
+          fullName: (friend as any).fullName,
+          profilePicture: (friend as any).profilePicture,
+          isOnline: (friend as any).isOnline,
+          lastSeen: (friend as any).lastSeen
         },
         since: f.createdAt
       };

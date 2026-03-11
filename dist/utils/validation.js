@@ -37,6 +37,7 @@ exports.loginSchema = zod_1.z.object({
 // Tournament validation schemas
 // Note: This schema accepts the frontend payload format
 // Additional fields are validated and mapped in the controller
+// Note: locationType and type are optional - Mongoose handles validation
 exports.createTournamentSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
     description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
@@ -44,8 +45,8 @@ exports.createTournamentSchema = zod_1.z.object({
     startDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date format'),
     endDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
     location: zod_1.z.string().max(200, 'Location must be less than 200 characters').optional(),
-    locationType: zod_1.z.enum(['Indoor', 'Outdoor', 'Street', 'Stadium']).optional(),
-    type: zod_1.z.enum(['Round Robin', 'Knockout', 'Groups + Knockout', 'Double Elimination', 'League', 'Custom']).optional(),
+    locationType: zod_1.z.string().optional(), // Let Mongoose validate
+    type: zod_1.z.string().optional(), // Let Mongoose validate
     format: zod_1.z.string().optional(), // Frontend format field (T20, ODI, etc.)
     teams: zod_1.z.array(zod_1.z.string()).optional(), // Frontend teams array
 });
