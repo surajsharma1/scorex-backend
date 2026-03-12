@@ -281,9 +281,10 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       decision
     );
     
-    await match.populate('team1', 'name shortName');
-      await match.populate('team2', 'name shortName');
-    
+    await match.populate('team1', 'name shortName logo');
+    await match.populate('team2', 'name shortName logo');
+    await match.populate('tossWinner', 'name shortName');
+
     res.json({
       success: true,
       message: 'Match started',
@@ -558,9 +559,8 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
 // @access  Public
 export const getLiveMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const matches = (Match as any).getLiveMatches();
+    const matches = await (Match as any).getLiveMatches();
 
-    
     res.json({
       success: true,
       data: matches
@@ -576,9 +576,8 @@ export const getLiveMatches = async (req: Request, res: Response, next: NextFunc
 export const getUpcomingMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = Number(req.query.limit) || 10;
-    const matches = (Match as any).getUpcoming(limit);
+    const matches = await (Match as any).getUpcoming(limit);
 
-    
     res.json({
       success: true,
       data: matches
