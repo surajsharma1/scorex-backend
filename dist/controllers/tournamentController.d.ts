@@ -21,6 +21,7 @@ export declare const generateBracket: (req: AuthRequest, res: Response, next: Ne
 export declare const startTournament: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 export declare const endTournament: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 export declare const getTournamentStats: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+export declare const getTournamentMatches: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 export declare const getMyOrganizedTournaments: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const searchTournaments: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 declare const _default: {
@@ -38,6 +39,7 @@ declare const _default: {
     startTournament: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     endTournament: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     getTournamentStats: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+    getTournamentMatches: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     getMyOrganizedTournaments: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
     searchTournaments: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
 };

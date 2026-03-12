@@ -1,9 +1,9 @@
 "use strict";
 /**
- * Friend Controller
- * Friends management system
- * Following PROJECT_ALGORITHM.md specifications
- */
+* Friend Controller
+* Friends management system
+* Following PROJECT_ALGORITHM.md specifications
+*/
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };

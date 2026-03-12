@@ -8,10 +8,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchTournaments = exports.getMyOrganizedTournaments = exports.getTournamentStats = exports.endTournament = exports.startTournament = exports.generateBracket = exports.removeTeam = exports.addTeam = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getFeaturedTournaments = exports.getOngoingTournaments = exports.getUpcomingTournaments = exports.getTournaments = void 0;
+exports.searchTournaments = exports.getMyOrganizedTournaments = exports.getTournamentMatches = exports.getTournamentStats = exports.endTournament = exports.startTournament = exports.generateBracket = exports.removeTeam = exports.addTeam = exports.deleteTournament = exports.updateTournament = exports.createTournament = exports.getTournament = exports.getFeaturedTournaments = exports.getOngoingTournaments = exports.getUpcomingTournaments = exports.getTournaments = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const Team_1 = __importDefault(require("../models/Team"));
+const Match_1 = __importDefault(require("../models/Match"));
 // @desc    Get all tournaments
 // @route   GET /api/v1/tournaments
 // @access  Public
@@ -446,6 +447,34 @@ const getTournamentStats = async (req, res, next) => {
     }
 };
 exports.getTournamentStats = getTournamentStats;
+// @desc    Get matches for a tournament
+// @route   GET /api/v1/tournaments/:id/matches
+// @access  Public
+const getTournamentMatches = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id);
+        if (!tournament) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tournament not found'
+            });
+        }
+        // Get matches for this tournament
+        const matches = await Match_1.default.find({ tournamentId: req.params.id })
+            .populate('team1', 'name shortName logo')
+            .populate('team2', 'name shortName logo')
+            .populate('tournamentId', 'name')
+            .sort({ date: -1 });
+        res.json({
+            success: true,
+            data: matches
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getTournamentMatches = getTournamentMatches;
 // @desc    Get my tournaments (organized by user)
 // @route   GET /api/v1/tournaments/my/organized
 // @access  Private
@@ -500,6 +529,7 @@ exports.default = {
     startTournament: exports.startTournament,
     endTournament: exports.endTournament,
     getTournamentStats: exports.getTournamentStats,
+    getTournamentMatches: exports.getTournamentMatches,
     getMyOrganizedTournaments: exports.getMyOrganizedTournaments,
     searchTournaments: exports.searchTournaments
 };
