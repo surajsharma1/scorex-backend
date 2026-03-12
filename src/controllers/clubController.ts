@@ -227,7 +227,7 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
         message: 'Joined club successfully'
       });
     } else {
-      club.joinRequests.push(req.user?.id);
+club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
       await club.save();
       
       res.json({
@@ -309,7 +309,7 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
       });
     }
     
-    club.members.push(new mongoose.Types.ObjectId(userId as string));
+club.members.push(new mongoose.Types.ObjectId(userId));
     club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
     
     await club.save();

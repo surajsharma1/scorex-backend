@@ -231,7 +231,7 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
     }
     
     // Add player to team
-    await team.addPlayer(playerId);
+    await team.addPlayer(new mongoose.Types.ObjectId(playerId));
     
     // Set captain/vice-captain if requested
     if (isCaptain) {
@@ -332,7 +332,7 @@ export const getTeamPlayers = async (req: Request, res: Response, next: NextFunc
 // @access  Public
 export const getUserTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const teams = await (Team as any).getByOwner(req.params.userId);
+    const teams = await Team.getByOwner(req.params.userId);
     
     res.json({
       success: true,
@@ -357,7 +357,7 @@ export const searchTeams = async (req: Request, res: Response, next: NextFunctio
       });
     }
     
-    const teams = await (Team as any).search(q as string);
+    const teams = await Team.search(q as string);
     
     res.json({
       success: true,

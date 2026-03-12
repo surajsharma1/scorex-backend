@@ -218,7 +218,7 @@ const addPlayer = async (req, res, next) => {
             });
         }
         // Add player to team
-        await team.addPlayer(playerId);
+        await team.addPlayer(new mongoose_1.default.Types.ObjectId(playerId));
         // Set captain/vice-captain if requested
         if (isCaptain) {
             team.captain = playerId;

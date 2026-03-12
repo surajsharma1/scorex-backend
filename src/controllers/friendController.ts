@@ -31,12 +31,12 @@ export const getFriends = async (req: AuthRequest, res: Response, next: NextFunc
     
     // Transform to get friend details
     const friends = friendships.map((f) => {
-      const friend = (f.requester as any)._id.toString() === userId ? f.recipient : f.requester;
+      const friend = f.requester._id.toString() === userId ? f.recipient as any : f.requester as any;
       return {
         _id: f._id,
         friend: {
-          _id: (friend as any)._id,
-          username: (friend as any).username,
+          _id: friend._id,
+          username: friend.username,
           email: (friend as any).email,
           fullName: (friend as any).fullName,
           profilePicture: (friend as any).profilePicture,

@@ -212,7 +212,7 @@ const joinClub = async (req, res, next) => {
             });
         }
         else {
-            club.joinRequests.push(req.user?.id);
+            club.joinRequests.push(new mongoose_1.default.Types.ObjectId(req.user.id));
             await club.save();
             res.json({
                 success: true,
