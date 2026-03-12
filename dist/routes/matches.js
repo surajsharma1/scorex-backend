@@ -15,10 +15,9 @@ router.put('/:id', auth_1.protect, matchController_1.updateMatch);
 router.delete('/:id', auth_1.protect, matchController_1.deleteMatch);
 // Match setup
 router.put('/:id/start', auth_1.protect, matchController_1.startMatch);
-router.put('/:id/toss', auth_1.protect, async (req, res, next) => {
-    // Toss is handled in startMatch
-    res.status(400).json({ message: 'Use /start endpoint for toss' });
-});
+router.post('/:id/start', auth_1.protect, matchController_1.startMatch); // alias: some frontends POST
+router.put('/:id/toss', auth_1.protect, matchController_1.startMatch); // alias: toss = start
+router.post('/:id/toss', auth_1.protect, matchController_1.startMatch); // alias
 // Scoring
 router.post('/:id/score', auth_1.protect, matchController_1.addBall);
 // Player management

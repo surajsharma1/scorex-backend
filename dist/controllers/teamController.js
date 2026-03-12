@@ -385,16 +385,4 @@ const searchTeams = async (req, res, next) => {
     }
 };
 exports.searchTeams = searchTeams;
-exports.default = {
-    getTeams: exports.getTeams,
-    getTeam: exports.getTeam,
-    createTeam: exports.createTeam,
-    updateTeam: exports.updateTeam,
-    deleteTeam: exports.deleteTeam,
-    addPlayer: exports.addPlayer,
-    removePlayer: exports.removePlayer,
-    getTeamPlayers: exports.getTeamPlayers,
-    getUserTeams: exports.getUserTeams,
-    searchTeams: exports.searchTeams
-};
 //# sourceMappingURL=teamController.js.map

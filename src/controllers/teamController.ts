@@ -415,16 +415,3 @@ export const searchTeams = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
-
-export default {
-  getTeams,
-  getTeam,
-  createTeam,
-  updateTeam,
-  deleteTeam,
-  addPlayer,
-  removePlayer,
-  getTeamPlayers,
-  getUserTeams,
-  searchTeams
-};
