@@ -54,8 +54,10 @@ exports.updateTournamentSchema = exports.createTournamentSchema.partial();
 // Team validation schemas
 exports.createTeamSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
-    color: zod_1.z.string().min(1, 'Color is required'),
-    tournament: zod_1.z.string().optional(), // Made optional - teams can be created without tournament
+    shortName: zod_1.z.string().max(10, 'Short name cannot exceed 10 characters').optional(),
+    description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
+    color: zod_1.z.string().optional(), // accepted but not stored (frontend compat)
+    tournament: zod_1.z.string().optional(),
 });
 exports.updateTeamSchema = exports.createTeamSchema.partial();
 // Player validation schemas

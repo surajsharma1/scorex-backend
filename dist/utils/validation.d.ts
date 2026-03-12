@@ -37,12 +37,16 @@ export declare const updateTournamentSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const createTeamSchema: z.ZodObject<{
     name: z.ZodString;
-    color: z.ZodString;
+    shortName: z.ZodOptional<z.ZodString>;
+    description: z.ZodOptional<z.ZodString>;
+    color: z.ZodOptional<z.ZodString>;
     tournament: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateTeamSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
-    color: z.ZodOptional<z.ZodString>;
+    shortName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    color: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     tournament: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const addPlayerSchema: z.ZodObject<{

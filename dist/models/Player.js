@@ -106,6 +106,7 @@ const PlayerSchema = new mongoose_1.Schema({
         required: [true, 'Player role is required'],
         default: 'batsman'
     },
+    jerseyNumber: { type: Number },
     // Statistics
     battingStats: { type: BattingStatsSchema, default: () => ({}) },
     bowlingStats: { type: BowlingStatsSchema, default: () => ({}) },
@@ -117,6 +118,7 @@ const PlayerSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     // Status
     isActive: { type: Boolean, default: true },
+    lastMatchDate: { type: Date },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

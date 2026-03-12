@@ -12,6 +12,7 @@ export interface IPlayer extends Document {
     nationality?: string;
     profilePicture?: string;
     role: 'batsman' | 'bowler' | 'all-rounder' | 'wicket-keeper' | 'batsman-wicket-keeper';
+    jerseyNumber?: number;
     battingStats?: {
         totalMatches: number;
         totalInnings: number;
@@ -56,6 +57,7 @@ export interface IPlayer extends Document {
     teams: mongoose.Types.ObjectId[];
     userId?: mongoose.Types.ObjectId;
     isActive: boolean;
+    lastMatchDate?: Date;
     createdAt: Date;
     updatedAt: Date;
     calculateTotalPoints(): number;

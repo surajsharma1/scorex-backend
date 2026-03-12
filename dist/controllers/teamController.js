@@ -195,7 +195,7 @@ exports.deleteTeam = deleteTeam;
 // @access  Private (Owner/Admin)
 const addPlayer = async (req, res, next) => {
     try {
-        const { playerId, isCaptain, isViceCaptain } = req.body;
+        const { playerId, name, role, jerseyNumber, userId, isCaptain, isViceCaptain } = req.body;
         const team = await Team_1.default.findById(req.params.id);
         if (!team) {
             return res.status(404).json({
@@ -209,24 +209,51 @@ const addPlayer = async (req, res, next) => {
                 message: 'Not authorized'
             });
         }
-        // Check if player exists
-        const player = await Player_1.default.findById(playerId);
-        if (!player) {
-            return res.status(404).json({
+        let player;
+        if (playerId) {
+            // Adding an existing player by ID
+            player = await Player_1.default.findById(playerId);
+            if (!player) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Player not found'
+                });
+            }
+        }
+        else if (name) {
+            // Creating a new player from provided data
+            const roleMap = {
+                'Batsman': 'batsman',
+                'Bowler': 'bowler',
+                'All-rounder': 'all-rounder',
+                'Wicket Keeper': 'wicket-keeper',
+            };
+            player = await Player_1.default.create({
+                name,
+                role: roleMap[role] || role || 'batsman',
+                jerseyNumber: jerseyNumber ? Number(jerseyNumber) : undefined,
+                userId: userId || undefined,
+                teams: [team._id],
+                isActive: true,
+            });
+        }
+        else {
+            return res.status(400).json({
                 success: false,
-                message: 'Player not found'
+                message: 'Either playerId or player name is required'
             });
         }
         // Add player to team
-        await team.addPlayer(new mongoose_1.default.Types.ObjectId(playerId));
+        await team.addPlayer(new mongoose_1.default.Types.ObjectId(player._id));
         // Set captain/vice-captain if requested
         if (isCaptain) {
-            team.captain = playerId;
+            team.captain = player._id;
         }
         if (isViceCaptain) {
-            team.viceCaptain = playerId;
+            team.viceCaptain = player._id;
         }
         await team.save();
+        await team.populate('players');
         res.json({
             success: true,
             message: 'Player added to team',

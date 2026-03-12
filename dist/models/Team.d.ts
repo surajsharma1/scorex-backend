@@ -3,7 +3,7 @@
  * Team management with players
  * Following PROJECT_ALGORITHM.md specifications
  */
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 export interface ITeam extends Document {
     name: string;
     shortName?: string;
@@ -38,4 +38,12 @@ export interface ITeam extends Document {
     getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
     search(query: string): Promise<any[]>;
 }
+interface ITeamModel extends Model<ITeam> {
+    getTopTeams(limit?: number): Promise<ITeam[]>;
+    getByOwner(ownerId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+    getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+    search(query: string): Promise<ITeam[]>;
+}
+declare const Team: ITeamModel;
+export default Team;
 //# sourceMappingURL=Team.d.ts.map
