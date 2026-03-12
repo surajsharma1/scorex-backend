@@ -33,9 +33,13 @@ export interface ITeam extends Document {
     addPlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
     removePlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
     calculateStats(): Promise<void>;
-    getTopTeams(limit?: number): Promise<any[]>;
-    getByOwner(ownerId: mongoose.Types.ObjectId): Promise<any[]>;
-    getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
-    search(query: string): Promise<any[]>;
+    getTopTeams(limit?: number): Promise<ITeam[]>;
+    getByOwner(ownerId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+    getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+    search(query: string): Promise<ITeam[]>;
 }
-//# sourceMappingURL=Team.d.ts.map
+declare const Team: mongoose.Model<ITeam, {}, {}, {}, mongoose.Document<unknown, {}, ITeam> & ITeam & {
+    _id: mongoose.Types.ObjectId;
+}, any>;
+export default Team;
+//# sourceMappingURL=TeamModel.d.ts.map

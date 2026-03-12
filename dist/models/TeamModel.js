@@ -243,5 +243,9 @@ TeamSchema.statics.search = function (query) {
         isActive: true
     });
 };
-mongoose_1.default.model('Team', TeamSchema);
-//# sourceMappingURL=Team.js.map
+// ==========================================
+// EXPORT
+// ==========================================
+const Team = mongoose_1.default.model('Team', TeamSchema);
+exports.default = Team;
+//# sourceMappingURL=TeamModel.js.map

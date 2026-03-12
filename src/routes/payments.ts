@@ -9,7 +9,7 @@ router.get('/plans', getPlans);
 
 // Protected routes
 router.get('/membership', protect as any, getMembership);
-router.post('/purchase', protect as any, purchaseMembership);
+router.post('/subscribe', protect, purchaseMembership);
 router.post('/extend', protect as any, extendMembership);
 router.post('/cancel', protect as any, cancelMembership);
 router.get('/history', protect as any, getPaymentHistory);

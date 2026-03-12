@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataExportService = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
-const Team_1 = __importDefault(require("../models/Team"));
+const TeamModel_1 = __importDefault(require("../models/TeamModel"));
 class DataExportService {
     static async exportUsers(res, format = 'json') {
         try {
@@ -52,7 +52,7 @@ class DataExportService {
     }
     static async exportTeams(res, format = 'json') {
         try {
-            const teams = await Team_1.default.find({ deleted: { $ne: true } })
+            const teams = await TeamModel_1.default.find({ deleted: { $ne: true } })
                 .populate('tournament', 'name')
                 .populate('players', 'name')
                 .lean();

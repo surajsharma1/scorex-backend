@@ -6,7 +6,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import Player from '../models/Player';
-import Team from '../models/Team';
+import TeamModel from '../models/TeamModel';
+const Team = TeamModel;
+
 import Match from '../models/Match';
 import Tournament from '../models/Tournament';
 
@@ -198,7 +200,8 @@ existing.catches = (existing.catches || 0) + ((bowler as any).catches || 0);
         return {
           _id: player._id,
           name: player.name,
-        photo: (player as any).photo,
+        photo: player.photo,
+
           role: player.role,
           points,
           runs: stats.runs,

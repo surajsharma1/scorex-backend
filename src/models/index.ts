@@ -1,18 +1,11 @@
-/**
- * Models Index
- * Central export point for all Mongoose models
- * Following PROJECT_ALGORITHM.md specifications
- * 
- * Model Registration Order is critical to prevent
- * "Schema hasn't been registered for model" errors
- */
-
 import mongoose from 'mongoose';
 
 // Import all models - Order matters!
 import User from './User';
 import Player from './Player';
 import Team from './Team';
+
+
 import Tournament from './Tournament';
 import Match from './Match';
 import Club from './Club';

@@ -28,7 +28,7 @@ const getTeams = async (req, res, next) => {
         if (owner)
             query.owner = owner;
         if (tournament)
-            query.tournaments = tournament;
+            query.tournaments = new mongoose_1.default.Types.ObjectId(tournament);
         const teams = await Team_1.default.find(query)
             .populate('owner', 'username email')
             .populate('players')
@@ -310,7 +310,7 @@ exports.getTeamPlayers = getTeamPlayers;
 // @access  Public
 const getUserTeams = async (req, res, next) => {
     try {
-        const teams = Team_1.default.getByOwner(new mongoose_1.default.Types.ObjectId(req.params.userId));
+        const teams = await Team_1.default.getByOwner(new mongoose_1.default.Types.ObjectId(req.params.userId));
         res.json({
             success: true,
             data: teams
@@ -333,7 +333,7 @@ const searchTeams = async (req, res, next) => {
                 message: 'Search query required'
             });
         }
-        const teams = Team_1.default.search(q);
+        const teams = await Team_1.default.search(q);
         res.json({
             success: true,
             data: teams

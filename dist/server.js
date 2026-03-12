@@ -200,10 +200,20 @@ passport_1.default.deserializeUser(async (id, done) => {
 // ==========================================
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
 }));
 // 🚨 CRITICAL FIX: Body parsers placed here before any routes
 app.use(express_1.default.json({ limit: '10mb' }));

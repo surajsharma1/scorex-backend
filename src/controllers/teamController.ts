@@ -29,7 +29,7 @@ export const getTeams = async (req: Request, res: Response, next: NextFunction) 
       ];
     }
     if (owner) query.owner = owner;
-    if (tournament) query.tournaments = tournament;
+    if (tournament) query.tournaments = new mongoose.Types.ObjectId(tournament as string);
     
     const teams = await Team.find(query)
       .populate('owner', 'username email')
@@ -203,7 +203,7 @@ export const deleteTeam = async (req: AuthRequest, res: Response, next: NextFunc
 // @access  Private (Owner/Admin)
 export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { playerId, isCaptain, isViceCaptain } = req.body;
+    const { playerId, name, role, jerseyNumber, userId, isCaptain, isViceCaptain } = req.body;
     
     const team = await Team.findById(req.params.id);
     
@@ -221,27 +221,53 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
       });
     }
     
-    // Check if player exists
-    const player = await Player.findById(playerId);
-    if (!player) {
-      return res.status(404).json({
+    let player;
+    
+    if (playerId) {
+      // Adding an existing player by ID
+      player = await Player.findById(playerId);
+      if (!player) {
+        return res.status(404).json({
+          success: false,
+          message: 'Player not found'
+        });
+      }
+    } else if (name) {
+      // Creating a new player from provided data
+      const roleMap: Record<string, string> = {
+        'Batsman': 'batsman',
+        'Bowler': 'bowler',
+        'All-rounder': 'all-rounder',
+        'Wicket Keeper': 'wicket-keeper',
+      };
+      player = await Player.create({
+        name,
+        role: roleMap[role] || role || 'batsman',
+        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : undefined,
+        userId: userId || undefined,
+        teams: [team._id],
+        isActive: true,
+      });
+    } else {
+      return res.status(400).json({
         success: false,
-        message: 'Player not found'
+        message: 'Either playerId or player name is required'
       });
     }
     
     // Add player to team
-    await team.addPlayer(new mongoose.Types.ObjectId(playerId));
+    await team.addPlayer(new mongoose.Types.ObjectId(player._id as string));
     
     // Set captain/vice-captain if requested
     if (isCaptain) {
-      team.captain = playerId;
+      team.captain = player._id as any;
     }
     if (isViceCaptain) {
-      team.viceCaptain = playerId;
+      team.viceCaptain = player._id as any;
     }
     
     await team.save();
+    await team.populate('players');
     
     res.json({
       success: true,
@@ -333,7 +359,7 @@ export const getTeamPlayers = async (req: Request, res: Response, next: NextFunc
 export const getUserTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
 
-    const teams = (Team as any).getByOwner(new mongoose.Types.ObjectId(req.params.userId));
+    const teams = await Team.getByOwner(new mongoose.Types.ObjectId(req.params.userId as string));
 
 
 
@@ -362,7 +388,7 @@ export const searchTeams = async (req: Request, res: Response, next: NextFunctio
     }
     
 
-    const teams = (Team as any).search(q as string);
+    const teams = await Team.search(q as string);
 
 
 
@@ -388,4 +414,3 @@ export default {
   getUserTeams,
   searchTeams
 };
-

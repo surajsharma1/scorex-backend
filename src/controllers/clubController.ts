@@ -23,6 +23,7 @@ export const getClubs = async (req: Request, res: Response, next: NextFunction) 
         { description: { $regex: search, $options: 'i' } }
       ];
     }
+
     
     const clubs = await Club.find(query)
       .populate('owner', 'username email fullName')

@@ -11,7 +11,7 @@ const router = express_1.default.Router();
 router.get('/plans', paymentController_1.getPlans);
 // Protected routes
 router.get('/membership', auth_1.protect, paymentController_1.getMembership);
-router.post('/purchase', auth_1.protect, paymentController_1.purchaseMembership);
+router.post('/subscribe', auth_1.protect, paymentController_1.purchaseMembership);
 router.post('/extend', auth_1.protect, paymentController_1.extendMembership);
 router.post('/cancel', auth_1.protect, paymentController_1.cancelMembership);
 router.get('/history', auth_1.protect, paymentController_1.getPaymentHistory);

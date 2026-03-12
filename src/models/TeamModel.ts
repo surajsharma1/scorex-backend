@@ -58,10 +58,17 @@ export interface ITeam extends Document {
   calculateStats(): Promise<void>;
   
   // Static methods (defined on model, not instance)
-  getTopTeams(limit?: number): Promise<any[]>;
-  getByOwner(ownerId: mongoose.Types.ObjectId): Promise<any[]>;
-  getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
-  search(query: string): Promise<any[]>;
+  getTopTeams(limit?: number): Promise<ITeam[]>;
+  getByOwner(ownerId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+  getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+  search(query: string): Promise<ITeam[]>;
+}
+
+interface ITeamModel extends Model<ITeam> {
+  getTopTeams(limit?: number): Promise<ITeam[]>;
+  getByOwner(ownerId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+  getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<ITeam[]>;
+  search(query: string): Promise<ITeam[]>;
 }
 
 // ==========================================
@@ -304,13 +311,9 @@ TeamSchema.statics.search = function(query: string) {
 // EXPORT
 // ==========================================
 
-interface ITeamModel extends Model<ITeam> {
-  getTopTeams(limit?: number): Promise<ITeam[]>;
-  getByOwner(ownerId: mongoose.Types.ObjectId): Promise<ITeam[]>;
-  getByTournament(tournamentId: mongoose.Types.ObjectId): Promise<ITeam[]>;
-  search(query: string): Promise<ITeam[]>;
-}
 
-const Team = (mongoose.models.Team || mongoose.model<ITeam, ITeamModel>('Team', TeamSchema)) as ITeamModel;
-
+const Team = mongoose.model<ITeam>('Team', TeamSchema);
 export default Team;
+
+
+

@@ -10,7 +10,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPurpleCap = exports.getOrangeCap = exports.getMatchLeaderboard = exports.getTournamentLeaderboard = exports.getGlobalLeaderboard = void 0;
 const Player_1 = __importDefault(require("../models/Player"));
-const Team_1 = __importDefault(require("../models/Team"));
+const TeamModel_1 = __importDefault(require("../models/TeamModel"));
+const Team = TeamModel_1.default;
 const Match_1 = __importDefault(require("../models/Match"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 // @desc    Get global leaderboard
@@ -59,7 +60,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
         }
         else if (type === 'team') {
             // Get team leaderboard
-            data = await Team_1.default.find({ ...query, isActive: true })
+            data = await Team.find({ ...query, isActive: true })
                 .sort({ points: -1, netRunRate: -1 })
                 .limit(Number(limit))
                 .skip((Number(page) - 1) * Number(limit))
@@ -75,7 +76,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
         }
         const total = type === 'player'
             ? await Player_1.default.countDocuments(query)
-            : await Team_1.default.countDocuments(query);
+            : await Team.countDocuments(query);
         res.json({
             success: true,
             data,
@@ -109,7 +110,7 @@ const getTournamentLeaderboard = async (req, res, next) => {
         let data;
         if (type === 'player') {
             // Get players from teams in tournament
-            const teams = await Team_1.default.find({ tournaments: tournamentId })
+            const teams = await Team.find({ tournaments: tournamentId })
                 .populate('players');
             const playerIds = [];
             teams.forEach((team) => {
@@ -187,7 +188,7 @@ const getTournamentLeaderboard = async (req, res, next) => {
         }
         else if (type === 'team') {
             // Get teams in tournament with their stats
-            data = await Team_1.default.find({ tournaments: tournamentId })
+            data = await Team.find({ tournaments: tournamentId })
                 .sort({ 'tournamentStats.points': -1, 'tournamentStats.netRunRate': -1 })
                 .limit(Number(limit))
                 .select('name shortName logo tournamentStats')
@@ -320,7 +321,7 @@ const getOrangeCap = async (req, res, next) => {
         let query = { isActive: true };
         if (tournamentId) {
             // Get players from tournament teams
-            const teams = await Team_1.default.find({ tournaments: tournamentId });
+            const teams = await Team.find({ tournaments: tournamentId });
             const playerIds = teams.flatMap((t) => t.players || []);
             query._id = { $in: playerIds };
         }
@@ -352,7 +353,7 @@ const getPurpleCap = async (req, res, next) => {
         const { tournamentId } = req.query;
         let query = { isActive: true };
         if (tournamentId) {
-            const teams = await Team_1.default.find({ tournaments: tournamentId });
+            const teams = await Team.find({ tournaments: tournamentId });
             const playerIds = teams.flatMap((t) => t.players || []);
             query._id = { $in: playerIds };
         }

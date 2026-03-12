@@ -1,11 +1,3 @@
-/**
- * Models Index
- * Central export point for all Mongoose models
- * Following PROJECT_ALGORITHM.md specifications
- *
- * Model Registration Order is critical to prevent
- * "Schema hasn't been registered for model" errors
- */
 import mongoose from 'mongoose';
 export { default as User } from './User';
 export { default as Player } from './Player';
@@ -36,9 +28,7 @@ declare const _default: {
     Player: mongoose.Model<import("./Player").IPlayer, {}, {}, {}, mongoose.Document<unknown, {}, import("./Player").IPlayer> & import("./Player").IPlayer & {
         _id: mongoose.Types.ObjectId;
     }, any>;
-    Team: mongoose.Model<import("./Team").ITeam, {}, {}, {}, mongoose.Document<unknown, {}, import("./Team").ITeam> & import("./Team").ITeam & {
-        _id: mongoose.Types.ObjectId;
-    }, any>;
+    Team: any;
     Tournament: import("./Tournament").ITournamentModel;
     Match: mongoose.Model<import("./Match").IMatch, {}, {}, {}, mongoose.Document<unknown, {}, import("./Match").IMatch> & import("./Match").IMatch & {
         _id: mongoose.Types.ObjectId;

@@ -1,12 +1,4 @@
 "use strict";
-/**
- * Models Index
- * Central export point for all Mongoose models
- * Following PROJECT_ALGORITHM.md specifications
- *
- * Model Registration Order is critical to prevent
- * "Schema hasn't been registered for model" errors
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
