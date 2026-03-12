@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Tournament from '../models/Tournament';
@@ -157,9 +156,9 @@ export const createTournament = async (req: AuthRequest, res: Response, next: Ne
       banner,
       organizer: req.user?.id,
       startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      endDate: endDate ? new Date(endDate) : undefined,
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : undefined,
-      location,
+      location: location || 'TBD',
       locationType,
       address,
       type: type || 'round_robin',
@@ -591,4 +590,3 @@ export default {
   getMyOrganizedTournaments,
   searchTournaments
 };
-

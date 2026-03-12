@@ -21,6 +21,7 @@ export interface IPlayer extends Document {
   
   // Cricket Role
   role: 'batsman' | 'bowler' | 'all-rounder' | 'wicket-keeper' | 'batsman-wicket-keeper';
+  jerseyNumber?: number;
   
   // Batting Statistics
   battingStats?: {
@@ -79,6 +80,7 @@ export interface IPlayer extends Document {
   
   // Status
   isActive: boolean;
+  lastMatchDate?: Date;
   
   // Timestamps
   createdAt: Date;
@@ -163,6 +165,7 @@ const PlayerSchema: Schema = new Schema({
     required: [true, 'Player role is required'],
     default: 'batsman'
   },
+  jerseyNumber: { type: Number },
   
   // Statistics
   battingStats: { type: BattingStatsSchema, default: () => ({}) },
@@ -178,6 +181,7 @@ const PlayerSchema: Schema = new Schema({
   
   // Status
   isActive: { type: Boolean, default: true },
+  lastMatchDate: { type: Date },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -410,4 +414,3 @@ PlayerSchema.statics.search = function(query: string) {
 // ==========================================
 
 export default mongoose.model<IPlayer>('Player', PlayerSchema);
-

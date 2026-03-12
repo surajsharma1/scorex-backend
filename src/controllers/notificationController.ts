@@ -12,7 +12,7 @@ export const getNotifications = async (req: Request, res: Response): Promise<voi
 
 export const markAsRead = async (req: Request, res: Response): Promise<void> => {
   try {
-    await Notification.findByIdAndUpdate(req.params.id, { read: true });
+    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

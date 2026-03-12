@@ -6,9 +6,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import Player from '../models/Player';
-import TeamModel from '../models/TeamModel';
-const Team = TeamModel;
-
+import Team from '../models/Team';
 import Match from '../models/Match';
 import Tournament from '../models/Tournament';
 
@@ -51,19 +49,21 @@ export const getGlobalLeaderboard = async (req: Request, res: Response, next: Ne
     if (type === 'player') {
       // Get player leaderboard
       data = await Player.find({ ...query, isActive: true })
-        .sort({ totalPoints: -1, totalRuns: -1, totalWickets: -1 })
+        .sort({ 'points.total': -1, 'battingStats.totalRuns': -1, 'bowlingStats.totalWickets': -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
-        .select('name photo role totalPoints totalRuns totalWickets totalMatches matchesWon')
+        .select('name profilePicture role points battingStats bowlingStats')
         .lean();
       
       // Add rank
-      data = data.map((player, index) => ({
+      data = data.map((player: any, index) => ({
         ...player,
         rank: (Number(page) - 1) * Number(limit) + index + 1,
-        winRate: player.totalMatches > 0 
-          ? ((player.matchesWon / player.totalMatches) * 100).toFixed(1)
-          : '0'
+        totalPoints: player.points?.total || 0,
+        totalRuns: player.battingStats?.totalRuns || 0,
+        totalWickets: player.bowlingStats?.totalWickets || 0,
+        totalMatches: player.battingStats?.totalMatches || 0,
+        photo: player.profilePicture
       }));
       
     } else if (type === 'team') {
@@ -144,46 +144,36 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
       
     for (const match of matches) {
         const matchAny = match as any;
-        if (matchAny.scorecard) {
-          for (const batsman of matchAny.scorecard.batting) {
-            const existing = playerStats.get(batsman.playerId?.toString()) || {
-              runs: 0,
-              balls: 0,
-              fours: 0,
-              sixes: 0,
-              wickets: 0,
-              catches: 0
+        // innings[] is the real data store — scorecard is only a TypeScript type hint
+        for (const inning of (matchAny.innings || [])) {
+          for (const batsman of (inning.batsmen || [])) {
+            const pid = batsman.playerId?.toString();
+            if (!pid) continue;
+            const existing = playerStats.get(pid) || {
+              runs: 0, balls: 0, fours: 0, sixes: 0, wickets: 0, catches: 0
             };
-            
-            existing.runs += batsman.runs || 0;
+            existing.runs  += batsman.runs  || 0;
             existing.balls += batsman.balls || 0;
             existing.fours += batsman.fours || 0;
             existing.sixes += batsman.sixes || 0;
-            
-            playerStats.set(batsman.playerId?.toString(), existing);
+            playerStats.set(pid, existing);
           }
-          
-          for (const bowler of match.scorecard.bowling) {
-            const existing = playerStats.get(bowler.playerId?.toString()) || {
-              runs: 0,
-              balls: 0,
-              fours: 0,
-              sixes: 0,
-              wickets: 0,
-              catches: 0
+          for (const bowler of (inning.bowlers || [])) {
+            const pid = bowler.playerId?.toString();
+            if (!pid) continue;
+            const existing = playerStats.get(pid) || {
+              runs: 0, balls: 0, fours: 0, sixes: 0, wickets: 0, catches: 0
             };
-            
             existing.wickets += bowler.wickets || 0;
-existing.catches = (existing.catches || 0) + ((bowler as any).catches || 0);
-            
-            playerStats.set(bowler.playerId?.toString(), existing);
+            existing.catches  = (existing.catches || 0) + ((bowler as any).catches || 0);
+            playerStats.set(pid, existing);
           }
         }
       }
       
       // Get player details and calculate points
       const players = await Player.find({ _id: { $in: playerIds } })
-        .select('name photo role')
+        .select('name profilePicture role')
         .lean();
       
       data = players.map((player, index) => {
@@ -200,8 +190,7 @@ existing.catches = (existing.catches || 0) + ((bowler as any).catches || 0);
         return {
           _id: player._id,
           name: player.name,
-        photo: player.photo,
-
+          photo: (player as any).profilePicture,
           role: player.role,
           points,
           runs: stats.runs,
@@ -263,27 +252,29 @@ export const getMatchLeaderboard = async (req: Request, res: Response, next: Nex
       });
     }
     
-    if (!match.scorecard) {
+    // innings[] is the real data store — scorecard is only a TypeScript type hint
+    const matchAny = match as any;
+    if (!matchAny.innings || matchAny.innings.length === 0) {
       return res.json({
         success: true,
         data: [],
-        message: 'No scorecard available'
+        message: 'No scorecard available yet'
       });
     }
     
-    // Combine batting and bowling stats
+    // Combine batting and bowling stats from innings[] (scorecard is only a type hint, not real data)
     const playerStats: Map<string, any> = new Map();
     
-    // Process batting
-    if (match.scorecard.batting) {
-      for (const batsman of match.scorecard.batting) {
+    for (const inning of (matchAny.innings || [])) {
+      // Process batting
+      for (const batsman of (inning.batsmen || [])) {
         const playerId = batsman.playerId?.toString();
         if (!playerId) continue;
         
         const existing = playerStats.get(playerId) || {
           playerId,
           name: batsman.name,
-          team: batsman.teamId?.toString()
+          team: inning.teamId?.toString()
         };
         
         existing.runs = (existing.runs || 0) + (batsman.runs || 0);
@@ -294,18 +285,16 @@ export const getMatchLeaderboard = async (req: Request, res: Response, next: Nex
         
         playerStats.set(playerId, existing);
       }
-    }
-    
-    // Process bowling
-    if (match.scorecard.bowling) {
-      for (const bowler of match.scorecard.bowling) {
+      
+      // Process bowling
+      for (const bowler of (inning.bowlers || [])) {
         const playerId = bowler.playerId?.toString();
         if (!playerId) continue;
         
         const existing = playerStats.get(playerId) || {
           playerId,
           name: bowler.name,
-          team: bowler.teamId?.toString()
+          team: inning.teamId?.toString()
         };
         
         existing.wickets = (existing.wickets || 0) + (bowler.wickets || 0);
@@ -319,7 +308,7 @@ export const getMatchLeaderboard = async (req: Request, res: Response, next: Nex
     // Calculate points and create leaderboard
     const data = Array.from(playerStats.values()).map(player => {
       const points = 
-        ((player.rays || player.runs) * 1) +
+        ((player.runs || 0) * 1) +
         ((player.fours || 0) * 1) +
         ((player.sixes || 0) * 2) +
         ((player.wickets || 0) * 10);
@@ -374,9 +363,9 @@ export const getOrangeCap = async (req: Request, res: Response, next: NextFuncti
     }
     
     const players = await Player.find(query)
-      .sort({ totalRuns: -1 })
+      .sort({ 'battingStats.totalRuns': -1 })
       .limit(10)
-      .select('name photo totalRuns totalMatches')
+      .select('name profilePicture battingStats')
       .lean();
     
     const data = players.map((player, index) => ({
@@ -410,9 +399,9 @@ export const getPurpleCap = async (req: Request, res: Response, next: NextFuncti
     }
     
     const players = await Player.find(query)
-      .sort({ totalWickets: -1 })
+      .sort({ 'bowlingStats.totalWickets': -1 })
       .limit(10)
-      .select('name photo totalWickets totalMatches')
+      .select('name profilePicture bowlingStats')
       .lean();
     
     const data = players.map((player, index) => ({

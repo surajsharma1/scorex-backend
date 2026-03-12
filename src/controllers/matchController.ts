@@ -110,13 +110,36 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
       tournamentId,
       round,
       matchNumber,
-      team1,
-      team2,
+      // Accept both naming conventions (team1/team2 or team1Id/team2Id)
+      team1: team1Raw,
+      team2: team2Raw,
+      team1Id,
+      team2Id,
       venue,
-      date,
+      // Accept both date and scheduledDate
+      date: dateRaw,
+      scheduledDate,
       time,
       format
     } = req.body;
+    
+    const team1 = team1Raw || team1Id;
+    const team2 = team2Raw || team2Id;
+    const date = dateRaw || scheduledDate;
+    
+    if (!team1 || !team2) {
+      return res.status(400).json({
+        success: false,
+        message: 'team1 and team2 are required'
+      });
+    }
+    
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Match date is required'
+      });
+    }
     
     // Verify teams exist
     const team1Doc = await Team.findById(team1);
@@ -643,4 +666,3 @@ export default {
   updateMatchStatus,
   setMatchOverlay
 };
-

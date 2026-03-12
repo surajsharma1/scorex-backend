@@ -312,8 +312,5 @@ TeamSchema.statics.search = function(query: string) {
 // ==========================================
 
 
-const Team = mongoose.model<ITeam>('Team', TeamSchema);
+const Team = (mongoose.models.Team || mongoose.model('Team', TeamSchema)) as mongoose.Model<ITeam>;
 export default Team;
-
-
-

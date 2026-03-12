@@ -194,15 +194,13 @@ const TournamentSchema: Schema = new Schema({
     required: [true, 'Start date is required']
   },
   endDate: { 
-    type: Date, 
-    required: [true, 'End date is required']
+    type: Date
   },
   registrationDeadline: { type: Date },
   
   // Location
   location: { 
     type: String, 
-    required: [true, 'Location is required'],
     trim: true
   },
   locationType: { 
@@ -711,5 +709,3 @@ TournamentSchema.statics.search = function(query: string) {
 // ==========================================
 
 export default mongoose.model<ITournament, ITournamentModel>('Tournament', TournamentSchema);
-
-
