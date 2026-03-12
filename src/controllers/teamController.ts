@@ -332,7 +332,9 @@ export const getTeamPlayers = async (req: Request, res: Response, next: NextFunc
 // @access  Public
 export const getUserTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const teams = await Team.getByOwner(req.params.userId);
+
+    const teams = await Team.getByOwner(new mongoose.Types.ObjectId(req.params.userId as string));
+
     
     res.json({
       success: true,

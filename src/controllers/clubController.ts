@@ -227,7 +227,8 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
         message: 'Joined club successfully'
       });
     } else {
-club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
+      club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
+
       await club.save();
       
       res.json({
