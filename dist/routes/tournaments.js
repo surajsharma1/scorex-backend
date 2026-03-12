@@ -5,17 +5,18 @@ const tournamentController_1 = require("../controllers/tournamentController");
 const auth_1 = require("../middleware/auth");
 const validation_1 = require("../utils/validation");
 const router = (0, express_1.Router)();
-// Public Routes
-router.get('/', tournamentController_1.getTournaments);
+// Specific named routes MUST come before /:id to avoid being swallowed
 router.get('/search', tournamentController_1.searchTournaments);
 router.get('/upcoming', tournamentController_1.getTournaments);
 router.get('/ongoing', tournamentController_1.getTournaments);
 router.get('/featured', tournamentController_1.getTournaments);
+router.get('/my/organized', auth_1.protect, tournamentController_1.getMyOrganizedTournaments);
+// Public parameterised routes
+router.get('/', tournamentController_1.getTournaments);
 router.get('/:id', tournamentController_1.getTournament);
 router.get('/:id/stats', tournamentController_1.getTournamentStats);
 router.get('/:id/matches', tournamentController_1.getTournamentMatches);
 // Protected Routes
-router.get('/my/organized', auth_1.protect, tournamentController_1.getMyOrganizedTournaments);
 router.post('/', auth_1.protect, (0, validation_1.validateRequest)(validation_1.createTournamentSchema), tournamentController_1.createTournament);
 router.put('/:id', auth_1.protect, (0, validation_1.validateRequest)(validation_1.updateTournamentSchema), tournamentController_1.updateTournament);
 router.delete('/:id', auth_1.protect, tournamentController_1.deleteTournament);

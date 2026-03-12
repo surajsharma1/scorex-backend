@@ -14,7 +14,7 @@ const Match_1 = __importDefault(require("../models/Match"));
 const getTournaments = async (req, res, next) => {
     try {
         const { status, type, organizer, limit = 20, page = 1 } = req.query;
-        const query = { isPublic: true };
+        const query = { isPublic: true, status: { $ne: 'cancelled' } };
         if (status)
             query.status = status;
         if (type)
@@ -219,11 +219,10 @@ const deleteTournament = async (req, res, next) => {
                 message: 'Not authorized to delete this tournament'
             });
         }
-        tournament.status = 'cancelled';
-        await tournament.save();
+        await Tournament_1.default.findByIdAndDelete(req.params.id);
         res.json({
             success: true,
-            message: 'Tournament cancelled'
+            message: 'Tournament deleted'
         });
     }
     catch (error) {

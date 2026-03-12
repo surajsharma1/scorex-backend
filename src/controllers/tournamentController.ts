@@ -15,7 +15,7 @@ export const getTournaments = async (req: Request, res: Response, next: NextFunc
   try {
     const { status, type, organizer, limit = 20, page = 1 } = req.query;
     
-    const query: any = { isPublic: true };
+    const query: any = { isPublic: true, status: { $ne: 'cancelled' } };
     
     if (status) query.status = status;
     if (type) query.type = type;
@@ -252,12 +252,11 @@ export const deleteTournament = async (req: AuthRequest, res: Response, next: Ne
       });
     }
     
-    tournament.status = 'cancelled';
-    await tournament.save();
-    
+    await Tournament.findByIdAndDelete(req.params.id);
+
     res.json({
       success: true,
-      message: 'Tournament cancelled'
+      message: 'Tournament deleted'
     });
   } catch (error) {
     next(error);

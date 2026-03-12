@@ -83,7 +83,7 @@ exports.getTeam = getTeam;
 // @access  Private
 const createTeam = async (req, res, next) => {
     try {
-        const { name, shortName, description, logo } = req.body;
+        const { name, shortName, description, logo, tournament } = req.body;
         const team = await Team_1.default.create({
             name,
             shortName,
@@ -91,6 +91,7 @@ const createTeam = async (req, res, next) => {
             logo,
             owner: req.user?.id,
             players: [],
+            tournaments: tournament ? [new mongoose_1.default.Types.ObjectId(tournament)] : [],
             tournamentStats: {
                 tournamentsPlayed: 0,
                 tournamentsWon: 0,
@@ -104,6 +105,19 @@ const createTeam = async (req, res, next) => {
             points: 0,
             netRunRate: 0
         });
+        // If a tournament was provided, also register the team in that tournament
+        if (tournament) {
+            const Tournament = mongoose_1.default.model('Tournament');
+            const tournamentDoc = await Tournament.findById(tournament);
+            if (tournamentDoc) {
+                try {
+                    await tournamentDoc.addTeam(team._id);
+                }
+                catch (e) {
+                    // addTeam throws if already registered or full — not fatal for team creation
+                }
+            }
+        }
         await team.populate('owner', 'username email');
         res.status(201).json({
             success: true,

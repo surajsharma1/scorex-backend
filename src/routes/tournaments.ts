@@ -20,18 +20,20 @@ import { validateRequest, createTournamentSchema, updateTournamentSchema } from 
 
 const router = Router();
 
-// Public Routes
-router.get('/', getTournaments);
+// Specific named routes MUST come before /:id to avoid being swallowed
 router.get('/search', searchTournaments);
 router.get('/upcoming', getTournaments);
 router.get('/ongoing', getTournaments);
 router.get('/featured', getTournaments);
+router.get('/my/organized', protect as RequestHandler, getMyOrganizedTournaments);
+
+// Public parameterised routes
+router.get('/', getTournaments);
 router.get('/:id', getTournament);
 router.get('/:id/stats', getTournamentStats);
 router.get('/:id/matches', getTournamentMatches);
 
 // Protected Routes
-router.get('/my/organized', protect as RequestHandler, getMyOrganizedTournaments);
 router.post('/', protect as RequestHandler, validateRequest(createTournamentSchema), createTournament);
 router.put('/:id', protect as RequestHandler, validateRequest(updateTournamentSchema), updateTournament);
 router.delete('/:id', protect as RequestHandler, deleteTournament);

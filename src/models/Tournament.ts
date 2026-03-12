@@ -349,18 +349,23 @@ TournamentSchema.virtual('daysUntilStart').get(function() {
 
 // Add team to tournament
 TournamentSchema.methods.addTeam = async function(teamId: mongoose.Types.ObjectId) {
-  if (this.teams.includes(teamId)) {
+  const alreadyAdded = this.teams.some(
+    (t: mongoose.Types.ObjectId) => t.toString() === teamId.toString()
+  );
+  if (alreadyAdded) {
     throw new Error('Team already registered');
   }
-  
+
   if (this.teams.length >= this.maxTeams) {
-    // Add to waiting list
-    if (!this.waitingList.includes(teamId)) {
+    const alreadyWaiting = this.waitingList.some(
+      (t: mongoose.Types.ObjectId) => t.toString() === teamId.toString()
+    );
+    if (!alreadyWaiting) {
       this.waitingList.push(teamId);
     }
     throw new Error('Tournament full, added to waiting list');
   }
-  
+
   this.teams.push(teamId);
   
   // Auto-update status if minimum teams reached
