@@ -2,7 +2,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import Tournament from '../models/Tournament';
-import Team from '../models/TeamModel';
+import Team from '../models/Team';
 
 import Match from '../models/Match';
 
