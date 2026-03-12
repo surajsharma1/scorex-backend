@@ -223,8 +223,9 @@ const startMatch = async (req, res, next) => {
             });
         }
         await match.startMatch(new mongoose_1.default.Types.ObjectId(tossWinner), decision);
-        await match.populate('team1', 'name shortName');
-        await match.populate('team2', 'name shortName');
+        await match.populate('team1', 'name shortName logo');
+        await match.populate('team2', 'name shortName logo');
+        await match.populate('tossWinner', 'name shortName');
         res.json({
             success: true,
             message: 'Match started',
@@ -472,7 +473,7 @@ exports.endMatch = endMatch;
 // @access  Public
 const getLiveMatches = async (req, res, next) => {
     try {
-        const matches = Match_1.default.getLiveMatches();
+        const matches = await Match_1.default.getLiveMatches();
         res.json({
             success: true,
             data: matches
@@ -489,7 +490,7 @@ exports.getLiveMatches = getLiveMatches;
 const getUpcomingMatches = async (req, res, next) => {
     try {
         const limit = Number(req.query.limit) || 10;
-        const matches = Match_1.default.getUpcoming(limit);
+        const matches = await Match_1.default.getUpcoming(limit);
         res.json({
             success: true,
             data: matches
