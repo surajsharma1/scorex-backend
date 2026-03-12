@@ -359,7 +359,9 @@ export const searchTeams = async (req: Request, res: Response, next: NextFunctio
       });
     }
     
+
     const teams = await Team.search(q as string);
+
     
     res.json({
       success: true,
