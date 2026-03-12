@@ -1,9 +1,3 @@
-/**
- * Club Controller
- * Club management with roles
- * Following PROJECT_ALGORITHM.md specifications
- */
-
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Club from '../models/Club';
@@ -227,7 +221,8 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
         message: 'Joined club successfully'
       });
     } else {
-club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id!));
+    club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id!));
+
 
       await club.save();
       

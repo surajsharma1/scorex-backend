@@ -172,7 +172,7 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
             };
             
             existing.wickets += bowler.wickets || 0;
-existing.catches = (existing.catches || 0) + (bowler.fieldingStats?.catches || 0);
+            existing.catches += bowler.catches || 0;
             
             playerStats.set(bowler.playerId?.toString(), existing);
           }

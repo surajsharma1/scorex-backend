@@ -190,6 +190,7 @@ export interface IMatch extends Document {
       teamId?: mongoose.Types.ObjectId;
     }>;
     bowling: Array<{
+      fieldingStats: any;
       playerId?: mongoose.Types.ObjectId;
       name?: string;
       overs: number;

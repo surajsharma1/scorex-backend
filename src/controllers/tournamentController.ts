@@ -20,7 +20,8 @@ export const getTournaments = async (req: Request, res: Response, next: NextFunc
     
     if (status) query.status = status;
     if (type) query.type = type;
-    if (organizer) query.organizer = mongoose.Types.ObjectId(organizer as string);
+    if (organizer) query.organizer = new mongoose.Types.ObjectId(organizer as string);
+
     
     const tournaments = await Tournament.find(query)
       .populate('organizer', 'username email')
@@ -289,7 +290,8 @@ export const addTeam = async (req: AuthRequest, res: Response, next: NextFunctio
       });
     }
     
-    await tournament.addTeam(mongoose.Types.ObjectId(teamId as string));
+    await tournament.addTeam(new mongoose.Types.ObjectId(teamId as string));
+
     
     // Also add to team's tournaments
     if (!team.tournaments.includes(tournament._id)) {
@@ -333,7 +335,8 @@ export const removeTeam = async (req: AuthRequest, res: Response, next: NextFunc
       });
     }
     
-    await tournament.removeTeam(mongoose.Types.ObjectId(teamId));
+    await tournament.removeTeam(new mongoose.Types.ObjectId(teamId));
+
     
     res.json({
       success: true,
@@ -446,7 +449,8 @@ export const endTournament = async (req: AuthRequest, res: Response, next: NextF
       });
     }
     
-    await tournament.endTournament(winnerId ? mongoose.Types.ObjectId(winnerId as string) : undefined);
+    await tournament.endTournament(winnerId ? new mongoose.Types.ObjectId(winnerId as string) : undefined);
+
     
     res.json({
       success: true,

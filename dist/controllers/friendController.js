@@ -28,7 +28,7 @@ const getFriends = async (req, res, next) => {
             .sort({ createdAt: -1 });
         // Transform to get friend details
         const friends = friendships.map((f) => {
-            const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
+            const friend = (f.requester._id.toString() === userId ? f.recipient : f.requester);
             return {
                 _id: f._id,
                 friend: {
