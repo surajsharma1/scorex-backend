@@ -236,10 +236,17 @@ app.use(passport.session());
 // ==========================================
 // 4. STATIC FILES
 // ==========================================
-const overlaysPath = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
-app.use('/overlays', express.static(overlaysPath));
-app.use('/overlay', express.static(overlaysPath));
-console.log('Serving overlays from:', overlaysPath);
+// Serve engine.js and any local overlay assets from backend's own public/overlays
+const localOverlaysPath = path.resolve(__dirname, '../public/overlays');
+app.use('/overlays', express.static(localOverlaysPath));
+app.use('/overlay', express.static(localOverlaysPath));
+// Also try frontend overlays as fallback
+const frontendOverlaysPath = path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays');
+if (require('fs').existsSync(frontendOverlaysPath)) {
+  app.use('/overlays', express.static(frontendOverlaysPath));
+  app.use('/overlay', express.static(frontendOverlaysPath));
+}
+console.log('Serving overlays from:', localOverlaysPath);
 
 
 // ==========================================

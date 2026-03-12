@@ -327,25 +327,49 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     // Add the ball
     await match.addBall(ballData);
     
-    // Reload match with populated data
-    await match.populate('team1', 'name shortName');
-    await match.populate('team2', 'name shortName');
-    
+    // Reload match with populated data for overlays and live score
+    await match.populate('team1', 'name shortName logo');
+    await match.populate('team2', 'name shortName logo');
+    await match.populate('tossWinner', 'name shortName');
+
     // Get socket instance for real-time update
     const io = req.app.get('io');
     if (io) {
-      io.to(`match:${match._id}`).emit('scoreUpdate', match);
+      io.to(`match:${match._id}`).emit('scoreUpdate', match.toObject());
     }
-    
+
+    const currentInningsIdx = (match.currentInnings || 1) - 1;
+    const currentInnings = match.innings && match.innings[currentInningsIdx];
+
     res.json({
       success: true,
       message: 'Ball added',
       data: {
+        // Flat score fields (backward compat)
         score: match.team1Score,
         wickets: match.team1Wickets,
         overs: match.team1Overs.toFixed(1),
+        team2Score: match.team2Score,
+        team2Wickets: match.team2Wickets,
+        team2Overs: match.team2Overs.toFixed(1),
         currentOver: match.currentOver,
-        currentBall: match.currentBall
+        currentBall: match.currentBall,
+        currentInnings: match.currentInnings,
+        // Current innings detail
+        innings: currentInnings ? {
+          score: currentInnings.score,
+          wickets: currentInnings.wickets,
+          overs: currentInnings.overs,
+          balls: currentInnings.balls,
+          runRate: currentInnings.runRate,
+          requiredRuns: currentInnings.requiredRuns,
+          requiredRunRate: currentInnings.requiredRunRate,
+          targetScore: currentInnings.targetScore,
+          extras: currentInnings.extras
+        } : null,
+        // Team names for overlay display
+        team1: (match.team1 as any)?.name || '',
+        team2: (match.team2 as any)?.name || '',
       }
     });
   } catch (error) {

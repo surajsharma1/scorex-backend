@@ -180,7 +180,10 @@ export const getOverlays = async (req: Request, res: Response): Promise<void> =>
     
     const overlays = await Overlay.find({ createdBy: user._id })
       .populate('tournament', 'name')
-      .populate('match');
+      .populate({ path: 'match', populate: [
+        { path: 'team1', select: 'name shortName' },
+        { path: 'team2', select: 'name shortName' }
+      ]});
       
     // Add membership status to each overlay
     const overlaysWithMembership = overlays.map(overlay => ({
@@ -410,12 +413,13 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     const apiBaseUrl = getBaseUrl();
     const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
     
-    // Paths to check for templates
+    // Paths to check for templates (local backend path first, then fallbacks)
     const possiblePaths = [
-      path.resolve(__dirname, '../../public/overlays'),
-      path.resolve(__dirname, '../../../public/overlays'),
-      path.resolve(process.cwd(), 'public/overlays'),
-      path.resolve(process.cwd(), 'scorex-frontend/public/overlays')
+      path.resolve(process.cwd(), 'public/overlays'),          // backend root/public/overlays
+      path.resolve(__dirname, '../public/overlays'),             // dist/../public/overlays  
+      path.resolve(__dirname, '../../public/overlays'),          // src/../public/overlays
+      path.resolve(process.cwd(), 'scorex-frontend/public/overlays'),
+      path.resolve(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays')
     ];
     
     let templateContent = '';
