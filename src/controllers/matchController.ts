@@ -290,11 +290,9 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       decision
     );
     
-await match.populate([
-  'team1', 
-  'team2', 
-  'tossWinner'
-], 'name shortName logo');
+await match.populate('team1', 'name shortName logo')
+  .populate('team2', 'name shortName logo')
+  .populate('tossWinner', 'name shortName logo');
     await match.populate('tossWinner', 'name shortName');
 
     res.json({
