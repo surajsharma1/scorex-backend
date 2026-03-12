@@ -85,7 +85,7 @@ exports.getMatch = getMatch;
 // @access  Private (Organizer/Admin)
 const createMatch = async (req, res, next) => {
     try {
-        const { name, tournamentId, round, matchNumber, 
+        const { name, tournamentId: tournamentIdRaw, tournament: tournamentRaw, round, matchNumber, 
         // Accept both naming conventions (team1/team2 or team1Id/team2Id)
         team1: team1Raw, team2: team2Raw, team1Id, team2Id, venue, 
         // Accept both date and scheduledDate
@@ -93,6 +93,8 @@ const createMatch = async (req, res, next) => {
         const team1 = team1Raw || team1Id;
         const team2 = team2Raw || team2Id;
         const date = dateRaw || scheduledDate;
+        // Accept tournamentId from body OR from URL param (when routed via /tournaments/:id/matches)
+        const tournamentId = tournamentIdRaw || tournamentRaw || req.params.id;
         if (!team1 || !team2) {
             return res.status(400).json({
                 success: false,

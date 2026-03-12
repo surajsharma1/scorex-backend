@@ -15,6 +15,7 @@ import {
   getMyOrganizedTournaments,
   searchTournaments
 } from '../controllers/tournamentController';
+import { createMatch } from '../controllers/matchController';
 import { protect } from '../middleware/auth'; 
 import { validateRequest, createTournamentSchema, updateTournamentSchema } from '../utils/validation';
 
@@ -32,6 +33,7 @@ router.get('/', getTournaments);
 router.get('/:id', getTournament);
 router.get('/:id/stats', getTournamentStats);
 router.get('/:id/matches', getTournamentMatches);
+router.post('/:id/matches', protect as RequestHandler, createMatch);
 
 // Protected Routes
 router.post('/', protect as RequestHandler, validateRequest(createTournamentSchema), createTournament);
