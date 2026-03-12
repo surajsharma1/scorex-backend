@@ -121,7 +121,6 @@ const MatchSchema = new mongoose_1.Schema({
     // Basic Match Info
     name: {
         type: String,
-        required: [true, 'Match name is required'],
         trim: true
     },
     tournamentId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Tournament' },
@@ -141,8 +140,8 @@ const MatchSchema = new mongoose_1.Schema({
     // Match Details
     venue: {
         type: String,
-        required: [true, 'Venue is required'],
-        trim: true
+        trim: true,
+        default: 'TBD'
     },
     date: {
         type: Date,

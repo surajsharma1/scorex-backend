@@ -313,7 +313,6 @@ const MatchSchema: Schema = new Schema({
   // Basic Match Info
   name: { 
     type: String, 
-    required: [true, 'Match name is required'],
     trim: true
   },
   tournamentId: { type: Schema.Types.ObjectId, ref: 'Tournament' },
@@ -335,8 +334,8 @@ const MatchSchema: Schema = new Schema({
   // Match Details
   venue: { 
     type: String, 
-    required: [true, 'Venue is required'],
-    trim: true
+    trim: true,
+    default: 'TBD'
   },
   date: { 
     type: Date, 
@@ -744,4 +743,3 @@ MatchSchema.statics.getUpcoming = function(limit: number = 10) {
 // ==========================================
 
 export default mongoose.model<IMatch>('Match', MatchSchema);
-

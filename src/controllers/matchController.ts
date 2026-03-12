@@ -151,9 +151,12 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
         message: 'Invalid team IDs'
       });
     }
-    
+
+    // Auto-generate match name if not provided
+    const matchName = name || `${team1Doc.name} vs ${team2Doc.name}`;
+
     const match = await Match.create({
-      name,
+      name: matchName,
       tournamentId,
       round,
       matchNumber,
