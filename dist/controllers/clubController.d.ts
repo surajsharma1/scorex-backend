@@ -1,8 +1,3 @@
-/**
- * Club Controller
- * Club management with roles
- * Following PROJECT_ALGORITHM.md specifications
- */
 import { Request, Response, NextFunction } from 'express';
 interface AuthRequest extends Request {
     user?: any;
