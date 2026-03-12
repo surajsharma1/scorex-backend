@@ -160,6 +160,8 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
 
     const match = await Match.create({
       name: matchName,
+      team1Name: team1Doc.name,
+      team2Name: team2Doc.name,
       tournamentId,
       round,
       matchNumber,
@@ -180,8 +182,11 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
       });
     }
     
-    await match.populate('team1', 'name shortName');
-    await match.populate('team2', 'name shortName');
+await match.populate([
+  'team1', 
+  'team2', 
+  'tossWinner'
+], 'name shortName');
     
     res.status(201).json({
       success: true,
@@ -202,7 +207,11 @@ export const updateMatch = async (req: AuthRequest, res: Response, next: NextFun
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('team1', 'name shortName').populate('team2', 'name shortName');
+    ).populate([
+      'team1',
+      'team2',
+      'tossWinner'
+    ], 'name shortName');
     
     if (!match) {
       return res.status(404).json({
@@ -281,8 +290,11 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       decision
     );
     
-    await match.populate('team1', 'name shortName logo');
-    await match.populate('team2', 'name shortName logo');
+await match.populate([
+  'team1', 
+  'team2', 
+  'tossWinner'
+], 'name shortName logo');
     await match.populate('tossWinner', 'name shortName');
 
     res.json({
@@ -327,10 +339,12 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     // Add the ball
     await match.addBall(ballData);
     
-    // Reload match with populated data for overlays and live score
-    await match.populate('team1', 'name shortName logo');
-    await match.populate('team2', 'name shortName logo');
-    await match.populate('tossWinner', 'name shortName');
+// Reload match with populated data for overlays and live score
+    await match.populate([
+      'team1', 
+      'team2', 
+      'tossWinner'
+    ], 'name shortName logo');
 
     // Get socket instance for real-time update
     const io = req.app.get('io');

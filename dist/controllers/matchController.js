@@ -120,6 +120,8 @@ const createMatch = async (req, res, next) => {
         const matchName = name || `${team1Doc.name} vs ${team2Doc.name}`;
         const match = await Match_1.default.create({
             name: matchName,
+            team1Name: team1Doc.name,
+            team2Name: team2Doc.name,
             tournamentId,
             round,
             matchNumber,
@@ -138,8 +140,11 @@ const createMatch = async (req, res, next) => {
                 $push: { matches: match._id }
             });
         }
-        await match.populate('team1', 'name shortName');
-        await match.populate('team2', 'name shortName');
+        await match.populate([
+            'team1',
+            'team2',
+            'tossWinner'
+        ], 'name shortName');
         res.status(201).json({
             success: true,
             message: 'Match created successfully',
@@ -156,7 +161,11 @@ exports.createMatch = createMatch;
 // @access  Private
 const updateMatch = async (req, res, next) => {
     try {
-        const match = await Match_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).populate('team1', 'name shortName').populate('team2', 'name shortName');
+        const match = await Match_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).populate([
+            'team1',
+            'team2',
+            'tossWinner'
+        ], 'name shortName');
         if (!match) {
             return res.status(404).json({
                 success: false,
@@ -223,8 +232,11 @@ const startMatch = async (req, res, next) => {
             });
         }
         await match.startMatch(new mongoose_1.default.Types.ObjectId(tossWinner), decision);
-        await match.populate('team1', 'name shortName logo');
-        await match.populate('team2', 'name shortName logo');
+        await match.populate([
+            'team1',
+            'team2',
+            'tossWinner'
+        ], 'name shortName logo');
         await match.populate('tossWinner', 'name shortName');
         res.json({
             success: true,
@@ -267,9 +279,11 @@ const addBall = async (req, res, next) => {
         // Add the ball
         await match.addBall(ballData);
         // Reload match with populated data for overlays and live score
-        await match.populate('team1', 'name shortName logo');
-        await match.populate('team2', 'name shortName logo');
-        await match.populate('tossWinner', 'name shortName');
+        await match.populate([
+            'team1',
+            'team2',
+            'tossWinner'
+        ], 'name shortName logo');
         // Get socket instance for real-time update
         const io = req.app.get('io');
         if (io) {

@@ -330,6 +330,10 @@ const MatchSchema: Schema = new Schema({
     ref: 'Team',
     required: [true, 'Team 2 is required']
   },
+  team2Name: {
+    type: String,
+    trim: true
+  },
   
   // Match Details
   venue: { 
@@ -420,7 +424,7 @@ MatchSchema.index({ createdAt: -1 });
 
 // Virtual for match title
 MatchSchema.virtual('title').get(function() {
-  return this.name || `${this.team1} vs ${this.team2}`;
+  return this.name || `${this.team1Name || (this.team1 as any)?.name || this.team1} vs ${this.team2Name || (this.team2 as any)?.name || this.team2}`;
 });
 
 // Virtual for overs display format
