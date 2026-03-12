@@ -111,6 +111,14 @@ exports.io = new socket_io_1.Server(server, {
 app.set('io', exports.io);
 // Trust proxy for rate limiting (Important for Render/Vercel)
 app.set('trust proxy', 1);
+app.set('etag', false); // Disable ETags to prevent 304 stale-cache issues on API routes
+// Prevent browser caching on all API routes
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
 // ==========================================
 // 2. PASSPORT STRATEGIES (OAUTH)
 // ==========================================
