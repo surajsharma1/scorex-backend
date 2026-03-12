@@ -39,9 +39,7 @@ declare const _default: {
     Team: mongoose.Model<import("./Team").ITeam, {}, {}, {}, mongoose.Document<unknown, {}, import("./Team").ITeam> & import("./Team").ITeam & {
         _id: mongoose.Types.ObjectId;
     }, any>;
-    Tournament: mongoose.Model<import("./Tournament").ITournament, {}, {}, {}, mongoose.Document<unknown, {}, import("./Tournament").ITournament> & import("./Tournament").ITournament & {
-        _id: mongoose.Types.ObjectId;
-    }, any>;
+    Tournament: import("./Tournament").ITournamentModel;
     Match: mongoose.Model<import("./Match").IMatch, {}, {}, {}, mongoose.Document<unknown, {}, import("./Match").IMatch> & import("./Match").IMatch & {
         _id: mongoose.Types.ObjectId;
     }, any>;

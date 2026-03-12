@@ -27,7 +27,20 @@ export type TournamentFormat = 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom';
 // Location type
 export type LocationType = 'indoor' | 'outdoor' | 'both';
 
+import { Model } from 'mongoose';
+
+export interface ITournamentModel extends Model<ITournament> {
+
+  getUpcoming(limit?: number): Promise<ITournament[]>;
+  getOngoing(): Promise<ITournament[]>;
+  getFeatured(limit?: number): Promise<ITournament[]>;
+  getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<ITournament[]>;
+  getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<ITournament | null>;
+  search(query: string): Promise<ITournament[]>;
+}
+
 export interface ITournament extends Document {
+
   // Basic Information
   name: string;
   description?: string;
@@ -697,5 +710,6 @@ TournamentSchema.statics.search = function(query: string) {
 // EXPORT
 // ==========================================
 
-export default mongoose.model<ITournament>('Tournament', TournamentSchema);
+export default mongoose.model<ITournament, ITournamentModel>('Tournament', TournamentSchema);
+
 

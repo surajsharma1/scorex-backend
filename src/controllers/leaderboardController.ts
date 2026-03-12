@@ -172,7 +172,7 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
             };
             
             existing.wickets += bowler.wickets || 0;
-            existing.catches += bowler.catches || 0;
+existing.catches = (existing.catches || 0) + ((bowler as any).catches || 0);
             
             playerStats.set(bowler.playerId?.toString(), existing);
           }
@@ -198,7 +198,7 @@ export const getTournamentLeaderboard = async (req: Request, res: Response, next
         return {
           _id: player._id,
           name: player.name,
-        photo: player.photo,
+        photo: (player as any).photo,
           role: player.role,
           points,
           runs: stats.runs,

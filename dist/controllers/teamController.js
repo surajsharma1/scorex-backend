@@ -310,7 +310,7 @@ exports.getTeamPlayers = getTeamPlayers;
 // @access  Public
 const getUserTeams = async (req, res, next) => {
     try {
-        const teams = await Team_1.default.getByOwner(new mongoose_1.default.Types.ObjectId(req.params.userId));
+        const teams = Team_1.default.getByOwner(new mongoose_1.default.Types.ObjectId(req.params.userId));
         res.json({
             success: true,
             data: teams
@@ -333,7 +333,7 @@ const searchTeams = async (req, res, next) => {
                 message: 'Search query required'
             });
         }
-        const teams = await Team_1.default.search(q);
+        const teams = Team_1.default.search(q);
         res.json({
             success: true,
             data: teams

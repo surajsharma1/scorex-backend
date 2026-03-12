@@ -8,6 +8,15 @@ export type TournamentType = 'round_robin' | 'knockout' | 'double_elimination' |
 export type TournamentStatus = 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 export type TournamentFormat = 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom';
 export type LocationType = 'indoor' | 'outdoor' | 'both';
+import { Model } from 'mongoose';
+export interface ITournamentModel extends Model<ITournament> {
+    getUpcoming(limit?: number): Promise<ITournament[]>;
+    getOngoing(): Promise<ITournament[]>;
+    getFeatured(limit?: number): Promise<ITournament[]>;
+    getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<ITournament[]>;
+    getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<ITournament | null>;
+    search(query: string): Promise<ITournament[]>;
+}
 export interface ITournament extends Document {
     name: string;
     description?: string;
@@ -73,8 +82,6 @@ export interface ITournament extends Document {
     getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
     search(query: string): Promise<any[]>;
 }
-declare const _default: mongoose.Model<ITournament, {}, {}, {}, mongoose.Document<unknown, {}, ITournament> & ITournament & {
-    _id: mongoose.Types.ObjectId;
-}, any>;
+declare const _default: ITournamentModel;
 export default _default;
 //# sourceMappingURL=Tournament.d.ts.map

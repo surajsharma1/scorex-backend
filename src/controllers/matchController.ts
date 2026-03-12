@@ -529,7 +529,8 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
 // @access  Public
 export const getLiveMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const matches = await Match.getLiveMatches();
+    const matches = (Match as any).getLiveMatches();
+
     
     res.json({
       success: true,
@@ -546,7 +547,8 @@ export const getLiveMatches = async (req: Request, res: Response, next: NextFunc
 export const getUpcomingMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = Number(req.query.limit) || 10;
-    const matches = await Match.getUpcoming(limit);
+    const matches = (Match as any).getUpcoming(limit);
+
     
     res.json({
       success: true,

@@ -221,7 +221,8 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
         message: 'Joined club successfully'
       });
     } else {
-    club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id!));
+    club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
+
 
 
       await club.save();
@@ -306,6 +307,7 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
     }
     
 club.members.push(new mongoose.Types.ObjectId(userId));
+
     club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
     
     await club.save();
@@ -350,6 +352,7 @@ export const addViceLeader = async (req: AuthRequest, res: Response, next: NextF
     }
     
 club.viceLeaders.push(new mongoose.Types.ObjectId(userId));
+
     await club.save();
     
     res.json({
