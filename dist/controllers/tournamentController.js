@@ -1,9 +1,4 @@
 "use strict";
-/**
- * Tournament Controller
- * Tournament management with bracket generation
- * Following PROJECT_ALGORITHM.md specifications
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -25,7 +20,7 @@ const getTournaments = async (req, res, next) => {
         if (type)
             query.type = type;
         if (organizer)
-            query.organizer = organizer;
+            query.organizer = mongoose_1.default.Types.ObjectId(organizer);
         const tournaments = await Tournament_1.default.find(query)
             .populate('organizer', 'username email')
             .sort({ startDate: 1 })
@@ -257,7 +252,7 @@ const addTeam = async (req, res, next) => {
                 message: 'Team not found'
             });
         }
-        await tournament.addTeam(teamId);
+        await tournament.addTeam(mongoose_1.default.Types.ObjectId(teamId));
         // Also add to team's tournaments
         if (!team.tournaments.includes(tournament._id)) {
             team.tournaments.push(tournament._id);
@@ -296,7 +291,7 @@ const removeTeam = async (req, res, next) => {
                 message: 'Not authorized'
             });
         }
-        await tournament.removeTeam(new mongoose_1.default.Types.ObjectId(teamId));
+        await tournament.removeTeam(mongoose_1.default.Types.ObjectId(teamId));
         res.json({
             success: true,
             message: 'Team removed from tournament'
@@ -398,7 +393,7 @@ const endTournament = async (req, res, next) => {
                 message: 'Not authorized'
             });
         }
-        await tournament.endTournament(winnerId);
+        await tournament.endTournament(winnerId ? mongoose_1.default.Types.ObjectId(winnerId) : undefined);
         res.json({
             success: true,
             message: 'Tournament ended',

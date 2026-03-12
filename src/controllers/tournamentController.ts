@@ -1,8 +1,3 @@
-/**
- * Tournament Controller
- * Tournament management with bracket generation
- * Following PROJECT_ALGORITHM.md specifications
- */
 
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';

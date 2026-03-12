@@ -227,7 +227,7 @@ const rejectFriendRequest = async (req, res, next) => {
                 message: 'Request already processed'
             });
         }
-        friendship.status = 'rejected';
+        friendship.status = 'blocked';
         await friendship.save();
         res.json({
             success: true,

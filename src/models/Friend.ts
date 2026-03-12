@@ -19,6 +19,7 @@ const FriendSchema: Schema = new Schema({
   recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   status: { type: String, enum: ['pending', 'accepted', 'blocked', 'rejected'], default: 'pending' },
 
+
 }, { timestamps: true });
 
 FriendSchema.index({ requester: 1, recipient: 1 }, { unique: true });

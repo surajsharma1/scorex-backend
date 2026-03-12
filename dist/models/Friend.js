@@ -42,7 +42,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const FriendSchema = new mongoose_1.Schema({
     requester: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'blocked', 'rejected'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
 }, { timestamps: true });
 FriendSchema.index({ requester: 1, recipient: 1 }, { unique: true });
 FriendSchema.index({ requester: 1, status: 1 });

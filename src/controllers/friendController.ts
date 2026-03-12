@@ -249,7 +249,7 @@ export const rejectFriendRequest = async (req: AuthRequest, res: Response, next:
       });
     }
     
-    friendship.status = 'rejected';
+friendship.status = 'blocked' as any;
     await friendship.save();
     
     res.json({
