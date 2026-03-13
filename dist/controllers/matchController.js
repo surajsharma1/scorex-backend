@@ -38,13 +38,33 @@ const getMatches = async (req, res, next) => {
         if (team) {
             query.$or = [{ team1: team }, { team2: team }];
         }
-        const matches = await Match_1.default.find(query).lean()
-            .populate('team1', 'name shortName logo')
-            .populate('team2', 'name shortName logo')
-            .populate('tournamentId', 'name')
-            .sort({ date: -1 })
-            .limit(Number(limit))
-            .skip((Number(page) - 1) * Number(limit));
+        const matches = await Match_1.default.aggregate([
+            { $match: query },
+            { $lookup: {
+                    from: 'teams',
+                    localField: 'team1',
+                    foreignField: '_id',
+                    as: 'team1'
+                } },
+            { $unwind: { path: '$team1', preserveNullAndEmptyArrays: true } },
+            { $lookup: {
+                    from: 'teams',
+                    localField: 'team2',
+                    foreignField: '_id',
+                    as: 'team2'
+                } },
+            { $unwind: { path: '$team2', preserveNullAndEmptyArrays: true } },
+            { $lookup: {
+                    from: 'tournaments',
+                    localField: 'tournamentId',
+                    foreignField: '_id',
+                    as: 'tournamentId'
+                } },
+            { $unwind: { path: '$tournamentId', preserveNullAndEmptyArrays: true } },
+            { $sort: { date: -1 } },
+            { $skip: (Number(page) - 1) * Number(limit) },
+            { $limit: Number(limit) }
+        ]);
         const total = await Match_1.default.countDocuments(query);
         console.log(`[MATCHES] Returning ${matches.length} matches (total: ${total})`);
         res.json({
@@ -150,10 +170,10 @@ const createMatch = async (req, res, next) => {
             });
         }
         await match.populate([
-            'team1',
-            'team2',
-            'tossWinner'
-        ], 'name shortName');
+            { path: 'team1', select: 'name shortName' },
+            { path: 'team2', select: 'name shortName' },
+            { path: 'tossWinner', select: 'name shortName' }
+        ]);
         res.status(201).json({
             success: true,
             message: 'Match created successfully',
@@ -241,10 +261,11 @@ const startMatch = async (req, res, next) => {
             });
         }
         await match.startMatch(new mongoose_1.default.Types.ObjectId(tossWinner), decision);
-        await match.populate('team1', 'name shortName logo')
-            .populate('team2', 'name shortName logo')
-            .populate('tossWinner', 'name shortName logo');
-        await match.populate('tossWinner', 'name shortName');
+        await match.populate([
+            { path: 'team1', select: 'name shortName logo' },
+            { path: 'team2', select: 'name shortName logo' },
+            { path: 'tossWinner', select: 'name shortName logo' }
+        ]);
         res.json({
             success: true,
             message: 'Match started',
@@ -287,10 +308,10 @@ const addBall = async (req, res, next) => {
         await match.addBall(ballData);
         // Reload match with populated data for overlays and live score
         await match.populate([
-            'team1',
-            'team2',
-            'tossWinner'
-        ], 'name shortName logo');
+            { path: 'team1', select: 'name shortName logo' },
+            { path: 'team2', select: 'name shortName logo' },
+            { path: 'tossWinner', select: 'name shortName logo' }
+        ]);
         // Get socket instance for real-time update
         const io = req.app.get('io');
         if (io) {
