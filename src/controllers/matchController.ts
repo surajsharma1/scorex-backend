@@ -39,17 +39,25 @@ interface BallData {
 // @access  Public
 export const getMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(`[MATCHES] GET /matches - Query:`, req.query);
+    
     const { status, tournament, team, limit = 20, page = 1 } = req.query;
     
     const query: any = {};
     
     if (status) query.status = status;
-    if (tournament) query.tournamentId = tournament;
+    if (tournament) {
+      try {
+        query.tournamentId = tournament;
+      } catch (e) {
+        console.warn(`[MATCHES] Invalid tournament ID: ${tournament}`);
+      }
+    }
     if (team) {
       query.$or = [{ team1: team }, { team2: team }];
     }
     
-    const matches = await Match.find(query)
+    const matches = await Match.find(query).lean()
       .populate('team1', 'name shortName logo')
       .populate('team2', 'name shortName logo')
       .populate('tournamentId', 'name')
@@ -58,6 +66,8 @@ export const getMatches = async (req: Request, res: Response, next: NextFunction
       .skip((Number(page) - 1) * Number(limit));
     
     const total = await Match.countDocuments(query);
+    
+    console.log(`[MATCHES] Returning ${matches.length} matches (total: ${total})`);
     
     res.json({
       success: true,
@@ -69,6 +79,7 @@ export const getMatches = async (req: Request, res: Response, next: NextFunction
       }
     });
   } catch (error) {
+    console.error('[MATCHES] Error:', error);
     next(error);
   }
 };

@@ -17,6 +17,7 @@ const Player_1 = __importDefault(require("../models/Player"));
 // @access  Public
 const getTeams = async (req, res, next) => {
     try {
+        console.log(`[TEAMS] GET /teams - Query:`, req.query);
         const { search, owner, tournament, limit = 20, page = 1 } = req.query;
         const query = { isActive: true };
         if (search) {
@@ -27,15 +28,22 @@ const getTeams = async (req, res, next) => {
         }
         if (owner)
             query.owner = owner;
-        if (tournament)
-            query.tournaments = new mongoose_1.default.Types.ObjectId(tournament);
-        const teams = await Team_1.default.find(query)
+        if (tournament) {
+            try {
+                query.tournaments = new mongoose_1.default.Types.ObjectId(tournament);
+            }
+            catch (e) {
+                console.warn(`[TEAMS] Invalid tournament ID: ${tournament}`);
+            }
+        }
+        const teams = await Team_1.default.find(query).lean()
             .populate('owner', 'username email')
             .populate('players')
             .sort({ points: -1 })
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));
         const total = await Team_1.default.countDocuments(query);
+        console.log(`[TEAMS] Returning ${teams.length} teams (total: ${total})`);
         res.json({
             success: true,
             data: teams,
@@ -47,6 +55,7 @@ const getTeams = async (req, res, next) => {
         });
     }
     catch (error) {
+        console.error('[TEAMS] Error:', error);
         next(error);
     }
 };

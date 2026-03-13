@@ -18,20 +18,28 @@ interface AuthRequest extends Request {
 // @access  Public
 export const getTeams = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(`[TEAMS] GET /teams - Query:`, req.query);
+    
     const { search, owner, tournament, limit = 20, page = 1 } = req.query;
     
     const query: any = { isActive: true };
     
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { shortName: { $regex: search, $options: 'i' } }
+        { name: { $regex: search as string, $options: 'i' } },
+        { shortName: { $regex: search as string, $options: 'i' } }
       ];
     }
     if (owner) query.owner = owner;
-    if (tournament) query.tournaments = new mongoose.Types.ObjectId(tournament as string);
+    if (tournament) {
+      try {
+        query.tournaments = new mongoose.Types.ObjectId(tournament as string);
+      } catch (e) {
+        console.warn(`[TEAMS] Invalid tournament ID: ${tournament}`);
+      }
+    }
     
-    const teams = await Team.find(query)
+    const teams = await Team.find(query).lean()
       .populate('owner', 'username email')
       .populate('players')
       .sort({ points: -1 })
@@ -39,6 +47,8 @@ export const getTeams = async (req: Request, res: Response, next: NextFunction) 
       .skip((Number(page) - 1) * Number(limit));
     
     const total = await Team.countDocuments(query);
+    
+    console.log(`[TEAMS] Returning ${teams.length} teams (total: ${total})`);
     
     res.json({
       success: true,
@@ -50,6 +60,7 @@ export const getTeams = async (req: Request, res: Response, next: NextFunction) 
       }
     });
   } catch (error) {
+    console.error('[TEAMS] Error:', error);
     next(error);
   }
 };

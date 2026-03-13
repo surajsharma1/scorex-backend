@@ -22,16 +22,23 @@ const Tournament_1 = __importDefault(require("../models/Tournament"));
 // @access  Public
 const getMatches = async (req, res, next) => {
     try {
+        console.log(`[MATCHES] GET /matches - Query:`, req.query);
         const { status, tournament, team, limit = 20, page = 1 } = req.query;
         const query = {};
         if (status)
             query.status = status;
-        if (tournament)
-            query.tournamentId = tournament;
+        if (tournament) {
+            try {
+                query.tournamentId = tournament;
+            }
+            catch (e) {
+                console.warn(`[MATCHES] Invalid tournament ID: ${tournament}`);
+            }
+        }
         if (team) {
             query.$or = [{ team1: team }, { team2: team }];
         }
-        const matches = await Match_1.default.find(query)
+        const matches = await Match_1.default.find(query).lean()
             .populate('team1', 'name shortName logo')
             .populate('team2', 'name shortName logo')
             .populate('tournamentId', 'name')
@@ -39,6 +46,7 @@ const getMatches = async (req, res, next) => {
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));
         const total = await Match_1.default.countDocuments(query);
+        console.log(`[MATCHES] Returning ${matches.length} matches (total: ${total})`);
         res.json({
             success: true,
             data: matches,
@@ -50,6 +58,7 @@ const getMatches = async (req, res, next) => {
         });
     }
     catch (error) {
+        console.error('[MATCHES] Error:', error);
         next(error);
     }
 };
@@ -232,11 +241,9 @@ const startMatch = async (req, res, next) => {
             });
         }
         await match.startMatch(new mongoose_1.default.Types.ObjectId(tossWinner), decision);
-        await match.populate([
-            'team1',
-            'team2',
-            'tossWinner'
-        ], 'name shortName logo');
+        await match.populate('team1', 'name shortName logo')
+            .populate('team2', 'name shortName logo')
+            .populate('tossWinner', 'name shortName logo');
         await match.populate('tossWinner', 'name shortName');
         res.json({
             success: true,

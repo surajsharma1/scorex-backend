@@ -50,9 +50,12 @@ const app = express();
 const server = createServer(app);
 
 // Get allowed origins from environment
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',')
-  : ['http://localhost:3000', 'http://localhost:5173', 'https://scorex-live.vercel.app'];
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://localhost:5173', 
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+  'https://scorex-live.vercel.app'
+].filter(Boolean);
 
 // Initialize Socket.io with CORS and improved configuration
 export const io = new Server(server, {
@@ -190,16 +193,25 @@ app.use(helmet());
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Log CORS origin check
+    console.log(`[CORS] Origin check: "${origin}" against [${allowedOrigins.join(', ')}]`);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (!origin) {
+      console.log('[CORS] Allowing no-origin request');
       return callback(null, true);
     }
-    callback(new Error('Not allowed by CORS'));
+    if (allowedOrigins.includes(origin)) {
+      console.log(`[CORS] ✅ Allowed origin: ${origin}`);
+      return callback(null, true);
+    }
+    console.log(`[CORS] ❌ Blocked origin: ${origin}`);
+    callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['X-Total-Count'],
   preflightContinue: false,
   optionsSuccessStatus: 204,
 }));
