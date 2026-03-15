@@ -69,11 +69,12 @@ const server = createServer(app);
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:5173',
+  'http://localhost:5173', 
   'https://scorex-live.vercel.app',
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
   'https://*.vercel.app',
-  'https://*.onrender.com'
+  'https://*.onrender.com',
+  'https://scorex-frontend-lzoh2zfh1-suraj-sharmas-projects-3413126b.vercel.app'
 ].filter(Boolean);
 
 export const io = new Server(server, {
@@ -100,7 +101,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
     passReqToCallback: true,
   }, async (req: any, _at, _rt, profile, done) => {
     try {
