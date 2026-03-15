@@ -70,7 +70,6 @@ const server = createServer(app);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://scorex-frontend.vercel.app',
   'https://scorex-live.vercel.app',
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
   'https://*.vercel.app',
