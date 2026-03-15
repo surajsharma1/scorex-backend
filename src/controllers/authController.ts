@@ -69,19 +69,11 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
 export const googleCallback = (req: any, res: Response) => {
   const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   
-  // For production (Vercel/Render) and local - set frontend URLs
-  const frontendUrls = [
-    'https://scorex-frontend.vercel.app', 
-    'https://scorex-live.vercel.app',
-    'http://localhost:5173'
-  ];
-  
-  let frontendUrl = frontendUrls.find(url => req.get('origin') === url.split('/')[2] || req.get('host') === url.split('/')[2]) || 'http://localhost:5173';
-  
-  // Detect deployed backend
-  if (req.get('host')?.includes('onrender.com') || req.get('host')?.includes('vercel.app')) {
-    frontendUrl = 'https://scorex-frontend.vercel.app';
-  }
+  // Dynamic frontend URL - prioritize Render backend detection, fallback Render frontend
+  const isRenderBackend = req.get('host')?.includes('onrender.com');
+  const frontendUrl = isRenderBackend 
+    ? (process.env.RENDER_FRONTEND_URL || 'https://your-frontend.onrender.com')
+    : (process.env.FRONTEND_URL || 'http://localhost:5173');
   
   res.cookie('authToken', token, { 
     httpOnly: true, 
