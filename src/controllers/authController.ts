@@ -71,7 +71,7 @@ export const googleCallback = (req: any, res: Response) => {
   
   // Production frontend URLs - Render backend uses these
   const frontendUrl = process.env.FRONTEND_URL || 
-    (req.get('host')?.includes('onrender.com') || req.get('host')?.includes('vercel.app') ? 'https://scorex-live.vercel.app' : 'http://localhost:5173');
+    (req.get('host')?.includes('onrender.com') || req.get('host')?.includes('vercel.app') ? 'https://scorex-frontend.vercel.app' : 'http://localhost:5173');
   
   res.cookie('authToken', token, { 
     httpOnly: true, 
