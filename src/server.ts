@@ -101,7 +101,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
-  }, async (_at, _rt, profile, done) => {
+    passReqToCallback: true,
+  }, async (req: any, _at, _rt, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
       if (user) return done(null, user);
