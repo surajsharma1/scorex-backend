@@ -142,26 +142,63 @@ export const deleteMatch = async (req: AuthRequest, res: Response, next: NextFun
 // ─────────────────────────────────────────
 export const startMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { tossWinner, decision, forceStart = false } = req.body;
-    const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    
-    // Allow force start for admins or explicit bypass
-    if (!forceStart && match.status !== 'upcoming') {
-      return res.status(400).json({ success: false, message: 'Match is not upcoming' });
-    }
-    
-    console.log(`🎯 Starting match ${match._id}: status='${match.status}' → forceStart=${forceStart}`);
+    console.log('📡 startMatch called:', { 
+      path: req.path, 
+      method: req.method,
+      body: req.body,
+      userId: req.user?.id,
+      authHeader: req.headers.authorization ? 'Present' : 'Missing'
+    });
 
-    await match.startMatch(new mongoose.Types.ObjectId(tossWinner), decision);
+    const { tossWinner, decision, forceStart = false } = req.body;
+    
+    if (!tossWinner || !decision) {
+      return res.status(400).json({ success: false, message: 'tossWinner and decision are required' });
+    }
+
+    console.log('🔍 Looking up match:', req.params.id);
+    const match = await Match.findById(req.params.id);
+    if (!match) {
+      console.error('❌ Match not found:', req.params.id);
+      return res.status(404).json({ success: false, message: 'Match not found' });
+    }
+
+    console.log('✅ Match found:', { 
+      id: match._id, 
+      status: match.status,
+      team1: match.team1,
+      team2: match.team2,
+      forceStart 
+    });
+
+    // FORCE BYPASS: Always allow if forceStart=true (even non-upcoming matches)
+    if (forceStart) {
+      console.log(`🚀 ✅ FORCE START BYPASS: ${match._id} (status='${match.status}') → 'live'`);
+    } else if (match.status !== 'upcoming') {
+      console.error(`❌ Status check failed: '${match.status}' ≠ 'upcoming'`);
+      return res.status(400).json({ success: false, message: `Match is not upcoming (status: '${match.status}')` });
+    }
+
+    console.log(`🎯 Calling model.startMatch(${tossWinner}, ${decision})`);
+    await match.startMatch(new mongoose.Types.ObjectId(tossWinner), decision as 'bat' | 'bowl');
 
     await match.populate([
       { path: 'team1', select: 'name shortName logo' },
       { path: 'team2', select: 'name shortName logo' },
       { path: 'tossWinner', select: 'name shortName' },
     ]);
-    res.json({ success: true, message: 'Match started', data: match });
-  } catch (error) { next(error); }
+
+    console.log('✅ Match started successfully:', match._id);
+    res.json({ success: true, message: 'Match started successfully', data: match });
+  } catch (error: any) {
+    console.error('💥 startMatch ERROR:', {
+      matchId: req.params.id,
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+    next(error);
+  }
 };
 
 // ─────────────────────────────────────────
