@@ -1,7 +1,11 @@
 /**
- * Payment Controller
- * Membership & payment processing
- * Following PROJECT_ALGORITHM.md specifications
+ * Payment Controller — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. extendMembership: `membershipLevel === 1 ? 'basic' : 'premium'` returns 'premium'
+ *    when level is 0 (free tier) — user with no membership gets premium plan price instead
+ *    of a proper "no active membership" error.
+ *    FIX: check for level === 0 explicitly before the ternary lookup.
  */
 import { Request, Response, NextFunction } from 'express';
 interface AuthRequest extends Request {

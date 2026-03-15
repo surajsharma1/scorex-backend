@@ -13,7 +13,7 @@ export type { IUser } from './User';
 export type { IPlayer } from './Player';
 export type { ITeam } from './Team';
 export type { ITournament, TournamentType, TournamentStatus, TournamentFormat } from './Tournament';
-export type { IMatch, OutType, ExtraType, MatchStatus, MatchFormat, IBatsman, IBowler, IExtras, IInnings } from './Match';
+export type { IMatch, OutType, MatchStatus, MatchFormat, IBatsman, IBowler, IExtras, IInnings } from './Match';
 export type { IClub } from './Club';
 export type { IFriend } from './Friend';
 export type { IBracket } from './Bracket';

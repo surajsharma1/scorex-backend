@@ -32,7 +32,7 @@ router.get('/search', async (req, res) => {
 router.use(auth_1.protect);
 // Admin middleware check helper
 const isAdminMiddleware = async (req, res, next) => {
-    console.log('[ADMIN] Request from user:', req.user?.id, 'role:', req.user?.role, 'endpoint: users/all');
+    console.log('[ADMIN] Request from user:', req.user?.id || 'unknown', 'role:', req.user?.role, 'endpoint: users/all');
     if (req.user?.role !== 'admin') {
         console.log('[ADMIN] Access denied for non-admin user:', req.user?.role);
         return res.status(403).json({ message: 'Access denied. Admin only.' });
@@ -136,7 +136,7 @@ router.put('/notifications/preferences', async (req, res) => {
 // Get all users (including banned/deleted) - ACTIVE ONLY
 router.get('/all', isAdminMiddleware, async (req, res) => {
     try {
-        console.log('[USERS/ALL] Fetching users for admin:', req.user?.id);
+        console.log('[USERS/ALL] Fetching users for admin:', req.user?.id || 'unknown');
         const users = await User_1.default.find({ deleted: { $ne: true } }).select('-password').sort({ createdAt: -1 });
         console.log('[USERS/ALL] Found', users.length, 'active users');
         res.json({ users });

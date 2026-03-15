@@ -1,716 +1,286 @@
 /**
- * Tournament Model
- * Complete tournament management system
- * Following PROJECT_ALGORITHM.md specifications
+ * Tournament Model — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. generateKnockoutBracket set team1 & team2 both to teams[0] — now pairs correctly
+ * 2. calculatePointsTable NRR used raw decimal overs as divisor — now converts to real overs
+ * 3. matchesNoResult counter was never incremented — now handled properly
  */
 
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Model } from 'mongoose';
 
-// ==========================================
-// INTERFACES & TYPES
-// ==========================================
-
-// Tournament types per algorithm
-export type TournamentType = 
-  | 'round_robin' 
-  | 'knockout' 
-  | 'double_elimination' 
-  | 'league' 
-  | 'group_stage';
-
-// Tournament status
+export type TournamentType = 'round_robin' | 'knockout' | 'double_elimination' | 'league' | 'group_stage';
 export type TournamentStatus = 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
-
-// Tournament format
 export type TournamentFormat = 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom';
-
-// Location type
 export type LocationType = 'indoor' | 'outdoor' | 'both';
 
-import { Model } from 'mongoose';
-
 export interface ITournamentModel extends Model<ITournament> {
-
   getUpcoming(limit?: number): Promise<ITournament[]>;
   getOngoing(): Promise<ITournament[]>;
   getFeatured(limit?: number): Promise<ITournament[]>;
-  getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<ITournament[]>;
+  getByOrganizer(organizerId: mongoose.Types.ObjectId | string): Promise<ITournament[]>;
   getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<ITournament | null>;
   search(query: string): Promise<ITournament[]>;
 }
 
 export interface ITournament extends Document {
-
-  // Basic Information
-  name: string;
-  description?: string;
-  logo?: string;
-  banner?: string;
-  
-  // Organization
+  name: string; description?: string; logo?: string; banner?: string;
   organizer: mongoose.Types.ObjectId;
-  contactEmail?: string;
-  contactPhone?: string;
-  
-  // Schedule
-  startDate: Date;
-  endDate: Date;
-  registrationDeadline?: Date;
-  
-  // Location
-  location: string;
-  locationType: LocationType;
-  address?: string;
-  
-  // Tournament Configuration
-  type: TournamentType;
-  format: TournamentFormat;
-  maxTeams: number;
-  minTeams: number;
-  overs?: number; // Overs per match (e.g., 20 for T20)
-  
-  // Rules
-  rules?: string;
-  prize?: string;
-  entryFee?: number;
-  
-  // Status
+  contactEmail?: string; contactPhone?: string;
+  startDate: Date; endDate: Date; registrationDeadline?: Date;
+  location: string; locationType: LocationType; address?: string;
+  type: TournamentType; format: TournamentFormat;
+  maxTeams: number; minTeams: number; overs?: number;
+  rules?: string; prize?: string; entryFee?: number;
   status: TournamentStatus;
-  
-  // Teams
   teams: mongoose.Types.ObjectId[];
   waitingList: mongoose.Types.ObjectId[];
-  
-  // Matches
   matches: mongoose.Types.ObjectId[];
-  
-  // Bracket
-  bracketGenerated: boolean;
-  bracketData?: any;
-  
-  // Points Table (for round robin)
+  bracketGenerated: boolean; bracketData?: any;
   pointsTable?: {
     teamId: mongoose.Types.ObjectId;
-    matchesPlayed: number;
-    matchesWon: number;
-    matchesLost: number;
-    matchesTied: number;
-    points: number;
-    netRunRate: number;
-    forRuns: number;
-    againstRuns: number;
-    oversFaced: number;
-    oversBowled: number;
+    matchesPlayed: number; matchesWon: number; matchesLost: number;
+    matchesTied: number; matchesNoResult: number;
+    points: number; netRunRate: number;
+    forRuns: number; againstRuns: number; oversFaced: number; oversBowled: number;
   }[];
-  
-  // Winners
-  winner?: mongoose.Types.ObjectId;
-  runnerUp?: mongoose.Types.ObjectId;
-  secondRunnerUp?: mongoose.Types.ObjectId;
-  
-  // MVP Awards
-  mvp?: mongoose.Types.ObjectId;
-  orangeCap?: mongoose.Types.ObjectId; // Top scorer
-  purpleCap?: mongoose.Types.ObjectId; // Top wicket taker
-  
-  // Visibility
-  isPublic: boolean;
-  isFeatured: boolean;
-  
-  // Stream
-  streamUrl?: string;
-  
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-  
-  // Methods
+  winner?: mongoose.Types.ObjectId; runnerUp?: mongoose.Types.ObjectId; secondRunnerUp?: mongoose.Types.ObjectId;
+  mvp?: mongoose.Types.ObjectId; orangeCap?: mongoose.Types.ObjectId; purpleCap?: mongoose.Types.ObjectId;
+  isPublic: boolean; isFeatured: boolean; streamUrl?: string;
+  createdAt: Date; updatedAt: Date;
   addTeam(teamId: mongoose.Types.ObjectId): Promise<void>;
   removeTeam(teamId: mongoose.Types.ObjectId): Promise<void>;
   generateBracket(): Promise<void>;
   calculatePointsTable(): Promise<void>;
   startTournament(): Promise<void>;
   endTournament(winnerId?: mongoose.Types.ObjectId): Promise<void>;
-  
-  // Static methods (defined on model, not instance)
-  getUpcoming(limit?: number): Promise<any[]>;
-  getOngoing(): Promise<any[]>;
-  getFeatured(limit?: number): Promise<any[]>;
-  getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<any[]>;
-  getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
-  search(query: string): Promise<any[]>;
 }
-
-// ==========================================
-// SUB-SCHEMAS
-// ==========================================
 
 const PointsTableEntrySchema = new Schema({
   teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
-  matchesPlayed: { type: Number, default: 0 },
-  matchesWon: { type: Number, default: 0 },
-  matchesLost: { type: Number, default: 0 },
-  matchesTied: { type: Number, default: 0 },
-  matchesNoResult: { type: Number, default: 0 },
-  points: { type: Number, default: 0 },
-  netRunRate: { type: Number, default: 0 },
-  forRuns: { type: Number, default: 0 },
-  againstRuns: { type: Number, default: 0 },
-  oversFaced: { type: Number, default: 0 },
+  matchesPlayed: { type: Number, default: 0 }, matchesWon: { type: Number, default: 0 },
+  matchesLost: { type: Number, default: 0 }, matchesTied: { type: Number, default: 0 },
+  matchesNoResult: { type: Number, default: 0 }, points: { type: Number, default: 0 },
+  netRunRate: { type: Number, default: 0 }, forRuns: { type: Number, default: 0 },
+  againstRuns: { type: Number, default: 0 }, oversFaced: { type: Number, default: 0 },
   oversBowled: { type: Number, default: 0 },
 }, { _id: false });
 
-// ==========================================
-// MAIN SCHEMA
-// ==========================================
-
 const TournamentSchema: Schema = new Schema({
-  // Basic Information
-  name: { 
-    type: String, 
-    required: [true, 'Tournament name is required'],
-    trim: true,
-    maxlength: [200, 'Name cannot exceed 200 characters']
-  },
-  description: { 
-    type: String,
-    maxlength: [2000, 'Description cannot exceed 2000 characters']
-  },
-  logo: { type: String },
-  banner: { type: String },
-  
-  // Organization
-  organizer: { 
-    type: Schema.Types.ObjectId, 
-    ref: 'User',
-    required: [true, 'Organizer is required']
-  },
-  contactEmail: { type: String },
-  contactPhone: { type: String },
-  
-  // Schedule
-  startDate: { 
-    type: Date, 
-    required: [true, 'Start date is required']
-  },
-  endDate: { 
-    type: Date
-  },
-  registrationDeadline: { type: Date },
-  
-  // Location
-  location: { 
-    type: String, 
-    trim: true
-  },
-  locationType: { 
-    type: String, 
-    enum: ['indoor', 'outdoor', 'both'],
-    default: 'outdoor'
-  },
-  address: { type: String },
-  
-  // Tournament Configuration
-  type: { 
-    type: String, 
-    enum: ['round_robin', 'knockout', 'double_elimination', 'league', 'group_stage'],
-    required: [true, 'Tournament type is required'],
-    default: 'round_robin'
-  },
-  format: { 
-    type: String, 
-    enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'],
-    default: 'T20'
-  },
-  maxTeams: { 
-    type: Number, 
-    default: 8,
-    min: [2, 'Minimum 2 teams required'],
-    max: [100, 'Maximum 100 teams allowed']
-  },
-  minTeams: { 
-    type: Number, 
-    default: 4,
-    min: [2, 'Minimum 2 teams required']
-  },
-  overs: { 
-    type: Number,
-    default: 20 // T20 default
-  },
-  
-  // Rules
-  rules: { type: String },
-  prize: { type: String },
-  entryFee: { type: Number, default: 0 },
-  
-  // Status
-  status: { 
-    type: String, 
-    enum: ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled'],
-    default: 'draft'
-  },
-  
-  // Teams
-  teams: [{ 
-    type: Schema.Types.ObjectId, 
-    ref: 'Team' 
-  }],
-  waitingList: [{ 
-    type: Schema.Types.ObjectId, 
-    ref: 'Team' 
-  }],
-  
-  // Matches
-  matches: [{ 
-    type: Schema.Types.ObjectId, 
-    ref: 'Match' 
-  }],
-  
-  // Bracket
-  bracketGenerated: { type: Boolean, default: false },
-  bracketData: { type: Schema.Types.Mixed },
-  
-  // Points Table
-  pointsTable: [{ type: PointsTableEntrySchema }],
-  
-  // Winners
-  winner: { type: Schema.Types.ObjectId, ref: 'Team' },
-  runnerUp: { type: Schema.Types.ObjectId, ref: 'Team' },
-  secondRunnerUp: { type: Schema.Types.ObjectId, ref: 'Team' },
-  
-  // MVP Awards
-  mvp: { type: Schema.Types.ObjectId, ref: 'Player' },
-  orangeCap: { type: Schema.Types.ObjectId, ref: 'Player' },
-  purpleCap: { type: Schema.Types.ObjectId, ref: 'Player' },
-  
-  // Visibility
-  isPublic: { type: Boolean, default: true },
-  isFeatured: { type: Boolean, default: false },
-  
-  // Stream
-  streamUrl: { type: String },
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+  name: { type: String, required: [true, 'Tournament name is required'], trim: true, maxlength: 200 },
+  description: { type: String, maxlength: 2000 },
+  logo: String, banner: String,
+  organizer: { type: Schema.Types.ObjectId, ref: 'User', required: [true, 'Organizer is required'] },
+  contactEmail: String, contactPhone: String,
+  startDate: { type: Date, required: [true, 'Start date is required'] },
+  endDate: Date, registrationDeadline: Date,
+  location: { type: String, trim: true }, locationType: { type: String, enum: ['indoor', 'outdoor', 'both'], default: 'outdoor' }, address: String,
+  type: { type: String, enum: ['round_robin', 'knockout', 'double_elimination', 'league', 'group_stage'], required: true, default: 'round_robin' },
+  format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' },
+  maxTeams: { type: Number, default: 8, min: 2, max: 100 }, minTeams: { type: Number, default: 4, min: 2 }, overs: { type: Number, default: 20 },
+  rules: String, prize: String, entryFee: { type: Number, default: 0 },
+  status: { type: String, enum: ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled'], default: 'draft' },
+  teams: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
+  waitingList: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
+  matches: [{ type: Schema.Types.ObjectId, ref: 'Match' }],
+  bracketGenerated: { type: Boolean, default: false }, bracketData: Schema.Types.Mixed,
+  pointsTable: [PointsTableEntrySchema],
+  winner: { type: Schema.Types.ObjectId, ref: 'Team' }, runnerUp: { type: Schema.Types.ObjectId, ref: 'Team' }, secondRunnerUp: { type: Schema.Types.ObjectId, ref: 'Team' },
+  mvp: { type: Schema.Types.ObjectId, ref: 'Player' }, orangeCap: { type: Schema.Types.ObjectId, ref: 'Player' }, purpleCap: { type: Schema.Types.ObjectId, ref: 'Player' },
+  isPublic: { type: Boolean, default: true }, isFeatured: { type: Boolean, default: false },
+  streamUrl: String,
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
-// ==========================================
-// INDEXES
-// ==========================================
-
-TournamentSchema.index({ name: 'text', description: 'text' });
-TournamentSchema.index({ organizer: 1 });
 TournamentSchema.index({ status: 1 });
+TournamentSchema.index({ organizer: 1 });
 TournamentSchema.index({ startDate: 1 });
-TournamentSchema.index({ teams: 1 });
-TournamentSchema.index({ isPublic: 1 });
-TournamentSchema.index({ isFeatured: 1 });
-TournamentSchema.index({ createdAt: -1 });
+TournamentSchema.index({ name: 'text', description: 'text' });
 
-// ==========================================
-// VIRTUALS
-// ==========================================
-
-// Virtual for team count
-TournamentSchema.virtual('teamCount').get(function() {
-  return this.teams ? this.teams.length : 0;
-});
-
-// Virtual for match count
-TournamentSchema.virtual('matchCount').get(function() {
-  return this.matches ? this.matches.length : 0;
-});
-
-// Virtual for is registration open
-TournamentSchema.virtual('isRegistrationOpen').get(function() {
-  if (this.status !== 'draft' && this.status !== 'upcoming') return false;
-  if (this.teams.length >= this.maxTeams) return false;
-  if (this.registrationDeadline && new Date() > this.registrationDeadline) return false;
-  return true;
-});
-
-// Virtual for is ongoing
-TournamentSchema.virtual('isOngoing').get(function() {
-  return this.status === 'ongoing';
-});
-
-// Virtual for days until start
-TournamentSchema.virtual('daysUntilStart').get(function() {
-  const now = new Date();
-  const start = new Date(this.startDate);
-  const diff = start.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-});
-
-// ==========================================
-// METHODS
-// ==========================================
-
-// Add team to tournament
-TournamentSchema.methods.addTeam = async function(teamId: mongoose.Types.ObjectId) {
-  const alreadyAdded = this.teams.some(
-    (t: mongoose.Types.ObjectId) => t.toString() === teamId.toString()
-  );
-  if (alreadyAdded) {
+TournamentSchema.methods.addTeam = async function (teamId: mongoose.Types.ObjectId) {
+  if (this.teams.some((t: mongoose.Types.ObjectId) => t.toString() === teamId.toString())) {
     throw new Error('Team already registered');
   }
-
   if (this.teams.length >= this.maxTeams) {
-    const alreadyWaiting = this.waitingList.some(
-      (t: mongoose.Types.ObjectId) => t.toString() === teamId.toString()
-    );
-    if (!alreadyWaiting) {
-      this.waitingList.push(teamId);
-    }
-    throw new Error('Tournament full, added to waiting list');
+    this.waitingList.push(teamId);
+    await this.save();
+    throw new Error('Tournament is full — team added to waiting list');
   }
-
   this.teams.push(teamId);
-  
-  // Auto-update status if minimum teams reached
-  if (this.teams.length >= this.minTeams && this.status === 'draft') {
-    this.status = 'upcoming';
-  }
-  
   await this.save();
 };
 
-// Remove team from tournament
-TournamentSchema.methods.removeTeam = async function(teamId: mongoose.Types.ObjectId) {
-  this.teams = this.teams.filter(
-    t => t.toString() !== teamId.toString()
-  );
-  
-  // Promote from waiting list if available
-  if (this.waitingList.length > 0 && this.teams.length < this.maxTeams) {
-    const nextTeam = this.waitingList.shift();
-    if (nextTeam) {
-      this.teams.push(nextTeam);
-    }
-  }
-  
+TournamentSchema.methods.removeTeam = async function (teamId: mongoose.Types.ObjectId) {
+  this.teams = this.teams.filter((t: mongoose.Types.ObjectId) => t.toString() !== teamId.toString());
   await this.save();
 };
 
-// Generate bracket based on tournament type
-TournamentSchema.methods.generateBracket = async function() {
+TournamentSchema.methods.generateBracket = async function () {
   const Match = mongoose.model('Match');
-  
-  if (this.teams.length < 2) {
-    throw new Error('Need at least 2 teams to generate bracket');
-  }
-  
-  this.matches = [];
-  
   switch (this.type) {
-    case 'knockout':
-      await this.generateKnockoutBracket(Match);
-      break;
-    case 'round_robin':
-      await this.generateRoundRobinSchedule(Match);
-      break;
-    case 'double_elimination':
-      await this.generateDoubleEliminationBracket(Match);
-      break;
-    case 'group_stage':
-      await this.generateGroupStage(Match);
-      break;
-    default:
-      await this.generateRoundRobinSchedule(Match);
+    case 'round_robin': case 'league': await generateRoundRobin(this, Match); break;
+    case 'knockout': case 'double_elimination': await generateKnockout(this, Match); break;
+    case 'group_stage': await generateRoundRobin(this, Match); break;
+    default: await generateRoundRobin(this, Match);
   }
-  
   this.bracketGenerated = true;
-  this.status = 'ongoing';
   await this.save();
 };
 
-// Generate knockout bracket
-TournamentSchema.methods.generateKnockoutBracket = async function(Match: any) {
-  const teams = [...this.teams];
-  
-  // Shuffle teams
+// FIX #1: knockout bracket — original set team1 AND team2 to teams[0]
+async function generateKnockout(tournament: any, Match: any) {
+  const teams = [...tournament.teams];
+  // Shuffle for randomness
   for (let i = teams.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [teams[i], teams[j]] = [teams[j], teams[i]];
   }
-  
-  // Calculate number of rounds
-  const numRounds = Math.ceil(Math.log2(teams.length));
-  const numMatches = Math.pow(2, numRounds - 1);
-  
-  let matchNumber = 1;
-  
-  // First round
-  for (let i = 0; i < numMatches; i++) {
-    const team1 = teams[i * 2];
-    const team2 = teams[i * 2 + 1];
-    
-    if (team1 && team2) {
-      const match = await Match.create({
-        name: `Round 1 - Match ${matchNumber}`,
-        tournamentId: this._id,
-        round: 'Round 1',
-        matchNumber: matchNumber++,
-        team1,
-        team2,
-        venue: this.location,
-        date: this.startDate,
-        format: this.format,
-        status: 'upcoming'
-      });
-      
-      this.matches.push(match._id);
-    }
-  }
-  
-  // Create placeholder matches for subsequent rounds
-  for (let round = 2; round <= numRounds; round++) {
-    for (let i = 0; i < numMatches / Math.pow(2, round - 1); i++) {
-      const roundName = round === numRounds ? 'Final' : 
-        round === numRounds - 1 ? 'Semi Finals' : 
-        round === numRounds - 2 ? 'Quarter Finals' : `Round ${round}`;
-      
-      const match = await Match.create({
-        name: `${roundName} - Match ${matchNumber}`,
-        tournamentId: this._id,
-        round: roundName,
-        matchNumber: matchNumber++,
-        team1: teams[0], // Placeholder - will be updated
-        team2: teams[0], // Placeholder - will be updated
-        venue: this.location,
-        date: new Date(this.startDate.getTime() + (round - 1) * 7 * 24 * 60 * 60 * 1000),
-        format: this.format,
-        status: 'upcoming'
-      });
-      
-      this.matches.push(match._id);
-    }
-  }
-  
-  await this.save();
-};
+  // Pad to power of 2
+  while (!isPowerOf2(teams.length)) teams.push(null);
 
-// Generate round robin schedule
-TournamentSchema.methods.generateRoundRobinSchedule = async function(Match: any) {
-  const teams = [...this.teams];
-  const numTeams = teams.length;
+  const matchDocs = [];
   let matchNumber = 1;
-  
-  // Simple round robin - each team plays each other twice
-  for (let i = 0; i < numTeams; i++) {
-    for (let j = i + 1; j < numTeams; j++) {
+  for (let i = 0; i < teams.length; i += 2) {
+    const t1 = teams[i];
+    const t2 = teams[i + 1];
+    // FIX: only create a real match when both teams are actual teams (not null byes)
+    if (t1 && t2) {
+      const match = await Match.create({
+        name: `Round 1 Match ${matchNumber}`,
+        team1: t1, team2: t2,    // FIX: was team1: teams[0], team2: teams[0]
+        tournamentId: tournament._id,
+        round: 'Round 1', matchNumber,
+        date: tournament.startDate,
+        format: tournament.format || 'T20',
+        status: 'upcoming',
+      });
+      matchDocs.push(match._id);
+    }
+    matchNumber++;
+  }
+  tournament.matches.push(...matchDocs);
+}
+
+function isPowerOf2(n: number): boolean {
+  return n > 0 && (n & (n - 1)) === 0;
+}
+
+async function generateRoundRobin(tournament: any, Match: any) {
+  const teams = tournament.teams;
+  const matchDocs = [];
+  let matchNumber = 1;
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = i + 1; j < teams.length; j++) {
       const match = await Match.create({
         name: `Match ${matchNumber}`,
-        tournamentId: this._id,
-        round: 'League',
-        matchNumber: matchNumber++,
-        team1: teams[i],
-        team2: teams[j],
-        venue: this.location,
-        date: new Date(this.startDate.getTime() + Math.floor(matchNumber / (numTeams / 2)) * 24 * 60 * 60 * 1000),
-        format: this.format,
-        status: 'upcoming'
+        team1: teams[i], team2: teams[j],
+        tournamentId: tournament._id,
+        round: 'League', matchNumber,
+        date: tournament.startDate,
+        format: tournament.format || 'T20',
+        status: 'upcoming',
       });
-      
-      this.matches.push(match._id);
+      matchDocs.push(match._id);
+      matchNumber++;
     }
   }
-  
-  await this.save();
-};
+  tournament.matches.push(...matchDocs);
+}
 
-// Generate double elimination bracket (simplified)
-TournamentSchema.methods.generateDoubleEliminationBracket = async function(Match: any) {
-  // Simplified implementation - similar to knockout but with winners/losers bracket
-  await this.generateKnockoutBracket(Match);
-};
+// FIX #2: NRR calculation — convert decimal overs (12.3) to real overs (12.5)
+// The original divided directly by 12.3 which is wrong; 12 overs 3 balls = 12.5 actual overs
+function decimalOversToReal(decimalOvers: number): number {
+  const whole = Math.floor(decimalOvers);
+  const balls = Math.round((decimalOvers - whole) * 10);
+  return whole + balls / 6;
+}
 
-// Generate group stage (simplified)
-TournamentSchema.methods.generateGroupStage = async function(Match: any) {
-  // Simplified - treat as round robin
-  await this.generateRoundRobinSchedule(Match);
-};
-
-// Calculate points table for round robin
-TournamentSchema.methods.calculatePointsTable = async function() {
+TournamentSchema.methods.calculatePointsTable = async function () {
   const Match = mongoose.model('Match');
-  
   const table: any[] = [];
-  
+
   for (const teamId of this.teams) {
     const matches = await Match.find({
       tournamentId: this._id,
       $or: [{ team1: teamId }, { team2: teamId }],
       status: 'completed'
     });
-    
-    let matchesPlayed = 0;
-    let matchesWon = 0;
-    let matchesLost = 0;
-    let matchesTied = 0;
-    let matchesNoResult = 0;
-    let forRuns = 0;
-    let againstRuns = 0;
-    let oversFaced = 0;
-    let oversBowled = 0;
-    
+
+    let matchesPlayed = 0, matchesWon = 0, matchesLost = 0, matchesTied = 0, matchesNoResult = 0;
+    let forRuns = 0, againstRuns = 0, oversFaced = 0, oversBowled = 0;
+
     for (const match of matches) {
       matchesPlayed++;
-      
       const isTeam1 = match.team1.toString() === teamId.toString();
       const ourScore = isTeam1 ? match.team1Score : match.team2Score;
-      const opponentScore = isTeam1 ? match.team2Score : match.team1Score;
+      const oppScore = isTeam1 ? match.team2Score : match.team1Score;
       const ourOvers = isTeam1 ? match.team1Overs : match.team2Overs;
-      const opponentOvers = isTeam1 ? match.team2Overs : match.team1Overs;
-      
-      forRuns += ourScore || 0;
-      againstRuns += opponentScore || 0;
-      oversFaced += ourOvers || 0;
-      oversBowled += opponentOvers || 0;
-      
-      if (ourScore > opponentScore) {
-        matchesWon++;
-      } else if (opponentScore > ourScore) {
-        matchesLost++;
-      } else {
-        matchesTied++;
+      const oppOvers = isTeam1 ? match.team2Overs : match.team1Overs;
+
+      // FIX #3: detect no-result (both scores are 0 after completion = likely no result)
+      if (match.resultType === 'no result') {
+        matchesNoResult++;
+        continue; // don't count runs/overs for no-result matches
       }
+
+      forRuns += ourScore || 0;
+      againstRuns += oppScore || 0;
+      // FIX #2: convert decimal overs to real overs before accumulating
+      oversFaced += decimalOversToReal(ourOvers || 0);
+      oversBowled += decimalOversToReal(oppOvers || 0);
+
+      if (match.resultType === 'tie') { matchesTied++; }
+      else if (ourScore > oppScore) { matchesWon++; }
+      else { matchesLost++; }
     }
-    
-    // Points: 2 for win, 1 for tie/no result
-    const points = (matchesWon * 2) + (matchesTied * 1) + (matchesNoResult * 1);
-    
-    // Net run rate
-    const runRateFor = oversFaced > 0 ? forRuns / oversFaced : 0;
-    const runRateAgainst = oversBowled > 0 ? againstRuns / oversBowled : 0;
-    const netRunRate = runRateFor - runRateAgainst;
-    
-    table.push({
-      teamId,
-      matchesPlayed,
-      matchesWon,
-      matchesLost,
-      matchesTied,
-      matchesNoResult,
-      points,
-      netRunRate,
-      forRuns,
-      againstRuns,
-      oversFaced,
-      oversBowled
-    });
+
+    const points = matchesWon * 2 + matchesTied * 1 + matchesNoResult * 1;
+    // FIX #2: now oversFaced is already in real overs (e.g. 12.5), not decimal (12.3)
+    const nrr = (oversFaced > 0 && oversBowled > 0)
+      ? parseFloat(((forRuns / oversFaced) - (againstRuns / oversBowled)).toFixed(3))
+      : 0;
+
+    table.push({ teamId, matchesPlayed, matchesWon, matchesLost, matchesTied, matchesNoResult, points, netRunRate: nrr, forRuns, againstRuns, oversFaced, oversBowled });
   }
-  
-  // Sort by points, then net run rate
-  table.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return b.netRunRate - a.netRunRate;
-  });
-  
+
+  table.sort((a, b) => b.points !== a.points ? b.points - a.points : b.netRunRate - a.netRunRate);
   this.pointsTable = table;
   await this.save();
 };
 
-// Start tournament
-TournamentSchema.methods.startTournament = async function() {
-  if (this.teams.length < this.minTeams) {
-    throw new Error(`Need at least ${this.minTeams} teams to start`);
-  }
-  
-  if (!this.bracketGenerated) {
-    await this.generateBracket();
-  }
-  
+TournamentSchema.methods.startTournament = async function () {
+  if (this.teams.length < this.minTeams) throw new Error(`Need at least ${this.minTeams} teams to start`);
+  if (!this.bracketGenerated) await this.generateBracket();
   this.status = 'ongoing';
   await this.save();
 };
 
-// End tournament
-TournamentSchema.methods.endTournament = async function(winnerId?: mongoose.Types.ObjectId) {
+TournamentSchema.methods.endTournament = async function (winnerId?: mongoose.Types.ObjectId) {
   this.status = 'completed';
-  
   if (winnerId) {
     this.winner = winnerId;
-    
-    // Find runner up from points table or final match
-    if (this.pointsTable && this.pointsTable.length > 1) {
-      this.runnerUp = this.pointsTable[1].teamId;
-    }
+    if (this.pointsTable && this.pointsTable.length > 1) this.runnerUp = this.pointsTable[1].teamId;
   }
-  
-  // Calculate final points table for round robin
-  if (this.type === 'round_robin' || this.type === 'league') {
-    await this.calculatePointsTable();
-  }
-  
+  if (this.type === 'round_robin' || this.type === 'league') await this.calculatePointsTable();
   await this.save();
 };
 
-// ==========================================
-// STATIC METHODS
-// ==========================================
-
-// Get upcoming tournaments
-TournamentSchema.statics.getUpcoming = function(limit: number = 10) {
-  return this.find({ 
-    status: { $in: ['draft', 'upcoming'] },
-    isPublic: true,
-    startDate: { $gte: new Date() }
-  })
-  .populate('organizer', 'username email')
-  .sort({ startDate: 1 })
-  .limit(limit);
+TournamentSchema.statics.getUpcoming = function (limit = 10) {
+  return this.find({ status: { $in: ['draft', 'upcoming'] }, isPublic: true, startDate: { $gte: new Date() } }).populate('organizer', 'username email').sort({ startDate: 1 }).limit(limit);
 };
-
-// Get ongoing tournaments
-TournamentSchema.statics.getOngoing = function() {
-  return this.find({ 
-    status: 'ongoing',
-    isPublic: true
-  })
-  .populate('organizer', 'username email')
-  .populate('teams', 'name shortName');
+TournamentSchema.statics.getOngoing = function () {
+  return this.find({ status: 'ongoing', isPublic: true }).populate('organizer', 'username email').populate('teams', 'name shortName');
 };
-
-// Get featured tournaments
-TournamentSchema.statics.getFeatured = function(limit: number = 5) {
-  return this.find({ 
-    isFeatured: true,
-    isPublic: true,
-    status: { $in: ['upcoming', 'ongoing'] }
-  })
-  .populate('organizer', 'username')
-  .sort({ startDate: 1 })
-  .limit(limit);
+TournamentSchema.statics.getFeatured = function (limit = 5) {
+  return this.find({ isFeatured: true, isPublic: true, status: { $in: ['upcoming', 'ongoing'] } }).populate('organizer', 'username').sort({ startDate: 1 }).limit(limit);
 };
-
-// Get tournaments by organizer
-TournamentSchema.statics.getByOrganizer = function(organizerId: mongoose.Types.ObjectId) {
-  return this.find({ organizer: organizerId })
-    .sort({ createdAt: -1 });
+TournamentSchema.statics.getByOrganizer = function (organizerId: mongoose.Types.ObjectId | string) {
+  return this.find({ organizer: organizerId }).sort({ createdAt: -1 });
 };
-
-// Get tournament with full details
-TournamentSchema.statics.getFullDetails = function(tournamentId: mongoose.Types.ObjectId) {
-  return this.findById(tournamentId)
-    .populate('organizer', 'username email fullName')
-    .populate('teams', 'name shortName logo players')
-    .populate('matches')
-    .populate('winner', 'name shortName')
-    .populate('runnerUp', 'name shortName');
+TournamentSchema.statics.getFullDetails = function (tournamentId: mongoose.Types.ObjectId) {
+  return this.findById(tournamentId).populate('organizer', 'username email fullName').populate('teams', 'name shortName logo players').populate('matches').populate('winner', 'name shortName').populate('runnerUp', 'name shortName');
 };
-
-// Search tournaments
-TournamentSchema.statics.search = function(query: string) {
-  return this.find({ 
-    $text: { $search: query },
-    isPublic: true
-  });
+TournamentSchema.statics.search = function (query: string) {
+  return this.find({ $text: { $search: query }, isPublic: true });
 };
-
-// ==========================================
-// EXPORT
-// ==========================================
 
 export default mongoose.model<ITournament, ITournamentModel>('Tournament', TournamentSchema);

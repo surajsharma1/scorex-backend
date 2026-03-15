@@ -1,370 +1,135 @@
 /**
- * Payment Controller
- * Membership & payment processing
- * Following PROJECT_ALGORITHM.md specifications
+ * Payment Controller — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. extendMembership: `membershipLevel === 1 ? 'basic' : 'premium'` returns 'premium'
+ *    when level is 0 (free tier) — user with no membership gets premium plan price instead
+ *    of a proper "no active membership" error.
+ *    FIX: check for level === 0 explicitly before the ternary lookup.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
+interface AuthRequest extends Request { user?: any; }
 
-// Membership plans
 const MEMBERSHIP_PLANS = {
-  basic: {
-    name: 'Basic',
-    price: 9,
-    duration: 30, // days
-    level: 1,
-    features: ['Basic overlays', 'Standard support']
-  },
-  premium: {
-    name: 'Premium',
-    price: 19,
-    duration: 30, // days
-    level: 2,
-    features: ['All overlays', 'Priority support', 'Advanced analytics']
-  }
+  basic:   { name: 'Basic',   price: 9,  duration: 30, level: 1, features: ['Basic overlays', 'Standard support'] },
+  premium: { name: 'Premium', price: 19, duration: 30, level: 2, features: ['All overlays', 'Priority support', 'Advanced analytics'] }
 };
 
-// Dev override card (for testing)
-const DEV_CARD = {
-  number: '88714741390926000',
-  expiry: '0926',
-  cvv: '000'
-};
+const LEVEL_TO_PLAN: Record<number, keyof typeof MEMBERSHIP_PLANS> = { 1: 'basic', 2: 'premium' };
 
-// @desc    Get membership plans
-// @route   GET /api/v1/payments/plans
-// @access  Public
-export const getPlans = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    res.json({
-      success: true,
-      data: Object.entries(MEMBERSHIP_PLANS).map(([key, plan]) => ({
-        id: key,
-        ...plan
-      }))
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+const DEV_CARD = { number: '88714741390926000', expiry: '0926', cvv: '000' };
 
-// @desc    Get current membership
-// @route   GET /api/v1/payments/membership
-// @access  Private
-export const getMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const user = await User.findById(req.user?.id)
-      .select('membershipLevel membershipExpiresAt membershipStartedAt membershipTimeline');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    const isActive = user.membershipExpiresAt ? 
-      new Date(user.membershipExpiresAt) > new Date() : false;
-    
-    res.json({
-      success: true,
-      data: {
-        level: user.membershipLevel,
-        status: isActive ? 'active' : 'expired',
-        startedAt: user.membershipStartedAt,
-        expiresAt: user.membershipExpiresAt,
-        timeline: user.membershipTimeline
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Purchase membership
-// @route   POST /api/v1/payments/membership
-// @access  Private
-export const purchaseMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { planId, cardNumber, expiry, cvv } = req.body;
-    
-    // Validate plan
-    const plan = MEMBERSHIP_PLANS[planId as keyof typeof MEMBERSHIP_PLANS];
-    if (!plan) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid plan selected'
-      });
-    }
-    
-    // Check for dev override card
-    const isDevCard = cardNumber === DEV_CARD.number && 
-                      expiry === DEV_CARD.expiry && 
-                      cvv === DEV_CARD.cvv;
-    
-    let paymentSuccess = false;
-    
-    if (isDevCard) {
-      // Skip payment, approve immediately
-      paymentSuccess = true;
-      console.log('[Payment] Dev card used - payment skipped');
-    } else {
-      // Process payment (simulated - replace with actual payment gateway)
-      paymentSuccess = await processPayment(cardNumber, expiry, cvv, plan.price);
-    }
-    
-    if (!paymentSuccess) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment failed'
-      });
-    }
-    
-    // Update user membership
-    const user = await User.findById(req.user?.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    // Calculate new expiry date
-    const now = new Date();
-    let newExpiry: Date;
-    
-    if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) > now) {
-      // Extend existing membership
-      newExpiry = new Date(user.membershipExpiresAt);
-      newExpiry.setDate(newExpiry.getDate() + plan.duration);
-    } else {
-      // Start new membership
-      newExpiry = new Date(now);
-      newExpiry.setDate(newExpiry.getDate() + plan.duration);
-    }
-    
-    // Determine status change
-    let statusChange: 'upgraded' | 'downgraded' | 'active' = 'active';
-    if (plan.level > user.membershipLevel) {
-      statusChange = 'upgraded';
-    } else if (plan.level < user.membershipLevel) {
-      statusChange = 'downgraded';
-    }
-    
-    // Update membership
-    user.membershipLevel = plan.level as 0 | 1 | 2;
-    user.membershipStartedAt = now;
-    user.membershipExpiresAt = newExpiry;
-    
-    // Add to timeline
-    user.membershipTimeline = user.membershipTimeline || [];
-    user.membershipTimeline.push({
-      level: plan.level,
-      status: statusChange,
-      startedAt: now,
-      endedAt: newExpiry,
-      notes: isDevCard ? 'Dev card used' : `Payment successful - ${plan.name}`
-    });
-    
-    // Add to payment history
-    user.paymentHistory = user.paymentHistory || [];
-    user.paymentHistory.push({
-      amount: plan.price,
-      currency: 'USD',
-      level: plan.name,
-      duration: `${plan.duration} days`,
-      paymentIntentId: isDevCard ? 'dev_payment_' + Date.now() : 'pi_' + Date.now(),
-      status: 'completed',
-      date: now
-    });
-    
-    await user.save();
-    
-    res.json({
-      success: true,
-      message: 'Membership purchased successfully',
-      data: {
-        level: user.membershipLevel,
-        status: 'active',
-        startedAt: user.membershipStartedAt,
-        expiresAt: user.membershipExpiresAt
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Extend membership
-// @route   POST /api/v1/payments/extend
-// @access  Private
-export const extendMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { months, cardNumber, expiry, cvv } = req.body;
-    
-    const user = await User.findById(req.user?.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    const currentPlan = MEMBERSHIP_PLANS[user.membershipLevel === 1 ? 'basic' : 'premium'];
-    if (!currentPlan) {
-      return res.status(400).json({
-        success: false,
-        message: 'No active membership to extend'
-      });
-    }
-    
-    const price = (currentPlan.price / 30) * (months * 30);
-    
-    // Check for dev card
-    const isDevCard = cardNumber === DEV_CARD.number && 
-                      expiry === DEV_CARD.expiry && 
-                      cvv === DEV_CARD.cvv;
-    
-    let paymentSuccess = false;
-    
-    if (isDevCard) {
-      paymentSuccess = true;
-    } else {
-      paymentSuccess = await processPayment(cardNumber, expiry, cvv, price);
-    }
-    
-    if (!paymentSuccess) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment failed'
-      });
-    }
-    
-    // Extend membership
-    const now = new Date();
-    let currentExpiry = user.membershipExpiresAt ? new Date(user.membershipExpiresAt) : now;
-    
-    if (currentExpiry <= now) {
-      currentExpiry = now;
-    }
-    
-    currentExpiry.setMonth(currentExpiry.getMonth() + months);
-    
-    user.membershipExpiresAt = currentExpiry;
-    
-    // Update timeline
-    user.membershipTimeline = user.membershipTimeline || [];
-    user.membershipTimeline.push({
-      level: user.membershipLevel,
-      status: 'active',
-      startedAt: now,
-      endedAt: currentExpiry,
-      notes: `Extended by ${months} month(s)`
-    });
-    
-    await user.save();
-    
-    res.json({
-      success: true,
-      message: `Membership extended by ${months} month(s)`,
-      data: {
-        expiresAt: user.membershipExpiresAt
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Cancel membership
-// @route   POST /api/v1/payments/cancel
-// @access  Private
-export const cancelMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const user = await User.findById(req.user?.id);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    if (user.membershipLevel === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No active membership to cancel'
-      });
-    }
-    
-    // Add to timeline
-    user.membershipTimeline = user.membershipTimeline || [];
-    user.membershipTimeline.push({
-      level: user.membershipLevel,
-      status: 'cancelled',
-      startedAt: user.membershipStartedAt || new Date(),
-      endedAt: new Date(),
-      notes: 'Membership cancelled by user'
-    });
-    
-    // Downgrade to free
-    user.membershipLevel = 0;
-    await user.save();
-    
-    res.json({
-      success: true,
-      message: 'Membership cancelled'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Get payment history
-// @route   GET /api/v1/payments/history
-// @access  Private
-export const getPaymentHistory = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const user = await User.findById(req.user?.id)
-      .select('paymentHistory');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: user.paymentHistory || []
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Helper function to process payment
 async function processPayment(cardNumber: string, expiry: string, cvv: string, amount: number): Promise<boolean> {
-  // This is a placeholder - in production, integrate with Stripe, PayPal, etc.
-  // For now, simulate successful payment for valid-looking cards
   if (cardNumber && cardNumber.length >= 13 && expiry && cvv) {
-    console.log(`[Payment] Processing payment of $${amount}`);
+    console.log(`[Payment] Processing $${amount}`);
     return true;
   }
   return false;
 }
 
-export default {
-  getPlans,
-  getMembership,
-  purchaseMembership,
-  extendMembership,
-  cancelMembership,
-  getPaymentHistory
+export const getPlans = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json({ success: true, data: Object.entries(MEMBERSHIP_PLANS).map(([key, plan]) => ({ id: key, ...plan })) });
+  } catch (error) { next(error); }
 };
+
+export const getMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.user?.id).select('membershipLevel membershipExpiresAt membershipStartedAt membershipTimeline');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const isActive = user.membershipExpiresAt ? new Date(user.membershipExpiresAt) > new Date() : false;
+    res.json({ success: true, data: { level: user.membershipLevel, status: isActive ? 'active' : 'expired', startedAt: user.membershipStartedAt, expiresAt: user.membershipExpiresAt, timeline: user.membershipTimeline } });
+  } catch (error) { next(error); }
+};
+
+export const purchaseMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { planId, cardNumber, expiry, cvv } = req.body;
+    const plan = MEMBERSHIP_PLANS[planId as keyof typeof MEMBERSHIP_PLANS];
+    if (!plan) return res.status(400).json({ success: false, message: 'Invalid plan selected' });
+
+    const isDevCard = cardNumber === DEV_CARD.number && expiry === DEV_CARD.expiry && cvv === DEV_CARD.cvv;
+    const paymentSuccess = isDevCard || await processPayment(cardNumber, expiry, cvv, plan.price);
+    if (!paymentSuccess) return res.status(400).json({ success: false, message: 'Payment failed' });
+
+    const user = await User.findById(req.user?.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const now = new Date();
+    let newExpiry = new Date(now);
+    if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) > now) {
+      newExpiry = new Date(user.membershipExpiresAt);
+    }
+    newExpiry.setDate(newExpiry.getDate() + plan.duration);
+
+    const statusChange = plan.level > user.membershipLevel ? 'upgraded' : plan.level < user.membershipLevel ? 'downgraded' : 'active';
+    user.membershipLevel = plan.level as 0 | 1 | 2;
+    user.membershipStartedAt = now;
+    user.membershipExpiresAt = newExpiry;
+    user.membershipTimeline = user.membershipTimeline || [];
+    user.membershipTimeline.push({ level: plan.level, status: statusChange, startedAt: now, endedAt: newExpiry, notes: isDevCard ? 'Dev card used' : `${plan.name} purchased` });
+    user.paymentHistory = user.paymentHistory || [];
+    user.paymentHistory.push({ amount: plan.price, currency: 'USD', level: plan.name, duration: `${plan.duration} days`, paymentIntentId: (isDevCard ? 'dev_' : 'pi_') + Date.now(), status: 'completed', date: now });
+    await user.save();
+
+    res.json({ success: true, message: 'Membership purchased successfully', data: { level: user.membershipLevel, status: 'active', startedAt: user.membershipStartedAt, expiresAt: user.membershipExpiresAt } });
+  } catch (error) { next(error); }
+};
+
+export const extendMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { months, cardNumber, expiry, cvv } = req.body;
+    const user = await User.findById(req.user?.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // FIX: original was `membershipLevel === 1 ? 'basic' : 'premium'`
+    // — when level is 0 (no membership), this returned 'premium' plan instead of rejecting
+    if (user.membershipLevel === 0) {
+      return res.status(400).json({ success: false, message: 'No active membership to extend. Please purchase a membership first.' });
+    }
+    const planKey = LEVEL_TO_PLAN[user.membershipLevel]; // 1→'basic', 2→'premium'
+    const currentPlan = MEMBERSHIP_PLANS[planKey];
+
+    const price = currentPlan.price * months;
+    const isDevCard = cardNumber === DEV_CARD.number && expiry === DEV_CARD.expiry && cvv === DEV_CARD.cvv;
+    const paymentSuccess = isDevCard || await processPayment(cardNumber, expiry, cvv, price);
+    if (!paymentSuccess) return res.status(400).json({ success: false, message: 'Payment failed' });
+
+    const now = new Date();
+    let currentExpiry = user.membershipExpiresAt && new Date(user.membershipExpiresAt) > now
+      ? new Date(user.membershipExpiresAt) : now;
+    currentExpiry.setMonth(currentExpiry.getMonth() + months);
+    user.membershipExpiresAt = currentExpiry;
+    user.membershipTimeline = user.membershipTimeline || [];
+    user.membershipTimeline.push({ level: user.membershipLevel, status: 'active', startedAt: now, endedAt: currentExpiry, notes: `Extended by ${months} month(s)` });
+    await user.save();
+
+    res.json({ success: true, message: `Membership extended by ${months} month(s)`, data: { expiresAt: user.membershipExpiresAt } });
+  } catch (error) { next(error); }
+};
+
+export const cancelMembership = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.user?.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.membershipLevel === 0) return res.status(400).json({ success: false, message: 'No active membership to cancel' });
+    user.membershipTimeline = user.membershipTimeline || [];
+    user.membershipTimeline.push({ level: user.membershipLevel, status: 'cancelled', startedAt: user.membershipStartedAt || new Date(), endedAt: new Date(), notes: 'Cancelled by user' });
+    user.membershipLevel = 0;
+    await user.save();
+    res.json({ success: true, message: 'Membership cancelled' });
+  } catch (error) { next(error); }
+};
+
+export const getPaymentHistory = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.user?.id).select('paymentHistory');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: user.paymentHistory || [] });
+  } catch (error) { next(error); }
+};
+
+export default { getPlans, getMembership, purchaseMembership, extendMembership, cancelMembership, getPaymentHistory };

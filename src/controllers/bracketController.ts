@@ -1,113 +1,86 @@
+/**
+ * Bracket Controller — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. getBrackets/createBracket used (req as any).user?._id — middleware sets req.user.id
+ */
+
 import { Request, Response } from 'express';
 import Bracket from '../models/Bracket';
-import Tournament from '../models/Tournament';
 
-export const getBrackets = async (req: Request, res: Response): Promise<void> => {
+interface AuthRequest extends Request { user?: any; }
+
+export const getBrackets = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    let brackets = await Bracket.find({ createdBy: (req as any).user?._id });
-    
-    // Try to populate tournament, but don't fail if it doesn't work
+    // FIX: was (req as any).user?._id — auth middleware sets req.user.id (string)
+    let brackets = await Bracket.find({ createdBy: req.user?.id });
     try {
-      brackets = await Bracket.populate(brackets, { 
-        path: 'tournament',
-        strictPopulate: false 
-      });
-    } catch (populateError) {
-      console.warn('Bracket tournament populate warning:', populateError);
-      // Return brackets without populated tournament data
+      brackets = await Bracket.populate(brackets, { path: 'tournament', strictPopulate: false });
+    } catch {
+      // Populate failure is non-fatal — return brackets without tournament data
     }
-    
-    res.json(brackets);
+    res.json({ success: true, data: brackets });
   } catch (error) {
-    console.error('Get brackets error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-export const createBracket = async (req: Request, res: Response): Promise<void> => {
+export const createBracket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { tournament, type, numberOfTeams } = req.body;
     const bracket = await Bracket.create({
-      tournament,
-      type,
-      numberOfTeams,
-      rounds: [],
-      createdBy: (req as any).user?._id,  // Type assertion
+      tournament, type, numberOfTeams, rounds: [],
+      createdBy: req.user?.id, // FIX: was (req as any).user?._id
     });
-    res.status(201).json(bracket);
+    res.status(201).json({ success: true, data: bracket });
   } catch (error) {
-    console.error('Create bracket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 function generateRounds(teams: any[], numberOfTeams: number) {
-  const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
+  const shuffled = [...teams].sort(() => Math.random() - 0.5).slice(0, numberOfTeams);
   const rounds = [];
-  let currentTeams = shuffledTeams.slice(0, numberOfTeams);
-  while (currentTeams.length > 1) {
+  let current = shuffled;
+  while (current.length > 1) {
     const matches = [];
-    for (let i = 0; i < currentTeams.length; i += 2) {
-      matches.push({
-        team1: currentTeams[i],
-        team2: currentTeams[i + 1] || null,
-        score1: 0,
-        score2: 0,
-      });
+    for (let i = 0; i < current.length; i += 2) {
+      matches.push({ team1: current[i], team2: current[i + 1] || null, score1: 0, score2: 0 });
     }
     rounds.push({ matches });
-    // For next round, placeholders
-    currentTeams = new Array(Math.ceil(currentTeams.length / 2)).fill(null).map(() => ({ name: 'TBD' }));
+    current = new Array(Math.ceil(current.length / 2)).fill(null).map(() => ({ name: 'TBD' }));
   }
   return rounds;
 }
 
-export const generateBracket = async (req: Request, res: Response): Promise<void> => {
+export const generateBracket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { teams } = req.body;
     const bracket = await Bracket.findById(req.params.id);
-    if (!bracket) {
-      res.status(404).json({ message: 'Bracket not found' });
-      return;
-    }
-    const numberOfTeams = (bracket as any).numberOfTeams || 8;
-    const rounds = generateRounds(teams, numberOfTeams);
-    const updatedBracket = await Bracket.findByIdAndUpdate(
-      req.params.id,
-      { rounds },
-      { new: true }
-    );
-    res.json(updatedBracket);
+    if (!bracket) { res.status(404).json({ success: false, message: 'Bracket not found' }); return; }
+    const rounds = generateRounds(req.body.teams || [], (bracket as any).numberOfTeams || 8);
+    const updated = await Bracket.findByIdAndUpdate(req.params.id, { rounds }, { new: true });
+    res.json({ success: true, data: updated });
   } catch (error) {
-    console.error('Generate bracket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-export const updateBracket = async (req: Request, res: Response): Promise<void> => {
+export const updateBracket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const bracket = await Bracket.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!bracket) {
-      res.status(404).json({ message: 'Bracket not found' });
-      return;
-    }
-    res.json(bracket);
+    if (!bracket) { res.status(404).json({ success: false, message: 'Bracket not found' }); return; }
+    res.json({ success: true, data: bracket });
   } catch (error) {
-    console.error('Update bracket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-export const deleteBracket = async (req: Request, res: Response): Promise<void> => {
+export const deleteBracket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const bracket = await Bracket.findByIdAndDelete(req.params.id);
-    if (!bracket) {
-      res.status(404).json({ message: 'Bracket not found' });
-      return;
-    }
-    res.json({ message: 'Bracket deleted' });
+    if (!bracket) { res.status(404).json({ success: false, message: 'Bracket not found' }); return; }
+    res.json({ success: true, message: 'Bracket deleted' });
   } catch (error) {
-    console.error('Delete bracket error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

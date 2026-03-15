@@ -1,12 +1,16 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import mongoose from 'mongoose';
-import { protect, AuthRequest } from '../middleware/auth';
+import { protect } from '../middleware/auth';
 import User from '../models/User';
+
+interface AuthRequest extends express.Request {
+  user?: any;
+}
 
 const router = express.Router();
 
 // Public route - anyone can search users
-router.get('/search', async (req: Request, res: Response) => {
+router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || (q as string).length < 2) {
@@ -29,11 +33,11 @@ router.get('/search', async (req: Request, res: Response) => {
 });
 
 // Apply auth middleware to all routes below
-router.use(protect);
+router.use(protect as any);
 
 // Admin middleware check helper
-const isAdminMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  console.log('[ADMIN] Request from user:', req.user?.id, 'role:', req.user?.role, 'endpoint: users/all');
+const isAdminMiddleware = async (req: any, res: any, next: any) => {
+  console.log('[ADMIN] Request from user:', (req.user as any)?.id || 'unknown', 'role:', req.user?.role, 'endpoint: users/all');
   if (req.user?.role !== 'admin') {
     console.log('[ADMIN] Access denied for non-admin user:', req.user?.role);
     return res.status(403).json({ message: 'Access denied. Admin only.' });
@@ -43,7 +47,7 @@ const isAdminMiddleware = async (req: AuthRequest, res: Response, next: NextFunc
 };
 
 // Stats endpoint - returns user statistics
-router.get('/stats', async (req: AuthRequest, res: Response) => {
+router.get('/stats', async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const adminUsers = await User.countDocuments({ role: 'admin' });
@@ -55,7 +59,7 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 });
 
 // Get current user's profile
-router.get('/profile', async (req: AuthRequest, res: Response) => {
+router.get('/profile', async (req: any, res) => {
   try {
     const user = await User.findById(req.user?.id).select('-password');
     if (!user) {
@@ -68,7 +72,7 @@ router.get('/profile', async (req: AuthRequest, res: Response) => {
 });
 
 // Update current user's profile
-router.put('/profile', async (req: AuthRequest, res: Response) => {
+router.put('/profile', async (req: any, res) => {
   try {
     const { fullName, bio, profilePicture } = req.body;
     
@@ -100,7 +104,7 @@ router.put('/profile', async (req: AuthRequest, res: Response) => {
 });
 
 // Get notification preferences
-router.get('/notifications/preferences', async (req: AuthRequest, res: Response) => {
+router.get('/notifications/preferences', async (req: any, res) => {
   try {
     const user = await User.findById(req.user?.id).select('notificationPreferences');
     res.json(user?.notificationPreferences || {});
@@ -110,7 +114,7 @@ router.get('/notifications/preferences', async (req: AuthRequest, res: Response)
 });
 
 // Update notification preferences
-router.put('/notifications/preferences', async (req: AuthRequest, res: Response) => {
+router.put('/notifications/preferences', async (req: any, res) => {
   try {
     const { email, push, sms, tournamentUpdates, matchResults, systemAnnouncements } = req.body;
     
@@ -142,9 +146,9 @@ router.put('/notifications/preferences', async (req: AuthRequest, res: Response)
 // ==================== ADMIN ROUTES ====================
 
 // Get all users (including banned/deleted) - ACTIVE ONLY
-router.get('/all', isAdminMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/all', isAdminMiddleware, async (req, res) => {
   try {
-    console.log('[USERS/ALL] Fetching users for admin:', req.user?.id);
+    console.log('[USERS/ALL] Fetching users for admin:', (req.user as any)?.id || 'unknown');
     const users = await User.find({ deleted: { $ne: true } }).select('-password').sort({ createdAt: -1 });
     console.log('[USERS/ALL] Found', users.length, 'active users');
     res.json({ users });
@@ -155,7 +159,7 @@ router.get('/all', isAdminMiddleware, async (req: AuthRequest, res: Response) =>
 });
 
 // Ban user
-router.put('/:id/ban', isAdminMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/ban', isAdminMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -174,7 +178,7 @@ router.put('/:id/ban', isAdminMiddleware, async (req: AuthRequest, res: Response
 });
 
 // Unban user
-router.put('/:id/unban', isAdminMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/unban', isAdminMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -192,7 +196,7 @@ router.put('/:id/unban', isAdminMiddleware, async (req: AuthRequest, res: Respon
 });
 
 // Update user role
-router.put('/:id/role', isAdminMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/role', isAdminMiddleware, async (req, res) => {
   try {
     const { role } = req.body;
     if (!['viewer', 'organizer', 'admin'].includes(role)) {
@@ -214,7 +218,7 @@ router.put('/:id/role', isAdminMiddleware, async (req: AuthRequest, res: Respons
 });
 
 // Update user membership (admin can grant premium for custom duration)
-router.put('/:id/membership', isAdminMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/:id/membership', isAdminMiddleware, async (req, res) => {
   try {
     const { level, durationMonths } = req.body;
     

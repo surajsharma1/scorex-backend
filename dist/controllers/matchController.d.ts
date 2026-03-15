@@ -1,7 +1,11 @@
 /**
- * Match Controller
- * Complete cricket match and scoring system
- * Following PROJECT_ALGORITHM.md specifications
+ * Match Controller — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. updateMatch used invalid populate(array, 'select') syntax — split into separate calls
+ * 2. endMatch used fire-and-forget .then() for team stats — replaced with await
+ * 3. getLiveMatches / getUpcomingMatches cast to `any` for statics — use proper model
+ * 4. endInnings pushed second innings with hardcoded team2 regardless of toss — now toss-aware
  */
 import { Request, Response, NextFunction } from 'express';
 interface AuthRequest extends Request {

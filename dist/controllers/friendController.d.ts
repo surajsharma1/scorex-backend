@@ -1,8 +1,9 @@
 /**
-* Friend Controller
-* Friends management system
-* Following PROJECT_ALGORITHM.md specifications
-*/
+ * Friend Controller — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. rejectFriendRequest set status to 'blocked' instead of 'rejected'
+ */
 import { Request, Response, NextFunction } from 'express';
 interface AuthRequest extends Request {
     user?: any;

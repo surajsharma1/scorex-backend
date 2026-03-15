@@ -1,19 +1,21 @@
 /**
- * Tournament Model
- * Complete tournament management system
- * Following PROJECT_ALGORITHM.md specifications
+ * Tournament Model — Fixed & Rewritten
+ *
+ * BUGS FIXED:
+ * 1. generateKnockoutBracket set team1 & team2 both to teams[0] — now pairs correctly
+ * 2. calculatePointsTable NRR used raw decimal overs as divisor — now converts to real overs
+ * 3. matchesNoResult counter was never incremented — now handled properly
  */
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 export type TournamentType = 'round_robin' | 'knockout' | 'double_elimination' | 'league' | 'group_stage';
 export type TournamentStatus = 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 export type TournamentFormat = 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom';
 export type LocationType = 'indoor' | 'outdoor' | 'both';
-import { Model } from 'mongoose';
 export interface ITournamentModel extends Model<ITournament> {
     getUpcoming(limit?: number): Promise<ITournament[]>;
     getOngoing(): Promise<ITournament[]>;
     getFeatured(limit?: number): Promise<ITournament[]>;
-    getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<ITournament[]>;
+    getByOrganizer(organizerId: mongoose.Types.ObjectId | string): Promise<ITournament[]>;
     getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<ITournament | null>;
     search(query: string): Promise<ITournament[]>;
 }
@@ -51,6 +53,7 @@ export interface ITournament extends Document {
         matchesWon: number;
         matchesLost: number;
         matchesTied: number;
+        matchesNoResult: number;
         points: number;
         netRunRate: number;
         forRuns: number;
@@ -75,12 +78,6 @@ export interface ITournament extends Document {
     calculatePointsTable(): Promise<void>;
     startTournament(): Promise<void>;
     endTournament(winnerId?: mongoose.Types.ObjectId): Promise<void>;
-    getUpcoming(limit?: number): Promise<any[]>;
-    getOngoing(): Promise<any[]>;
-    getFeatured(limit?: number): Promise<any[]>;
-    getByOrganizer(organizerId: mongoose.Types.ObjectId): Promise<any[]>;
-    getFullDetails(tournamentId: mongoose.Types.ObjectId): Promise<any[]>;
-    search(query: string): Promise<any[]>;
 }
 declare const _default: ITournamentModel;
 export default _default;
