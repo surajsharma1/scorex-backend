@@ -1,122 +1,55 @@
 import { z } from 'zod';
 
-// User validation schemas
 export const registerSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be less than 50 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  email: z.string()
-    .email('Invalid email format')
-    .max(254, 'Email is too long'), // RFC 5321 limit
-  password: z.preprocess(
-    (val) => (val === '' || val === undefined ? undefined : val),
-    z.string()
-      .min(6, 'Password must be at least 6 characters')
-      .max(100, 'Password must be less than 100 characters')
-      .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character')
-      .optional() // Optional for Google signup
-  ),
-  googleId: z.string().optional(), // Google OAuth signup
-  fullName: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string()
-      .min(2, 'Full name must be at least 2 characters')
-      .max(100, 'Full name must be less than 100 characters')
-      .optional()
-  ),
-  dob: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().optional()
-  ),
-}).refine((data) => {
-  // Either password or googleId must be provided
-  return !!data.password || !!data.googleId;
-}, {
-  message: 'Either password or Google sign-up is required',
-  path: ['password'],
+  username: z.string().min(3).max(30),
+  email: z.string().email(),
+  password: z.string().min(6)
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email(),
+  password: z.string()
 });
 
-// Tournament validation schemas
-// Note: This schema accepts the frontend payload format
-// Additional fields are validated and mapped in the controller
-// Note: locationType and type are optional - Mongoose handles validation
 export const createTournamentSchema = z.object({
-  name: z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  organizer: z.string().max(100, 'Organizer name must be less than 100 characters').optional(),
-  startDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid start date format'),
-  endDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
-  location: z.string().max(200, 'Location must be less than 200 characters').optional(),
-  locationType: z.string().optional(), // Let Mongoose validate
-  type: z.string().optional(), // Let Mongoose validate
-  format: z.string().optional(), // Frontend format field (T20, ODI, etc.)
-  teams: z.array(z.string()).optional(), // Frontend teams array
+  name: z.string().min(1).max(100),
+  type: z.enum(['round_robin', 'knockout', 'league']),
+  format: z.enum(['T10', 'T20', 'ODI', 'Test']),
+  startDate: z.string().datetime(),
+  venue: z.string().min(1)
 });
 
-export const updateTournamentSchema = createTournamentSchema.partial();
-
-// Team validation schemas
-export const createTeamSchema = z.object({
-  name: z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
-  shortName: z.string().max(10, 'Short name cannot exceed 10 characters').optional(),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  color: z.string().optional(), // accepted but not stored (frontend compat)
-  tournament: z.string().optional(),
-});
-
-export const updateTeamSchema = createTeamSchema.partial();
-
-// Player validation schemas
-export const addPlayerSchema = z.object({
-  name: z.string().min(1, 'Player name is required').max(100, 'Player name must be less than 100 characters'),
-  role: z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role'),
-  jerseyNumber: z.string().min(1, 'Jersey number is required'),
-  userId: z.string().optional(),
-});
-
-export const addPlayerByUsernameSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  role: z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role').optional(),
-  jerseyNumber: z.string().optional(),
-});
-
-// Match validation schemas
 export const createMatchSchema = z.object({
-  tournamentId: z.string().min(1, 'Tournament ID is required'),
-  team1Id: z.string().min(1, 'Team 1 ID is required'),
-  team2Id: z.string().min(1, 'Team 2 ID is required'),
-  scheduledDate: z.string().refine((date: string) => !isNaN(Date.parse(date)), 'Invalid date format'),
-  venue: z.string().max(200, 'Venue must be less than 200 characters').optional(),
+  tournamentId: z.string(),
+  team1: z.string(),
+  team2: z.string(),
+  date: z.string().datetime(),
+  venue: z.string()
 });
 
-export const updateMatchSchema = createMatchSchema.partial().extend({
-  score: z.object({
-    team1: z.number().int().min(0),
-    team2: z.number().int().min(0),
-  }).optional(),
-  status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).optional(),
+export const addBallSchema = z.object({
+  runs: z.number().min(0).max(6).optional(),
+  wicket: z.boolean().optional(),
+  wide: z.boolean().optional(),
+  noBall: z.boolean().optional()
 });
 
-// Validation middleware
 export const validateRequest = (schema: z.ZodSchema) => {
   return (req: any, res: any, next: any) => {
     try {
-      schema.parse(req.body);
+      schema.parse({
+        body: req.body,
+        params: req.params,
+        query: req.query
+      });
       next();
-    } catch (error: any) {
-      return res.status(400).json({
+    } catch (error) {
+      res.status(400).json({ 
+        success: false, 
         message: 'Validation failed',
-        errors: error.issues.map((err: any) => ({
-          field: err.path.join('.'),
-          message: err.message,
-        })),
+        errors: error 
       });
     }
   };
 };
+

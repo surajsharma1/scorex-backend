@@ -2,97 +2,79 @@ import { z } from 'zod';
 export declare const registerSchema: z.ZodObject<{
     username: z.ZodString;
     email: z.ZodString;
-    password: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
-    googleId: z.ZodOptional<z.ZodString>;
-    fullName: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
-    dob: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodString>>;
-}, z.core.$strip>;
+    password: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    username?: string;
+    email?: string;
+    password?: string;
+}, {
+    username?: string;
+    email?: string;
+    password?: string;
+}>;
 export declare const loginSchema: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;
-}, z.core.$strip>;
+}, "strip", z.ZodTypeAny, {
+    email?: string;
+    password?: string;
+}, {
+    email?: string;
+    password?: string;
+}>;
 export declare const createTournamentSchema: z.ZodObject<{
     name: z.ZodString;
-    description: z.ZodOptional<z.ZodString>;
-    organizer: z.ZodOptional<z.ZodString>;
+    type: z.ZodEnum<["round_robin", "knockout", "league"]>;
+    format: z.ZodEnum<["T10", "T20", "ODI", "Test"]>;
     startDate: z.ZodString;
-    endDate: z.ZodOptional<z.ZodString>;
-    location: z.ZodOptional<z.ZodString>;
-    locationType: z.ZodOptional<z.ZodString>;
-    type: z.ZodOptional<z.ZodString>;
-    format: z.ZodOptional<z.ZodString>;
-    teams: z.ZodOptional<z.ZodArray<z.ZodString>>;
-}, z.core.$strip>;
-export declare const updateTournamentSchema: z.ZodObject<{
-    name: z.ZodOptional<z.ZodString>;
-    description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    organizer: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    startDate: z.ZodOptional<z.ZodString>;
-    endDate: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    location: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    locationType: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    type: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    format: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    teams: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString>>>;
-}, z.core.$strip>;
-export declare const createTeamSchema: z.ZodObject<{
-    name: z.ZodString;
-    shortName: z.ZodOptional<z.ZodString>;
-    description: z.ZodOptional<z.ZodString>;
-    color: z.ZodOptional<z.ZodString>;
-    tournament: z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
-export declare const updateTeamSchema: z.ZodObject<{
-    name: z.ZodOptional<z.ZodString>;
-    shortName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    description: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    color: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    tournament: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-}, z.core.$strip>;
-export declare const addPlayerSchema: z.ZodObject<{
-    name: z.ZodString;
-    role: z.ZodEnum<{
-        Batsman: "Batsman";
-        Bowler: "Bowler";
-        "All-rounder": "All-rounder";
-        "Wicket Keeper": "Wicket Keeper";
-    }>;
-    jerseyNumber: z.ZodString;
-    userId: z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
-export declare const addPlayerByUsernameSchema: z.ZodObject<{
-    username: z.ZodString;
-    role: z.ZodOptional<z.ZodEnum<{
-        Batsman: "Batsman";
-        Bowler: "Bowler";
-        "All-rounder": "All-rounder";
-        "Wicket Keeper": "Wicket Keeper";
-    }>>;
-    jerseyNumber: z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
+    venue: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    format?: "T10" | "T20" | "ODI" | "Test";
+    type?: "round_robin" | "knockout" | "league";
+    name?: string;
+    startDate?: string;
+    venue?: string;
+}, {
+    format?: "T10" | "T20" | "ODI" | "Test";
+    type?: "round_robin" | "knockout" | "league";
+    name?: string;
+    startDate?: string;
+    venue?: string;
+}>;
 export declare const createMatchSchema: z.ZodObject<{
     tournamentId: z.ZodString;
-    team1Id: z.ZodString;
-    team2Id: z.ZodString;
-    scheduledDate: z.ZodString;
-    venue: z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
-export declare const updateMatchSchema: z.ZodObject<{
-    tournamentId: z.ZodOptional<z.ZodString>;
-    team1Id: z.ZodOptional<z.ZodString>;
-    team2Id: z.ZodOptional<z.ZodString>;
-    scheduledDate: z.ZodOptional<z.ZodString>;
-    venue: z.ZodOptional<z.ZodOptional<z.ZodString>>;
-    score: z.ZodOptional<z.ZodObject<{
-        team1: z.ZodNumber;
-        team2: z.ZodNumber;
-    }, z.core.$strip>>;
-    status: z.ZodOptional<z.ZodEnum<{
-        cancelled: "cancelled";
-        completed: "completed";
-        in_progress: "in_progress";
-        scheduled: "scheduled";
-    }>>;
-}, z.core.$strip>;
-export declare const validateRequest: (schema: z.ZodSchema) => (req: any, res: any, next: any) => any;
+    team1: z.ZodString;
+    team2: z.ZodString;
+    date: z.ZodString;
+    venue: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    date?: string;
+    venue?: string;
+    tournamentId?: string;
+    team1?: string;
+    team2?: string;
+}, {
+    date?: string;
+    venue?: string;
+    tournamentId?: string;
+    team1?: string;
+    team2?: string;
+}>;
+export declare const addBallSchema: z.ZodObject<{
+    runs: z.ZodOptional<z.ZodNumber>;
+    wicket: z.ZodOptional<z.ZodBoolean>;
+    wide: z.ZodOptional<z.ZodBoolean>;
+    noBall: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    runs?: number;
+    wicket?: boolean;
+    wide?: boolean;
+    noBall?: boolean;
+}, {
+    runs?: number;
+    wicket?: boolean;
+    wide?: boolean;
+    noBall?: boolean;
+}>;
+export declare const validateRequest: (schema: z.ZodSchema) => (req: any, res: any, next: any) => void;
 //# sourceMappingURL=validation.d.ts.map

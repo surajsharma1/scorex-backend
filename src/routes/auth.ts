@@ -1,141 +1,24 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/User';
 import passport from 'passport';
-import { Request, Response, NextFunction } from 'express';
-import { IUser } from '../models/User';
-import { authLimiter } from '../utils/rateLimiters';
-// Import the new controllers (no verifyOTP - OTP completely removed)
-import { register, login, googleLogin } from '../controllers/authController';
+import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-export interface AuthRequest extends Request {
-  user?: IUser;
-}
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/logout', authController.logout);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
 
-// --- Middleware Definitions (Preserved) ---
-
-export const protectAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-    if (!token) {
-      res.status(401).json({ message: 'Not authorized, no token' });
-      return;
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      res.status(401).json({ message: 'Not authorized, user not found' });
-      return;
-    }
-    req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Not authorized, token failed' });
-  }
-};
-
-export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'User role not authorized' });
-      return;
-    }
-    next();
-  };
-};
-
-export const protectOrganizer = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user && (req.user.role === 'organizer' || req.user.role === 'admin')) {
-    next();
-  } else {
-    res.status(403).json({ message: 'User role not authorized' });
-  }
-};
-
-export const protectAdmin = [protectAuth, authorize('admin')];
-
-// --- AUTH ROUTES ---
-
-// 1. Register (No OTP - instant registration)
-router.post('/register', register); 
-
-// 2. Login
-router.post('/login', login);
-
-// 3. Google Login (token-based)
-router.post('/google', googleLogin);
-
-// --- OAUTH ROUTES (Preserved) ---
-
-// Google OAuth
+// OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google/callback', passport.authenticate('google'), authController.googleCallback);
 
-router.get('/google/callback', (req, res, next) => {
-  console.log('[Google OAuth] Callback route hit:', {
-    query: req.query,
-    params: req.params,
-    path: req.path
-  });
-  
-  passport.authenticate('google', (err: any, user: any, info: any) => {
-    console.log('[Google OAuth] Passport authenticate result:', { 
-      err: err?.message, 
-      user: user ? { id: user._id, email: user.email } : null,
-      info: info 
-    });
-    
-    if (err) {
-      console.error('Google OAuth error:', err);
-      return res.status(401).json({ message: 'Unauthorized', error: err.message });
-    }
-    if (!user) {
-      if (info && info.pendingGoogleUser) {
-        // New user: redirect to register with prefilled details
-        const { email, fullName, googleId } = info.pendingGoogleUser;
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        console.log('[Google OAuth] Redirecting new user to register:', { email, fullName, googleId });
-        const registerUrl = `${frontendUrl}/register?email=${encodeURIComponent(email)}&fullName=${encodeURIComponent(fullName)}&googleId=${encodeURIComponent(googleId)}`;
-        res.redirect(registerUrl);
-      } else {
-        console.error('Google OAuth failed - no user and no info:', info);
-        return res.status(401).json({ message: 'Unauthorized', reason: 'No user found' });
-      }
-    } else {
-      // Existing user: generate token and redirect to login page (which will process the token)
-      try {
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-        console.log('[Google OAuth] Existing user, redirecting with token');
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
-      } catch (error) {
-        console.error('Token generation error:', error);
-        res.status(500).json({ message: 'Internal server error' });
-      }
-    }
-  })(req, res, next);
-});
-
-// GitHub OAuth
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+router.get('/github/callback', passport.authenticate('github'), authController.githubCallback);
 
-router.get('/github/callback', authLimiter, passport.authenticate('github', { failureRedirect: '/login' }), async (req, res) => {
-  try {
-    const user = req.user as any;
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?token=${token}`);
-  } catch (error) {
-    console.error('GitHub OAuth callback error:', error);
-    res.redirect('/login');
-  }
-});
-
-// Protected route example
-router.get('/me', protectAuth as any, async (req, res) => {
-  res.json((req as any).user);
-});
+// Protected
+router.get('/me', protect, authController.getMe);
 
 export default router;
+

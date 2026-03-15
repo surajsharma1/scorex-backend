@@ -1,11 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { IUser } from '../models/User';
-export interface AuthRequest extends Request {
-    user?: IUser;
+interface AuthRequest extends Request {
+    user?: any;
 }
-export declare const protect: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
-export declare const authorize: (...roles: string[]) => (req: AuthRequest, res: Response, next: NextFunction) => void;
-export declare const protectOrganizer: (req: AuthRequest, res: Response, next: NextFunction) => void;
-export declare const protectAdmin: ((req: AuthRequest, res: Response, next: NextFunction) => void)[];
-export declare const requirePermission: (permission: string) => (req: AuthRequest, res: Response, next: NextFunction) => void;
+export declare const protect: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+export declare const isAdmin: (req: AuthRequest, res: Response, next: NextFunction) => Response<any, Record<string, any>>;
+export {};
 //# sourceMappingURL=auth.d.ts.map

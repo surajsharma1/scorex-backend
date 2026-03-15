@@ -40,20 +40,22 @@ import './models/index';
 import User from './models/User';
 
 // Route imports
-import authRoutes        from './routes/auth';
-import tournamentRoutes  from './routes/tournaments';
-import teamRoutes        from './routes/teams';
-import matchRoutes       from './routes/matches';
-import bracketRoutes     from './routes/brackets';
-import overlayRoutes     from './routes/overlays';
-import userRoutes        from './routes/users';
-import notificationRoutes from './routes/notifications';
-import statsRoutes       from './routes/stats';
-import friendRoutes      from './routes/friends';
-import clubRoutes        from './routes/clubs';
-import paymentRoutes     from './routes/payments';
-import messageRoutes     from './routes/messages';
-import leaderboardRoutes from './routes/leaderboard';
+import express from 'express';
+import authRoutes from './routes/auth';
+import tournamentRoutes from './routes/tournaments';
+import teamRoutes from './routes/teams';
+import matchRoutes from './routes/matches';
+
+const bracketRoutes = express.Router();
+const overlayRoutes = express.Router();
+const userRoutes = express.Router();
+const notificationRoutes = express.Router();
+const statsRoutes = express.Router();
+const friendRoutes = express.Router();
+const clubRoutes = express.Router();
+const paymentRoutes = express.Router();
+const messageRoutes = express.Router();
+const leaderboardRoutes = express.Router();
 
 // ==========================================
 // 1. DATABASE

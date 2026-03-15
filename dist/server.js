@@ -72,21 +72,20 @@ const logger_1 = __importDefault(require("./utils/logger"));
 // Register all models before any route handler runs
 require("./models/index");
 const User_1 = __importDefault(require("./models/User"));
-// Route imports
 const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));
 const matches_1 = __importDefault(require("./routes/matches"));
-const brackets_1 = __importDefault(require("./routes/brackets"));
-const overlays_1 = __importDefault(require("./routes/overlays"));
-const users_1 = __importDefault(require("./routes/users"));
-const notifications_1 = __importDefault(require("./routes/notifications"));
-const stats_1 = __importDefault(require("./routes/stats"));
-const friends_1 = __importDefault(require("./routes/friends"));
-const clubs_1 = __importDefault(require("./routes/clubs"));
-const payments_1 = __importDefault(require("./routes/payments"));
-const messages_1 = __importDefault(require("./routes/messages"));
-const leaderboard_1 = __importDefault(require("./routes/leaderboard"));
+const bracketRoutes = express_1.default.Router();
+const overlayRoutes = express_1.default.Router();
+const userRoutes = express_1.default.Router();
+const notificationRoutes = express_1.default.Router();
+const statsRoutes = express_1.default.Router();
+const friendRoutes = express_1.default.Router();
+const clubRoutes = express_1.default.Router();
+const paymentRoutes = express_1.default.Router();
+const messageRoutes = express_1.default.Router();
+const leaderboardRoutes = express_1.default.Router();
 // ==========================================
 // 1. DATABASE
 // ==========================================
@@ -234,16 +233,16 @@ app.use('/api/v1/auth', auth_1.default);
 app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/teams', teams_1.default);
 app.use('/api/v1/matches', matches_1.default);
-app.use('/api/v1/brackets', brackets_1.default);
-app.use('/api/v1/overlays', overlays_1.default);
-app.use('/api/v1/users', users_1.default);
-app.use('/api/v1/notifications', notifications_1.default);
-app.use('/api/v1/stats', stats_1.default);
-app.use('/api/v1/friends', friends_1.default);
-app.use('/api/v1/clubs', clubs_1.default);
-app.use('/api/v1/payments', payments_1.default);
-app.use('/api/v1/messages', messages_1.default);
-app.use('/api/v1/leaderboard', leaderboard_1.default);
+app.use('/api/v1/brackets', bracketRoutes);
+app.use('/api/v1/overlays', overlayRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/stats', statsRoutes);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/clubs', clubRoutes);
+app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/leaderboard', leaderboardRoutes);
 // Health check
 app.get('/api/v1/health', async (_req, res) => {
     try {

@@ -1,106 +1,51 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.updateMatchSchema = exports.createMatchSchema = exports.addPlayerByUsernameSchema = exports.addPlayerSchema = exports.updateTeamSchema = exports.createTeamSchema = exports.updateTournamentSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.validateRequest = exports.addBallSchema = exports.createMatchSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
-// User validation schemas
 exports.registerSchema = zod_1.z.object({
-    username: zod_1.z.string()
-        .min(3, 'Username must be at least 3 characters')
-        .max(50, 'Username must be less than 50 characters')
-        .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-    email: zod_1.z.string()
-        .email('Invalid email format')
-        .max(254, 'Email is too long'), // RFC 5321 limit
-    password: zod_1.z.preprocess((val) => (val === '' || val === undefined ? undefined : val), zod_1.z.string()
-        .min(6, 'Password must be at least 6 characters')
-        .max(100, 'Password must be less than 100 characters')
-        .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/, 'Password must contain at least one alphabet, one number, and one special character')
-        .optional() // Optional for Google signup
-    ),
-    googleId: zod_1.z.string().optional(), // Google OAuth signup
-    fullName: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string()
-        .min(2, 'Full name must be at least 2 characters')
-        .max(100, 'Full name must be less than 100 characters')
-        .optional()),
-    dob: zod_1.z.preprocess((val) => (val === '' ? undefined : val), zod_1.z.string().optional()),
-}).refine((data) => {
-    // Either password or googleId must be provided
-    return !!data.password || !!data.googleId;
-}, {
-    message: 'Either password or Google sign-up is required',
-    path: ['password'],
+    username: zod_1.z.string().min(3).max(30),
+    email: zod_1.z.string().email(),
+    password: zod_1.z.string().min(6)
 });
 exports.loginSchema = zod_1.z.object({
-    email: zod_1.z.string().email('Invalid email format'),
-    password: zod_1.z.string().min(1, 'Password is required'),
+    email: zod_1.z.string().email(),
+    password: zod_1.z.string()
 });
-// Tournament validation schemas
-// Note: This schema accepts the frontend payload format
-// Additional fields are validated and mapped in the controller
-// Note: locationType and type are optional - Mongoose handles validation
 exports.createTournamentSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1, 'Tournament name is required').max(100, 'Tournament name must be less than 100 characters'),
-    description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
-    organizer: zod_1.z.string().max(100, 'Organizer name must be less than 100 characters').optional(),
-    startDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date format'),
-    endDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date format').optional(),
-    location: zod_1.z.string().max(200, 'Location must be less than 200 characters').optional(),
-    locationType: zod_1.z.string().optional(), // Let Mongoose validate
-    type: zod_1.z.string().optional(), // Let Mongoose validate
-    format: zod_1.z.string().optional(), // Frontend format field (T20, ODI, etc.)
-    teams: zod_1.z.array(zod_1.z.string()).optional(), // Frontend teams array
+    name: zod_1.z.string().min(1).max(100),
+    type: zod_1.z.enum(['round_robin', 'knockout', 'league']),
+    format: zod_1.z.enum(['T10', 'T20', 'ODI', 'Test']),
+    startDate: zod_1.z.string().datetime(),
+    venue: zod_1.z.string().min(1)
 });
-exports.updateTournamentSchema = exports.createTournamentSchema.partial();
-// Team validation schemas
-exports.createTeamSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1, 'Team name is required').max(100, 'Team name must be less than 100 characters'),
-    shortName: zod_1.z.string().max(10, 'Short name cannot exceed 10 characters').optional(),
-    description: zod_1.z.string().max(500, 'Description must be less than 500 characters').optional(),
-    color: zod_1.z.string().optional(), // accepted but not stored (frontend compat)
-    tournament: zod_1.z.string().optional(),
-});
-exports.updateTeamSchema = exports.createTeamSchema.partial();
-// Player validation schemas
-exports.addPlayerSchema = zod_1.z.object({
-    name: zod_1.z.string().min(1, 'Player name is required').max(100, 'Player name must be less than 100 characters'),
-    role: zod_1.z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role'),
-    jerseyNumber: zod_1.z.string().min(1, 'Jersey number is required'),
-    userId: zod_1.z.string().optional(),
-});
-exports.addPlayerByUsernameSchema = zod_1.z.object({
-    username: zod_1.z.string().min(1, 'Username is required'),
-    role: zod_1.z.enum(['Batsman', 'Bowler', 'All-rounder', 'Wicket Keeper'], 'Invalid role').optional(),
-    jerseyNumber: zod_1.z.string().optional(),
-});
-// Match validation schemas
 exports.createMatchSchema = zod_1.z.object({
-    tournamentId: zod_1.z.string().min(1, 'Tournament ID is required'),
-    team1Id: zod_1.z.string().min(1, 'Team 1 ID is required'),
-    team2Id: zod_1.z.string().min(1, 'Team 2 ID is required'),
-    scheduledDate: zod_1.z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid date format'),
-    venue: zod_1.z.string().max(200, 'Venue must be less than 200 characters').optional(),
+    tournamentId: zod_1.z.string(),
+    team1: zod_1.z.string(),
+    team2: zod_1.z.string(),
+    date: zod_1.z.string().datetime(),
+    venue: zod_1.z.string()
 });
-exports.updateMatchSchema = exports.createMatchSchema.partial().extend({
-    score: zod_1.z.object({
-        team1: zod_1.z.number().int().min(0),
-        team2: zod_1.z.number().int().min(0),
-    }).optional(),
-    status: zod_1.z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).optional(),
+exports.addBallSchema = zod_1.z.object({
+    runs: zod_1.z.number().min(0).max(6).optional(),
+    wicket: zod_1.z.boolean().optional(),
+    wide: zod_1.z.boolean().optional(),
+    noBall: zod_1.z.boolean().optional()
 });
-// Validation middleware
 const validateRequest = (schema) => {
     return (req, res, next) => {
         try {
-            schema.parse(req.body);
+            schema.parse({
+                body: req.body,
+                params: req.params,
+                query: req.query
+            });
             next();
         }
         catch (error) {
-            return res.status(400).json({
+            res.status(400).json({
+                success: false,
                 message: 'Validation failed',
-                errors: error.issues.map((err) => ({
-                    field: err.path.join('.'),
-                    message: err.message,
-                })),
+                errors: error
             });
         }
     };

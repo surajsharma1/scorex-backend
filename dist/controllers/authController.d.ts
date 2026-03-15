@@ -1,39 +1,24 @@
-/**
- * Auth Controller
- * Complete authentication system with email validation, OAuth, JWT
- * Following PROJECT_ALGORITHM.md specifications
- */
 import { Request, Response, NextFunction } from 'express';
 interface AuthRequest extends Request {
     user?: any;
 }
-export declare const register: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const login: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const getMe: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const updateProfile: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const changePassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const forgotPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const resetPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const googleAuth: (req: Request, res: Response) => void;
-export declare const googleCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-export declare const googleLogin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-export declare const githubAuth: (req: Request, res: Response) => void;
-export declare const githubCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-export declare const logout: (req: AuthRequest, res: Response) => Promise<void>;
+export declare const register: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+export declare const login: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+export declare const getMe: (req: AuthRequest, res: Response) => Promise<void>;
+export declare const logout: (req: AuthRequest, res: Response) => void;
+export declare const forgotPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const resetPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const googleCallback: (req: any, res: Response) => void;
+export declare const githubCallback: (req: any, res: Response) => void;
 declare const _default: {
-    register: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    login: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    getMe: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    updateProfile: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    changePassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    forgotPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    resetPassword: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    googleAuth: (req: Request, res: Response) => void;
-    googleCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-    googleLogin: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
-    githubAuth: (req: Request, res: Response) => void;
-    githubCallback: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-    logout: (req: AuthRequest, res: Response) => Promise<void>;
+    register: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+    login: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
+    logout: (req: AuthRequest, res: Response) => void;
+    forgotPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
+    resetPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
+    getMe: (req: AuthRequest, res: Response) => Promise<void>;
+    googleCallback: (req: any, res: Response) => void;
+    githubCallback: (req: any, res: Response) => void;
 };
 export default _default;
 //# sourceMappingURL=authController.d.ts.map

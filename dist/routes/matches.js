@@ -1,34 +1,56 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const matchController_1 = require("../controllers/matchController");
+const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
-const router = (0, express_1.Router)();
-// Public routes
-router.get('/', matchController_1.getMatches);
-router.get('/live', matchController_1.getLiveMatches);
-router.get('/upcoming', matchController_1.getUpcomingMatches);
-router.get('/:id', matchController_1.getMatch);
-// Protected routes
-router.post('/', auth_1.protect, matchController_1.createMatch);
-router.put('/:id', auth_1.protect, matchController_1.updateMatch);
-router.delete('/:id', auth_1.protect, matchController_1.deleteMatch);
-// Match setup
-router.put('/:id/start', auth_1.protect, matchController_1.startMatch);
-router.post('/:id/start', auth_1.protect, matchController_1.startMatch); // alias: some frontends POST
-router.put('/:id/toss', auth_1.protect, matchController_1.startMatch); // alias: toss = start
-router.post('/:id/toss', auth_1.protect, matchController_1.startMatch); // alias
-// Scoring
-router.post('/:id/score', auth_1.protect, matchController_1.addBall);
-// Player management
-router.put('/:id/striker', auth_1.protect, matchController_1.setStriker);
-router.put('/:id/non-striker', auth_1.protect, matchController_1.setNonStriker);
-router.put('/:id/bowler', auth_1.protect, matchController_1.setBowler);
-// Match control
-router.post('/:id/end-innings', auth_1.protect, matchController_1.endInnings);
-router.post('/:id/end', auth_1.protect, matchController_1.endMatch);
-router.put('/:id/status', auth_1.protect, matchController_1.updateMatchStatus);
-// Overlay
-router.put('/:id/overlay', auth_1.protect, matchController_1.setMatchOverlay);
+const matchController = __importStar(require("../controllers/matchController"));
+const validation_1 = require("../utils/validation");
+const validation_2 = require("../utils/validation");
+const router = express_1.default.Router();
+router.get('/', matchController.getMatches);
+router.get('/:id', matchController.getMatch);
+router.get('/live', matchController.getLiveMatches);
+router.post('/', auth_1.protect, (0, validation_2.validateRequest)(validation_1.createMatchSchema), matchController.createMatch);
+router.put('/:id', auth_1.protect, matchController.updateMatch);
+router.delete('/:id', auth_1.protect, matchController.deleteMatch);
+router.post('/:id/start', auth_1.protect, matchController.startMatch);
+router.post('/:id/score', auth_1.protect, (0, validation_2.validateRequest)(validation_1.addBallSchema), matchController.addBall);
+router.post('/:id/end-innings', auth_1.protect, matchController.endInnings);
+router.post('/:id/end', auth_1.protect, matchController.endMatch);
 exports.default = router;
 //# sourceMappingURL=matches.js.map

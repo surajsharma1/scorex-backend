@@ -1,61 +1,38 @@
-/**
- * User Model
- * Complete user authentication and profile management
- * Following PROJECT_ALGORITHM.md specifications
- */
-import mongoose, { Document } from 'mongoose';
-export interface IUser extends Document {
+import { Document, Model } from 'mongoose';
+export declare enum UserRole {
+    ADMIN = "admin",
+    ORGANIZER = "organizer",
+    VIEWER = "viewer"
+}
+export declare enum MembershipLevel {
+    FREE = 0,
+    PREMIUM = 1,
+    ENTERPRISE = 2
+}
+interface IUser extends Document {
     username: string;
     email: string;
     password?: string;
-    role: 'viewer' | 'organizer' | 'admin';
-    membershipLevel: 0 | 1 | 2;
-    membershipExpiresAt?: Date;
-    membershipStartedAt?: Date;
-    membershipTimeline?: {
-        level: number;
-        status: 'active' | 'expired' | 'upgraded' | 'downgraded' | 'cancelled';
-        startedAt: Date;
-        endedAt?: Date;
-        paymentId?: string;
-        notes?: string;
-    }[];
-    otp?: string;
-    otpExpires?: Date;
-    isVerified: boolean;
     googleId?: string;
     githubId?: string;
-    fullName?: string;
-    dob?: Date;
-    friends: mongoose.Types.ObjectId[];
-    profilePicture?: string;
-    bio?: string;
-    notificationPreferences?: {
-        email: boolean;
-        push: boolean;
-        sms: boolean;
-        tournamentUpdates: boolean;
-        matchResults: boolean;
-        systemAnnouncements: boolean;
+    role: UserRole;
+    membership: {
+        level: MembershipLevel;
+        expires: Date;
+        paymentId?: string;
     };
-    paymentHistory?: {
-        amount: number;
-        currency: string;
-        level: string;
-        duration: string;
-        paymentIntentId: string;
-        status: string;
-        date: Date;
-    }[];
-    deleted: boolean;
-    deletedAt?: Date;
-    createdAt: Date;
-    updatedAt: Date;
+    avatar?: string;
+    verified: boolean;
+    lastLogin: Date;
+    preferences: {
+        notifications: boolean;
+        darkMode: boolean;
+        language: string;
+    };
     comparePassword(candidatePassword: string): Promise<boolean>;
     isMembershipActive(): boolean;
+    hasPermission(permission: string): boolean;
 }
-declare const _default: mongoose.Model<IUser, {}, {}, {}, mongoose.Document<unknown, {}, IUser> & IUser & {
-    _id: mongoose.Types.ObjectId;
-}, any>;
-export default _default;
+declare const User: Model<IUser>;
+export default User;
 //# sourceMappingURL=User.d.ts.map
