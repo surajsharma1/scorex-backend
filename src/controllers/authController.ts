@@ -69,11 +69,9 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
 export const googleCallback = (req: any, res: Response) => {
   const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   
-  // Dynamic frontend URL - prioritize Render backend detection, fallback Render frontend
-  const isRenderBackend = req.get('host')?.includes('onrender.com');
-  const frontendUrl = isRenderBackend 
-    ? (process.env.RENDER_FRONTEND_URL || 'https://your-frontend.onrender.com')
-    : (process.env.FRONTEND_URL || 'http://localhost:5173');
+  // Production frontend URLs - Render backend uses these
+  const frontendUrl = process.env.FRONTEND_URL || 
+    (req.get('host')?.includes('onrender.com') ? 'https://scorex-live.vercel.app' : 'http://localhost:5173');
   
   res.cookie('authToken', token, { 
     httpOnly: true, 
@@ -82,19 +80,9 @@ export const googleCallback = (req: any, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000 
   });
   
-  if (!req.user.username || !req.user.username.includes('@')) {
-    // New/incomplete user - redirect to register
-    const params = new URLSearchParams({
-      email: req.user.email || '',
-      fullName: req.user.fullName || '',
-      googleId: req.user.googleId || ''
-    });
-    res.redirect(`${frontendUrl}/register?${params}`);
-  } else {
-    // Existing user - redirect to dashboard  
-    const fragment = `token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
-    res.redirect(`${frontendUrl}/dashboard#${fragment}`);
-  }
+  // For existing users with username (your case) - direct dashboard with token
+  const fragment = `token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
+  res.redirect(`${frontendUrl}/oauth/callback#${fragment}`);
 };
 
 export const githubCallback = googleCallback;
