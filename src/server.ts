@@ -70,10 +70,11 @@ const server = createServer(app);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+  'https://scorex-frontend.vercel.app',
   'https://scorex-live.vercel.app',
-  'https://scorex-frontend-hyz9nf3s7-suraj-sharmas-projects-3413126b.vercel.app',
-  'https://*.vercel.app'  // Vercel preview/staging
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+  'https://*.vercel.app',
+  'https://*.onrender.com'
 ].filter(Boolean);
 
 export const io = new Server(server, {

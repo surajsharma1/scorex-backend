@@ -69,22 +69,39 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
 export const googleCallback = (req: any, res: Response) => {
   const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   
-  // Store token and user for client pickup if needed
-  res.cookie('authToken', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+  // For production (Vercel/Render) and local - set frontend URLs
+  const frontendUrls = [
+    'https://scorex-frontend.vercel.app', 
+    'https://scorex-live.vercel.app',
+    'http://localhost:5173'
+  ];
   
-  if (!req.user.username) {
-    // New user - redirect to frontend register with params for completion
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  let frontendUrl = frontendUrls.find(url => req.get('origin') === url.split('/')[2] || req.get('host') === url.split('/')[2]) || 'http://localhost:5173';
+  
+  // Detect deployed backend
+  if (req.get('host')?.includes('onrender.com') || req.get('host')?.includes('vercel.app')) {
+    frontendUrl = 'https://scorex-frontend.vercel.app';
+  }
+  
+  res.cookie('authToken', token, { 
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 
+  });
+  
+  if (!req.user.username || !req.user.username.includes('@')) {
+    // New/incomplete user - redirect to register
     const params = new URLSearchParams({
-      email: req.user.email,
+      email: req.user.email || '',
       fullName: req.user.fullName || '',
       googleId: req.user.googleId || ''
     });
     res.redirect(`${frontendUrl}/register?${params}`);
   } else {
-    // Existing user - redirect to dashboard with token in fragment/query for client pickup
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/dashboard#token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`);
+    // Existing user - redirect to dashboard  
+    const fragment = `token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
+    res.redirect(`${frontendUrl}/dashboard#${fragment}`);
   }
 };
 
