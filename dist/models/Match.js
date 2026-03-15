@@ -95,22 +95,54 @@ MatchSchema.methods.getMaxBalls = function () {
     return map[this.format] ?? 120;
 };
 MatchSchema.methods.startMatch = async function (tossWinnerId, decision) {
+    // Defensive: idempotent, skip if already started
+    if (this.status === 'live' && this.tossWinner) {
+        console.log(`ℹ️ Match ${this._id} already started (tossWinner: ${this.tossWinner}, decision: ${this.tossDecision})`);
+        return;
+    }
+    // Reset if force-restart or invalid state
+    if (this.status !== 'upcoming' || !this.innings?.length) {
+        this.innings = [];
+        this.currentInnings = 1;
+        this.team1Score = this.team1Wickets = this.team1Overs = 0;
+        this.team2Score = this.team2Wickets = this.team2Overs = 0;
+        this.currentOver = this.currentBall = 0;
+    }
     this.tossWinner = tossWinnerId;
     this.tossDecision = decision;
     this.status = 'live';
     const battingTeamId = decision === 'bat'
         ? tossWinnerId
         : (tossWinnerId.toString() === this.team1.toString() ? this.team2 : this.team1);
-    this.innings = [{
-            teamId: battingTeamId, status: 'in_progress',
-            score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
-            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-            batsmen: [], bowlers: [], fallOfWickets: []
-        }];
+    this.innings[0] = {
+        teamId: battingTeamId, status: 'in_progress',
+        score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
+        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
+        batsmen: [], bowlers: [], fallOfWickets: []
+    };
     this.currentInnings = 1;
     this.currentOver = 0;
     this.currentBall = 0;
-    await this.save();
+    try {
+        await this.save();
+    }
+    catch (error) {
+        if (error.name === 'VersionError') {
+            // Optimistic lock failed - refetch and retry once
+            const freshDoc = await this.constructor.findById(this._id);
+            if (freshDoc) {
+                console.log(`🔄 VersionError retry for match ${this._id}: status=${freshDoc.status}`);
+                await freshDoc.startMatch(tossWinnerId, decision);
+                Object.assign(this, freshDoc.toObject());
+            }
+            else {
+                throw error;
+            }
+        }
+        else {
+            throw error;
+        }
+    }
 };
 MatchSchema.methods.addBall = async function (ballData) {
     if (this.status !== 'live')

@@ -179,17 +179,96 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       return res.status(400).json({ success: false, message: `Match is not upcoming (status: '${match.status}')` });
     }
 
-    console.log(`🎯 Calling model.startMatch(${tossWinner}, ${decision})`);
-    await match.startMatch(new mongoose.Types.ObjectId(tossWinner), decision as 'bat' | 'bowl');
+    // Atomic start with race condition protection
+    const tossWinnerObjId = new mongoose.Types.ObjectId(tossWinner);
+    const battingTeamId = decision === 'bat'
+      ? tossWinnerObjId
+      : (tossWinnerObjId.toString() === match.team1.toString() ? match.team2 : match.team1);
 
-    await match.populate([
-      { path: 'team1', select: 'name shortName logo' },
-      { path: 'team2', select: 'name shortName logo' },
-      { path: 'tossWinner', select: 'name shortName' },
-    ]);
+    const updateCondition: any = { _id: match._id };
+    if (!forceStart) {
+      updateCondition.status = 'upcoming';
+      updateCondition.tossWinner = null;
+    }
 
-    console.log('✅ Match started successfully:', match._id);
-    res.json({ success: true, message: 'Match started successfully', data: match });
+    const updateFields = {
+      tossWinner: tossWinnerObjId,
+      tossDecision: decision,
+      status: 'live',
+      innings: [{
+        teamId: battingTeamId,
+        status: 'in_progress' as const,
+        score: 0,
+        wickets: 0,
+        overs: 0,
+        balls: 0,
+        runRate: 0,
+        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
+        batsmen: [],
+        bowlers: [],
+        fallOfWickets: []
+      }],
+      currentInnings: 1,
+      currentOver: 0,
+      currentBall: 0,
+      team1Score: 0,
+      team1Wickets: 0,
+      team1Overs: 0,
+      team2Score: 0,
+      team2Wickets: 0,
+      team2Overs: 0
+    };
+
+    console.log('🚀 Atomic startMatch update:', { condition: updateCondition, forceStart });
+
+    const updatedMatch = await Match.findOneAndUpdate(
+      updateCondition,
+      updateFields,
+      { new: true, runValidators: true }
+    );
+
+    let finalMatch = updatedMatch;
+    if (!updatedMatch) {
+      // Already started or invalid state - fetch current
+      console.log('⚠️  Start condition failed - already started? Fetching current state');
+      finalMatch = await Match.findById(match._id)
+        .populate('team1', 'name shortName logo')
+        .populate('team2', 'name shortName logo')
+        .populate('tossWinner', 'name shortName');
+      
+      if (!forceStart && finalMatch?.status !== 'live') {
+        return res.status(409).json({ 
+          success: false, 
+          message: `Match cannot be started (status: ${finalMatch?.status}, tossWinner: ${finalMatch?.tossWinner ? 'set' : 'null'})`,
+          data: finalMatch 
+        });
+      }
+      
+      if (forceStart) {
+        console.log('✅ Force start succeeded (was already live)');
+      } else {
+        console.log('ℹ️  Duplicate start request ignored - already live');
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Match already started', 
+          data: finalMatch 
+        });
+      }
+    }
+
+    if (!finalMatch?.tossWinner) {
+      // Rare fallback
+      console.warn('⚠️  No tossWinner after update - refetching');
+      finalMatch = await Match.findById(match._id)
+        .populate([
+          { path: 'team1', select: 'name shortName logo' },
+          { path: 'team2', select: 'name shortName logo' },
+          { path: 'tossWinner', select: 'name shortName' },
+        ]);
+    }
+
+    console.log('✅ Match started successfully:', finalMatch._id);
+    res.json({ success: true, message: 'Match started successfully', data: finalMatch });
   } catch (error: any) {
     console.error('💥 startMatch ERROR:', {
       matchId: req.params.id,
