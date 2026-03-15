@@ -68,7 +68,24 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
 
 export const googleCallback = (req: any, res: Response) => {
   const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
-  res.json({ success: true, token, user: req.user });
+  
+  // Store token and user for client pickup if needed
+  res.cookie('authToken', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+  
+  if (!req.user.username) {
+    // New user - redirect to frontend register with params for completion
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const params = new URLSearchParams({
+      email: req.user.email,
+      fullName: req.user.fullName || '',
+      googleId: req.user.googleId || ''
+    });
+    res.redirect(`${frontendUrl}/register?${params}`);
+  } else {
+    // Existing user - redirect to dashboard with token in fragment/query for client pickup
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/dashboard#token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`);
+  }
 };
 
 export const githubCallback = googleCallback;

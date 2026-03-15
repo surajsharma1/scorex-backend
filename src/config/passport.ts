@@ -62,13 +62,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           } else {
             // 3. If user doesn't exist, create a new user
             const newUser = await User.create({
-              username: email.split('@')[0] + Math.floor(Math.random() * 1000), // Generate unique username
+              username: email.split('@')[0], // Use email prefix as username (let user complete)
               email: email,
               googleId: googleId,
               fullName: fullName,
               isVerified: true, // Google verified email
               role: 'viewer',
-              password: undefined // No password for Google users
+              password: undefined, // No password for Google users
+              // Username will be completed in frontend Register
             });
             return done(null, newUser);
           }
