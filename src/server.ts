@@ -192,7 +192,8 @@ app.use('/overlay', express.static(localOverlaysPath));
 // ==========================================
 // 6. API ROUTES
 // ==========================================
-app.use('/api/v1/auth',          authRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth-success', require('./routes/auth-success'));
 app.use('/api/v1/tournaments',   tournamentRoutes);
 app.use('/api/v1/teams',         teamRoutes);
 app.use('/api/v1/matches',       matchRoutes);
