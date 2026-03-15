@@ -57,12 +57,32 @@ const UserSchema = new mongoose_1.Schema({
     password: { type: String, minlength: 6, select: false },
     googleId: { type: String },
     githubId: { type: String },
+    fullName: { type: String, trim: true },
     role: { type: String, enum: Object.values(UserRole), default: UserRole.VIEWER },
-    membership: {
-        level: { type: Number, enum: Object.values(MembershipLevel), default: MembershipLevel.FREE },
-        expires: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-        paymentId: String
+    membershipLevel: {
+        type: Number,
+        enum: [0, 1, 2],
+        default: 0
     },
+    membershipStartedAt: { type: Date },
+    membershipExpiresAt: { type: Date },
+    membershipTimeline: [{
+            level: { type: Number, required: true },
+            status: { type: String, required: true },
+            startedAt: { type: Date, required: true },
+            endedAt: { type: Date },
+            notes: String,
+            paymentId: String
+        }],
+    paymentHistory: [{
+            amount: Number,
+            currency: { type: String, default: 'USD' },
+            level: String,
+            duration: String,
+            paymentIntentId: String,
+            status: String,
+            date: { type: Date, default: Date.now }
+        }],
     avatar: { type: String, default: '/default-avatar.png' },
     verified: { type: Boolean, default: false },
     lastLogin: { type: Date, default: Date.now },
@@ -85,10 +105,10 @@ UserSchema.pre('save', async function (next) {
 UserSchema.methods.comparePassword = async function (candidatePassword) {
     return bcryptjs_1.default.compare(candidatePassword, this.password || '');
 };
-// Check active membership
+// Check active membership - Updated for flat fields
 UserSchema.methods.isMembershipActive = function () {
-    return this.membership.level > MembershipLevel.FREE &&
-        new Date() < new Date(this.membership.expires);
+    return this.membershipLevel > 0 &&
+        (!this.membershipExpiresAt || new Date() < new Date(this.membershipExpiresAt));
 };
 // Permission check
 UserSchema.methods.hasPermission = function (permission) {

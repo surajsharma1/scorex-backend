@@ -72,6 +72,7 @@ const logger_1 = __importDefault(require("./utils/logger"));
 // Register all models before any route handler runs
 require("./models/index");
 const User_1 = __importDefault(require("./models/User"));
+// Route imports
 const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const teams_1 = __importDefault(require("./routes/teams"));

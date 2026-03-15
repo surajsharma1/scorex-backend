@@ -1,6 +1,6 @@
 import { Document, Types } from 'mongoose';
 import { createClient, RedisClientType } from 'redis';
-import { ITournament } from '../models/Tournament';
+// import { ITournament } from '../models/Tournament';
 
 export class CacheService {
   getTournamentsListKey(): string {

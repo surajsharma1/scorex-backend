@@ -47,13 +47,37 @@ export const updateMembership = async (req: AuthRequest, res: Response, next: Ne
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     
-    user.membership.level = req.body.level;
-    user.membership.expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+    user.membershipLevel = req.body.level;
+    user.membershipExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
     await user.save();
     
     res.json({ success: true, data: user });
   } catch (error) { next(error); }
 };
 
-export default { getUsers, getUser, updateProfile, updateMembership };
+export const getProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.user?._id).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: user });
+  } catch (error) { next(error); }
+};
+
+export const updateRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    user.role = req.body.role;
+    await user.save();
+    
+    res.json({ success: true, data: user });
+  } catch (error) { next(error); }
+};
+
+export default { 
+  searchUsers, getUsers, getUser, getProfile, 
+  updateProfile, updateRole, updateMembership 
+};
+
 

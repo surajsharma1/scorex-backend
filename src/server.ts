@@ -40,7 +40,6 @@ import './models/index';
 import User from './models/User';
 
 // Route imports
-import express from 'express';
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
 import teamRoutes from './routes/teams';

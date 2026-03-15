@@ -43,10 +43,10 @@ const tournamentController = __importStar(require("../controllers/tournamentCont
 const validation_2 = require("../utils/validation");
 const router = express_1.default.Router();
 router.get('/', tournamentController.getTournaments);
-router.get('/:id', tournamentController.getTournamentById || ((req, res) => res.status(501).json({ success: false, message: 'TODO' })));
+router.get('/:id', tournamentController.getTournamentById);
 router.post('/', auth_1.protect, (0, validation_1.validateRequest)(validation_2.createTournamentSchema), tournamentController.createTournament);
-router.put('/:id', auth_1.protect, tournamentController.updateTournament || ((req, res) => res.status(501).json({ success: false, message: 'TODO' })));
-router.delete('/:id', auth_1.protect, tournamentController.deleteTournament || ((req, res) => res.status(501).json({ success: false, message: 'TODO' })));
+router.put('/:id', auth_1.protect, tournamentController.updateTournament);
+router.delete('/:id', auth_1.protect, tournamentController.deleteTournament);
 router.post('/:id/bracket', auth_1.protect, tournamentController.generateBracket);
 router.post('/:id/start', auth_1.protect, tournamentController.startTournament);
 exports.default = router;

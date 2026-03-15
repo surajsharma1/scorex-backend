@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.startTournament = exports.generateBracket = exports.getTournaments = exports.createTournament = void 0;
+exports.deleteTournament = exports.updateTournament = exports.getTournamentById = exports.startTournament = exports.generateBracket = exports.getTournaments = exports.createTournament = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const createTournament = async (req, res, next) => {
     try {
@@ -63,9 +63,48 @@ const startTournament = async (req, res, next) => {
     }
 };
 exports.startTournament = startTournament;
+const getTournamentById = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findById(req.params.id).populate('organizer teams');
+        if (!tournament)
+            return res.status(404).json({ success: false, message: 'Tournament not found' });
+        res.json({ success: true, data: tournament });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getTournamentById = getTournamentById;
+const updateTournament = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }).populate('organizer teams');
+        if (!tournament)
+            return res.status(404).json({ success: false, message: 'Tournament not found' });
+        res.json({ success: true, data: tournament });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.updateTournament = updateTournament;
+const deleteTournament = async (req, res, next) => {
+    try {
+        const tournament = await Tournament_1.default.findByIdAndDelete(req.params.id);
+        if (!tournament)
+            return res.status(404).json({ success: false, message: 'Tournament not found' });
+        res.json({ success: true, message: 'Tournament deleted' });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.deleteTournament = deleteTournament;
 exports.default = {
     createTournament: exports.createTournament,
     getTournaments: exports.getTournaments,
+    getTournamentById: exports.getTournamentById,
+    updateTournament: exports.updateTournament,
+    deleteTournament: exports.deleteTournament,
     generateBracket: exports.generateBracket,
     startTournament: exports.startTournament
 };

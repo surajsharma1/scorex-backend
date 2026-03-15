@@ -13,28 +13,7 @@ export enum TournamentStatus {
   COMPLETED = 'completed'
 }
 
-interface ITournament extends Document {
-  name: string;
-  type: TournamentType;
-  format: string; // 'T10', 'T20', 'ODI', 'Test'
-  status: TournamentStatus;
-  organizer: mongoose.Types.ObjectId;
-  teams: mongoose.Types.ObjectId[];
-  matches: mongoose.Types.ObjectId[];
-  startDate: Date;
-  endDate: Date;
-  venue: string;
-  prizePool: number;
-  rules: string;
-  pointsTable?: any[];
-  bracket?: any[];
 
-  // Methods
-  generateBracket(): Promise<void>;
-  calculatePointsTable(): Promise<void>;
-  addTeam(teamId: mongoose.Types.ObjectId): Promise<void>;
-  isUserOwner(userId: string): boolean;
-}
 
 const TournamentSchema = new Schema<ITournament>({
   name: { type: String, required: true, trim: true, maxlength: 100 },
@@ -177,6 +156,29 @@ TournamentSchema.methods.addTeam = async function(teamId: mongoose.Types.ObjectI
 TournamentSchema.methods.isUserOwner = function(userId: string): boolean {
   return this.organizer.toString() === userId;
 };
+
+export interface ITournament extends Document {
+  name: string;
+  type: TournamentType;
+  format: string;
+  status: TournamentStatus;
+  organizer: mongoose.Types.ObjectId;
+  teams: mongoose.Types.ObjectId[];
+  matches: mongoose.Types.ObjectId[];
+  startDate: Date;
+  endDate: Date;
+  venue: string;
+  prizePool: number;
+  rules: string;
+  pointsTable?: any[];
+  bracket?: any[];
+
+  // Methods
+  generateBracket(): Promise<void>;
+  calculatePointsTable(): Promise<void>;
+  addTeam(teamId: mongoose.Types.ObjectId): Promise<void>;
+  isUserOwner(userId: string): boolean;
+}
 
 export default mongoose.model<ITournament>('Tournament', TournamentSchema);
 

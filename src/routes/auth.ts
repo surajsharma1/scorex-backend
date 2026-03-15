@@ -1,6 +1,7 @@
 import express from 'express';
 import passport from 'passport';
 import { protect } from '../middleware/auth';
+import * as authController from '../controllers/authController';
 
 const router = express.Router();
 

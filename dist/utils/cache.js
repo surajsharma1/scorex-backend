@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cacheService = exports.CacheService = void 0;
 const redis_1 = require("redis");
+// import { ITournament } from '../models/Tournament';
 class CacheService {
     constructor() {
         this.client = null;

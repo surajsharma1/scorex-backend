@@ -9,18 +9,34 @@ export declare enum MembershipLevel {
     PREMIUM = 1,
     ENTERPRISE = 2
 }
-interface IUser extends Document {
+export interface IUser extends Document {
     username: string;
     email: string;
     password?: string;
     googleId?: string;
     githubId?: string;
+    fullName?: string;
     role: UserRole;
-    membership: {
-        level: MembershipLevel;
-        expires: Date;
+    membershipLevel: 0 | 1 | 2;
+    membershipStartedAt?: Date;
+    membershipExpiresAt?: Date;
+    membershipTimeline: Array<{
+        level: number;
+        status: string;
+        startedAt: Date;
+        endedAt?: Date;
+        notes?: string;
         paymentId?: string;
-    };
+    }>;
+    paymentHistory: Array<{
+        amount: number;
+        currency: string;
+        level: string;
+        duration: string;
+        paymentIntentId: string;
+        status: string;
+        date: Date;
+    }>;
     avatar?: string;
     verified: boolean;
     lastLogin: Date;

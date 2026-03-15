@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateMembership = exports.updateProfile = exports.getUser = exports.getUsers = exports.searchUsers = void 0;
+exports.updateRole = exports.getProfile = exports.updateMembership = exports.updateProfile = exports.getUser = exports.getUsers = exports.searchUsers = void 0;
 const User_1 = __importDefault(require("../models/User"));
 const searchUsers = async (req, res, next) => {
     try {
@@ -58,8 +58,8 @@ const updateMembership = async (req, res, next) => {
         const user = await User_1.default.findById(req.params.id);
         if (!user)
             return res.status(404).json({ success: false, message: 'User not found' });
-        user.membership.level = req.body.level;
-        user.membership.expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year
+        user.membershipLevel = req.body.level;
+        user.membershipExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
         await user.save();
         res.json({ success: true, data: user });
     }
@@ -68,5 +68,34 @@ const updateMembership = async (req, res, next) => {
     }
 };
 exports.updateMembership = updateMembership;
-exports.default = { getUsers: exports.getUsers, getUser: exports.getUser, updateProfile: exports.updateProfile, updateMembership: exports.updateMembership };
+const getProfile = async (req, res, next) => {
+    try {
+        const user = await User_1.default.findById(req.user?._id).select('-password');
+        if (!user)
+            return res.status(404).json({ success: false, message: 'User not found' });
+        res.json({ success: true, data: user });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getProfile = getProfile;
+const updateRole = async (req, res, next) => {
+    try {
+        const user = await User_1.default.findById(req.params.id);
+        if (!user)
+            return res.status(404).json({ success: false, message: 'User not found' });
+        user.role = req.body.role;
+        await user.save();
+        res.json({ success: true, data: user });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.updateRole = updateRole;
+exports.default = {
+    searchUsers: exports.searchUsers, getUsers: exports.getUsers, getUser: exports.getUser, getProfile: exports.getProfile,
+    updateProfile: exports.updateProfile, updateRole: exports.updateRole, updateMembership: exports.updateMembership
+};
 //# sourceMappingURL=userController.js.map

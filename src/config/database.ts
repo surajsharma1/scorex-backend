@@ -22,9 +22,9 @@ const connectDB = async (): Promise<typeof mongoose> => {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
-      bufferMaxEntries: 0,
       bufferCommands: false,
     });
+
     
     console.log('✅ Database connected successfully');
     return cachedConnection;

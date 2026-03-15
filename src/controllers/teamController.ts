@@ -2,8 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Team from '../models/Team';
 import Tournament from '../models/Tournament';
-import Team from '../models/Team';
-import Tournament from '../models/Tournament';
 
 interface AuthRequest extends Request { user?: any; }
 

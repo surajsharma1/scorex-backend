@@ -56,10 +56,42 @@ export const startTournament = async (req: AuthRequest, res: Response, next: Nex
   } catch (error) { next(error); }
 };
 
+export const getTournamentById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id).populate('organizer teams');
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    res.json({ success: true, data: tournament });
+  } catch (error) { next(error); }
+};
+
+export const updateTournament = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('organizer teams');
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    res.json({ success: true, data: tournament });
+  } catch (error) { next(error); }
+};
+
+export const deleteTournament = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const tournament = await Tournament.findByIdAndDelete(req.params.id);
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    res.json({ success: true, message: 'Tournament deleted' });
+  } catch (error) { next(error); }
+};
+
 export default {
   createTournament,
-  getTournaments, 
+  getTournaments,
+  getTournamentById,
+  updateTournament,
+  deleteTournament,
   generateBracket,
   startTournament
 };
+
 

@@ -13,18 +13,34 @@ export enum MembershipLevel {
   ENTERPRISE = 2
 }
 
-interface IUser extends Document {
+export interface IUser extends Document {
   username: string;
   email: string;
   password?: string;
   googleId?: string;
   githubId?: string;
+  fullName?: string;
   role: UserRole;
-  membership: {
-    level: MembershipLevel;
-    expires: Date;
+  membershipLevel: 0 | 1 | 2;
+  membershipStartedAt?: Date;
+  membershipExpiresAt?: Date;
+  membershipTimeline: Array<{
+    level: number;
+    status: string;
+    startedAt: Date;
+    endedAt?: Date;
+    notes?: string;
     paymentId?: string;
-  };
+  }>;
+  paymentHistory: Array<{
+    amount: number;
+    currency: string;
+    level: string;
+    duration: string;
+    paymentIntentId: string;
+    status: string;
+    date: Date;
+  }>;
   avatar?: string;
   verified: boolean;
   lastLogin: Date;
@@ -46,12 +62,32 @@ const UserSchema = new Schema<IUser>({
   password: { type: String, minlength: 6, select: false },
   googleId: { type: String },
   githubId: { type: String },
+  fullName: { type: String, trim: true },
   role: { type: String, enum: Object.values(UserRole), default: UserRole.VIEWER },
-  membership: {
-    level: { type: Number, enum: Object.values(MembershipLevel), default: MembershipLevel.FREE },
-    expires: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-    paymentId: String
+  membershipLevel: { 
+    type: Number, 
+    enum: [0, 1, 2], 
+    default: 0 
   },
+  membershipStartedAt: { type: Date },
+  membershipExpiresAt: { type: Date },
+  membershipTimeline: [{
+    level: { type: Number, required: true },
+    status: { type: String, required: true },
+    startedAt: { type: Date, required: true },
+    endedAt: { type: Date },
+    notes: String,
+    paymentId: String
+  }],
+  paymentHistory: [{
+    amount: Number,
+    currency: { type: String, default: 'USD' },
+    level: String,
+    duration: String,
+    paymentIntentId: String,
+    status: String,
+    date: { type: Date, default: Date.now }
+  }],
   avatar: { type: String, default: '/default-avatar.png' },
   verified: { type: Boolean, default: false },
   lastLogin: { type: Date, default: Date.now },
@@ -76,10 +112,10 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password || '');
 };
 
-// Check active membership
+// Check active membership - Updated for flat fields
 UserSchema.methods.isMembershipActive = function(): boolean {
-  return this.membership.level > MembershipLevel.FREE && 
-         new Date() < new Date(this.membership.expires);
+  return this.membershipLevel > 0 && 
+         (!this.membershipExpiresAt || new Date() < new Date(this.membershipExpiresAt));
 };
 
 // Permission check

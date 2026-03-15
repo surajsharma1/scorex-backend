@@ -9,7 +9,7 @@ export declare enum TournamentStatus {
     ONGOING = "ongoing",
     COMPLETED = "completed"
 }
-interface ITournament extends Document {
+export interface ITournament extends Document {
     name: string;
     type: TournamentType;
     format: string;

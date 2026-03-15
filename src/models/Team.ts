@@ -87,8 +87,5 @@ TeamSchema.methods.updateStats = async function(): Promise<void> {
   await this.save();
 };
 
-// Fixed TS syntax errors
-import mongoose from 'mongoose';
-
 export default mongoose.model<ITeam>('Team', TeamSchema);
 
