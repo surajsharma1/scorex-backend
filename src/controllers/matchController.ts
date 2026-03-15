@@ -142,10 +142,16 @@ export const deleteMatch = async (req: AuthRequest, res: Response, next: NextFun
 // ─────────────────────────────────────────
 export const startMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { tossWinner, decision } = req.body;
+    const { tossWinner, decision, forceStart = false } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    if (match.status !== 'upcoming') return res.status(400).json({ success: false, message: 'Match is not upcoming' });
+    
+    // Allow force start for admins or explicit bypass
+    if (!forceStart && match.status !== 'upcoming') {
+      return res.status(400).json({ success: false, message: 'Match is not upcoming' });
+    }
+    
+    console.log(`🎯 Starting match ${match._id}: status='${match.status}' → forceStart=${forceStart}`);
 
     await match.startMatch(new mongoose.Types.ObjectId(tossWinner), decision);
 
