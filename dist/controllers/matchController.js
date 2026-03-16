@@ -7,19 +7,6 @@ exports.getLiveMatches = exports.updateMatchStatus = exports.endMatch = exports.
 const Match_1 = __importDefault(require("../models/Match"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
-// ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
-const teamPopulateOptions = [
-    {
-        path: 'team1',
-        select: 'name shortName logo players',
-        populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' }
-    },
-    {
-        path: 'team2',
-        select: 'name shortName logo players',
-        populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' }
-    }
-];
 // ─── GET /matches ─────────────────────────────────────────────────────────────
 const getMatches = async (req, res, next) => {
     try {
@@ -54,9 +41,10 @@ exports.getMatches = getMatches;
 const getMatch = async (req, res, next) => {
     try {
         const match = await Match_1.default.findById(req.params.id)
-            .populate(teamPopulateOptions) // Uses the reusable deep populate
-            .populate('tournamentId')
-            .populate('winner');
+            .populate('team1', 'name shortName logo players')
+            .populate('team2', 'name shortName logo players')
+            .populate('tournamentId', 'name format')
+            .populate('winner', 'name shortName');
         if (!match)
             return res.status(404).json({ success: false, message: 'Match not found' });
         res.json({ success: true, data: match });
@@ -171,7 +159,10 @@ const startMatch = async (req, res, next) => {
             nonStriker,
             bowler
         });
-        await match.populate(teamPopulateOptions); // FIX: Deep populate for real-time
+        await match.populate([
+            { path: 'team1', select: 'name shortName logo players' },
+            { path: 'team2', select: 'name shortName logo players' }
+        ]);
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('matchStarted', match.toObject());
@@ -223,7 +214,10 @@ const addBall = async (req, res, next) => {
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
         const result = await match.addBall(req.body);
-        await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+        await match.populate([
+            { path: 'team1', select: 'name shortName logo' },
+            { path: 'team2', select: 'name shortName logo' }
+        ]);
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('scoreUpdate', {
@@ -261,7 +255,10 @@ const undoLastBall = async (req, res, next) => {
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
         await match.undoLastBall();
-        await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+        await match.populate([
+            { path: 'team1', select: 'name shortName logo' },
+            { path: 'team2', select: 'name shortName logo' }
+        ]);
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
@@ -281,7 +278,7 @@ const endInnings = async (req, res, next) => {
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
         await match.endInnings();
-        await match.populate(teamPopulateOptions); // FIX: Deep populate for next innings
+        await match.populate('team1 team2', 'name shortName');
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
