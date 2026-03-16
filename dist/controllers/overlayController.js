@@ -237,8 +237,6 @@ const getMembershipStatus = async (req, res) => {
 };
 exports.getMembershipStatus = getMembershipStatus;
 // ─── serveOverlay ─────────────────────────────────────────────────────────────
-// FIX #2: was decoding JWT with atob() — never verified the signature.
-// Now uses jwt.verify() with the same secret used everywhere else.
 const serveOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
@@ -281,7 +279,13 @@ const serveOverlay = async (req, res) => {
         }
         const templateId = req.query.template || overlay.template || 'lvl1-modern-bar';
         const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
-        // Locate the template file\n    const searchPaths = [\n      path.resolve(process.cwd(), 'public/overlays'),\n      path.resolve(__dirname, '../public/overlays'),\n      path.resolve(__dirname, '../../public/overlays'),\n      path.resolve(__dirname, '../../../public/overlays'),\n    ];
+        // Locate the template file
+        const searchPaths = [
+            path_1.default.resolve(process.cwd(), 'public/overlays'),
+            path_1.default.resolve(__dirname, '../public/overlays'),
+            path_1.default.resolve(__dirname, '../../public/overlays'),
+            path_1.default.resolve(__dirname, '../../../public/overlays'),
+        ];
         let templatePath = null;
         for (const dir of searchPaths) {
             const candidate = path_1.default.join(dir, templateFile);

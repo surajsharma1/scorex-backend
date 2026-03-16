@@ -66,7 +66,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
     // FIX: use req.user.id not user._id
     if (!req.user?.id) { res.status(401).json({ message: 'Not authenticated' }); return; }
 
-// Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
+    // Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
     // const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
     // if (!membership.hasMembership && !membership.isAdmin) {
     //   res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
@@ -218,8 +218,6 @@ export const getMembershipStatus = async (req: AuthRequest, res: Response): Prom
 };
 
 // ─── serveOverlay ─────────────────────────────────────────────────────────────
-// FIX #2: was decoding JWT with atob() — never verified the signature.
-// Now uses jwt.verify() with the same secret used everywhere else.
 export const serveOverlay = async (req: Request, res: Response): Promise<void> => {
   try {
     const overlay = await Overlay.findOne({ publicId: req.params.id })
@@ -263,7 +261,13 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     const templateId = (req.query.template as string) || overlay.template || 'lvl1-modern-bar';
     const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
 
-    // Locate the template file\n    const searchPaths = [\n      path.resolve(process.cwd(), 'public/overlays'),\n      path.resolve(__dirname, '../public/overlays'),\n      path.resolve(__dirname, '../../public/overlays'),\n      path.resolve(__dirname, '../../../public/overlays'),\n    ];
+    // Locate the template file
+    const searchPaths = [
+      path.resolve(process.cwd(), 'public/overlays'),
+      path.resolve(__dirname, '../public/overlays'),
+      path.resolve(__dirname, '../../public/overlays'),
+      path.resolve(__dirname, '../../../public/overlays'),
+    ];
 
     let templatePath: string | null = null;
     for (const dir of searchPaths) {
