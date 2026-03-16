@@ -1,95 +1,81 @@
-/**
- * Match Controller — Fixed & Rewritten
- *
- * BUGS FIXED:
- * 1. updateMatch used invalid populate(array, 'select') syntax — split into separate calls
- * 2. endMatch used fire-and-forget .then() for team stats — replaced with await
- * 3. getLiveMatches / getUpcomingMatches cast to `any` for statics — use proper model
- * 4. endInnings pushed second innings with hardcoded team2 regardless of toss — now toss-aware
- */
-
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import Match from '../models/Match';
+import Match, { MatchStatus, OutType, TossDecision } from '../models/Match';
 import Team from '../models/Team';
-import Player from '../models/Player';
 import Tournament from '../models/Tournament';
-import { OutType } from '../models/Match';
 
 interface AuthRequest extends Request { user?: any; }
 
-// ─────────────────────────────────────────
-// GET /matches
-// ─────────────────────────────────────────
+// ─── GET /matches ─────────────────────────────────────────────────────────────
 export const getMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { status, tournament, team, limit = 20, page = 1 } = req.query;
+    const { status, tournament, team, limit = 50, page = 1 } = req.query;
     const query: any = {};
     if (status) query.status = status;
     if (tournament) query.tournamentId = tournament;
     if (team) query.$or = [{ team1: team }, { team2: team }];
 
-    const matches = await Match.aggregate([
-      { $match: query },
-      { $lookup: { from: 'teams', localField: 'team1', foreignField: '_id', as: 'team1' } },
-      { $unwind: { path: '$team1', preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: 'teams', localField: 'team2', foreignField: '_id', as: 'team2' } },
-      { $unwind: { path: '$team2', preserveNullAndEmptyArrays: true } },
-      { $lookup: { from: 'tournaments', localField: 'tournamentId', foreignField: '_id', as: 'tournamentId' } },
-      { $unwind: { path: '$tournamentId', preserveNullAndEmptyArrays: true } },
-      { $sort: { date: -1 } },
-      { $skip: (Number(page) - 1) * Number(limit) },
-      { $limit: Number(limit) }
-    ]);
+    const matches = await Match.find(query)
+      .populate('team1', 'name shortName logo')
+      .populate('team2', 'name shortName logo')
+      .populate('tournamentId', 'name')
+      .sort({ date: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
 
     const total = await Match.countDocuments(query);
-    res.json({ success: true, data: matches, pagination: { total, page: Number(page), pages: Math.ceil(total / Number(limit)) } });
+    res.json({
+      success: true,
+      data: matches,
+      pagination: { total, page: Number(page), pages: Math.ceil(total / Number(limit)) }
+    });
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// GET /matches/:id
-// ─────────────────────────────────────────
+// ─── GET /matches/:id ─────────────────────────────────────────────────────────
 export const getMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id)
       .populate('team1', 'name shortName logo players')
       .populate('team2', 'name shortName logo players')
-      .populate('tournamentId', 'name')
-      .populate('scorerId', 'username email');
+      .populate('tournamentId', 'name format')
+      .populate('winner', 'name shortName');
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     res.json({ success: true, data: match });
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// POST /matches
-// ─────────────────────────────────────────
+// ─── POST /matches ────────────────────────────────────────────────────────────
 export const createMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, tournamentId: tId, tournament: tRaw, round, matchNumber,
-      team1: t1Raw, team2: t2Raw, team1Id, team2Id,
-      date: dateRaw, scheduledDate, time, format, venue } = req.body;
-
-    const team1 = t1Raw || team1Id;
-    const team2 = t2Raw || team2Id;
-    const date = dateRaw || scheduledDate;
-    const tournamentId = tId || tRaw || req.params.id;
+    const {
+      name, tournamentId, round, matchNumber,
+      team1, team2, date, time, format, venue
+    } = req.body;
 
     if (!team1 || !team2) return res.status(400).json({ success: false, message: 'team1 and team2 are required' });
     if (!date) return res.status(400).json({ success: false, message: 'Match date is required' });
+    if (team1 === team2) return res.status(400).json({ success: false, message: 'Teams must be different' });
 
-    const [team1Doc, team2Doc] = await Promise.all([Team.findById(team1), Team.findById(team2)]);
+    const [team1Doc, team2Doc] = await Promise.all([
+      Team.findById(team1),
+      Team.findById(team2)
+    ]);
     if (!team1Doc || !team2Doc) return res.status(400).json({ success: false, message: 'Invalid team IDs' });
+
+    const oversMap: Record<string, number> = { T10: 10, T20: 20, ODI: 50, Test: 90 };
+    const fmt = format || 'T20';
 
     const match = await Match.create({
       name: name || `${team1Doc.name} vs ${team2Doc.name}`,
       team1Name: team1Doc.name,
       team2Name: team2Doc.name,
-      tournamentId, round, matchNumber,
-      team1, team2, venue,
+      tournamentId,
+      round, matchNumber,
+      team1, team2, venue: venue || 'TBD',
       date: new Date(date), time,
-      format: format || 'T20',
+      format: fmt,
+      maxOvers: oversMap[fmt] || 20,
       status: 'upcoming',
       scorerId: req.user?.id
     });
@@ -100,31 +86,27 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
 
     await match.populate([
       { path: 'team1', select: 'name shortName' },
-      { path: 'team2', select: 'name shortName' },
+      { path: 'team2', select: 'name shortName' }
     ]);
 
-    res.status(201).json({ success: true, message: 'Match created successfully', data: match });
+    res.status(201).json({ success: true, message: 'Match created', data: match });
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// PUT /matches/:id
-// FIX #1: original used .populate(['team1','team2'], 'name shortName') — invalid syntax
-// ─────────────────────────────────────────
+// ─── PUT /matches/:id ─────────────────────────────────────────────────────────
 export const updateMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const match = await Match.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('team1', 'name shortName')     // FIX: separate populate calls
-      .populate('team2', 'name shortName')
-      .populate('tossWinner', 'name shortName');
+    const match = await Match.findByIdAndUpdate(
+      req.params.id, req.body, { new: true, runValidators: true }
+    )
+      .populate('team1', 'name shortName')
+      .populate('team2', 'name shortName');
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    res.json({ success: true, message: 'Match updated', data: match });
+    res.json({ success: true, data: match });
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// DELETE /matches/:id
-// ─────────────────────────────────────────
+// ─── DELETE /matches/:id ──────────────────────────────────────────────────────
 export const deleteMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
@@ -137,265 +119,153 @@ export const deleteMatch = async (req: AuthRequest, res: Response, next: NextFun
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// POST /matches/:id/start
-// ─────────────────────────────────────────
+// ─── POST /matches/:id/start ──────────────────────────────────────────────────
 export const startMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    console.log('📡 startMatch called:', { 
-      path: req.path, 
-      method: req.method,
-      body: req.body,
-      userId: req.user?.id,
-      authHeader: req.headers.authorization ? 'Present' : 'Missing'
-    });
+    const {
+      tossWinnerId, tossWinnerName, tossDecision,
+      battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName,
+      striker, nonStriker, bowler
+    } = req.body;
 
-    const { tossWinner, decision, forceStart = false } = req.body;
-    
-    if (!tossWinner || !decision) {
-      return res.status(400).json({ success: false, message: 'tossWinner and decision are required' });
+    if (!tossWinnerId || !tossDecision || !battingTeamId || !striker || !nonStriker || !bowler) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required: tossWinnerId, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler'
+      });
     }
 
-    console.log('🔍 Looking up match:', req.params.id);
     const match = await Match.findById(req.params.id);
-    if (!match) {
-      console.error('❌ Match not found:', req.params.id);
-      return res.status(404).json({ success: false, message: 'Match not found' });
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    if (match.status !== 'upcoming' && match.status !== 'live') {
+      return res.status(400).json({ success: false, message: 'Match cannot be started' });
     }
 
-    console.log('✅ Match found:', { 
-      id: match._id, 
-      status: match.status,
-      team1: match.team1,
-      team2: match.team2,
-      forceStart 
+    await match.startMatch({
+      tossWinnerId,
+      tossWinnerName: tossWinnerName || '',
+      tossDecision,
+      battingTeamId,
+      battingTeamName: battingTeamName || '',
+      bowlingTeamId: bowlingTeamId || '',
+      bowlingTeamName: bowlingTeamName || '',
+      striker,
+      nonStriker,
+      bowler
     });
 
-    // FORCE BYPASS: Always allow if forceStart=true (even non-upcoming matches)
-    if (forceStart) {
-      console.log(`🚀 ✅ FORCE START BYPASS: ${match._id} (status='${match.status}') → 'live'`);
-    } else if (match.status !== 'upcoming') {
-      console.error(`❌ Status check failed: '${match.status}' ≠ 'upcoming'`);
-      return res.status(400).json({ success: false, message: `Match is not upcoming (status: '${match.status}')` });
-    }
+    await match.populate([
+      { path: 'team1', select: 'name shortName logo players' },
+      { path: 'team2', select: 'name shortName logo players' }
+    ]);
 
-    // Atomic start with race condition protection
-    const tossWinnerObjId = new mongoose.Types.ObjectId(tossWinner);
-    const battingTeamId = decision === 'bat'
-      ? tossWinnerObjId
-      : (tossWinnerObjId.toString() === match.team1.toString() ? match.team2 : match.team1);
+    const io = req.app.get('io');
+    if (io) io.to(`match:${match._id}`).emit('matchStarted', match.toObject());
 
-    const updateCondition: any = { _id: match._id };
-    if (!forceStart) {
-      updateCondition.status = 'upcoming';
-      updateCondition.tossWinner = null;
-    }
-
-    const updateFields = {
-      tossWinner: tossWinnerObjId,
-      tossDecision: decision,
-      status: 'live',
-      innings: [{
-        teamId: battingTeamId,
-        status: 'in_progress' as const,
-        score: 0,
-        wickets: 0,
-        overs: 0,
-        balls: 0,
-        runRate: 0,
-        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-        batsmen: [],
-        bowlers: [],
-        fallOfWickets: []
-      }],
-      currentInnings: 1,
-      currentOver: 0,
-      currentBall: 0,
-      team1Score: 0,
-      team1Wickets: 0,
-      team1Overs: 0,
-      team2Score: 0,
-      team2Wickets: 0,
-      team2Overs: 0
-    };
-
-    console.log('🚀 Atomic startMatch update:', { condition: updateCondition, forceStart });
-
-    const updatedMatch = await Match.findOneAndUpdate(
-      updateCondition,
-      updateFields,
-      { new: true, runValidators: true }
-    );
-
-    let finalMatch = updatedMatch;
-    if (!updatedMatch) {
-      // Already started or invalid state - fetch current
-      console.log('⚠️  Start condition failed - already started? Fetching current state');
-      finalMatch = await Match.findById(match._id)
-        .populate('team1', 'name shortName logo')
-        .populate('team2', 'name shortName logo')
-        .populate('tossWinner', 'name shortName');
-      
-      if (!forceStart && finalMatch?.status !== 'live') {
-        return res.status(409).json({ 
-          success: false, 
-          message: `Match cannot be started (status: ${finalMatch?.status}, tossWinner: ${finalMatch?.tossWinner ? 'set' : 'null'})`,
-          data: finalMatch 
-        });
-      }
-      
-      if (forceStart) {
-        console.log('✅ Force start succeeded (was already live)');
-      } else {
-        console.log('ℹ️  Duplicate start request ignored - already live');
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Match already started', 
-          data: finalMatch 
-        });
-      }
-    }
-
-    if (!finalMatch?.tossWinner) {
-      // Rare fallback
-      console.warn('⚠️  No tossWinner after update - refetching');
-      finalMatch = await Match.findById(match._id)
-        .populate([
-          { path: 'team1', select: 'name shortName logo' },
-          { path: 'team2', select: 'name shortName logo' },
-          { path: 'tossWinner', select: 'name shortName' },
-        ]);
-    }
-
-    console.log('✅ Match started successfully:', finalMatch._id);
-    res.json({ success: true, message: 'Match started successfully', data: finalMatch });
-  } catch (error: any) {
-    console.error('💥 startMatch ERROR:', {
-      matchId: req.params.id,
-      error: error.message,
-      stack: error.stack,
-      body: req.body
-    });
-    next(error);
-  }
+    res.json({ success: true, message: 'Match started', data: match });
+  } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// POST /matches/:id/score
-// ─────────────────────────────────────────
-export const addBall = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// ─── POST /matches/:id/select-players ─────────────────────────────────────────
+export const selectPlayers = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { strikerId, nonStrikerId, bowlerId, ...ballData } = req.body;
+    const { striker, nonStriker, bowler } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
 
-    if (strikerId) match.striker = new mongoose.Types.ObjectId(strikerId);
-    if (nonStrikerId) match.nonStriker = new mongoose.Types.ObjectId(nonStrikerId);
-    if (bowlerId) match.lastBowler = new mongoose.Types.ObjectId(bowlerId);
-
-    await match.addBall(ballData);
-
-    await match.populate([
-      { path: 'team1', select: 'name shortName logo' },
-      { path: 'team2', select: 'name shortName logo' },
-    ]);
+    await match.selectPlayers({ striker, nonStriker, bowler });
 
     const io = req.app.get('io');
-    if (io) io.to(`match:${match._id}`).emit('scoreUpdate', match.toObject());
-
-    const inningsIdx = (match.currentInnings || 1) - 1;
-    const currentInnings = match.innings[inningsIdx];
+    if (io) io.to(`match:${match._id}`).emit('playersSelected', {
+      striker: match.strikerName,
+      nonStriker: match.nonStrikerName,
+      bowler: match.currentBowlerName
+    });
 
     res.json({
       success: true,
-      message: 'Ball added',
+      message: 'Players selected',
       data: {
-        score: match.team1Score, wickets: match.team1Wickets, overs: (match.team1Overs || 0).toFixed(1),
-        team2Score: match.team2Score, team2Wickets: match.team2Wickets, team2Overs: (match.team2Overs || 0).toFixed(1),
-        currentOver: match.currentOver, currentBall: match.currentBall, currentInnings: match.currentInnings,
-        innings: currentInnings ? {
-          score: currentInnings.score, wickets: currentInnings.wickets, overs: currentInnings.overs,
-          balls: currentInnings.balls, runRate: currentInnings.runRate,
-          requiredRuns: currentInnings.requiredRuns, requiredRunRate: currentInnings.requiredRunRate,
-          targetScore: currentInnings.targetScore, extras: currentInnings.extras
-        } : null,
-        team1: (match.team1 as any)?.name || '', team2: (match.team2 as any)?.name || '',
+        striker: match.strikerName,
+        nonStriker: match.nonStrikerName,
+        bowler: match.currentBowlerName
       }
     });
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// POST /matches/:id/striker|non-striker|bowler
-// ─────────────────────────────────────────
-export const setStriker = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// ─── POST /matches/:id/score ──────────────────────────────────────────────────
+export const addBall = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    match.striker = new mongoose.Types.ObjectId(req.body.playerId);
-    await match.save();
-    res.json({ success: true, message: 'Striker set' });
+    if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
+
+    const result = await match.addBall(req.body);
+
+    await match.populate([
+      { path: 'team1', select: 'name shortName logo' },
+      { path: 'team2', select: 'name shortName logo' }
+    ]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`match:${match._id}`).emit('scoreUpdate', {
+        match: match.toObject(),
+        result,
+        overSummary: match.getOverSummary()
+      });
+    }
+
+    // Handle innings end
+    if (result.inningsEnded && !result.matchEnded) {
+      if (io) io.to(`match:${match._id}`).emit('inningsEnded', {
+        inningsNumber: match.currentInnings - 1,
+        score: result.score,
+        wickets: result.wickets
+      });
+    }
+
+    if (result.matchEnded) {
+      if (io) io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
+    }
+
+    res.json({ success: true, data: result, match: match.toObject() });
   } catch (error) { next(error); }
 };
 
-export const setNonStriker = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// ─── POST /matches/:id/undo ───────────────────────────────────────────────────
+export const undoLastBall = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    match.nonStriker = new mongoose.Types.ObjectId(req.body.playerId);
-    await match.save();
-    res.json({ success: true, message: 'Non-striker set' });
+    if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
+
+    await match.undoLastBall();
+
+    await match.populate([
+      { path: 'team1', select: 'name shortName logo' },
+      { path: 'team2', select: 'name shortName logo' }
+    ]);
+
+    const io = req.app.get('io');
+    if (io) io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
+
+    res.json({ success: true, message: 'Last ball undone', data: match });
   } catch (error) { next(error); }
 };
 
-export const setBowler = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    match.lastBowler = new mongoose.Types.ObjectId(req.body.playerId);
-    await match.save();
-    res.json({ success: true, message: 'Bowler set' });
-  } catch (error) { next(error); }
-};
-
-// ─────────────────────────────────────────
-// POST /matches/:id/end-innings
-// FIX #4: original hardcoded team2 for 2nd innings — now respects toss/batting team order
-// ─────────────────────────────────────────
+// ─── POST /matches/:id/end-innings ────────────────────────────────────────────
 export const endInnings = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
 
     await match.endInnings();
 
-    // If first innings just ended, set up second innings for the other team
-    if (match.currentInnings === 1 && match.status === 'live') {
-      const firstInningsBattingTeam = match.innings[0]?.teamId;
-      // The second innings batting team is whichever team DIDN'T bat first
-      const secondInningsBattingTeam =
-        firstInningsBattingTeam?.toString() === match.team1.toString() ? match.team2 : match.team1;
-
-      const targetScore = match.team1Score + 1; // need one more than first innings score
-
-      match.innings.push({
-        teamId: secondInningsBattingTeam,  // FIX: was hardcoded match.team2 regardless of toss
-        status: 'in_progress',
-        score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
-        targetScore,
-        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-        batsmen: [], bowlers: [], fallOfWickets: []
-      } as any);
-
-      match.currentInnings = 2;
-      match.currentOver = 0;
-      match.currentBall = 0;
-      await match.save();
-    }
-
-    await match.populate('team1', 'name shortName');
-    await match.populate('team2', 'name shortName');
+    await match.populate('team1 team2', 'name shortName');
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
@@ -404,50 +274,29 @@ export const endInnings = async (req: AuthRequest, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// POST /matches/:id/end
-// FIX #2: original used fire-and-forget .then() — now properly awaits team stats
-// ─────────────────────────────────────────
+// ─── POST /matches/:id/end ────────────────────────────────────────────────────
 export const endMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { winnerId, resultType, margin, playerOfMatch } = req.body;
+    const { winnerId, winnerName, resultSummary, playerOfMatch } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
 
-    await match.endMatch(
-      winnerId ? new mongoose.Types.ObjectId(winnerId) : undefined,
-      resultType
-    );
-    if (margin) match.margin = margin;
-    if (playerOfMatch) match.playerOfMatch = new mongoose.Types.ObjectId(playerOfMatch);
+    await match.endMatch(winnerId, winnerName, resultSummary);
+    if (playerOfMatch) match.playerOfMatch = playerOfMatch;
+    await match.save();
 
-    // FIX #2: was .then(async (team) => { ... }) with no await — stats might not save
+    // Update team win/loss stats
     if (winnerId) {
-      const winTeam = await Team.findById(winnerId);
-      if (winTeam) {
-        winTeam.tournamentStats = {
-          ...winTeam.tournamentStats,
-          matchesWon: (winTeam.tournamentStats?.matchesWon || 0) + 1,
-          matchesPlayed: (winTeam.tournamentStats?.matchesPlayed || 0) + 1,
-        };
-        await winTeam.save();
-      }
-      // Also update the losing team's played count
+      await Team.findByIdAndUpdate(winnerId, {
+        $inc: { 'stats.matchesWon': 1, 'stats.matchesPlayed': 1, 'tournamentStats.matchesWon': 1, 'tournamentStats.matchesPlayed': 1 }
+      });
       const losingTeamId = winnerId === match.team1.toString() ? match.team2 : match.team1;
-      const loseTeam = await Team.findById(losingTeamId);
-      if (loseTeam) {
-        loseTeam.tournamentStats = {
-          ...loseTeam.tournamentStats,
-          matchesPlayed: (loseTeam.tournamentStats?.matchesPlayed || 0) + 1,
-        };
-        await loseTeam.save();
-      }
+      await Team.findByIdAndUpdate(losingTeamId, {
+        $inc: { 'stats.matchesPlayed': 1, 'tournamentStats.matchesPlayed': 1 }
+      });
     }
 
-    await match.save();
-    await match.populate('team1', 'name shortName');
-    await match.populate('team2', 'name shortName');
-    await match.populate('winner', 'name shortName');
+    await match.populate(['team1', 'team2', 'winner'], 'name shortName');
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
@@ -456,54 +305,34 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
   } catch (error) { next(error); }
 };
 
-// ─────────────────────────────────────────
-// GET /matches/live & /matches/upcoming
-// FIX #3: original cast model to `any` to call statics — use proper model typing
-// ─────────────────────────────────────────
-export const getLiveMatches = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // FIX: use findById query directly instead of casting to any
-    const matches = await Match.find({ status: 'live' })
-      .populate('team1', 'name shortName logo')
-      .populate('team2', 'name shortName logo')
-      .populate('tournamentId', 'name');
-    res.json({ success: true, data: matches });
-  } catch (error) { next(error); }
-};
-
-export const getUpcomingMatches = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const limit = Number(req.query.limit) || 10;
-    const matches = await Match.find({ status: 'upcoming', date: { $gte: new Date() } })
-      .populate('team1', 'name shortName')
-      .populate('team2', 'name shortName')
-      .sort({ date: 1 })
-      .limit(limit);
-    res.json({ success: true, data: matches });
-  } catch (error) { next(error); }
-};
-
+// ─── PUT /matches/:id/status ──────────────────────────────────────────────────
 export const updateMatchStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.body;
-    const match = await Match.findById(req.params.id);
+    const match = await Match.findByIdAndUpdate(
+      req.params.id, { status }, { new: true }
+    );
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    match.status = status;
-    await match.save();
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('matchStatusUpdate', { matchId: match._id, status });
-    res.json({ success: true, message: 'Status updated', data: { status } });
+    res.json({ success: true, data: match });
   } catch (error) { next(error); }
 };
 
-export const setMatchOverlay = async (req: AuthRequest, res: Response, next: NextFunction) => {
+// ─── GET /matches/live ────────────────────────────────────────────────────────
+export const getLiveMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
-    match.overlayId = new mongoose.Types.ObjectId(req.body.overlayId);
-    await match.save();
-    res.json({ success: true, message: 'Overlay set' });
+    const matches = await Match.find({ status: 'live' })
+      .populate('team1', 'name shortName logo')
+      .populate('team2', 'name shortName logo')
+      .populate('tournamentId', 'name')
+      .sort({ updatedAt: -1 });
+    res.json({ success: true, data: matches });
   } catch (error) { next(error); }
 };
 
-export default { getMatches, getMatch, createMatch, updateMatch, deleteMatch, startMatch, addBall, setStriker, setNonStriker, setBowler, endInnings, endMatch, getLiveMatches, getUpcomingMatches, updateMatchStatus, setMatchOverlay };
+export default {
+  getMatches, getMatch, createMatch, updateMatch, deleteMatch,
+  startMatch, selectPlayers, addBall, undoLastBall,
+  endInnings, endMatch, updateMatchStatus, getLiveMatches
+};

@@ -1,22 +1,18 @@
 import express from 'express';
 import { protect } from '../middleware/auth';
-import * as matchController from '../controllers/matchController';
-import { addBallSchema, createMatchSchema } from '../utils/validation';
-import { validateRequest } from '../utils/validation';
-
+import * as mc from '../controllers/matchController';
 const router = express.Router();
-
-router.get('/', matchController.getMatches);
-router.get('/:id', matchController.getMatch);
-router.get('/live', matchController.getLiveMatches);
-router.post('/', protect, validateRequest(createMatchSchema), matchController.createMatch);
-router.put('/:id', protect, matchController.updateMatch);
-router.delete('/:id', protect, matchController.deleteMatch);
-
-router.post('/:id/start', protect, matchController.startMatch);
-router.post('/:id/score', protect, validateRequest(addBallSchema), matchController.addBall);
-router.post('/:id/end-innings', protect, matchController.endInnings);
-router.post('/:id/end', protect, matchController.endMatch);
-
+router.get('/', mc.getMatches);
+router.get('/live', mc.getLiveMatches);
+router.get('/:id', mc.getMatch);
+router.post('/', protect, mc.createMatch);
+router.put('/:id', protect, mc.updateMatch);
+router.delete('/:id', protect, mc.deleteMatch);
+router.post('/:id/start', protect, mc.startMatch);
+router.post('/:id/select-players', protect, mc.selectPlayers);
+router.post('/:id/score', protect, mc.addBall);
+router.post('/:id/undo', protect, mc.undoLastBall);
+router.post('/:id/end-innings', protect, mc.endInnings);
+router.post('/:id/end', protect, mc.endMatch);
+router.put('/:id/status', protect, mc.updateMatchStatus);
 export default router;
-

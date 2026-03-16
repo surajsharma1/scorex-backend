@@ -1,25 +1,14 @@
 import express from 'express';
 import passport from 'passport';
 import { protect } from '../middleware/auth';
-import * as authController from '../controllers/authController';
-
+import * as ac from '../controllers/authController';
 const router = express.Router();
-
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.post('/logout', authController.logout);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password/:token', authController.resetPassword);
-
-// OAuth
+router.post('/register', ac.register);
+router.post('/login', ac.login);
+router.post('/logout', ac.logout);
+router.post('/forgot-password', ac.forgotPassword);
+router.post('/reset-password/:token', ac.resetPassword);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport.authenticate('google'), authController.googleCallback);
-
-router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
-router.get('/github/callback', passport.authenticate('github'), authController.githubCallback);
-
-// Protected
-router.get('/me', protect, authController.getMe);
-
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), ac.googleCallback);
+router.get('/me', protect, ac.getMe);
 export default router;
-
