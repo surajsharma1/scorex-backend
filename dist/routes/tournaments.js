@@ -38,16 +38,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
-const validation_1 = require("../utils/validation");
-const tournamentController = __importStar(require("../controllers/tournamentController"));
-const validation_2 = require("../utils/validation");
+const tc = __importStar(require("../controllers/tournamentController"));
 const router = express_1.default.Router();
-router.get('/', tournamentController.getTournaments);
-router.get('/:id', tournamentController.getTournamentById);
-router.post('/', auth_1.protect, (0, validation_1.validateRequest)(validation_2.createTournamentSchema), tournamentController.createTournament);
-router.put('/:id', auth_1.protect, tournamentController.updateTournament);
-router.delete('/:id', auth_1.protect, tournamentController.deleteTournament);
-router.post('/:id/bracket', auth_1.protect, tournamentController.generateBracket);
-router.post('/:id/start', auth_1.protect, tournamentController.startTournament);
+router.get('/', tc.getTournaments);
+router.get('/my', auth_1.protect, tc.getMyTournaments);
+router.get('/:id', tc.getTournamentById);
+router.get('/:id/points-table', tc.getPointsTable);
+router.post('/', auth_1.protect, tc.createTournament);
+router.put('/:id', auth_1.protect, tc.updateTournament);
+router.delete('/:id', auth_1.protect, tc.deleteTournament);
+router.post('/:id/bracket', auth_1.protect, tc.generateBracket);
+router.post('/:id/start', auth_1.protect, tc.startTournament);
 exports.default = router;
-//# sourceMappingURL=tournaments.js.map

@@ -323,4 +323,3 @@ const serveOverlay = async (req, res) => {
 };
 exports.serveOverlay = serveOverlay;
 exports.default = { createOverlay: exports.createOverlay, getOverlays: exports.getOverlays, getOverlay: exports.getOverlay, updateOverlay: exports.updateOverlay, deleteOverlay: exports.deleteOverlay, getOverlayTemplates: exports.getOverlayTemplates, getMembershipStatus: exports.getMembershipStatus, serveOverlay: exports.serveOverlay, regenerateOverlayUrl: exports.regenerateOverlayUrl };
-//# sourceMappingURL=overlayController.js.map

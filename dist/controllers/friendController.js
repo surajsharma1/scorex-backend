@@ -177,4 +177,3 @@ const getOnlineFriends = async (req, res, next) => {
 };
 exports.getOnlineFriends = getOnlineFriends;
 exports.default = { getFriends: exports.getFriends, getFriendRequests: exports.getFriendRequests, sendFriendRequest: exports.sendFriendRequest, acceptFriendRequest: exports.acceptFriendRequest, rejectFriendRequest: exports.rejectFriendRequest, removeFriend: exports.removeFriend, searchUsers: exports.searchUsers, getOnlineFriends: exports.getOnlineFriends };
-//# sourceMappingURL=friendController.js.map

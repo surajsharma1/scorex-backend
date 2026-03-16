@@ -296,7 +296,11 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
       });
     }
 
-    await match.populate(['team1', 'team2', 'winner'], 'name shortName');
+    await match.populate([
+      { path: 'team1', select: 'name shortName' },
+      { path: 'team2', select: 'name shortName' },
+      { path: 'winner', select: 'name shortName' }
+    ]);
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('matchEnded', match.toObject());

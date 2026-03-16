@@ -52,4 +52,3 @@ class AuditLogger {
     }
 }
 exports.default = new AuditLogger();
-//# sourceMappingURL=auditLogger.js.map

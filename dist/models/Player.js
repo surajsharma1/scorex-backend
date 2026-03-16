@@ -295,4 +295,3 @@ PlayerSchema.statics.search = function (query) {
 // EXPORT
 // ==========================================
 exports.default = mongoose_1.default.model('Player', PlayerSchema);
-//# sourceMappingURL=Player.js.map

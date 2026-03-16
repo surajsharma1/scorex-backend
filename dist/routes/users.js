@@ -51,4 +51,3 @@ router.use(auth_1.protect);
 router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
 exports.default = router;
-//# sourceMappingURL=users.js.map

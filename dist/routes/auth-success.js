@@ -28,4 +28,3 @@ router.get('/google/success', async (req, res) => {
     res.redirect(redirectUrl);
 });
 exports.default = router;
-//# sourceMappingURL=auth-success.js.map

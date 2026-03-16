@@ -16,4 +16,3 @@ router.post('/extend', auth_1.protect, paymentController_1.extendMembership);
 router.post('/cancel', auth_1.protect, paymentController_1.cancelMembership);
 router.get('/history', auth_1.protect, paymentController_1.getPaymentHistory);
 exports.default = router;
-//# sourceMappingURL=payments.js.map

@@ -131,4 +131,3 @@ const deleteMessage = async (req, res, next) => {
 };
 exports.deleteMessage = deleteMessage;
 exports.default = { getConversations: exports.getConversations, getMessages: exports.getMessages, sendMessage: exports.sendMessage, markAsRead: exports.markAsRead, deleteMessage: exports.deleteMessage };
-//# sourceMappingURL=messageController.js.map

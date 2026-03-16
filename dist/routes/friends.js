@@ -22,4 +22,3 @@ router.get('/requests', friendController_1.getFriendRequests);
 // Remove friend
 router.delete('/:friendId', friendController_1.removeFriend);
 exports.default = router;
-//# sourceMappingURL=friends.js.map

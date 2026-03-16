@@ -171,4 +171,3 @@ TournamentSchema.methods.isUserOwner = function (userId) {
     return this.organizer.toString() === userId;
 };
 exports.default = mongoose_1.default.model('Tournament', TournamentSchema);
-//# sourceMappingURL=Tournament.js.map

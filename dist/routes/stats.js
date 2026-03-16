@@ -41,4 +41,3 @@ router.get('/users', async (req, res) => {
     }
 });
 exports.default = router;
-//# sourceMappingURL=stats.js.map

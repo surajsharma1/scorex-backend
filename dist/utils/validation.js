@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateRequest = exports.addBallSchema = exports.createMatchSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.validateRequest = exports.addPlayerSchema = exports.createTeamSchema = exports.addBallSchema = exports.createMatchSchema = exports.createTournamentSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 exports.registerSchema = zod_1.z.object({
     username: zod_1.z.string().min(3).max(30),
@@ -31,6 +31,16 @@ exports.addBallSchema = zod_1.z.object({
     wide: zod_1.z.boolean().optional(),
     noBall: zod_1.z.boolean().optional()
 });
+exports.createTeamSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1).max(100),
+    color: zod_1.z.string().min(1).max(50),
+    tournament: zod_1.z.string()
+});
+exports.addPlayerSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1).max(100),
+    role: zod_1.z.enum(['Batsman', 'Bowler', 'Allrounder', 'Wicketkeeper']),
+    jerseyNumber: zod_1.z.string().min(1).max(3)
+});
 const validateRequest = (schema) => {
     return (req, res, next) => {
         try {
@@ -51,4 +61,3 @@ const validateRequest = (schema) => {
     };
 };
 exports.validateRequest = validateRequest;
-//# sourceMappingURL=validation.js.map

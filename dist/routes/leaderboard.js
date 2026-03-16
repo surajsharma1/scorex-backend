@@ -14,4 +14,3 @@ router.get('/match/:id', leaderboardController_1.getMatchLeaderboard);
 router.get('/orange-cap', leaderboardController_1.getOrangeCap);
 router.get('/purple-cap', leaderboardController_1.getPurpleCap);
 exports.default = router;
-//# sourceMappingURL=leaderboard.js.map

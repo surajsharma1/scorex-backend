@@ -51,4 +51,3 @@ MessageSchema.index({ recipient: 1 });
 MessageSchema.index({ roomId: 1 });
 MessageSchema.index({ createdAt: -1 });
 exports.default = mongoose_1.default.model('Message', MessageSchema);
-//# sourceMappingURL=Message.js.map

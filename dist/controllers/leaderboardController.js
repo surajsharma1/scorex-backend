@@ -194,4 +194,3 @@ const getPurpleCap = async (req, res, next) => {
 };
 exports.getPurpleCap = getPurpleCap;
 exports.default = { getGlobalLeaderboard: exports.getGlobalLeaderboard, getTournamentLeaderboard: exports.getTournamentLeaderboard, getMatchLeaderboard: exports.getMatchLeaderboard, getOrangeCap: exports.getOrangeCap, getPurpleCap: exports.getPurpleCap };
-//# sourceMappingURL=leaderboardController.js.map

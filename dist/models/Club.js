@@ -176,4 +176,3 @@ ClubSchema.statics.getUserClubs = function (userId) {
 // EXPORT
 // ==========================================
 exports.default = mongoose_1.default.model('Club', ClubSchema);
-//# sourceMappingURL=Club.js.map

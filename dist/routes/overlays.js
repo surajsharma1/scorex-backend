@@ -21,4 +21,3 @@ router.put('/:id', auth_1.protect, overlayController_1.updateOverlay);
 router.delete('/:id', auth_1.protect, overlayController_1.deleteOverlay);
 router.post('/:id/regenerate', auth_1.protect, overlayController_1.regenerateOverlayUrl);
 exports.default = router;
-//# sourceMappingURL=overlays.js.map

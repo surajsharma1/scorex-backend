@@ -55,4 +55,3 @@ const BracketSchema = new mongoose_1.Schema({
 }, { timestamps: true });
 BracketSchema.index({ tournament: 1 });
 exports.default = mongoose_1.default.model('Bracket', BracketSchema);
-//# sourceMappingURL=Bracket.js.map

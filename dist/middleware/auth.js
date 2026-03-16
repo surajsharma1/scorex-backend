@@ -46,4 +46,3 @@ const isAdmin = (req, res, next) => {
     next();
 };
 exports.isAdmin = isAdmin;
-//# sourceMappingURL=auth.js.map

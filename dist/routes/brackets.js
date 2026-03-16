@@ -15,4 +15,3 @@ router.post('/:id/generate', auth_1.protect, bracketController_1.generateBracket
 router.put('/:id', auth_1.protect, bracketController_1.updateBracket);
 router.delete('/:id', auth_1.protect, bracketController_1.deleteBracket);
 exports.default = router;
-//# sourceMappingURL=brackets.js.map

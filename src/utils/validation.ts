@@ -34,6 +34,18 @@ export const addBallSchema = z.object({
   noBall: z.boolean().optional()
 });
 
+export const createTeamSchema = z.object({
+  name: z.string().min(1).max(100),
+  color: z.string().min(1).max(50),
+  tournament: z.string()
+});
+
+export const addPlayerSchema = z.object({
+  name: z.string().min(1).max(100),
+  role: z.enum(['Batsman', 'Bowler', 'Allrounder', 'Wicketkeeper']),
+  jerseyNumber: z.string().min(1).max(3)
+});
+
 export const validateRequest = (schema: z.ZodSchema) => {
   return (req: any, res: any, next: any) => {
     try {

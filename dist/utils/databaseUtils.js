@@ -64,4 +64,3 @@ class DatabaseUtils {
     }
 }
 exports.DatabaseUtils = DatabaseUtils;
-//# sourceMappingURL=databaseUtils.js.map

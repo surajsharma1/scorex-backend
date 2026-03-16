@@ -48,4 +48,3 @@ FriendSchema.index({ requester: 1, recipient: 1 }, { unique: true });
 FriendSchema.index({ requester: 1, status: 1 });
 FriendSchema.index({ recipient: 1, status: 1 });
 exports.default = mongoose_1.default.model('Friend', FriendSchema);
-//# sourceMappingURL=Friend.js.map

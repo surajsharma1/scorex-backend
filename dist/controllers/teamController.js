@@ -117,4 +117,3 @@ const removePlayer = async (req, res, next) => {
 };
 exports.removePlayer = removePlayer;
 exports.default = { createTeam: exports.createTeam, getTeams: exports.getTeams, getTeam: exports.getTeam, updateTeam: exports.updateTeam, deleteTeam: exports.deleteTeam, addPlayer: exports.addPlayer, removePlayer: exports.removePlayer };
-//# sourceMappingURL=teamController.js.map

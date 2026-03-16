@@ -48,4 +48,3 @@ router.delete('/:id', auth_1.protect, teamController.deleteTeam);
 router.post('/:id/players', auth_1.protect, teamController.addPlayer);
 router.delete('/:id/players/:playerId', auth_1.protect, teamController.removePlayer);
 exports.default = router;
-//# sourceMappingURL=teams.js.map

@@ -109,4 +109,3 @@ const getMembershipHistory = async (userId) => {
     }
 };
 exports.getMembershipHistory = getMembershipHistory;
-//# sourceMappingURL=membershipUtils.js.map

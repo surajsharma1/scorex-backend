@@ -15,4 +15,3 @@ exports.createLimiter = (0, express_rate_limit_1.default)({
     max: 10, // limit each IP to 10 create requests per windowMs
     message: 'Too many creation attempts, please try again later.',
 });
-//# sourceMappingURL=rateLimiters.js.map

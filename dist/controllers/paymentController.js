@@ -148,4 +148,3 @@ const getPaymentHistory = async (req, res, next) => {
 };
 exports.getPaymentHistory = getPaymentHistory;
 exports.default = { getPlans: exports.getPlans, getMembership: exports.getMembership, purchaseMembership: exports.purchaseMembership, extendMembership: exports.extendMembership, cancelMembership: exports.cancelMembership, getPaymentHistory: exports.getPaymentHistory };
-//# sourceMappingURL=paymentController.js.map

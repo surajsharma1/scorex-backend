@@ -66,4 +66,3 @@ OverlaySchema.index({ isPremium: 1 });
 OverlaySchema.index({ category: 1 });
 OverlaySchema.index({ createdBy: 1 });
 exports.default = mongoose_1.default.model('Overlay', OverlaySchema);
-//# sourceMappingURL=Overlay.js.map

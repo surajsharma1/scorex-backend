@@ -84,4 +84,3 @@ TeamSchema.methods.updateStats = async function () {
     await this.save();
 };
 exports.default = mongoose_1.default.model('Team', TeamSchema);
-//# sourceMappingURL=Team.js.map

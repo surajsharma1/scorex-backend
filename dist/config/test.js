@@ -26,4 +26,3 @@ exports.config = {
     createRateLimitWindowMs: 60 * 60 * 1000, // 1 hour
     createRateLimitMax: 100, // Higher for tests
 };
-//# sourceMappingURL=test.js.map

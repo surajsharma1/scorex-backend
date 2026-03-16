@@ -98,4 +98,3 @@ exports.default = {
     searchUsers: exports.searchUsers, getUsers: exports.getUsers, getUser: exports.getUser, getProfile: exports.getProfile,
     updateProfile: exports.updateProfile, updateRole: exports.updateRole, updateMembership: exports.updateMembership
 };
-//# sourceMappingURL=userController.js.map

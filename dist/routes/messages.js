@@ -20,4 +20,3 @@ router.put('/:conversationId/read', messageController_1.markAsRead);
 // Delete a message
 router.delete('/:messageId', messageController_1.deleteMessage);
 exports.default = router;
-//# sourceMappingURL=messages.js.map

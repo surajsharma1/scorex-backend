@@ -100,4 +100,3 @@ const deleteBracket = async (req, res) => {
     }
 };
 exports.deleteBracket = deleteBracket;
-//# sourceMappingURL=bracketController.js.map

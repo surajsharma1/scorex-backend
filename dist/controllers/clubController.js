@@ -406,4 +406,3 @@ exports.default = {
     removeMember: exports.removeMember,
     getMyClubs: exports.getMyClubs
 };
-//# sourceMappingURL=clubController.js.map
