@@ -99,10 +99,11 @@ const server = (0, http_1.createServer)(app);
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
-    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
     'https://scorex-live.vercel.app',
-    'https://scorex-frontend-hyz9nf3s7-suraj-sharmas-projects-3413126b.vercel.app',
-    'https://*.vercel.app' // Vercel preview/staging
+    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+    'https://*.vercel.app',
+    'https://*.onrender.com',
+    'https://scorex-frontend-lzoh2zfh1-suraj-sharmas-projects-3413126b.vercel.app'
 ].filter(Boolean);
 exports.io = new socket_io_1.Server(server, {
     cors: {
@@ -126,8 +127,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport_1.default.use(new passport_google_oauth20_1.Strategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
-    }, async (_at, _rt, profile, done) => {
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`,
+        passReqToCallback: true,
+    }, async (req, _at, _rt, profile, done) => {
         try {
             let user = await User_1.default.findOne({ googleId: profile.id });
             if (user)
@@ -231,10 +233,10 @@ app.use('/overlay', express_1.default.static(localOverlaysPath));
 // 6. API ROUTES
 // ==========================================
 app.use('/api/v1/auth', auth_1.default);
+app.use('/api/v1/auth-success', require('./routes/auth-success'));
 app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/teams', teams_1.default);
 app.use('/api/v1/matches', matches_1.default);
-app.use('/api/v1/brackets', bracketRoutes);
 app.use('/api/v1/overlays', overlayRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/notifications', notificationRoutes);

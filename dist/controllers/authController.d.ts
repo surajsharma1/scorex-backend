@@ -8,8 +8,8 @@ export declare const getMe: (req: AuthRequest, res: Response) => Promise<void>;
 export declare const logout: (req: AuthRequest, res: Response) => void;
 export declare const forgotPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const resetPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
-export declare const googleCallback: (req: any, res: Response) => void;
-export declare const githubCallback: (req: any, res: Response) => void;
+export declare const googleCallback: (req: any, res: Response) => Response<any, Record<string, any>>;
+export declare const githubCallback: (req: any, res: Response) => Response<any, Record<string, any>>;
 declare const _default: {
     register: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
     login: (req: AuthRequest, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>;
@@ -17,8 +17,8 @@ declare const _default: {
     forgotPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
     resetPassword: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
     getMe: (req: AuthRequest, res: Response) => Promise<void>;
-    googleCallback: (req: any, res: Response) => void;
-    githubCallback: (req: any, res: Response) => void;
+    googleCallback: (req: any, res: Response) => Response<any, Record<string, any>>;
+    githubCallback: (req: any, res: Response) => Response<any, Record<string, any>>;
 };
 export default _default;
 //# sourceMappingURL=authController.d.ts.map

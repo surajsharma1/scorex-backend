@@ -68,8 +68,44 @@ const resetPassword = async (req, res, next) => {
 };
 exports.resetPassword = resetPassword;
 const googleCallback = (req, res) => {
+    if (!req.user || !req.user._id) {
+        console.error('[OAuth] No user in req.user:', req.user);
+        return res.status(401).json({ success: false, message: 'Authentication failed' });
+    }
     const token = jsonwebtoken_1.default.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ success: true, token, user: req.user });
+    // Priority 1: Use state param (passed from frontend Login as redirect_uri)
+    let frontendUrl = req.query.state || '';
+    // Priority 2: Environment var
+    if (!frontendUrl) {
+        frontendUrl = process.env.FRONTEND_URL || '';
+    }
+    // Priority 3: Improved dynamic detection
+    if (!frontendUrl) {
+        const host = req.get('host') || '';
+        const protocol = req.get('x-forwarded-proto') === 'https' || req.protocol === 'https' ? 'https' : 'http';
+        if (host.includes('vercel.app') || host.includes('onrender.com') || host.includes('railway.app')) {
+            frontendUrl = `${protocol}://${host.replace('backend', 'frontend').replace('-api', '').replace('-server', '')}/`;
+        }
+        else if (host === 'localhost' || host.includes('127.0.0.1')) {
+            frontendUrl = 'http://localhost:5173';
+        }
+        else {
+            // Fallback wildcard prod
+            frontendUrl = `${protocol}://${host}`;
+            console.warn('[OAuth] Unknown host, using:', frontendUrl);
+        }
+    }
+    console.log('[OAuth] Redirecting to frontend:', frontendUrl, { state: req.query.state, host: req.get('host') });
+    res.cookie('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    const fragment = `token=${token}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
+    const redirectUrl = `${frontendUrl}/oauth/callback#${fragment}`;
+    console.log('[OAuth] Full redirect URL:', redirectUrl);
+    res.redirect(redirectUrl);
 };
 exports.googleCallback = googleCallback;
 exports.githubCallback = exports.googleCallback;
