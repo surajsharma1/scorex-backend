@@ -202,6 +202,7 @@
   function updateState(normalised) {
     if (!normalised) return;
     matchData = normalised;
+    
     if (typeof window.ScorexOverlay.onUpdate === 'function') {
       try {
         window.ScorexOverlay.onUpdate(matchData);
@@ -209,8 +210,20 @@
         console.error('[Scorex Engine] onUpdate error:', err);
       }
     }
-    // Also fire a DOM event so templates can use addEventListener
+    // Fire a DOM event so modern templates can use addEventListener
     window.dispatchEvent(new CustomEvent('scorex:update', { detail: matchData }));
+
+    // ─── THE MAGIC BRIDGE FOR ALL LEGACY HTML TEMPLATES ───
+    // 1. Flatten the raw MongoDB document using your overlay-utils.js
+    let flatData = normalised._raw || matchData;
+    if (typeof window.normalizeScoreData === 'function') {
+        flatData = window.normalizeScoreData(normalised._raw);
+    }
+    // 2. Trick the HTML template into thinking it received a postMessage from the React app!
+    window.postMessage({ 
+      type: 'UPDATE_SCORE', 
+      data: flatData 
+    }, '*');
   }
 
   // ─── Boot ──────────────────────────────────────────────────────────────────

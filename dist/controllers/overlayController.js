@@ -306,8 +306,10 @@ const serveOverlay = async (req, res) => {
         const tournamentId = req.query.tournamentId || dbTournamentId || null;
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
-        // FIX: Use OVERLAY_CONFIG and apiBaseUrl to perfectly match engine.js
+        // FIX: Inject Socket.io, utils, OVERLAY_CONFIG, and engine.js into EVERY template
         html = html.replace('</head>', `
+      <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+      <script src="/overlays/overlay-utils.js"></script>
       <script>
         window.OVERLAY_CONFIG = {
           matchId: ${JSON.stringify(matchId)},
@@ -317,6 +319,7 @@ const serveOverlay = async (req, res) => {
           config: ${JSON.stringify(overlay.config || {})},
         };
       </script>
+      <script src="/overlays/engine.js"></script>
     </head>`);
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('X-Frame-Options', 'ALLOWALL');
