@@ -1,29 +1,26 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-// Jest test setup file
-const globals_1 = require("@jest/globals");
+// Jest test setup file\n// Jest globals available via ts-jest preset
 // Mock mongoose to avoid database connections during tests
-globals_1.jest.mock('mongoose', () => ({
-    connect: globals_1.jest.fn().mockResolvedValue(true),
-    disconnect: globals_1.jest.fn().mockResolvedValue(true),
-    model: globals_1.jest.fn().mockReturnValue({}),
-    Schema: globals_1.jest.fn().mockImplementation(() => ({
-        pre: globals_1.jest.fn(),
-        post: globals_1.jest.fn(),
+jest.mock('mongoose', () => ({
+    connect: jest.fn().mockResolvedValue(true),
+    disconnect: jest.fn().mockResolvedValue(true),
+    model: jest.fn().mockReturnValue({}),
+    Schema: jest.fn().mockImplementation(() => ({
+        pre: jest.fn(),
+        post: jest.fn(),
         methods: {},
         statics: {},
-        indexes: globals_1.jest.fn().mockReturnValue([]),
+        indexes: jest.fn().mockReturnValue([]),
     })),
     Models: {},
 }));
 // Mock config
-globals_1.jest.mock('../config/database', () => ({
-    connectDB: globals_1.jest.fn().mockResolvedValue(true),
-    disconnectDB: globals_1.jest.fn().mockResolvedValue(true),
+jest.mock('../config/database', () => ({
+    connectDB: jest.fn().mockResolvedValue(true),
+    disconnectDB: jest.fn().mockResolvedValue(true),
 }));
 // Global test timeout
-globals_1.jest.setTimeout(10000);
+jest.setTimeout(10000);
 // Cleanup after each test
 afterEach(() => {
-    globals_1.jest.clearAllMocks();
+    jest.clearAllMocks();
 });

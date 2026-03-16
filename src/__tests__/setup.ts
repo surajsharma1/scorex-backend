@@ -1,5 +1,5 @@
-// Jest test setup file
-import { jest } from '@jest/globals';
+// Jest test setup file\n// Jest globals available via ts-jest preset
+
 
 // Mock mongoose to avoid database connections during tests
 jest.mock('mongoose', () => ({

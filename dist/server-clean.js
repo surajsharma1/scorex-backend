@@ -62,7 +62,7 @@ app.use((0, express_session_1.default)({
     store: sessionStore,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
