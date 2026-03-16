@@ -6,6 +6,20 @@ import Tournament from '../models/Tournament';
 
 interface AuthRequest extends Request { user?: any; }
 
+// ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
+const teamPopulateOptions = [
+  { 
+    path: 'team1', 
+    select: 'name shortName logo players',
+    populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' }
+  },
+  { 
+    path: 'team2', 
+    select: 'name shortName logo players',
+    populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' }
+  }
+];
+
 // ─── GET /matches ─────────────────────────────────────────────────────────────
 export const getMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -36,28 +50,10 @@ export const getMatches = async (req: Request, res: Response, next: NextFunction
 export const getMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id)
-      .populate([
-        { 
-          path: 'team1', 
-          select: 'name shortName logo players',
-          populate: { 
-            path: 'players', 
-            select: 'name role jerseyNumber', 
-            model: 'Player' 
-          }
-        },
-        { 
-          path: 'team2', 
-          select: 'name shortName logo players',
-          populate: { 
-            path: 'players', 
-            select: 'name role jerseyNumber', 
-            model: 'Player' 
-          }
-        },
-        'tournamentId',
-        'winner'
-      ]);
+      .populate(teamPopulateOptions) // Uses the reusable deep populate
+      .populate('tournamentId')
+      .populate('winner');
+      
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     res.json({ success: true, data: match });
   } catch (error) { next(error); }
@@ -172,10 +168,7 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       bowler
     });
 
-    await match.populate([
-      { path: 'team1', select: 'name shortName logo players' },
-      { path: 'team2', select: 'name shortName logo players' }
-    ]);
+    await match.populate(teamPopulateOptions); // FIX: Deep populate for real-time
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('matchStarted', match.toObject());
@@ -222,10 +215,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
 
     const result = await match.addBall(req.body);
 
-    await match.populate([
-      { path: 'team1', select: 'name shortName logo' },
-      { path: 'team2', select: 'name shortName logo' }
-    ]);
+    await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
 
     const io = req.app.get('io');
     if (io) {
@@ -262,10 +252,7 @@ export const undoLastBall = async (req: AuthRequest, res: Response, next: NextFu
 
     await match.undoLastBall();
 
-    await match.populate([
-      { path: 'team1', select: 'name shortName logo' },
-      { path: 'team2', select: 'name shortName logo' }
-    ]);
+    await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
@@ -283,7 +270,7 @@ export const endInnings = async (req: AuthRequest, res: Response, next: NextFunc
 
     await match.endInnings();
 
-    await match.populate('team1 team2', 'name shortName');
+    await match.populate(teamPopulateOptions); // FIX: Deep populate for next innings
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
