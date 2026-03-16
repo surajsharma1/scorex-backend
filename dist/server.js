@@ -50,10 +50,8 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-n;
-napp.use('/overlays', express_1.default.static('public/overlays'));
-n;
-n; // ─── Session Middleware ───────────────────────────────────────────────────────
+app.use('/overlays', express_1.default.static('public/overlays'));
+// ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
 try {
     sessionStore = connect_mongo_1.default.create({

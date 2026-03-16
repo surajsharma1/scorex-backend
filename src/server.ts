@@ -13,7 +13,6 @@ import './models';  // Register all models
 import connectDB from './config/database';
 import { MemoryStore } from 'express-session';
 
-
 // Routes
 import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
@@ -49,7 +48,11 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));\n\napp.use('/overlays', express.static('public/overlays'));\n\n// ─── Session Middleware ───────────────────────────────────────────────────────
+app.use(express.urlencoded({ extended: true }));
+
+app.use('/overlays', express.static('public/overlays'));
+
+// ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
 try {
   sessionStore = MongoStore.create({ 
