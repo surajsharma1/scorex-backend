@@ -9,6 +9,7 @@ require("./Match");
 require("./Bracket");
 require("./Club");
 require("./Friend");
+require("./Message");
 require("./Notification");
 require("./Overlay");
 // Log when models are loaded

@@ -118,6 +118,7 @@ io.on('connection', (socket) => {
 });
 
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
+let hasGoogleStrategy = false;
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -147,6 +148,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       done(err, null);
     }
   }));
+
+  hasGoogleStrategy = true;
 }
 
 passport.serializeUser((user: any, done) => done(null, user._id));
@@ -177,7 +180,7 @@ app.get('/api/health/google', async (_req, res) => {
     mongodbUri: !!process.env.MONGODB_URI,
     sessionSecret: !!process.env.SESSION_SECRET,
     dbConnected: mongoose.connection.readyState === 1,
-    passportGoogle: !!passport._strategies.google
+    passportGoogle: hasGoogleStrategy
   };
   const passed = Object.values(checks).every(Boolean);
   res.json({ 

@@ -77,7 +77,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
     if (!name?.trim())     { res.status(400).json({ message: 'Overlay name is required' }); return; }
     if (!template?.trim()) { res.status(400).json({ message: 'Template is required' }); return; }
 
-    const membershipLevel = requiredMembershipLevel ?? membership.level;
+    const membershipLevel = requiredMembershipLevel ?? 0;
 
     // FIX #1: html is required in the Overlay schema — was never set, causing validation error
     // Generate a minimal placeholder HTML that references the template file
@@ -92,7 +92,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
       publicId: uuidv4(),
       createdBy: req.user.id,    // FIX: was user._id
       requiredMembershipLevel: membershipLevel,
-      membershipAtCreation: membership.level,
+      membershipAtCreation: 0,
       urlExpiresAt: new Date(Date.now() + URL_EXPIRY_MS),
       level: membershipLevel > 1 ? 2 : 1,
       category: 'broadcast',

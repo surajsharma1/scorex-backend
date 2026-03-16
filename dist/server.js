@@ -10,6 +10,7 @@ const express_session_1 = __importDefault(require("express-session"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
+const mongoose_1 = __importDefault(require("mongoose"));
 const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const User_1 = __importDefault(require("./models/User"));
@@ -21,6 +22,11 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const matches_1 = __importDefault(require("./routes/matches"));
 const teams_1 = __importDefault(require("./routes/teams"));
+const overlays_1 = __importDefault(require("./routes/overlays"));
+const clubs_1 = __importDefault(require("./routes/clubs"));
+const friends_1 = __importDefault(require("./routes/friends"));
+const messages_1 = __importDefault(require("./routes/messages"));
+const payments_1 = __importDefault(require("./routes/payments"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
@@ -100,6 +106,7 @@ io.on('connection', (socket) => {
     });
 });
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
+let hasGoogleStrategy = false;
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport_1.default.use(new passport_google_oauth20_1.Strategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
@@ -131,6 +138,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             done(err, null);
         }
     }));
+    hasGoogleStrategy = true;
 }
 passport_1.default.serializeUser((user, done) => done(null, user._id));
 passport_1.default.deserializeUser(async (id, done) => {
@@ -146,8 +154,32 @@ app.use('/api/v1/auth', auth_1.default);
 app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/matches', matches_1.default);
 app.use('/api/v1/teams', teams_1.default);
-// Health check
+app.use('/api/v1/overlays', overlays_1.default);
+app.use('/api/v1/clubs', clubs_1.default);
+app.use('/api/v1/friends', friends_1.default);
+app.use('/api/v1/messages', messages_1.default);
+app.use('/api/v1/payments', payments_1.default);
+// Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
+// Google OAuth health check
+app.get('/api/health/google', async (_req, res) => {
+    const checks = {
+        googleClientId: !!process.env.GOOGLE_CLIENT_ID,
+        googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        backendUrl: !!process.env.BACKEND_URL,
+        mongodbUri: !!process.env.MONGODB_URI,
+        sessionSecret: !!process.env.SESSION_SECRET,
+        dbConnected: mongoose_1.default.connection.readyState === 1,
+        passportGoogle: hasGoogleStrategy
+    };
+    const passed = Object.values(checks).every(Boolean);
+    res.json({
+        status: passed ? 'ok' : 'error',
+        checks,
+        message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
+        ts: new Date()
+    });
+});
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
     console.error('Error:', err.message);

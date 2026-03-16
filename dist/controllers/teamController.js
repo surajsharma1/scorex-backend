@@ -91,9 +91,24 @@ const addPlayer = async (req, res, next) => {
         const team = await Team_1.default.findById(req.params.id);
         if (!team)
             return res.status(404).json({ success: false, message: 'Team not found' });
-        const playerId = new mongoose_1.default.Types.ObjectId(req.body.playerId);
+        let playerId;
+        if (req.body.playerId) {
+            playerId = new mongoose_1.default.Types.ObjectId(req.body.playerId);
+        }
+        else if (req.body.name && req.body.role) {
+            const Player = mongoose_1.default.model('Player');
+            const player = await Player.create({
+                name: req.body.name,
+                role: req.body.role,
+                isActive: true
+            });
+            playerId = player._id;
+        }
+        else {
+            return res.status(400).json({ success: false, message: 'playerId or (name, role) required' });
+        }
         await team.addPlayer(playerId);
-        await team.populate('players');
+        await team.populate('players captain', 'name role');
         res.json({ success: true, data: team });
     }
     catch (error) {

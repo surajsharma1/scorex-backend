@@ -69,11 +69,12 @@ const createOverlay = async (req, res) => {
             res.status(401).json({ message: 'Not authenticated' });
             return;
         }
-        const membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
-        if (!membership.hasMembership && !membership.isAdmin) {
-            res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
-            return;
-        }
+        // Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
+        // const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
+        // if (!membership.hasMembership && !membership.isAdmin) {
+        //   res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
+        //   return;
+        // }
         const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
         if (!name?.trim()) {
             res.status(400).json({ message: 'Overlay name is required' });
@@ -83,7 +84,7 @@ const createOverlay = async (req, res) => {
             res.status(400).json({ message: 'Template is required' });
             return;
         }
-        const membershipLevel = requiredMembershipLevel ?? membership.level;
+        const membershipLevel = requiredMembershipLevel ?? 0;
         // FIX #1: html is required in the Overlay schema — was never set, causing validation error
         // Generate a minimal placeholder HTML that references the template file
         const placeholderHtml = `<!-- ScoreX Overlay: ${name} | Template: ${template} -->\n<div class="scorex-overlay" data-template="${template}"></div>`;
@@ -96,7 +97,7 @@ const createOverlay = async (req, res) => {
             publicId: (0, uuid_1.v4)(),
             createdBy: req.user.id, // FIX: was user._id
             requiredMembershipLevel: membershipLevel,
-            membershipAtCreation: membership.level,
+            membershipAtCreation: 0,
             urlExpiresAt: new Date(Date.now() + URL_EXPIRY_MS),
             level: membershipLevel > 1 ? 2 : 1,
             category: 'broadcast',
