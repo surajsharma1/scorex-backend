@@ -9,8 +9,10 @@ import mongoose from 'mongoose';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from './models/User';
+import './models';  // Register all models
 import connectDB from './config/database';
 import { MemoryStore } from 'express-session';
+
 
 // Routes
 import authRoutes from './routes/auth';

@@ -1,12 +1,14 @@
-# Fix Render Deployment - connect-mongo Issue
+# Fix Player Model Registration - ✅ COMPLETE
 
-## Steps:
-- [x] Step 1: Update package.json - downgrade connect-mongo to ^4.6.0
-- [ ] Step 2: Update src/server.ts for connect-mongo v4 API (use mongooseConnection)
-- [ ] Step 3: Check and update src/server-clean.ts if different
-- [ ] Step 4: Run `npm install`
-- [ ] Step 5: Test locally `npm run build && npm start`
-- [ ] Step 6: Push changes and redeploy to Render
-- [ ] Step 7: Verify Render deployment succeeds
+## Steps Completed:
+## Step 1: ✅ Created src/models/index.ts
+- Import all model files to ensure global registration
 
-Current progress: Starting Step 1
+## Step 2: ✅ Updated server.ts
+- Added `import './models';` after imports/before DB connection
+
+## Step 3: Ready for testing
+- Restart server: `cd scorex-backend/scorex-backend && npm run dev`
+- Test POST /api/v1/teams endpoint
+- Deploy to Render if local test passes
+

@@ -1,23 +1,14 @@
-import mongoose from 'mongoose';
-
-// Import all models to register schemas
+// Models index - ensures all Mongoose models are registered globally
+import './Player';
 import './User';
+import './Team';
 import './Tournament';
 import './Match';
-import './Team';
+import './Bracket';
+import './Club';
+import './Friend';
+import './Notification';
+import './Overlay';
 
-// Database connection events
-mongoose.connection.on('connected', () => {
-  console.log('✅ MongoDB connected');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ MongoDB disconnected');
-});
-
-export default mongoose;
-
+// Log when models are loaded
+console.log('✅ All models registered');
