@@ -19,6 +19,11 @@ import authRoutes from './routes/auth';
 import tournamentRoutes from './routes/tournaments';
 import matchRoutes from './routes/matches';
 import teamRoutes from './routes/teams';
+import overlayRoutes from './routes/overlays';
+import clubRoutes from './routes/clubs';
+import friendRoutes from './routes/friends';
+import messageRoutes from './routes/messages';
+import paymentRoutes from './routes/payments';
 
 const app = express();
 const httpServer = createServer(app);
@@ -154,6 +159,11 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tournaments', tournamentRoutes);
 app.use('/api/v1/matches', matchRoutes);
 app.use('/api/v1/teams', teamRoutes);
+app.use('/api/v1/overlays', overlayRoutes);
+app.use('/api/v1/clubs', clubRoutes);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
