@@ -280,15 +280,24 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const matchId = (overlay.match as any)?._id || overlay.match;
+    // FIX: Allow URL query parameters to dynamically set the match!
+    const dbMatchId = (overlay.match as any)?._id?.toString() || overlay.match?.toString();
+    const matchId = req.query.matchId || req.query.match || dbMatchId || null;
+    
+    // Optional: Allow tournament ID injection too, in case your overlay scripts auto-detect live matches
+    const dbTournamentId = (overlay.tournament as any)?._id?.toString() || overlay.tournament?.toString();
+    const tournamentId = req.query.tournamentId || dbTournamentId || null;
+
     const apiBaseUrl = getBaseUrl();
 
     let html = fs.readFileSync(templatePath, 'utf8');
+    
     // Inject live-data config so the overlay JS can poll for scores
     html = html.replace('</head>', `
       <script>
         window.SCOREX_CONFIG = {
           matchId: ${JSON.stringify(matchId)},
+          tournamentId: ${JSON.stringify(tournamentId)},
           apiBase: ${JSON.stringify(apiBaseUrl)},
           overlayId: ${JSON.stringify(overlay._id)},
           config: ${JSON.stringify(overlay.config || {})},
