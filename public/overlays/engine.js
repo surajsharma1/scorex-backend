@@ -68,7 +68,9 @@
 
     // Primary score update event
     socket.on('scoreUpdate', (data) => {
-      updateState(normalise(data));
+      // FIX: Unwrap the 'match' object! If data.match exists, use it, otherwise use data
+      const matchDoc = data.match ? data.match : data;
+      updateState(normalise(matchDoc));
     });
 
     // Match status changed (toss, start, end)
@@ -79,7 +81,9 @@
     });
 
     socket.on('matchEnded', (data) => {
-      updateState(normalise(data));
+      // FIX: Unwrap here as well just in case
+      const matchDoc = data.match ? data.match : data;
+      updateState(normalise(matchDoc));
     });
 
     socket.on('disconnect', () => {
