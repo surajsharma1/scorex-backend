@@ -1,15 +1,8 @@
-# Fix TypeScript Build Errors - Approved Plan Steps
+# ScoreX Backend Task Progress
 
-## Status: In Progress
+## Task: Fix Express session middleware error for login sessions
 
-### 1. [x] Add missing schemas to src/utils/validation.ts
-- Add `createTeamSchema` and `addPlayerSchema` exports
-
-### 2. [x] Fix populate call in src/controllers/matchController.ts
-- Change endMatch() populate to object array format
-
-### 3. [ ] Verify build
-- Run `cd scorex-backend/scorex-backend && npm run build`
-
-### 4. [ ] Mark complete
+✅ **Step 1:** Create TODO.md with task breakdown  
+✅ **Step 2:** Add express-session and connect-mongo to package.json  
+✅ **Step 3:** Update server.ts with session middleware  \n✅ **Step 4:** Install dependencies (npm install)  \n⏳ **Step 5:** Restart server (`npm run dev` in backend dir) and test login/Google OAuth  \n✅ **Task Complete**  \n
 

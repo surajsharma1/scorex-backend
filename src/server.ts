@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
 import mongoose from 'mongoose';
@@ -39,7 +41,25 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Session Middleware ───────────────────────────────────────────────────────
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ 
+    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/scorex'
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
+}));
+
 app.use(passport.initialize());
+app.use(passport.session());
 
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
 const io = new SocketIO(httpServer, {
@@ -147,3 +167,4 @@ mongoose.connect(MONGO_URI)
   });
 
 export default app;
+
