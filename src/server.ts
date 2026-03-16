@@ -155,8 +155,28 @@ app.use('/api/v1/tournaments', tournamentRoutes);
 app.use('/api/v1/matches', matchRoutes);
 app.use('/api/v1/teams', teamRoutes);
 
-// Health check
+// Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
+
+// Google OAuth health check
+app.get('/api/health/google', async (_req, res) => {
+  const checks = {
+    googleClientId: !!process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+    backendUrl: !!process.env.BACKEND_URL,
+    mongodbUri: !!process.env.MONGODB_URI,
+    sessionSecret: !!process.env.SESSION_SECRET,
+    dbConnected: mongoose.connection.readyState === 1,
+    passportGoogle: !!passport._strategies.google
+  };
+  const passed = Object.values(checks).every(Boolean);
+  res.json({ 
+    status: passed ? 'ok' : 'error', 
+    checks, 
+    message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
+    ts: new Date()
+  });
+});
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err: any, _req: any, res: any, _next: any) => {
