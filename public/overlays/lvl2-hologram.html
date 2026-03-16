@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Hologram</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Share Tech Mono', monospace; }
+    body { background: transparent; overflow: hidden; color: #00ffff; }
+
+    /* Shared Hologram Panel Style */
+    .holo-panel {
+      background: rgba(0, 20, 30, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.1), inset 0 0 10px rgba(0, 255, 255, 0.05);
+    }
+
+    /* Top Island HUD */
+    #holo-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      padding: 6px 30px; font-size: 16px; letter-spacing: 2px;
+      text-shadow: 0 0 5px #00ffff;
+      border-radius: 0 0 10px 10px;
+      border-top: none;
+    }
+
+    /* Glitching Event Popup */
+    #holo-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+      font-size: 100px; color: #fff; text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+      padding: 10px 50px; border-radius: 8px;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    #holo-event.show { opacity: 1; animation: h-glitch 0.2s infinite alternate;}
+
+    @keyframes h-glitch {
+      0% { transform: translate(-50%, -50%) scale(1) skewX(0deg); }
+      100% { transform: translate(-52%, -48%) scale(1.02) skewX(-5deg); }
+    }
+
+    /* Floating Bottom Nodes Layout */
+    #holo-bottom {
+      position: absolute; bottom: 25px; left: 0; width: 100%;
+      display: flex; justify-content: center; gap: 20px; height: 90px;
+    }
+
+    .node {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 20px; position: relative; overflow: hidden;
+    }
+    /* Grid background effect */
+    .node::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background-image: linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+      background-size: 10px 10px; z-index: -1; opacity: 0.3;
+    }
+
+    /* Node 1: Score */
+    .n-score { width: 250px; align-items: center; border-left: 4px solid #00ffff;}
+    .n-team { font-size: 24px; color: #fff; letter-spacing: 2px;}
+    .n-sc { font-size: 36px; line-height: 1; text-shadow: 0 0 8px #00ffff; }
+    .n-sc span { font-size: 20px; color: #aaa;}
+    
+    /* Node 2: Batting */
+    .n-bat { flex: 0.5; flex-direction: row; justify-content: space-around; align-items: center;}
+    .p-block { display: flex; flex-direction: column;}
+    .pn { font-size: 20px; color: #fff; }
+    .pr { font-size: 26px; font-weight: bold; }
+    .pb { font-size: 14px; color: #888; }
+    .strike::before { content: '>'; color: #0ff; margin-right: 5px; animation: blink 1s infinite;}
+    
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Node 3: Bowling */
+    .n-bowl { width: 250px; border-right: 4px solid #0ff; align-items: center;}
+
+  </style>
+</head>
+<body>
+
+  <div id="holo-island" class="holo-panel">UPLINK ESTABLISHED</div>
+  <div id="holo-event" class="holo-panel"></div>
+
+  <div id="holo-bottom">
+    
+    <div class="holo-panel node n-score">
+      <div id="teamName" class="n-team">SYS_A</div>
+      <div class="n-sc"><span id="teamScore" style="font-size:36px; color:#0ff;">101</span><span>/</span><span id="teamWickets" style="color:#fff; font-size:36px;">2</span></div>
+      <div class="pb">OV <span id="teamOvers">10.4</span></div>
+    </div>
+
+    <div class="holo-panel node n-bat">
+      <div class="p-block strike">
+        <span id="strikerName" class="pn">Player_1</span>
+        <div><span id="strikerRuns" class="pr">55</span> <span class="pb">(<span id="strikerBalls">28</span>)</span></div>
+      </div>
+      <div class="p-block" style="opacity: 0.6;">
+        <span id="nonStrikerName" class="pn">Player_2</span>
+        <div><span id="nonStrikerRuns" class="pr">21</span> <span class="pb">(<span id="nonStrikerBalls">15</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="holo-panel node n-bowl">
+      <span class="pb">BOWL_TARGET</span>
+      <span id="bowlerName" class="pn">Bowler_X</span>
+      <div>
+        <span class="pr" style="color: #ff0055; text-shadow: 0 0 8px #ff0055;"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">18</span></span>
+        <span class="pb" style="margin-left: 5px;">(<span id="bowlerOvers">2.4</span>)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let hoSc = -1, hoWk = -1, hoSt = 0, hoDat = {};
+    const pt = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function holoPop(txt, col) {
+      const e = document.getElementById('holo-event');
+      e.innerText = txt; e.style.color = col; e.style.textShadow = `0 0 10px ${col}, 0 0 20px ${col}`;
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2500);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('holo-island');
+      if(!hoDat.tournamentName) return;
+      hoSt = (hoSt + 1) % 3;
+      if(hoSt === 0) isl.innerText = hoDat.tournamentName;
+      else if(hoSt === 1) isl.innerText = "RATE: " + (hoDat.runRate||'0.0');
+      else isl.innerText = hoDat.target > 0 ? "REQ: " + hoDat.requiredRunRate : "LIVE_FEED";
+    }, 4000);
+
+    function rx(d) {
+      hoDat = d;
+      pt('teamName', d.team1Name); pt('teamScore', d.team1Score); pt('teamWickets', d.team1Wickets); pt('teamOvers', d.team1Overs);
+      pt('strikerName', d.strikerName); pt('strikerRuns', d.strikerRuns); pt('strikerBalls', d.strikerBalls);
+      pt('nonStrikerName', d.nonStrikerName); pt('nonStrikerRuns', d.nonStrikerRuns); pt('nonStrikerBalls', d.nonStrikerBalls);
+      pt('bowlerName', d.bowlerName); pt('bowlerRuns', d.bowlerRuns); pt('bowlerWickets', d.bowlerWickets); pt('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (hoSc !== -1) {
+        if (nw > hoWk) holoPop("WICKET_DETECTED", "#ff0055");
+        else if (ns - hoSc === 6) holoPop("MAX_IMPACT", "#00ffff");
+        else if (ns - hoSc === 4) holoPop("BOUNDARY", "#00ffff");
+      }
+      hoSc = ns; hoWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

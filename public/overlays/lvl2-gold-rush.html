@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Gold Rush</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Montserrat:wght@400;600;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Montserrat', sans-serif; }
+
+    /* Premium Top Island */
+    #gold-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(180deg, #111 0%, #000 100%);
+      color: #d4af37; /* Metallic Gold */
+      padding: 6px 35px; border-radius: 4px;
+      font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+      border: 1px solid #d4af37;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.8), inset 0 0 10px rgba(212, 175, 55, 0.2);
+    }
+
+    /* Cinematic Event Popup */
+    #gold-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      font-family: 'Cinzel', serif; font-size: 110px; font-weight: 700;
+      color: transparent;
+      background: linear-gradient(to bottom, #fffde4, #d4af37, #997a00);
+      -webkit-background-clip: text; background-clip: text;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.9));
+      opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #gold-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Bar Assembly */
+    #gold-bottom {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      width: 92%; max-width: 1200px; height: 85px;
+      display: flex; align-items: stretch; border-radius: 8px;
+      background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+      border: 2px solid #d4af37;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .gd-sec { display: flex; align-items: center; padding: 0 25px; }
+
+    /* Score Section (Center Focus visually) */
+    .sec-score {
+      background: linear-gradient(135deg, #d4af37 0%, #aa8000 100%);
+      color: #000; min-width: 260px; justify-content: space-between;
+      box-shadow: 10px 0 20px rgba(0,0,0,0.5); z-index: 2; border-radius: 6px 0 0 6px;
+    }
+    .gd-team { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; letter-spacing: 1px;}
+    .gd-sc { font-size: 38px; font-weight: 800; line-height: 1; }
+    .gd-sc span { font-size: 24px; color: #333; }
+    .gd-ov { font-size: 14px; font-weight: 600; color: #222; text-align: right;}
+
+    /* Player Sections */
+    .sec-bat { flex: 1; justify-content: space-around; z-index: 1; border-right: 1px solid rgba(212, 175, 55, 0.3);}
+    .bat-grp { display: flex; flex-direction: column; justify-content: center; }
+    
+    .p-name { font-size: 18px; font-weight: 600; color: #fff; }
+    .p-stat { font-size: 24px; font-weight: 800; color: #d4af37; }
+    .p-sub { font-size: 13px; color: #888; font-weight: 400; }
+    .strike { color: #d4af37; margin-right: 5px; font-size: 14px;}
+
+    .sec-bowl { min-width: 280px; justify-content: space-between; }
+    .lbl-gold { color: #d4af37; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="gold-island">CHAMPIONSHIP FINALS</div>
+  <div id="gold-event">SIX RUNS</div>
+
+  <div id="gold-bottom">
+    
+    <div class="gd-sec sec-score">
+      <div id="teamName" class="gd-team">KINGS</div>
+      <div>
+        <div class="gd-sc"><span id="teamScore">210</span><span>/</span><span id="teamWickets">4</span></div>
+        <div class="gd-ov">OVERS <span id="teamOvers">19.2</span></div>
+      </div>
+    </div>
+
+    <div class="gd-sec sec-bat">
+      <div class="bat-grp">
+        <div><span class="strike">✦</span><span id="strikerName" class="p-name">V. Kohli</span></div>
+        <div><span id="strikerRuns" class="p-stat">84</span> <span class="p-sub">(<span id="strikerBalls">45</span>)</span></div>
+      </div>
+      
+      <div class="bat-grp" style="opacity: 0.7;">
+        <div id="nonStrikerName" class="p-name">G. Maxwell</div>
+        <div><span id="nonStrikerRuns" class="p-stat" style="color:#fff;">12</span> <span class="p-sub">(<span id="nonStrikerBalls">8</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="gd-sec sec-bowl">
+      <div class="bat-grp">
+        <span class="lbl-gold">Current Bowler</span>
+        <span id="bowlerName" class="p-name">M. Starc</span>
+      </div>
+      <div style="text-align: right;">
+        <div class="p-stat" style="color: #fff;"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">34</span></div>
+        <div class="p-sub">Ov: <span id="bowlerOvers">3.2</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let gSc = -1, gWk = -1, gSt = 0, gDat = {};
+    const set = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function pop(text) {
+      const e = document.getElementById('gold-event');
+      e.innerText = text; e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2800);
+    }
+
+    setInterval(() => {
+      const el = document.getElementById('gold-island');
+      if(!gDat.tournamentName) return;
+      gSt = (gSt + 1) % 3;
+      if(gSt === 0) el.innerText = gDat.tournamentName;
+      else if(gSt === 1) el.innerText = "RUN RATE: " + (gDat.runRate||'0.00');
+      else el.innerText = gDat.target > 0 ? "TARGET: " + gDat.target : "FIRST INNINGS";
+    }, 5000);
+
+    function rx(d) {
+      gDat = d;
+      set('teamName', d.team1Name); set('teamScore', d.team1Score); set('teamWickets', d.team1Wickets); set('teamOvers', d.team1Overs);
+      set('strikerName', d.strikerName); set('strikerRuns', d.strikerRuns); set('strikerBalls', d.strikerBalls);
+      set('nonStrikerName', d.nonStrikerName); set('nonStrikerRuns', d.nonStrikerRuns); set('nonStrikerBalls', d.nonStrikerBalls);
+      set('bowlerName', d.bowlerName); set('bowlerRuns', d.bowlerRuns); set('bowlerWickets', d.bowlerWickets); set('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (gSc !== -1) {
+        if (nw > gWk) pop("WICKET");
+        else if (ns - gSc === 6) pop("MAXIMUM 6");
+        else if (ns - gSc === 4) pop("FOUR RUNS");
+      }
+      gSc = ns; gWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

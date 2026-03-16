@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Minimal Dark</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: transparent; overflow: hidden; }
+
+    /* Top Floating Island */
+    #md-island {
+      position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+      background: #111; color: #fff;
+      padding: 8px 24px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      border: 1px solid #333;
+    }
+    .accent { color: #00d2d3; }
+
+    /* Minimal Event Popup */
+    #md-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+      background: #fff; color: #111;
+      font-size: 70px; font-weight: 900; text-transform: uppercase; letter-spacing: -2px;
+      padding: 10px 50px; border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      opacity: 0; transition: all 0.2s ease-out;
+    }
+    #md-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Cards Layout */
+    #md-bottom {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 15px; align-items: stretch;
+      width: 90%; max-width: 1100px; height: 85px;
+    }
+
+    .card {
+      background: #18181b; border: 1px solid #2f3640; border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); padding: 15px 25px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+
+    /* Score Card */
+    .card-score { border-bottom: 4px solid #00d2d3; min-width: 250px; }
+    .tm { font-size: 14px; color: #aaa; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
+    .sc-wrap { display: flex; align-items: baseline; justify-content: space-between;}
+    .sc { font-size: 38px; font-weight: 900; color: #fff; line-height: 1; }
+    .sc span { color: #00d2d3; font-size: 26px; }
+    .ov { font-size: 16px; color: #777; font-weight: 500; }
+
+    /* Batsman Card */
+    .card-bat { flex: 1; flex-direction: row; align-items: center; justify-content: space-around; }
+    .bat-block { display: flex; flex-direction: column; }
+    .b-name { font-size: 18px; font-weight: 700; color: #fff; }
+    .b-stat { font-size: 22px; font-weight: 900; color: #fff; }
+    .b-ball { font-size: 14px; font-weight: 500; color: #777; }
+    .strike { color: #00d2d3; font-size: 12px; margin-right: 6px; }
+    
+    .divider { width: 1px; height: 40px; background: #333; }
+
+    /* Bowler Card */
+    .card-bowl { min-width: 260px; }
+    .bw-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="md-island">SCOREX <span class="accent">PRO LEAGUE</span></div>
+  <div id="md-event"></div>
+
+  <div id="md-bottom">
+    
+    <div class="card card-score">
+      <div id="teamName" class="tm">BATTING TEAM</div>
+      <div class="sc-wrap">
+        <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov">Ov <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+
+    <div class="card card-bat">
+      <div class="bat-block">
+        <div><span class="strike">●</span><span id="strikerName" class="b-name">Striker</span></div>
+        <div><span id="strikerRuns" class="b-stat">0</span> <span class="b-ball">(<span id="strikerBalls">0</span>)</span></div>
+      </div>
+      
+      <div class="divider"></div>
+
+      <div class="bat-block">
+        <div id="nonStrikerName" class="b-name" style="color:#aaa;">Non-Striker</div>
+        <div><span id="nonStrikerRuns" class="b-stat" style="color:#aaa;">0</span> <span class="b-ball">(<span id="nonStrikerBalls">0</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="card card-bowl">
+      <div class="tm">CURRENT BOWLER</div>
+      <div class="bw-row">
+        <span id="bowlerName" class="b-name">Bowler</span>
+        <div>
+          <span class="b-stat" style="color:#ff6b6b;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+          <span class="b-ball" style="margin-left: 8px;">(<span id="bowlerOvers">0.0</span>)</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let mSc = -1, mWk = -1, mSt = 0, mDat = {};
+    const put = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popAlert(msg, bg, col) {
+      const a = document.getElementById('md-event');
+      a.innerText = msg; a.style.background = bg; a.style.color = col;
+      a.classList.add('show');
+      setTimeout(() => a.classList.remove('show'), 2500);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('md-island');
+      if(!mDat.tournamentName) return;
+      mSt = (mSt + 1) % 3;
+      if(mSt === 0) isl.innerHTML = `${mDat.tournamentName}`;
+      else if(mSt === 1) isl.innerHTML = `CRR: <span class="accent">${mDat.runRate || '0.0'}</span>`;
+      else isl.innerHTML = mDat.target > 0 ? `TARGET: <span class="accent">${mDat.target}</span>` : `<span class="accent">${mDat.status || 'LIVE'}</span>`;
+    }, 4000);
+
+    function ingest(d) {
+      mDat = d;
+      put('teamName', d.team1Name); put('teamScore', d.team1Score); put('teamWickets', d.team1Wickets); put('teamOvers', d.team1Overs);
+      put('strikerName', d.strikerName); put('strikerRuns', d.strikerRuns); put('strikerBalls', d.strikerBalls);
+      put('nonStrikerName', d.nonStrikerName); put('nonStrikerRuns', d.nonStrikerRuns); put('nonStrikerBalls', d.nonStrikerBalls);
+      put('bowlerName', d.bowlerName); put('bowlerRuns', d.bowlerRuns); put('bowlerWickets', d.bowlerWickets); put('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (mSc !== -1) {
+        if (nw > mWk) popAlert("WICKET", "#ff6b6b", "#fff");
+        else if (ns - mSc === 6) popAlert("SIX", "#00d2d3", "#111");
+        else if (ns - mSc === 4) popAlert("FOUR", "#fff", "#111");
+      }
+      mSc = ns; mWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') ingest(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') ingest(e.data.data); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Elegant Light</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #2d3436; }
+
+    /* Common Neumorphic Style */
+    .neumorph {
+      background: #e0e5ec;
+      box-shadow: 9px 9px 16px rgba(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
+      border-radius: 20px;
+    }
+
+    /* Top Floating Island */
+    #el-island {
+      position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+      padding: 8px 30px; font-size: 14px; font-weight: 800; color: #4834d4;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      border-radius: 30px; transition: opacity 0.5s;
+    }
+
+    /* Smooth Event Fade */
+    #el-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 90px; font-weight: 900; letter-spacing: -2px; padding: 20px 80px;
+      opacity: 0; transition: opacity 0.6s ease;
+    }
+    #el-event.show { opacity: 1; }
+
+    /* Bottom Pill Bar */
+    #el-bottom {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 1100px; height: 90px;
+      display: flex; align-items: stretch; border-radius: 45px; overflow: hidden;
+      background: #e0e5ec;
+      box-shadow: 9px 9px 16px rgba(163,177,198,0.7), -9px -9px 16px rgba(255,255,255, 0.6);
+    }
+
+    .el-sec { display: flex; align-items: center; padding: 0 35px; border-right: 2px solid rgba(255,255,255,0.6); }
+    .el-sec:last-child { border-right: none; }
+
+    /* Main Score */
+    .s-score { min-width: 250px; justify-content: space-between; }
+    .t-name { font-size: 22px; font-weight: 900; text-transform: uppercase; color: #130f40;}
+    .t-runs { font-size: 48px; font-weight: 900; color: #4834d4; line-height: 1; margin-top: 2px;}
+    .t-runs span { font-size: 26px; color: #eb4d4b; }
+    .t-ov { font-size: 14px; font-weight: 600; color: #7f8fa6; margin-left: 8px;}
+
+    /* Player Areas */
+    .s-bat { flex: 1; justify-content: space-around; }
+    .bat-box { display: flex; flex-direction: column; }
+    .p-name { font-size: 18px; font-weight: 800; color: #2d3436; }
+    .p-stat { font-size: 26px; font-weight: 900; color: #130f40; }
+    .p-ball { font-size: 14px; font-weight: 600; color: #7f8fa6; }
+
+    .strike-ind { color: #686de0; font-size: 12px; margin-right: 4px; }
+
+    .v-line { width: 2px; height: 50px; background: rgba(163,177,198,0.3); border-right: 1px solid #fff; }
+
+    /* Bowler */
+    .s-bowl { min-width: 300px; justify-content: space-between;}
+
+  </style>
+</head>
+<body>
+
+  <div id="el-island" class="neumorph">SUMMER INVITATIONAL</div>
+  <div id="el-event" class="neumorph"></div>
+
+  <div id="el-bottom">
+    
+    <div class="el-sec s-score">
+      <div id="teamName" class="t-name">TEAM</div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="t-runs"><span id="teamScore" style="color:#4834d4">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="t-ov">(<span id="teamOvers">0.0</span>)</div>
+      </div>
+    </div>
+
+    <div class="el-sec s-bat">
+      <div class="bat-box">
+        <div><span class="strike-ind">●</span><span id="strikerName" class="p-name">Batter 1</span></div>
+        <div><span id="strikerRuns" class="p-stat">0</span> <span class="p-ball">(<span id="strikerBalls">0</span>)</span></div>
+      </div>
+
+      <div class="v-line"></div>
+
+      <div class="bat-box">
+        <div id="nonStrikerName" class="p-name" style="color: #636e72;">Batter 2</div>
+        <div><span id="nonStrikerRuns" class="p-stat" style="color: #636e72;">0</span> <span class="p-ball">(<span id="nonStrikerBalls">0</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="el-sec s-bowl">
+      <div class="bat-box">
+        <div class="p-ball" style="text-transform: uppercase;">Bowling</div>
+        <div id="bowlerName" class="p-name">Bowler</div>
+      </div>
+      <div>
+        <span class="p-stat" style="color: #eb4d4b;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+        <span class="p-ball" style="margin-left: 5px;">(<span id="bowlerOvers">0.0</span>)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let eSc = -1, eWk = -1, eSt = 0, eDat = {};
+    const pd = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.innerText = val; };
+
+    function softPop(msg, col) {
+      const p = document.getElementById('el-event');
+      p.innerText = msg; p.style.color = col;
+      p.classList.add('show');
+      setTimeout(() => p.classList.remove('show'), 3000);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('el-island');
+      if(!eDat.tournamentName) return;
+      eSt = (eSt + 1) % 3;
+      if(eSt === 0) isl.innerText = eDat.tournamentName;
+      else if(eSt === 1) isl.innerText = "CURRENT RUN RATE: " + (eDat.runRate||'0.0');
+      else isl.innerText = eDat.target > 0 ? "TARGET TO WIN: " + eDat.target : "1ST INNINGS";
+    }, 5000);
+
+    function rx(d) {
+      eDat = d;
+      pd('teamName', d.team1Name); pd('teamScore', d.team1Score); pd('teamWickets', d.team1Wickets); pd('teamOvers', d.team1Overs);
+      pd('strikerName', d.strikerName); pd('strikerRuns', d.strikerRuns); pd('strikerBalls', d.strikerBalls);
+      pd('nonStrikerName', d.nonStrikerName); pd('nonStrikerRuns', d.nonStrikerRuns); pd('nonStrikerBalls', d.nonStrikerBalls);
+      pd('bowlerName', d.bowlerName); pd('bowlerRuns', d.bowlerRuns); pd('bowlerWickets', d.bowlerWickets); pd('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (eSc !== -1) {
+        if (nw > eWk) softPop("WICKET", "#eb4d4b");
+        else if (ns - eSc === 6) softPop("SIX RUNS", "#4834d4");
+        else if (ns - eSc === 4) softPop("FOUR RUNS", "#130f40");
+      }
+      eSc = ns; eWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

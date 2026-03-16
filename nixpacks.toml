@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_22", "typescript"]
 
 [phases.build]
-cmds = ["npm install", "npm run build"]
+cmds = ["mkdir -p public/overlays", "cp -r ../../scorex-frontend/scorex-frontend/public/overlays/* public/overlays/", "npm install", "npm run build"]
 
 [start]
 cmd = "npm start"

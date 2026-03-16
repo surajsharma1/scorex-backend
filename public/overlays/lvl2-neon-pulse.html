@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Neon Pulse</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Teko', sans-serif; }
+    body { background: transparent; overflow: hidden; }
+
+    /* Floating Top Island */
+    #neon-island {
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      background: #0a0a0a;
+      color: #00e5ff;
+      padding: 5px 25px;
+      font-size: 22px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border: 1px solid #00e5ff;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.5), inset 0 0 5px rgba(0, 229, 255, 0.3);
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    }
+
+    /* Center Event Pulse */
+    #neon-event {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 150px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: all 0.2s ease-out;
+      pointer-events: none;
+    }
+    #neon-event.pulse {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      animation: neon-flicker 0.5s alternate infinite;
+    }
+
+    @keyframes neon-flicker {
+      0%, 100% { text-shadow: 0 0 10px #b026ff, 0 0 20px #b026ff, 0 0 40px #b026ff; }
+      50% { text-shadow: 0 0 5px #b026ff, 0 0 10px #b026ff; }
+    }
+
+    /* Segmented Bottom Bar */
+    #neon-bottom {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      height: 65px;
+    }
+
+    .neon-segment {
+      background: rgba(10, 10, 15, 0.95);
+      border: 1px solid #333;
+      border-bottom: 3px solid #b026ff;
+      display: flex;
+      align-items: center;
+      padding: 0 25px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+      clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+    }
+
+    /* specific borders for differentiation */
+    .seg-score { border-bottom-color: #00e5ff; min-width: 250px; justify-content: center;}
+    .seg-batsman { border-bottom-color: #b026ff; min-width: 300px; justify-content: space-between;}
+    .seg-bowler { border-bottom-color: #ff0055; min-width: 200px; justify-content: space-between;}
+
+    /* Text Styles */
+    .txt-main { color: #fff; font-size: 32px; font-weight: 600; line-height: 1;}
+    .txt-sub { color: #888; font-size: 20px; margin-left: 8px;}
+    .txt-hl { color: #00e5ff; font-weight: 700; }
+    .txt-purple { color: #b026ff; }
+    .txt-red { color: #ff0055; }
+
+    .team-acr { font-size: 40px; margin-right: 15px; color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.5);}
+
+  </style>
+</head>
+<body>
+
+  <div id="neon-island">INITIALIZING...</div>
+  <div id="neon-event"></div>
+
+  <div id="neon-bottom">
+    
+    <div class="neon-segment seg-score">
+      <span id="teamName" class="team-acr">TM</span>
+      <span class="txt-main"><span id="teamScore">0</span><span class="txt-sub">/</span><span id="teamWickets" class="txt-hl">0</span></span>
+      <span class="txt-sub" style="margin-left: 15px;">OV <span id="teamOvers" class="txt-main">0.0</span></span>
+    </div>
+
+    <div class="neon-segment seg-batsman">
+      <div style="display: flex; align-items: baseline;">
+        <span id="strikerName" class="txt-main">Striker</span>
+        <span class="txt-sub"><span id="strikerRuns" class="txt-main txt-purple" style="margin-left: 10px;">0</span> (<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div style="display: flex; align-items: baseline;">
+        <span id="nonStrikerName" class="txt-main" style="color:#aaa;">NonStrk</span>
+        <span class="txt-sub"><span id="nonStrikerRuns" class="txt-main" style="font-size: 24px; margin-left: 5px;">0</span></span>
+      </div>
+    </div>
+
+    <div class="neon-segment seg-bowler">
+      <span id="bowlerName" class="txt-main">Bowler</span>
+      <span class="txt-sub"><span id="bowlerWickets" class="txt-main txt-red">0</span>-<span id="bowlerRuns" class="txt-main">0</span></span>
+    </div>
+
+  </div>
+
+  <script>
+    let stateScore = -1, stateWickets = -1;
+    let islandState = 0;
+    let neonData = {};
+
+    function updateDOM(id, value) {
+      const el = document.getElementById(id);
+      if (el && value !== undefined) el.innerText = value;
+    }
+
+    function triggerNeonPulse(msg) {
+      const eventEl = document.getElementById('neon-event');
+      eventEl.innerText = msg;
+      
+      // Remove class to reset animation, then add back
+      eventEl.classList.remove('pulse');
+      void eventEl.offsetWidth; // trigger reflow
+      eventEl.classList.add('pulse');
+      
+      setTimeout(() => eventEl.classList.remove('pulse'), 3000);
+    }
+
+    setInterval(() => {
+      if(!neonData.tournamentName) return;
+      const isl = document.getElementById('neon-island');
+      islandState = (islandState + 1) % 3;
+      if(islandState === 0) isl.innerText = neonData.tournamentName;
+      else if(islandState === 1) isl.innerText = "CRR: " + (neonData.runRate || '0.00');
+      else if(islandState === 2) isl.innerText = neonData.target > 0 ? "REQ: " + neonData.requiredRunRate : "LIVE";
+    }, 4000);
+
+    function processNeonData(payload) {
+      neonData = payload;
+
+      updateDOM('teamName', payload.team1Name ? payload.team1Name.substring(0,3).toUpperCase() : 'TM');
+      updateDOM('teamScore', payload.team1Score);
+      updateDOM('teamWickets', payload.team1Wickets);
+      updateDOM('teamOvers', payload.team1Overs);
+      
+      updateDOM('strikerName', payload.strikerName);
+      updateDOM('strikerRuns', payload.strikerRuns);
+      updateDOM('strikerBalls', payload.strikerBalls);
+      
+      updateDOM('nonStrikerName', payload.nonStrikerName);
+      updateDOM('nonStrikerRuns', payload.nonStrikerRuns);
+      
+      updateDOM('bowlerName', payload.bowlerName);
+      updateDOM('bowlerRuns', payload.bowlerRuns);
+      updateDOM('bowlerWickets', payload.bowlerWickets);
+
+      let ns = parseInt(payload.team1Score) || 0;
+      let nw = parseInt(payload.team1Wickets) || 0;
+
+      if (stateScore !== -1) {
+        if (nw > stateWickets) triggerNeonPulse("WICKET!");
+        else if (ns - stateScore === 6) triggerNeonPulse("SIX!");
+        else if (ns - stateScore === 4) triggerNeonPulse("FOUR!");
+      }
+      
+      stateScore = ns;
+      stateWickets = nw;
+    }
+
+    window.addEventListener('message', e => { if (e.data && e.data.type === 'UPDATE_SCORE') processNeonData(e.data.data); });
+    if ('BroadcastChannel' in window) {
+      new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if (e.data && e.data.type === 'UPDATE_SCORE') processNeonData(e.data.data); };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Glass Morphism</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Frosted Glass Utilities */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* Top Floating Island */
+    #glass-island {
+      position: absolute;
+      top: 25px; left: 50%; transform: translateX(-50%);
+      padding: 8px 30px;
+      border-radius: 30px;
+      font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Big Event Popup */
+    #glass-event {
+      position: absolute;
+      top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      font-size: 100px; font-weight: 800; color: #fff;
+      padding: 20px 60px; border-radius: 20px;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #glass-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Score Bar */
+    #glass-bottom {
+      position: absolute;
+      bottom: 30px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 1200px; height: 90px;
+      border-radius: 16px;
+      display: flex; overflow: hidden;
+    }
+
+    .g-section { display: flex; flex-direction: column; justify-content: center; padding: 0 25px; border-right: 1px solid rgba(255,255,255,0.15); }
+    .g-section:last-child { border-right: none; }
+
+    /* Main Score */
+    .sec-score { min-width: 250px; background: rgba(255,255,255,0.15); }
+    .team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; color: #a8c0ff; }
+    .score-txt { font-size: 40px; font-weight: 800; line-height: 1; margin-top: -2px;}
+    .score-txt span:last-child { font-size: 24px; color: #ffd700; }
+    
+    /* Batsmen */
+    .sec-bat { flex: 1; flex-direction: row; align-items: center; justify-content: space-around; }
+    .batter { display: flex; flex-direction: column; }
+    .b-name { font-size: 20px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.4);}
+    .b-stats { font-size: 20px; font-weight: 800; color: #fff; }
+    .b-balls { font-size: 14px; font-weight: 400; color: #ccc; }
+    
+    .on-strike .b-name { color: #ffd700; }
+    .on-strike .b-name::before { content: '▶ '; font-size: 14px; }
+
+    /* Bowler */
+    .sec-bowl { min-width: 250px; }
+    .lbl { font-size: 12px; color: #a8c0ff; text-transform: uppercase; font-weight: 600; margin-bottom: 2px;}
+  </style>
+</head>
+<body>
+
+  <div id="glass-island" class="glass-panel">WINTER SERIES T20</div>
+  <div id="glass-event" class="glass-panel"></div>
+
+  <div id="glass-bottom" class="glass-panel">
+    
+    <div class="g-section sec-score">
+      <div id="teamName" class="team-name">TEAM A</div>
+      <div class="score-txt"><span id="teamScore">184</span><span>/</span><span id="teamWickets">5</span> <span style="font-size: 16px; color: #ccc; font-weight: 600; margin-left: 5px;">(<span id="teamOvers">18.2</span>)</span></div>
+    </div>
+
+    <div class="g-section sec-bat">
+      <div class="batter on-strike">
+        <span id="strikerName" class="b-name">J. Bairstow</span>
+        <div><span id="strikerRuns" class="b-stats">76</span> <span class="b-balls">(<span id="strikerBalls">41</span>)</span></div>
+      </div>
+      <div class="batter">
+        <span id="nonStrikerName" class="b-name" style="color: #ddd;">L. Livingstone</span>
+        <div><span id="nonStrikerRuns" class="b-stats" style="color: #ddd;">22</span> <span class="b-balls">(<span id="nonStrikerBalls">14</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="g-section sec-bowl">
+      <span class="lbl">Current Bowler</span>
+      <span id="bowlerName" class="b-name">Rashid Khan</span>
+      <div>
+        <span class="b-stats" style="color: #4cd137;"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">34</span></span>
+        <span class="b-balls" style="margin-left: 5px;">(<span id="bowlerOvers">3.2</span>)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let cScore = -1, cWkts = -1, state = 0, glData = {};
+    const set = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.innerText = val; };
+
+    function showPopup(text, color) {
+      const p = document.getElementById('glass-event');
+      p.innerText = text; p.style.color = color;
+      p.classList.add('show');
+      setTimeout(() => p.classList.remove('show'), 3000);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('glass-island');
+      if(!glData.tournamentName) return;
+      state = (state + 1) % 3;
+      if(state === 0) isl.innerText = glData.tournamentName;
+      else if(state === 1) isl.innerText = glData.target > 0 ? "TARGET: " + glData.target : "CRR: " + (glData.runRate || '0.0');
+      else isl.innerText = "BATTING: " + glData.team1Name;
+    }, 5000);
+
+    function updateGlass(d) {
+      glData = d;
+      set('teamName', d.team1Name); set('teamScore', d.team1Score); set('teamWickets', d.team1Wickets); set('teamOvers', d.team1Overs);
+      set('strikerName', d.strikerName); set('strikerRuns', d.strikerRuns); set('strikerBalls', d.strikerBalls);
+      set('nonStrikerName', d.nonStrikerName); set('nonStrikerRuns', d.nonStrikerRuns); set('nonStrikerBalls', d.nonStrikerBalls);
+      set('bowlerName', d.bowlerName); set('bowlerRuns', d.bowlerRuns); set('bowlerWickets', d.bowlerWickets); set('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (cScore !== -1) {
+        if (nw > cWkts) showPopup("WICKET!", "#ff4757");
+        else if (ns - cScore === 6) showPopup("SIX!", "#1e90ff");
+        else if (ns - cScore === 4) showPopup("FOUR!", "#2ed573");
+      }
+      cScore = ns; cWkts = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') updateGlass(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') updateGlass(e.data.data); };
+  </script>
+</body>
+</html>

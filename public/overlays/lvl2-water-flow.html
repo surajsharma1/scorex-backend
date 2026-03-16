@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Water Flow</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Quicksand', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Droplet Island */
+    #water-island {
+      position: absolute; top: 20px; left: 40px;
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      padding: 8px 25px; font-weight: 700; font-size: 15px; letter-spacing: 1px;
+      border-radius: 0 20px 20px 20px; /* Droplet shape */
+      box-shadow: 0 10px 20px rgba(0, 114, 255, 0.4);
+    }
+
+    /* Soft Splash Popup */
+    #water-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 100px; font-weight: 900; color: #fff;
+      text-shadow: 0 0 20px #00c6ff, 0 0 40px #0072ff;
+      opacity: 0; transition: opacity 0.5s ease-in-out;
+    }
+    #water-event.show { opacity: 1; }
+
+    /* Wave Bottom Bar */
+    #water-bottom {
+      position: absolute; bottom: 20px; left: 5%; width: 90%; height: 90px;
+      display: flex; filter: drop-shadow(0 15px 15px rgba(0,0,0,0.3));
+    }
+
+    .w-panel { display: flex; align-items: center; padding: 0 30px; }
+
+    /* Ocean Score Box */
+    .w-score {
+      background: linear-gradient(90deg, #0072ff 0%, #00c6ff 100%);
+      min-width: 260px; justify-content: space-between;
+      border-radius: 25px 0 0 25px; z-index: 3;
+    }
+    .w-team { font-size: 24px; font-weight: 900; text-transform: uppercase;}
+    .w-run { font-size: 46px; font-weight: 900; line-height: 1; }
+    .w-run span { font-size: 24px; opacity: 0.8; }
+    .w-ov { font-size: 14px; font-weight: 700; opacity: 0.9; text-align: right;}
+
+    /* Flow Batting Box */
+    .w-bat {
+      background: rgba(255, 255, 255, 0.95); color: #0072ff; flex: 1;
+      justify-content: space-around; z-index: 2; margin-left: -20px; padding-left: 40px;
+      border-radius: 0 45px 45px 0;
+    }
+    .bat-info { display: flex; flex-direction: column; }
+    .b-nm { font-size: 20px; font-weight: 800; color: #111;}
+    .b-rn { font-size: 26px; font-weight: 900; }
+    .b-bl { font-size: 14px; color: #777; font-weight: 700;}
+    .str { color: #00c6ff; margin-right: 4px; font-size: 12px; }
+
+    /* Deep Bowling Box */
+    .w-bowl {
+      background: #09203f; min-width: 280px; justify-content: space-between;
+      z-index: 1; margin-left: -25px; padding-left: 50px;
+      border-radius: 0 25px 25px 0;
+    }
+    
+  </style>
+</head>
+<body>
+
+  <div id="water-island">AQUA CHAMPIONSHIP</div>
+  <div id="water-event">WICKET!</div>
+
+  <div id="water-bottom">
+    
+    <div class="w-panel w-score">
+      <div id="teamName" class="w-team">DOLPHINS</div>
+      <div>
+        <div class="w-run"><span id="teamScore">144</span><span>/</span><span id="teamWickets">3</span></div>
+        <div class="w-ov">OVERS <span id="teamOvers">14.1</span></div>
+      </div>
+    </div>
+
+    <div class="w-panel w-bat">
+      <div class="bat-info">
+        <div><span class="str">●</span><span id="strikerName" class="b-nm">S. Curran</span></div>
+        <div><span id="strikerRuns" class="b-rn">44</span> <span class="b-bl">(<span id="strikerBalls">21</span>)</span></div>
+      </div>
+      <div class="bat-info" style="opacity: 0.6;">
+        <div id="nonStrikerName" class="b-nm">L. Wright</div>
+        <div><span id="nonStrikerRuns" class="b-rn">12</span> <span class="b-bl">(<span id="nonStrikerBalls">10</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="w-panel w-bowl">
+      <div class="bat-info">
+        <span class="b-bl" style="color:#00c6ff;">BOWLER</span>
+        <span id="bowlerName" class="b-nm" style="color:#fff;">C. Jordan</span>
+      </div>
+      <div style="text-align: right;">
+        <div class="b-rn"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">28</span></div>
+        <div class="b-bl" style="color:#aaa;">Ov: <span id="bowlerOvers">2.1</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let wSc = -1, wWk = -1, wSt = 0, wDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function waterSplash(msg) {
+      const e = document.getElementById('water-event');
+      e.innerText = msg; e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 3000);
+    }
+
+    setInterval(() => {
+      const el = document.getElementById('water-island');
+      if(!wDat.tournamentName) return;
+      wSt = (wSt + 1) % 3;
+      if(wSt === 0) el.innerText = wDat.tournamentName;
+      else if(wSt === 1) el.innerText = "CRR: " + (wDat.runRate||'0.0');
+      else el.innerText = wDat.target > 0 ? "TARGET: " + wDat.target : "1ST INNINGS";
+    }, 4500);
+
+    function rx(d) {
+      wDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (wSc !== -1) {
+        if (nw > wWk) waterSplash("WICKET");
+        else if (ns - wSc === 6) waterSplash("SIX RUNS");
+        else if (ns - wSc === 4) waterSplash("FOUR RUNS");
+      }
+      wSc = ns; wWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

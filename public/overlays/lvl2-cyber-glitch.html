@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Cyber Glitch (Thin)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Rajdhani', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #0ff; }
+
+    /* Top Island HUD */
+    #cyber-island {
+      position: absolute;
+      top: 15px;
+      right: 30px;
+      background: rgba(10, 10, 15, 0.9);
+      border: 1px solid #f0f;
+      color: #fff;
+      padding: 4px 30px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+    }
+
+    /* Event Glitch Popup */
+    #cyber-popup {
+      position: absolute;
+      top: 35%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 140px; font-weight: 700; color: #fff;
+      text-shadow: 4px 0 #f0f, -4px 0 #0ff;
+      opacity: 0;
+      transition: all 0.2s ease-out;
+    }
+    #cyber-popup.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    /* Thin Bottom HUD */
+    #cyber-bottom {
+      position: absolute;
+      bottom: 15px; left: 2%; width: 96%; height: 55px;
+      display: flex; gap: 10px;
+    }
+
+    .c-seg {
+      background: rgba(10, 10, 15, 0.85);
+      border: 1px solid #0ff;
+      display: flex; align-items: center; padding: 0 20px;
+      box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+
+    .seg-score { border-color: #f0f; clip-path: polygon(0 0, 95% 0, 100% 100%, 0 100%); min-width: 260px; justify-content: space-between; }
+    .seg-bat { flex: 1; clip-path: polygon(20px 0, 100% 0, calc(100% - 20px) 100%, 0 100%); justify-content: space-around; font-size: 18px; }
+    .seg-bowl { border-color: #ffeb3b; clip-path: polygon(5% 0, 100% 0, 100% 100%, 0 100%); min-width: 250px; justify-content: center; gap: 15px; }
+
+    .c-team { font-size: 24px; font-weight: 700; color: #fff; }
+    .c-runs { font-size: 32px; font-weight: 700; color: #f0f; line-height: 1; }
+    .c-overs { font-size: 14px; color: #888; }
+
+    .p-name { color: #fff; font-weight: 700; }
+    .p-stat { color: #0ff; font-weight: 700; }
+    .p-sub { color: #555; font-size: 14px; }
+    .striker { border-bottom: 2px solid #f0f; padding-bottom: 2px; }
+
+  </style>
+</head>
+<body>
+
+  <div id="cyber-island">SYSTEM: ONLINE</div>
+  <div id="cyber-popup"></div>
+
+  <div id="cyber-bottom">
+    <div class="c-seg seg-score">
+      <span id="teamName" class="c-team">TITANS</span>
+      <div style="text-align: right;">
+        <div class="c-runs"><span id="teamScore">204</span>/<span id="teamWickets">4</span></div>
+        <div class="c-overs">OV: <span id="teamOvers">19.1</span></div>
+      </div>
+    </div>
+
+    <div class="c-seg seg-bat">
+      <div class="striker">
+        <span id="strikerName" class="p-name">A. Hales</span>
+        <span id="strikerRuns" class="p-stat" style="color:#f0f; margin-left:10px;">88</span>
+        <span class="p-sub">(<span id="strikerBalls">41</span>)</span>
+      </div>
+      <div>
+        <span id="nonStrikerName" class="p-name">B. Stokes</span>
+        <span id="nonStrikerRuns" class="p-stat" style="margin-left:10px;">24</span>
+        <span class="p-sub">(<span id="nonStrikerBalls">11</span>)</span>
+      </div>
+    </div>
+
+    <div class="c-seg seg-bowl">
+      <span class="p-sub">BOWL</span>
+      <span id="bowlerName" class="p-name">T. Boult</span>
+      <span class="p-stat" style="color:#ffeb3b;"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">34</span></span>
+      <span class="p-sub">(<span id="bowlerOvers">3.1</span>)</span>
+    </div>
+  </div>
+
+  <script>
+    let cScore = -1, cWickets = -1, state = 0, pData = {};
+    const set = (id, val) => { const e = document.getElementById(id); if(e && val !== undefined) e.innerText = val; };
+
+    function glitchEvent(text) {
+      const popup = document.getElementById('cyber-popup');
+      popup.innerText = text; popup.classList.add('show');
+      setTimeout(() => popup.classList.remove('show'), 3000);
+    }
+
+    setInterval(() => {
+      const el = document.getElementById('cyber-island');
+      if(!pData.tournamentName) return;
+      state = (state + 1) % 3;
+      if(state === 0) el.innerText = pData.tournamentName;
+      else if(state === 1) el.innerText = "CRR: " + (pData.runRate || '0.00');
+      else el.innerText = pData.target > 0 ? "REQ: " + pData.requiredRunRate : pData.status || "LIVE";
+    }, 4500);
+
+    function process(d) {
+      pData = d;
+      set('teamName', d.team1Name); set('teamScore', d.team1Score); set('teamWickets', d.team1Wickets); set('teamOvers', d.team1Overs);
+      set('strikerName', d.strikerName); set('strikerRuns', d.strikerRuns); set('strikerBalls', d.strikerBalls);
+      set('nonStrikerName', d.nonStrikerName); set('nonStrikerRuns', d.nonStrikerRuns); set('nonStrikerBalls', d.nonStrikerBalls);
+      set('bowlerName', d.bowlerName); set('bowlerRuns', d.bowlerRuns); set('bowlerWickets', d.bowlerWickets); set('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (cScore !== -1) {
+        if (nw > cWickets) glitchEvent("SYSTEM: WICKET");
+        else if (ns - cScore === 6) glitchEvent("MAXIMUM: 6");
+        else if (ns - cScore === 4) glitchEvent("BOUNDARY: 4");
+      }
+      cScore = ns; cWickets = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') process(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') process(e.data.data); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Dark Angular</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Rajdhani:wght@600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; font-family: 'Rajdhani', sans-serif; color: #fff; }
+
+    :root { --da-dark: #121212; --da-mid: #242424; --da-accent: #00ff88; }
+
+    /* Top Angular Island */
+    #da-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: var(--da-dark); color: var(--da-accent);
+      padding: 5px 40px; font-family: 'Teko', sans-serif; font-size: 24px; letter-spacing: 2px;
+      clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      border-bottom: 2px solid var(--da-accent);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    /* Angular Event Popup */
+    #da-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
+      background: var(--da-accent); color: var(--da-dark);
+      font-family: 'Teko', sans-serif; font-size: 130px; line-height: 1; padding: 10px 60px;
+      clip-path: polygon(30px 0, 100% 0, calc(100% - 30px) 100%, 0 100%);
+      opacity: 0; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #da-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Angular Bar */
+    #da-bottom {
+      position: absolute; bottom: 20px; left: 2%; width: 96%; height: 90px;
+      display: flex; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6));
+    }
+
+    .da-sec { display: flex; align-items: center; padding: 0 30px; }
+
+    /* Score Section */
+    .s-score {
+      background: var(--da-accent); color: var(--da-dark); min-width: 280px; justify-content: space-between;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%); z-index: 3;
+    }
+    .da-tm { font-family: 'Teko', sans-serif; font-size: 48px; line-height: 0.8; margin-top: 8px;}
+    .da-sc { font-family: 'Teko', sans-serif; font-size: 64px; line-height: 0.7;}
+    .da-sc span { font-size: 32px; }
+    .da-ov { font-size: 15px; font-weight: 700; text-align: right;}
+
+    /* Batting Section */
+    .s-bat {
+      background: var(--da-dark); flex: 1; justify-content: space-around;
+      clip-path: polygon(30px 0, 100% 0, calc(100% - 30px) 100%, 0 100%); z-index: 2; margin-left: -40px; padding-left: 60px;
+    }
+    .bat-block { display: flex; align-items: baseline; gap: 10px; }
+    .pn { font-size: 22px; font-weight: 700; text-transform: uppercase;}
+    .pr { font-family: 'Teko', sans-serif; font-size: 46px; line-height: 0.7; color: var(--da-accent);}
+    .pb { font-size: 16px; color: #888; font-weight: 700;}
+    .strike { color: var(--da-accent); font-size: 16px; margin-right: -4px;}
+
+    /* Bowling Section */
+    .s-bowl {
+      background: var(--da-mid); min-width: 320px; justify-content: space-between;
+      clip-path: polygon(30px 0, 100% 0, 100% 100%, 0 100%); z-index: 1; margin-left: -40px; padding-left: 60px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="da-island">MATCH INITIALIZED</div>
+  <div id="da-event"></div>
+
+  <div id="da-bottom">
+    
+    <div class="da-sec s-score">
+      <div id="teamName" class="da-tm">TEAM</div>
+      <div style="text-align:right;">
+        <div class="da-sc"><span id="teamScore">208</span><span>/</span><span id="teamWickets">5</span></div>
+        <div class="da-ov">OV <span id="teamOvers">19.4</span></div>
+      </div>
+    </div>
+
+    <div class="da-sec s-bat">
+      <div class="bat-block">
+        <span class="strike">▶</span>
+        <span id="strikerName" class="pn">Player One</span>
+        <span id="strikerRuns" class="pr">77</span>
+        <span class="pb">(<span id="strikerBalls">41</span>)</span>
+      </div>
+      <div class="bat-block" style="opacity: 0.5;">
+        <span id="nonStrikerName" class="pn">Player Two</span>
+        <span id="nonStrikerRuns" class="pr" style="color: #fff;">14</span>
+        <span class="pb">(<span id="nonStrikerBalls">8</span>)</span>
+      </div>
+    </div>
+
+    <div class="da-sec s-bowl">
+      <div style="display:flex; flex-direction:column;">
+        <span class="pb" style="color:var(--da-accent);">BOWLER</span>
+        <span id="bowlerName" class="pn">Bowler Name</span>
+      </div>
+      <div class="bat-block">
+        <span class="pr" style="color:#fff;"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">38</span></span>
+        <span class="pb">OV <span id="bowlerOvers">3.4</span></span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let dSc = -1, dWk = -1, dSt = 0, dDat = {};
+    const dPut = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popDA(txt, bg, col) {
+      const e = document.getElementById('da-event');
+      e.innerText = txt; e.style.background = bg; e.style.color = col;
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2500);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('da-island');
+      if(!dDat.tournamentName) return;
+      dSt = (dSt + 1) % 3;
+      if(dSt === 0) isl.innerText = dDat.tournamentName;
+      else if(dSt === 1) isl.innerText = "CRR: " + (dDat.runRate||'0.0');
+      else isl.innerText = dDat.target > 0 ? "TARGET: " + dDat.target : "LIVE";
+    }, 4000);
+
+    function rx(d) {
+      dDat = d;
+      dPut('teamName', d.team1Name); dPut('teamScore', d.team1Score); dPut('teamWickets', d.team1Wickets); dPut('teamOvers', d.team1Overs);
+      dPut('strikerName', d.strikerName); dPut('strikerRuns', d.strikerRuns); dPut('strikerBalls', d.strikerBalls);
+      dPut('nonStrikerName', d.nonStrikerName); dPut('nonStrikerRuns', d.nonStrikerRuns); dPut('nonStrikerBalls', d.nonStrikerBalls);
+      dPut('bowlerName', d.bowlerName); dPut('bowlerRuns', d.bowlerRuns); dPut('bowlerWickets', d.bowlerWickets); dPut('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (dSc !== -1) {
+        if (nw > dWk) popDA("WICKET", "var(--da-dark)", "#fff");
+        else if (ns - dSc === 6) popDA("SIX RUNS", "var(--da-accent)", "var(--da-dark)");
+        else if (ns - dSc === 4) popDA("FOUR", "#fff", "var(--da-dark)");
+      }
+      dSc = ns; dWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

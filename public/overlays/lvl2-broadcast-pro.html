@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Soft Material</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #1f2937; }
+
+    /* Top Floating Island */
+    #mat-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #ffffff; color: #4f46e5;
+      padding: 8px 30px; border-radius: 30px;
+      font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Event Popup */
+    #mat-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: #4f46e5; color: #ffffff;
+      font-size: 80px; font-weight: 800; text-transform: uppercase;
+      padding: 20px 60px; border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4);
+      opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #mat-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Material Bar */
+    #mat-bottom {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 1100px; height: 95px;
+      background: #ffffff; border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+      display: flex; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .m-sec { display: flex; align-items: center; padding: 0 30px; }
+
+    /* Score Section (Accent Background) */
+    .sec-score {
+      background: #4f46e5; color: #ffffff; min-width: 260px;
+      justify-content: space-between; border-radius: 20px;
+    }
+    .m-tm { font-size: 22px; font-weight: 800; letter-spacing: 0.5px;}
+    .m-sc { font-size: 42px; font-weight: 800; line-height: 1; margin-top: 4px;}
+    .m-sc span { font-size: 24px; color: #c7d2fe; }
+    .m-ov { font-size: 14px; font-weight: 600; color: #e0e7ff; margin-left: 8px;}
+
+    /* Player Sections */
+    .sec-bat { flex: 1; justify-content: space-around; border-right: 1px solid #f3f4f6;}
+    .bat-wrap { display: flex; flex-direction: column; }
+    
+    .pn { font-size: 18px; font-weight: 700; color: #111827; }
+    .pr { font-size: 26px; font-weight: 800; color: #4f46e5; }
+    .pb { font-size: 14px; color: #6b7280; font-weight: 600; }
+    .strike { color: #f59e0b; margin-right: 6px; font-size: 12px; }
+
+    .sec-bowl { min-width: 300px; justify-content: space-between; background: #f9fafb; }
+    .lbl { color: #9ca3af; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="mat-island">TEST CHAMPIONSHIP</div>
+  <div id="mat-event">WICKET</div>
+
+  <div id="mat-bottom">
+    
+    <div class="m-sec sec-score">
+      <div id="teamName" class="m-tm">ENGLAND</div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="m-sc"><span id="teamScore">284</span><span>/</span><span id="teamWickets">5</span></div>
+        <div class="m-ov">OV <span id="teamOvers">64.2</span></div>
+      </div>
+    </div>
+
+    <div class="m-sec sec-bat">
+      <div class="bat-wrap">
+        <div><span class="strike">●</span><span id="strikerName" class="pn">J. Root</span></div>
+        <div><span id="strikerRuns" class="pr">102</span> <span class="pb">(<span id="strikerBalls">145</span>)</span></div>
+      </div>
+      
+      <div class="bat-wrap" style="opacity: 0.6;">
+        <div id="nonStrikerName" class="pn">B. Stokes</div>
+        <div><span id="nonStrikerRuns" class="pr" style="color: #374151;">34</span> <span class="pb">(<span id="nonStrikerBalls">52</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="m-sec sec-bowl">
+      <div class="bat-wrap">
+        <span class="lbl">Bowling</span>
+        <span id="bowlerName" class="pn">P. Cummins</span>
+      </div>
+      <div style="text-align: right;">
+        <span class="pr" style="color: #ef4444;"><span id="bowlerWickets">3</span>-<span id="bowlerRuns">55</span></span>
+        <div class="pb">Overs: <span id="bowlerOvers">14.2</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let mSc = -1, mWk = -1, mSt = 0, mDat = {};
+    const st = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popMat(txt, bg) {
+      const e = document.getElementById('mat-event');
+      e.innerText = txt; e.style.background = bg;
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2800);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('mat-island');
+      if(!mDat.tournamentName) return;
+      mSt = (mSt + 1) % 3;
+      if(mSt === 0) isl.innerText = mDat.tournamentName;
+      else if(mSt === 1) isl.innerText = "RUN RATE: " + (mDat.runRate||'0.0');
+      else isl.innerText = mDat.target > 0 ? "TARGET: " + mDat.target : "DAY 2";
+    }, 5000);
+
+    function rx(d) {
+      mDat = d;
+      st('teamName', d.team1Name); st('teamScore', d.team1Score); st('teamWickets', d.team1Wickets); st('teamOvers', d.team1Overs);
+      st('strikerName', d.strikerName); st('strikerRuns', d.strikerRuns); st('strikerBalls', d.strikerBalls);
+      st('nonStrikerName', d.nonStrikerName); st('nonStrikerRuns', d.nonStrikerRuns); st('nonStrikerBalls', d.nonStrikerBalls);
+      st('bowlerName', d.bowlerName); st('bowlerRuns', d.bowlerRuns); st('bowlerWickets', d.bowlerWickets); st('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (mSc !== -1) {
+        if (nw > mWk) popMat("WICKET!", "#ef4444");
+        else if (ns - mSc === 6) popMat("SIX RUNS!", "#4f46e5");
+        else if (ns - mSc === 4) popMat("BOUNDARY!", "#10b981");
+      }
+      mSc = ns; mWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

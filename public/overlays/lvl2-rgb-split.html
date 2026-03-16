@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Synthwave</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
+
+    /* Neon Island */
+    #synth-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #10002b;
+      padding: 6px 30px; font-family: 'Orbitron', sans-serif; font-size: 14px; letter-spacing: 3px;
+      color: #00f5d4;
+      border: 2px solid #ff007f;
+      box-shadow: 0 0 15px #ff007f, inset 0 0 10px rgba(255, 0, 127, 0.5);
+      border-radius: 4px;
+    }
+
+    /* Glitch/Glow Event Popup */
+    #synth-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      font-family: 'Orbitron', sans-serif; font-size: 110px; font-weight: 900;
+      color: #fff;
+      text-shadow: 4px 4px 0px #ff007f, -4px -4px 0px #00f5d4;
+      opacity: 0; transition: all 0.3s ease; pointer-events: none;
+    }
+    #synth-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Grid Bar */
+    #synth-bottom {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 1200px; height: 90px;
+      display: flex; gap: 15px;
+    }
+
+    .synth-panel {
+      background: linear-gradient(180deg, #240046 0%, #10002b 100%);
+      border: 2px solid #7b2cbf;
+      border-bottom: 4px solid #ff007f;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(123, 44, 191, 0.4);
+      display: flex; align-items: center; padding: 0 25px; border-radius: 4px;
+    }
+
+    /* Score Box */
+    .p-score { min-width: 280px; justify-content: space-between; border-bottom-color: #00f5d4; }
+    .team { font-family: 'Orbitron', sans-serif; font-size: 26px; color: #ff007f; text-shadow: 0 0 8px #ff007f;}
+    .run-block { text-align: right; }
+    .sc { font-size: 46px; font-weight: 900; line-height: 0.9;}
+    .sc span { font-size: 24px; color: #00f5d4; }
+    .ov { font-size: 14px; color: #9d4edd; font-family: 'Orbitron', sans-serif; font-weight: 700;}
+
+    /* Batting Box */
+    .p-bat { flex: 1; justify-content: space-around; }
+    .bat-info { display: flex; flex-direction: column; }
+    .pn { font-size: 22px; font-weight: 600; font-family: 'Orbitron', sans-serif;}
+    .pr { font-size: 32px; font-weight: 700; color: #fff; line-height: 1;}
+    .pb { font-size: 16px; color: #9d4edd; }
+    .strike { color: #ff007f; margin-right: 8px; text-shadow: 0 0 5px #ff007f;}
+
+    /* Bowling Box */
+    .p-bowl { min-width: 300px; justify-content: space-between; }
+    .bw-rn { font-size: 36px; font-weight: 700; color: #00f5d4; text-shadow: 0 0 8px #00f5d4; line-height: 1;}
+
+  </style>
+</head>
+<body>
+
+  <div id="synth-island">RETRO LEAGUE 2084</div>
+  <div id="synth-event"></div>
+
+  <div id="synth-bottom">
+    
+    <div class="synth-panel p-score">
+      <div id="teamName" class="team">MIAMI</div>
+      <div class="run-block">
+        <div class="sc"><span id="teamScore" style="color:#fff; font-size:46px; text-shadow:none;">192</span><span>/</span><span id="teamWickets" style="font-size:36px;">4</span></div>
+        <div class="ov">OVERS <span id="teamOvers">18.5</span></div>
+      </div>
+    </div>
+
+    <div class="synth-panel p-bat">
+      <div class="bat-info">
+        <div><span class="strike">▶</span><span id="strikerName" class="pn">R. Gosling</span></div>
+        <div><span id="strikerRuns" class="pr">88</span> <span class="pb">(<span id="strikerBalls">42</span>)</span></div>
+      </div>
+      <div class="bat-info" style="opacity: 0.6;">
+        <div id="nonStrikerName" class="pn" style="color: #c77dff;">K. Kavinsky</div>
+        <div><span id="nonStrikerRuns" class="pr" style="color:#c77dff; font-size: 26px;">12</span> <span class="pb">(<span id="nonStrikerBalls">9</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="synth-panel p-bowl">
+      <div class="bat-info">
+        <span class="pb" style="color:#00f5d4;">BOWLER</span>
+        <span id="bowlerName" class="pn">D. Synth</span>
+      </div>
+      <div class="run-block">
+        <div class="bw-rn"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">34</span></div>
+        <div class="ov">OV <span id="bowlerOvers">3.5</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let synSc = -1, synWk = -1, synSt = 0, synDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popSynth(msg) {
+      const e = document.getElementById('synth-event');
+      e.innerText = msg; e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2800);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('synth-island');
+      if(!synDat.tournamentName) return;
+      synSt = (synSt + 1) % 3;
+      if(synSt === 0) isl.innerText = synDat.tournamentName;
+      else if(synSt === 1) isl.innerText = "RUN RATE: " + (synDat.runRate||'0.0');
+      else isl.innerText = synDat.target > 0 ? "TARGET: " + synDat.target : "1ST INNINGS";
+    }, 4500);
+
+    function rx(d) {
+      synDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (synSc !== -1) {
+        if (nw > synWk) popSynth("WICKET!");
+        else if (ns - synSc === 6) popSynth("SIX RUNS!");
+        else if (ns - synSc === 4) popSynth("FOUR RUNS!");
+      }
+      synSc = ns; synWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

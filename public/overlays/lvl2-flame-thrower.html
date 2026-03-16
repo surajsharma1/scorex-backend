@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Flame Thrower</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Teko:wght@500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Teko', sans-serif; }
+
+    /* Top Fire Island */
+    #fire-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(90deg, #3a0000, #8b0000, #3a0000);
+      border: 2px solid #ff4500; padding: 5px 30px;
+      font-size: 22px; font-weight: 700; letter-spacing: 2px;
+      box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+    }
+
+    /* Fire Event Text */
+    #fire-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
+      font-family: 'Black Ops One', cursive; font-size: 130px;
+      color: #ffca28; -webkit-text-stroke: 3px #d84315;
+      text-shadow: 0 10px 30px #d84315;
+      opacity: 0; transition: all 0.3s ease-out;
+    }
+    #fire-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Wing Layout */
+    #bottom-wrapper {
+      position: absolute; bottom: 25px; width: 100%;
+      display: flex; justify-content: center; align-items: flex-end; gap: 5px;
+    }
+
+    .wing {
+      background: rgba(15, 10, 10, 0.95);
+      height: 70px; width: 350px;
+      border-top: 3px solid #ff4500;
+      display: flex; flex-direction: column; justify-content: center; padding: 0 20px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+    }
+    .wing-left { clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%); }
+    .wing-right { clip-path: polygon(0 0, 100% 0, 100% 100%, 5% 100%); }
+
+    /* Center Shield for Score */
+    .center-shield {
+      background: linear-gradient(180deg, #ff4500 0%, #8b0000 100%);
+      width: 240px; height: 100px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
+      box-shadow: 0 15px 30px rgba(255, 69, 0, 0.4);
+      z-index: 10; border-bottom: 4px solid #ffca28;
+    }
+
+    .tm-lbl { font-family: 'Black Ops One', cursive; font-size: 20px; color: #ffca28; letter-spacing: 1px;}
+    .sc-lbl { font-size: 48px; font-weight: 700; line-height: 0.8; margin-top: 5px;}
+    .ov-lbl { font-size: 18px; color: #f5f5f5; }
+
+    /* Wing Content */
+    .w-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .w-title { font-size: 16px; color: #ff4500; text-transform: uppercase; }
+    .p-name { font-size: 24px; font-weight: 700; color: #fff; }
+    .p-stat { font-size: 26px; font-weight: 700; color: #ffca28; }
+    .p-sub { font-size: 18px; color: #aaa; }
+    
+    .on-strike { color: #ff4500; margin-right: 5px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="fire-island">IGNITE SERIES</div>
+  <div id="fire-event"></div>
+
+  <div id="bottom-wrapper">
+    
+    <div class="wing wing-left">
+      <div class="w-row" style="border-bottom: 1px solid rgba(255,69,0,0.3); padding-bottom: 2px; margin-bottom: 2px;">
+        <div><span class="on-strike">▶</span><span id="strikerName" class="p-name">S. Smith</span></div>
+        <div><span id="strikerRuns" class="p-stat">102</span> <span class="p-sub">(<span id="strikerBalls">54</span>)</span></div>
+      </div>
+      <div class="w-row">
+        <div><span id="nonStrikerName" class="p-name" style="color: #bbb; font-size: 20px;">D. Warner</span></div>
+        <div><span id="nonStrikerRuns" class="p-stat" style="color: #bbb; font-size: 22px;">45</span> <span class="p-sub" style="font-size: 16px;">(<span id="nonStrikerBalls">22</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="center-shield">
+      <div id="teamName" class="tm-lbl">DRAGONS</div>
+      <div class="sc-lbl"><span id="teamScore">245</span><span style="font-size:32px; color:#ddd;">/</span><span id="teamWickets">3</span></div>
+      <div class="ov-lbl">OVERS <span id="teamOvers">19.5</span></div>
+    </div>
+
+    <div class="wing wing-right">
+      <div class="w-title">CURRENT BOWLER</div>
+      <div class="w-row">
+        <span id="bowlerName" class="p-name">M. Wood</span>
+        <div><span class="p-stat" style="color:#ff4500;"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">41</span></span> <span class="p-sub">Ov: <span id="bowlerOvers">3.5</span></span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, fSt = 0, fDat = {};
+    const st = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function shootFire(text) {
+      const p = document.getElementById('fire-event');
+      p.innerText = text; p.classList.add('show');
+      setTimeout(() => p.classList.remove('show'), 2800);
+    }
+
+    setInterval(() => {
+      const el = document.getElementById('fire-island');
+      if(!fDat.tournamentName) return;
+      fSt = (fSt + 1) % 3;
+      if(fSt === 0) el.innerText = fDat.tournamentName;
+      else if(fSt === 1) el.innerText = fDat.target > 0 ? "TARGET: " + fDat.target : "CRR: " + (fDat.runRate||'0.0');
+      else el.innerText = fDat.status || "LIVE";
+    }, 4500);
+
+    function rx(d) {
+      fDat = d;
+      st('teamName', d.team1Name); st('teamScore', d.team1Score); st('teamWickets', d.team1Wickets); st('teamOvers', d.team1Overs);
+      st('strikerName', d.strikerName); st('strikerRuns', d.strikerRuns); st('strikerBalls', d.strikerBalls);
+      st('nonStrikerName', d.nonStrikerName); st('nonStrikerRuns', d.nonStrikerRuns); st('nonStrikerBalls', d.nonStrikerBalls);
+      st('bowlerName', d.bowlerName); st('bowlerRuns', d.bowlerRuns); st('bowlerWickets', d.bowlerWickets); st('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1) {
+        if (nw > pWk) shootFire("WICKET!");
+        else if (ns - pSc === 6) shootFire("MASSIVE 6!");
+        else if (ns - pSc === 4) shootFire("FOUR!");
+      }
+      pSc = ns; pWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Action Red</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,700;1,700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto Condensed', sans-serif; font-style: italic; }
+    body { background: transparent; overflow: hidden; color: #111; }
+
+    /* Skewed Elements Utility */
+    .skew-box { transform: skewX(-15deg); }
+    .unskew-text { transform: skewX(15deg); display: inline-block; }
+
+    /* Top Island */
+    #red-island {
+      position: absolute; top: 20px; left: 60px;
+      background: #e63946; color: #fff;
+      padding: 6px 30px; font-weight: 700; font-size: 16px; letter-spacing: 1px;
+      text-transform: uppercase; box-shadow: 6px 6px 0 rgba(0,0,0,0.8);
+    }
+
+    /* Danger Popup */
+    #red-event {
+      position: absolute; top: 40%; left: 50%;
+      background: #fff; color: #e63946;
+      font-size: 100px; font-weight: 700; text-transform: uppercase;
+      padding: 10px 60px; border-left: 15px solid #111; border-right: 15px solid #111;
+      box-shadow: 15px 15px 0 rgba(0,0,0,0.8);
+      transform: translate(-50%, -50%) scale(0.5) skewX(-15deg);
+      opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #red-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(-15deg); }
+
+    /* Bottom Bar */
+    #red-bottom {
+      position: absolute; bottom: 25px; left: 50px;
+      width: calc(100% - 100px); height: 85px; display: flex;
+      filter: drop-shadow(8px 8px 0 rgba(0,0,0,0.8));
+    }
+
+    .r-sec { display: flex; align-items: center; padding: 0 30px; }
+
+    /* Main Score */
+    .r-score { background: #e63946; color: #fff; min-width: 250px; justify-content: space-between; border-right: 6px solid #111; z-index: 3;}
+    .tm { font-size: 28px; font-weight: 700; }
+    .sc { font-size: 46px; font-weight: 700; line-height: 1; margin-top: 5px;}
+    .sc span { font-size: 26px; }
+    .ov { font-size: 15px; color: #ffccd0; font-weight: 700; margin-left: 10px;}
+
+    /* Player Section */
+    .r-bat { background: #fff; flex: 1; justify-content: space-around; z-index: 2; margin-left: -15px; padding-left: 40px;}
+    .bat-row { display: flex; align-items: baseline; gap: 8px; }
+    .pn { font-size: 22px; font-weight: 700; color: #111;}
+    .pr { font-size: 28px; font-weight: 700; color: #e63946;}
+    .pb { font-size: 15px; color: #666; font-weight: 700;}
+    .strike { color: #e63946; font-style: normal; margin-right: 5px; font-size: 14px;}
+
+    /* Bowler Section */
+    .r-bowl { background: #111; color: #fff; min-width: 280px; justify-content: space-between; z-index: 1; margin-left: -15px; padding-left: 40px;}
+  </style>
+</head>
+<body>
+
+  <div id="red-island" class="skew-box"><span class="unskew-text" id="island-txt">PRO CRICKET LEAGUE</span></div>
+  <div id="red-event" class="skew-box"><span class="unskew-text" id="event-txt"></span></div>
+
+  <div id="red-bottom">
+    
+    <div class="r-sec r-score skew-box">
+      <span class="unskew-text tm" id="teamName">RED DEVILS</span>
+      <div class="unskew-text" style="display:flex; align-items:baseline;">
+        <div class="sc"><span id="teamScore">164</span><span>/</span><span id="teamWickets">3</span></div>
+        <div class="ov">OV <span id="teamOvers">15.5</span></div>
+      </div>
+    </div>
+
+    <div class="r-sec r-bat skew-box">
+      <div class="unskew-text bat-row">
+        <span class="strike">▶</span>
+        <span id="strikerName" class="pn">R. Sharma</span>
+        <span id="strikerRuns" class="pr">71</span>
+        <span class="pb">(<span id="strikerBalls">38</span>)</span>
+      </div>
+      <div class="unskew-text bat-row" style="opacity: 0.6;">
+        <span id="nonStrikerName" class="pn">H. Pandya</span>
+        <span id="nonStrikerRuns" class="pr" style="color: #111;">18</span>
+        <span class="pb">(<span id="nonStrikerBalls">11</span>)</span>
+      </div>
+    </div>
+
+    <div class="r-sec r-bowl skew-box">
+      <div class="unskew-text" style="display:flex; flex-direction:column;">
+        <span class="pb" style="color:#aaa;">BOWLER</span>
+        <span id="bowlerName" class="pn" style="color:#fff;">K. Rabada</span>
+      </div>
+      <div class="unskew-text">
+        <span class="pr" style="color:#fff;"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">30</span></span>
+        <span class="pb" style="color:#888; margin-left:5px;">(<span id="bowlerOvers">3.5</span>)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let aSc = -1, aWk = -1, aSt = 0, aDat = {};
+    const w = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function actionPop(txt, bg, col) {
+      const e = document.getElementById('red-event');
+      const t = document.getElementById('event-txt');
+      t.innerText = txt; e.style.background = bg; e.style.color = col;
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2800);
+    }
+
+    setInterval(() => {
+      const el = document.getElementById('island-txt');
+      if(!aDat.tournamentName) return;
+      aSt = (aSt + 1) % 3;
+      if(aSt === 0) el.innerText = aDat.tournamentName;
+      else if(aSt === 1) el.innerText = "CRR: " + (aDat.runRate||'0.0');
+      else el.innerText = aDat.target > 0 ? "TARGET: " + aDat.target : aDat.status || "LIVE";
+    }, 4500);
+
+    function rx(d) {
+      aDat = d;
+      w('teamName', d.team1Name); w('teamScore', d.team1Score); w('teamWickets', d.team1Wickets); w('teamOvers', d.team1Overs);
+      w('strikerName', d.strikerName); w('strikerRuns', d.strikerRuns); w('strikerBalls', d.strikerBalls);
+      w('nonStrikerName', d.nonStrikerName); w('nonStrikerRuns', d.nonStrikerRuns); w('nonStrikerBalls', d.nonStrikerBalls);
+      w('bowlerName', d.bowlerName); w('bowlerRuns', d.bowlerRuns); w('bowlerWickets', d.bowlerWickets); w('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (aSc !== -1) {
+        if (nw > aWk) actionPop("WICKET!", "#111", "#fff");
+        else if (ns - aSc === 6) actionPop("SIX RUNS!", "#e63946", "#fff");
+        else if (ns - aSc === 4) actionPop("FOUR!", "#fff", "#e63946");
+      }
+      aSc = ns; aWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

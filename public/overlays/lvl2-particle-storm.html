@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Particle Storm</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Jura:wght@500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Jura', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Energy Island */
+    #storm-island {
+      position: absolute; top: 15px; right: 40px;
+      background: linear-gradient(90deg, #6441a5 0%, #2a0845 100%);
+      padding: 6px 25px; border-radius: 30px;
+      font-family: 'Righteous', cursive; font-size: 16px; letter-spacing: 1px;
+      box-shadow: 0 5px 15px rgba(100, 65, 165, 0.5);
+      border: 1px solid #00f2fe;
+    }
+
+    /* Burst Event Popup */
+    #storm-event {
+      position: absolute; top: 40%; left: 50%;
+      background: linear-gradient(45deg, #f12711 0%, #f5af19 100%);
+      color: #111; font-family: 'Righteous', cursive; font-size: 110px;
+      padding: 10px 50px; border-radius: 50px;
+      box-shadow: 0 10px 40px rgba(241, 39, 17, 0.7);
+      transform: translate(-50%, -50%) scale(0.3); opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #storm-event.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    /* Bottom Floating Pills Layout */
+    #storm-bottom {
+      position: absolute; bottom: 25px; left: 0; width: 100%;
+      display: flex; justify-content: center; gap: 15px; height: 80px;
+    }
+
+    .storm-pill {
+      background: linear-gradient(180deg, #1f1c2c 0%, #15131a 100%);
+      border-radius: 40px; padding: 0 30px;
+      display: flex; align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Score Block */
+    .p-score { border-left: 4px solid #00f2fe; justify-content: space-between; min-width: 250px;}
+    .team { font-family: 'Righteous', cursive; font-size: 26px; background: -webkit-linear-gradient(#00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+    .runs { font-size: 42px; font-weight: 700; line-height: 1;}
+    .runs span { font-size: 24px; color: #888; }
+    .ovr { font-size: 14px; color: #aaa; font-weight: 700;}
+
+    /* Batting Block */
+    .p-bat { flex: 0.7; justify-content: space-around; border-bottom: 4px solid #f12711; }
+    .b-wrap { display: flex; flex-direction: column; align-items: center; }
+    .nm { font-weight: 700; font-size: 20px; }
+    .rn { font-size: 26px; font-weight: 700; color: #f5af19; }
+    .bl { font-size: 14px; color: #aaa; }
+    .strike { color: #00f2fe; font-size: 12px; margin-right: 5px;}
+
+    /* Bowling Block */
+    .p-bowl { border-right: 4px solid #6441a5; min-width: 260px; justify-content: space-between; }
+    .bw-rn { font-size: 32px; font-weight: 700; color: #fff;}
+    
+  </style>
+</head>
+<body>
+
+  <div id="storm-island">GALAXY CUP</div>
+  <div id="storm-event"></div>
+
+  <div id="storm-bottom">
+    
+    <div class="storm-pill p-score">
+      <div id="teamName" class="team">NEBULA</div>
+      <div style="text-align: right;">
+        <div class="runs"><span id="teamScore">188</span><span>/</span><span id="teamWickets">6</span></div>
+        <div class="ovr">OV <span id="teamOvers">17.2</span></div>
+      </div>
+    </div>
+
+    <div class="storm-pill p-bat">
+      <div class="b-wrap">
+        <div><span class="strike">▶</span><span id="strikerName" class="nm">Q. de Kock</span></div>
+        <div><span id="strikerRuns" class="rn">65</span> <span class="bl">(<span id="strikerBalls">38</span>)</span></div>
+      </div>
+      <div class="b-wrap" style="opacity: 0.6;">
+        <div id="nonStrikerName" class="nm">K. Mayers</div>
+        <div><span id="nonStrikerRuns" class="rn" style="color:#fff;">11</span> <span class="bl">(<span id="nonStrikerBalls">7</span>)</span></div>
+      </div>
+    </div>
+
+    <div class="storm-pill p-bowl">
+      <div class="b-wrap" style="align-items: flex-start;">
+        <span class="bl">BOWLER</span>
+        <span id="bowlerName" class="nm">N. Ellis</span>
+      </div>
+      <div style="text-align: right;">
+        <div class="bw-rn"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">31</span></div>
+        <div class="ovr">(<span id="bowlerOvers">3.2</span>)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, sSt = 0, sDat = {};
+    const put = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popStorm(msg) {
+      const e = document.getElementById('storm-event');
+      e.innerText = msg; e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 2600);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('storm-island');
+      if(!sDat.tournamentName) return;
+      sSt = (sSt + 1) % 3;
+      if(sSt === 0) isl.innerText = sDat.tournamentName;
+      else if(sSt === 1) isl.innerText = "RUN RATE: " + (sDat.runRate||'0.0');
+      else isl.innerText = sDat.target > 0 ? "TARGET: " + sDat.target : sDat.status || "LIVE";
+    }, 4500);
+
+    function rx(d) {
+      sDat = d;
+      put('teamName', d.team1Name); put('teamScore', d.team1Score); put('teamWickets', d.team1Wickets); put('teamOvers', d.team1Overs);
+      put('strikerName', d.strikerName); put('strikerRuns', d.strikerRuns); put('strikerBalls', d.strikerBalls);
+      put('nonStrikerName', d.nonStrikerName); put('nonStrikerRuns', d.nonStrikerRuns); put('nonStrikerBalls', d.nonStrikerBalls);
+      put('bowlerName', d.bowlerName); put('bowlerRuns', d.bowlerRuns); put('bowlerWickets', d.bowlerWickets); put('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1) {
+        if (nw > pWk) popStorm("WICKET!");
+        else if (ns - pSc === 6) popStorm("SIX RUNS!");
+        else if (ns - pSc === 4) popStorm("BOUNDARY!");
+      }
+      pSc = ns; pWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>
