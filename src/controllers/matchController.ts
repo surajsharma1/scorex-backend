@@ -36,10 +36,28 @@ export const getMatches = async (req: Request, res: Response, next: NextFunction
 export const getMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id)
-      .populate('team1', 'name shortName logo players')
-      .populate('team2', 'name shortName logo players')
-      .populate('tournamentId', 'name format')
-      .populate('winner', 'name shortName');
+      .populate([
+        { 
+          path: 'team1', 
+          select: 'name shortName logo players',
+          populate: { 
+            path: 'players', 
+            select: 'name role jerseyNumber', 
+            model: 'Player' 
+          }
+        },
+        { 
+          path: 'team2', 
+          select: 'name shortName logo players',
+          populate: { 
+            path: 'players', 
+            select: 'name role jerseyNumber', 
+            model: 'Player' 
+          }
+        },
+        'tournamentId',
+        'winner'
+      ]);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     res.json({ success: true, data: match });
   } catch (error) { next(error); }
