@@ -66,11 +66,12 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
     // FIX: use req.user.id not user._id
     if (!req.user?.id) { res.status(401).json({ message: 'Not authenticated' }); return; }
 
-    const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
-    if (!membership.hasMembership && !membership.isAdmin) {
-      res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
-      return;
-    }
+// Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
+    // const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
+    // if (!membership.hasMembership && !membership.isAdmin) {
+    //   res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
+    //   return;
+    // }
 
     const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
     if (!name?.trim())     { res.status(400).json({ message: 'Overlay name is required' }); return; }
