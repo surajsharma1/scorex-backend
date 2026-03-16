@@ -203,11 +203,6 @@ app.use('/api/v1/matches',       matchRoutes);
 // app.use('/api/v1/users',         userRoutes);
 // app.use('/api/v1/notifications', notificationRoutes);
 // app.use('/api/v1/stats',         statsRoutes);
-// app.use('/api/v1/friends',       friendRoutes);
-// app.use('/api/v1/clubs',         clubRoutes);
-// app.use('/api/v1/payments',      paymentRoutes);
-// app.use('/api/v1/messages',      messageRoutes);
-// app.use('/api/v1/leaderboard',   leaderboardRoutes);
 
 // Health check
 app.get('/api/v1/health', async (_req, res) => {
