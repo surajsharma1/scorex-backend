@@ -13,6 +13,7 @@ const socket_io_1 = require("socket.io");
 const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const User_1 = __importDefault(require("./models/User"));
+require("./models"); // Register all models
 const database_1 = __importDefault(require("./config/database"));
 const express_session_2 = require("express-session");
 // Routes
