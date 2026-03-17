@@ -75,7 +75,8 @@ const seedMatches = async () => {
     for (const matchData of testMatches) {
       const existing = await Match.findOne({ name: matchData.name });
       if (!existing) {
-        await Match.create(matchData);
+        const match = await Match.create(matchData);
+        await Tournament.findByIdAndUpdate(tournament._id, { $push: { matches: match._id } });
         console.log(`✅ Created match: ${matchData.name}`);
       } else {
         console.log(`⏭️  Skip existing: ${matchData.name}`);
