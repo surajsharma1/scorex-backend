@@ -58,17 +58,21 @@ export const getClub = async (req: Request, res: Response, next: NextFunction) =
   try {
     const club = await Club.findById(req.params.id)
       .populate('owner', 'username email fullName profilePicture')
-      .populate('members', 'username email fullName profilePicture')
-      .populate('viceLeaders', 'username email fullName profilePicture')
-      .populate('joinRequests', 'username email fullName');
+      .populate('viceLeaders', 'username email fullName profilePicture');
     
     res.json({
       success: true,
-      data: club || null
+      data: club || null,
+      message: club ? undefined : 'Club not found'
     });
   } catch (error) {
-    next(error);
+    console.error('getClub error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
+
 };
 
 // @desc    Create club
@@ -76,6 +80,10 @@ export const getClub = async (req: Request, res: Response, next: NextFunction) =
 // @access  Private
 export const createClub = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    
     const { name, description, logo, type, location, isPublic } = req.body;
     
     const club = await Club.create({
@@ -85,13 +93,13 @@ export const createClub = async (req: AuthRequest, res: Response, next: NextFunc
       type: type || 'public',
       location,
       isPublic: isPublic !== false,
-      owner: req.user?.id,
-      members: [req.user?.id],
+      owner: req.user.id,
+      members: [req.user.id],
       viceLeaders: [],
       joinRequests: []
     });
     
-    await club.populate('owner', 'username email');
+    await club.populate('owner', 'username email fullName');
     
     res.status(201).json({
       success: true,
@@ -99,9 +107,11 @@ export const createClub = async (req: AuthRequest, res: Response, next: NextFunc
       data: club
     });
   } catch (error) {
-    next(error);
+    console.error('createClub error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create club' });
   }
 };
+
 
 // @desc    Update club
 // @route   PUT /api/v1/clubs/:id
@@ -413,51 +423,57 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
 // @access  Private
 export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
-    
-    if (!req.user) {
+    if (!req.user?.id) {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
+
     const userId = req.user.id;
+    const { search, limit = 20, page = 1 } = req.query;
     
-    // Build and log exact query
-    const query = {
+    const query: any = {
       $or: [
         { owner: userId },
         { members: userId }
       ],
       isActive: true
     };
-    console.log('🔍 QUERY: Exact MongoDB query:', JSON.stringify(query, null, 2));
-    
+
+    if (search) {
+      query.$and = [
+        query,
+        {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ]
+        }
+      ];
+    }
+
     const clubs = await Club.find(query)
       .populate('owner', 'username email fullName')
-      .populate('members', 'username email fullName')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await Club.countDocuments(query);
     
-    const totalCount = await Club.countDocuments(query);
-    
-    console.log(`🎯 CONTROLLER: Found ${clubs.length} clubs (query matched ${totalCount} docs) for user ${userId}`);
-    
-    // Always success, even if empty
-    const response = {
+    res.json({
       success: true,
       data: clubs,
-      count: clubs.length,
-      message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs found. Create your first club!'
-    };
-    
-    console.log('🎯 CONTROLLER: Response:', JSON.stringify(response, null, 2));
-    
-    res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-    res.set('Expires', '0');
-    res.set('Pragma', 'no-cache');
-    res.json(response);
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit))
+      },
+      message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs yet. Create your first!'
+    });
   } catch (error) {
-    console.error('❌ getMyClubs ERROR:', error);
-    next(error);
+    console.error('getMyClubs error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 
 export default {

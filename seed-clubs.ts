@@ -10,11 +10,21 @@ const seedClubs = async () => {
 
     console.log('Seeding clubs...');
 
-    // Find organizer user
-    const organizer = await User.findOne({ email: 'organizer@example.com' });
+    // Find or create organizer user
+    let organizer = await User.findOne({ email: 'organizer@example.com' });
     if (!organizer) {
-      console.error('❌ Organizer user not found. Run seed.ts first.');
-      process.exit(1);
+      console.log('👤 Creating test organizer user...');
+      organizer = await User.create({
+        username: 'organizer',
+        email: 'organizer@example.com',
+        password: 'password123', // Will be hashed
+        fullName: 'Test Organizer',
+        role: 'viewer',
+        verified: true
+      });
+      console.log('✅ Created organizer:', organizer.email);
+    } else {
+      console.log('✅ Found organizer:', organizer.email);
     }
 
     // Check if test club exists

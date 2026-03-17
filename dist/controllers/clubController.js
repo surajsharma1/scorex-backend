@@ -53,22 +53,19 @@ const getClub = async (req, res, next) => {
     try {
         const club = await Club_1.default.findById(req.params.id)
             .populate('owner', 'username email fullName profilePicture')
-            .populate('members', 'username email fullName profilePicture')
-            .populate('viceLeaders', 'username email fullName profilePicture')
-            .populate('joinRequests', 'username email fullName');
-        if (!club) {
-            return res.status(404).json({
-                success: false,
-                message: 'Club not found'
-            });
-        }
+            .populate('viceLeaders', 'username email fullName profilePicture');
         res.json({
             success: true,
-            data: club
+            data: club || null,
+            message: club ? undefined : 'Club not found'
         });
     }
     catch (error) {
-        next(error);
+        console.error('getClub error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
     }
 };
 exports.getClub = getClub;
@@ -77,6 +74,9 @@ exports.getClub = getClub;
 // @access  Private
 const createClub = async (req, res, next) => {
     try {
+        if (!req.user?.id) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
         const { name, description, logo, type, location, isPublic } = req.body;
         const club = await Club_1.default.create({
             name,
@@ -85,12 +85,12 @@ const createClub = async (req, res, next) => {
             type: type || 'public',
             location,
             isPublic: isPublic !== false,
-            owner: req.user?.id,
-            members: [req.user?.id],
+            owner: req.user.id,
+            members: [req.user.id],
             viceLeaders: [],
             joinRequests: []
         });
-        await club.populate('owner', 'username email');
+        await club.populate('owner', 'username email fullName');
         res.status(201).json({
             success: true,
             message: 'Club created successfully',
@@ -98,7 +98,8 @@ const createClub = async (req, res, next) => {
         });
     }
     catch (error) {
-        next(error);
+        console.error('createClub error:', error);
+        res.status(500).json({ success: false, message: 'Failed to create club' });
     }
 };
 exports.createClub = createClub;
@@ -109,8 +110,9 @@ const updateClub = async (req, res, next) => {
     try {
         const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({
-                success: false,
+            return res.json({
+                success: true,
+                data: null,
                 message: 'Club not found'
             });
         }
@@ -154,8 +156,9 @@ const deleteClub = async (req, res, next) => {
     try {
         const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({
-                success: false,
+            return res.json({
+                success: true,
+                data: null,
                 message: 'Club not found'
             });
         }
@@ -184,8 +187,9 @@ const joinClub = async (req, res, next) => {
     try {
         const club = await Club_1.default.findById(req.params.id);
         if (!club) {
-            return res.status(404).json({
-                success: false,
+            return res.json({
+                success: true,
+                data: null,
                 message: 'Club not found'
             });
         }
@@ -378,12 +382,11 @@ exports.removeMember = removeMember;
 // @access  Private
 const getMyClubs = async (req, res, next) => {
     try {
-        console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
-        if (!req.user) {
+        if (!req.user?.id) {
             return res.status(401).json({ success: false, message: 'User not authenticated' });
         }
         const userId = req.user.id;
-        // Build and log exact query
+        const { search, limit = 20, page = 1 } = req.query;
         const query = {
             $or: [
                 { owner: userId },
@@ -391,29 +394,37 @@ const getMyClubs = async (req, res, next) => {
             ],
             isActive: true
         };
-        console.log('🔍 QUERY: Exact MongoDB query:', JSON.stringify(query, null, 2));
+        if (search) {
+            query.$and = [
+                query,
+                {
+                    $or: [
+                        { name: { $regex: search, $options: 'i' } },
+                        { description: { $regex: search, $options: 'i' } }
+                    ]
+                }
+            ];
+        }
         const clubs = await Club_1.default.find(query)
             .populate('owner', 'username email fullName')
-            .populate('members', 'username email fullName')
-            .sort({ createdAt: -1 });
-        const totalCount = await Club_1.default.countDocuments(query);
-        console.log(`🎯 CONTROLLER: Found ${clubs.length} clubs (query matched ${totalCount} docs) for user ${userId}`);
-        // Always success, even if empty
-        const response = {
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip((Number(page) - 1) * Number(limit));
+        const total = await Club_1.default.countDocuments(query);
+        res.json({
             success: true,
             data: clubs,
-            count: clubs.length,
-            message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs found. Create your first club!'
-        };
-        console.log('🎯 CONTROLLER: Response:', JSON.stringify(response, null, 2));
-        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-        res.set('Expires', '0');
-        res.set('Pragma', 'no-cache');
-        res.json(response);
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / Number(limit))
+            },
+            message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs yet. Create your first!'
+        });
     }
     catch (error) {
-        console.error('❌ getMyClubs ERROR:', error);
-        next(error);
+        console.error('getMyClubs error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 exports.getMyClubs = getMyClubs;
