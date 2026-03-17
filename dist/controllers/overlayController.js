@@ -299,12 +299,28 @@ const serveOverlay = async (req, res) => {
             return;
         }
         console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
-        // ✅ Prioritize URL params for live overrides
-        const matchId = req.query.matchId || req.query.match ||
+        let matchId = req.query.matchId || req.query.match ||
             overlay.match?._id?.toString() || overlay.match?.toString() || null;
-        const tournamentId = req.query.tournamentId ||
+        let tournamentId = req.query.tournamentId ||
             overlay.tournament?._id?.toString() || overlay.tournament?.toString() || null;
-        console.log('[serveOverlay] Using matchId:', matchId, 'tournamentId:', tournamentId);
+        // 🆕 NEW: Tournament Context - Auto-pick live match if no specific matchId
+        if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
+            console.log('[serveOverlay] No matchId, finding live match for tournament:', tournamentId);
+            const now = new Date();
+            const liveMatch = await Match_1.default.findOne({
+                tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
+                status: { $in: ['live', 'ongoing'] },
+                date: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Recent matches
+            }).sort({ date: 1 }).select('_id').lean();
+            if (liveMatch) {
+                matchId = liveMatch._id.toString();
+                console.log('[serveOverlay] ✅ Auto-selected live match:', matchId);
+            }
+            else {
+                console.warn('[serveOverlay] No live match found for tournament:', tournamentId);
+            }
+        }
+        console.log('[serveOverlay] Final - matchId:', matchId, 'tournamentId:', tournamentId);
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
         // FIX: Inject Socket.io, utils, OVERLAY_CONFIG, and engine.js into EVERY template

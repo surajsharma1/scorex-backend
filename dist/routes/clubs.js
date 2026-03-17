@@ -10,6 +10,7 @@ const router = express_1.default.Router();
 // Public routes - anyone can view clubs
 router.get('/', clubController_1.getClubs);
 router.get('/:clubId', clubController_1.getClub);
+router.get('/my', auth_1.protect, clubController_1.getMyClubs);
 // Protected routes - require authentication
 router.post('/', auth_1.protect, clubController_1.createClub);
 router.post('/:clubId/join', auth_1.protect, clubController_1.joinClub);
