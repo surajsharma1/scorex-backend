@@ -19,5 +19,5 @@ router.get('/:id', auth_1.protect, overlayController_1.getOverlay);
 router.post('/', auth_1.protect, overlayController_1.createOverlay);
 router.put('/:id', auth_1.protect, overlayController_1.updateOverlay);
 router.delete('/:id', auth_1.protect, overlayController_1.deleteOverlay);
-router.post('/:id/regenerate', auth_1.protect, overlayController_1.regenerateOverlayUrl);
+router.post('/:id/regenerate-url', auth_1.protect, overlayController_1.regenerateOverlayUrl);
 exports.default = router;

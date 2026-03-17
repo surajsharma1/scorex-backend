@@ -29,7 +29,7 @@ router.get('/:id', protect as any, getOverlay as any);
 router.post('/', protect as any, createOverlay as any);
 router.put('/:id', protect as any, updateOverlay as any);
 router.delete('/:id', protect as any, deleteOverlay as any);
-router.post('/:id/regenerate', protect as any, regenerateOverlayUrl as any);
+router.post('/:id/regenerate-url', protect as any, regenerateOverlayUrl as any);
 
 export default router;
 

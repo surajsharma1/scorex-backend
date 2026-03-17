@@ -48,5 +48,6 @@ router.post('/', auth_1.protect, tc.createTournament);
 router.put('/:id', auth_1.protect, tc.updateTournament);
 router.delete('/:id', auth_1.protect, tc.deleteTournament);
 router.post('/:id/bracket', auth_1.protect, tc.generateBracket);
+router.get('/:id/matches', tc.getTournamentMatches);
 router.post('/:id/start', auth_1.protect, tc.startTournament);
 exports.default = router;

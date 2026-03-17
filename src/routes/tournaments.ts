@@ -10,5 +10,6 @@ router.post('/', protect, tc.createTournament);
 router.put('/:id', protect, tc.updateTournament);
 router.delete('/:id', protect, tc.deleteTournament);
 router.post('/:id/bracket', protect, tc.generateBracket);
+router.get('/:id/matches', tc.getTournamentMatches);
 router.post('/:id/start', protect, tc.startTournament);
 export default router;

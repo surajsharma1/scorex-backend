@@ -324,6 +324,9 @@ const serveOverlay = async (req, res) => {
     </head>`);
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('X-Frame-Options', 'ALLOWALL');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.send(html);
     }
     catch (error) {

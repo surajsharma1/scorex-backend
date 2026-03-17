@@ -73,6 +73,15 @@ export const startTournament = async (req: AuthRequest, res: Response, next: Nex
   } catch (error) { next(error); }
 };
 
+export const getTournamentMatches = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const Tournament = await import('../models/Tournament').then(m => m.default);
+    const tournament = await Tournament.findById(req.params.id).populate('matches');
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    res.json({ success: true, data: tournament.matches });
+  } catch (error: any) { next(error); }
+};
+
 export const getPointsTable = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tournament = await Tournament.findById(req.params.id).populate('teams');
@@ -106,4 +115,4 @@ export const getPointsTable = async (req: Request, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
-export default { createTournament, getTournaments, getMyTournaments, getTournamentById, updateTournament, deleteTournament, generateBracket, startTournament, getPointsTable };
+export default { createTournament, getTournaments, getMyTournaments, getTournamentById, updateTournament, deleteTournament, generateBracket, startTournament, getPointsTable, getTournamentMatches };
