@@ -310,8 +310,11 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       <script src="/overlays/engine.js"></script>
     </head>`);
 
-    res.setHeader('Content-Type', 'text/html');
+res.setHeader('Content-Type', 'text/html');
     res.setHeader('X-Frame-Options', 'ALLOWALL');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.send(html);
   } catch (error) {
     console.error('serveOverlay error:', error);
