@@ -23,6 +23,7 @@ import clubRoutes from './routes/clubs';
 import friendRoutes from './routes/friends';
 import messageRoutes from './routes/messages';
 import paymentRoutes from './routes/payments';
+import userRoutes from './routes/users';
 
 const app = express();
 const httpServer = createServer(app);
@@ -180,6 +181,7 @@ app.use('/api/v1/clubs', clubRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));

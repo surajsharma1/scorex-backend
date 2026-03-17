@@ -3,6 +3,7 @@ import {
   createClub,
   getClubs,
   getClub,
+  getMyClubs,
   joinClub,
   leaveClub,
   updateClub,
@@ -15,6 +16,7 @@ const router = express.Router();
 // Public routes - anyone can view clubs
 router.get('/', getClubs);
 router.get('/:clubId', getClub);
+router.get('/my', protect as any, getMyClubs);
 
 // Protected routes - require authentication
 router.post('/', protect as any, createClub as any);
