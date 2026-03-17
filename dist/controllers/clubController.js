@@ -202,7 +202,7 @@ const joinClub = async (req, res, next) => {
             });
         }
         if (club.isPublic) {
-            club.members.push(new mongoose_1.default.Types.ObjectId(req.user?.id));
+            club.members.push(new mongoose_1.default.Types.ObjectId(req.user.id));
             await club.save();
             res.json({
                 success: true,
@@ -282,8 +282,8 @@ const approveJoinRequest = async (req, res, next) => {
                 message: 'No join request from this user'
             });
         }
-        club.members.push(new mongoose_1.default.Types.ObjectId(userId));
         club.joinRequests = club.joinRequests.filter((r) => r.toString() !== userId);
+        club.members.push(new mongoose_1.default.Types.ObjectId(userId));
         await club.save();
         res.json({
             success: true,
@@ -321,6 +321,7 @@ const addViceLeader = async (req, res, next) => {
             });
         }
         club.viceLeaders.push(new mongoose_1.default.Types.ObjectId(userId));
+        await club.populate('viceLeaders', 'username email fullName profilePicture');
         await club.save();
         res.json({
             success: true,
@@ -378,6 +379,9 @@ exports.removeMember = removeMember;
 const getMyClubs = async (req, res, next) => {
     try {
         console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'User not authenticated' });
+        }
         const userId = req.user.id;
         // Build and log exact query
         const query = {

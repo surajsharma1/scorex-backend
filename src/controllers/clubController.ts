@@ -217,7 +217,7 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
     }
     
     if (club.isPublic) {
-      club.members.push(new mongoose.Types.ObjectId(req.user?.id));
+      club.members.push(new mongoose.Types.ObjectId(req.user!.id));
       await club.save();
       
       res.json({
@@ -225,10 +225,7 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
         message: 'Joined club successfully'
       });
     } else {
-    club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
-
-
-
+      club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
       await club.save();
       
       res.json({
@@ -310,9 +307,8 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
       });
     }
     
-club.members.push(new mongoose.Types.ObjectId(userId));
-
-    club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
+club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
+    club.members.push(new mongoose.Types.ObjectId(userId));
     
     await club.save();
     
@@ -356,6 +352,7 @@ export const addViceLeader = async (req: AuthRequest, res: Response, next: NextF
     }
     
 club.viceLeaders.push(new mongoose.Types.ObjectId(userId));
+    await club.populate('viceLeaders', 'username email fullName profilePicture');
 
     await club.save();
     
@@ -422,7 +419,10 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
   try {
     console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
     
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+    const userId = req.user.id;
     
     // Build and log exact query
     const query = {

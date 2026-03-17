@@ -1,33 +1,34 @@
 import express from 'express';
 import {
-  createClub,
   getClubs,
   getClub,
   getMyClubs,
+  createClub,
+  updateClub,
+  deleteClub,
   joinClub,
   leaveClub,
-  updateClub,
-  deleteClub
+  approveJoinRequest,
+  addViceLeader,
+  removeMember
 } from '../controllers/clubController';
 import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-// Public routes - anyone can view clubs
+// Public routes
 router.get('/', getClubs);
 router.get('/:clubId', getClub);
-router.get('/my', protect as any, (req, res, next) => {
-  console.log('📍 ROUTE: /clubs/my - POST-AUTH - User:', (req as any).user?._id, (req as any).user?.email);
-  getMyClubs(req as any, res, next);
-});
 
-
-
-// Protected routes - require authentication
-router.post('/', protect as any, createClub as any);
-router.post('/:clubId/join', protect as any, joinClub as any);
-router.post('/:clubId/leave', protect as any, leaveClub as any);
-router.put('/:clubId', protect as any, updateClub as any);
-router.delete('/:clubId', protect as any, deleteClub as any);
+// Protected routes
+router.get('/my', protect, getMyClubs);
+router.post('/', protect, createClub);
+router.put('/:clubId', protect, updateClub);
+router.delete('/:clubId', protect, deleteClub);
+router.post('/:clubId/join', protect, joinClub);
+router.post('/:clubId/leave', protect, leaveClub);
+router.post('/:clubId/approve/:userId', protect, approveJoinRequest);
+router.post('/:clubId/vice-leader/:userId', protect, addViceLeader);
+router.delete('/:clubId/members/:userId', protect, removeMember);
 
 export default router;
