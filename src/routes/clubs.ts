@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/', getClubs);
 router.get('/:clubId', getClub);
 router.get('/my', protect as any, (req, res, next) => {
-  console.log('📍 Route /clubs/my hit');
+  console.log('📍 ROUTE: /clubs/my - POST-AUTH - User:', (req as any).user?._id, (req as any).user?.email);
   getMyClubs(req as any, res, next);
 });
 

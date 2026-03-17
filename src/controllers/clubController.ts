@@ -420,43 +420,45 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
 // @access  Private
 export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-console.log('🔍 getMyClubs called. User:', req.user?._id, 'Email:', req.user?.email);
+    console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
     
-    // DEBUG: Full request context
-    console.log('🔍 DEBUG /clubs/my - User full:', {
-      id: req.user?._id,
-      email: req.user?.email,
-      role: req.user?.role
-    });
+    const userId = req.user!.id;
     
-    const clubs = await Club.find({
+    // Build and log exact query
+    const query = {
       $or: [
-        { owner: req.user?.id },
-        { members: req.user?.id }
+        { owner: userId },
+        { members: userId }
       ],
       isActive: true
-    })
-      .populate('owner', 'username email')
-      .populate('members', 'username email')  // DEBUG: populate members too
-      .sort({ createdAt: -1 });
-  
-    // DEBUG: Query details
-    const queryCount = await Club.countDocuments({
-      $or: [{ owner: req.user?.id }, { members: req.user?.id }], isActive: true
-    });
-    console.log('🔍 DEBUG /clubs/my - Query count:', queryCount, 'Found clubs:', clubs.length);
+    };
+    console.log('🔍 QUERY: Exact MongoDB query:', JSON.stringify(query, null, 2));
     
-    console.log('Found', clubs.length, 'clubs for user', req.user?._id);
+    const clubs = await Club.find(query)
+      .populate('owner', 'username email fullName')
+      .populate('members', 'username email fullName')
+      .sort({ createdAt: -1 });
+    
+    const totalCount = await Club.countDocuments(query);
+    
+    console.log(`🎯 CONTROLLER: Found ${clubs.length} clubs (query matched ${totalCount} docs) for user ${userId}`);
+    
+    // Always success, even if empty
+    const response = {
+      success: true,
+      data: clubs,
+      count: clubs.length,
+      message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs found. Create your first club!'
+    };
+    
+    console.log('🎯 CONTROLLER: Response:', JSON.stringify(response, null, 2));
     
     res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     res.set('Expires', '0');
     res.set('Pragma', 'no-cache');
-    res.json({
-      success: true,
-      data: clubs
-    });
+    res.json(response);
   } catch (error) {
-    console.error('getMyClubs error:', error);
+    console.error('❌ getMyClubs ERROR:', error);
     next(error);
   }
 };
