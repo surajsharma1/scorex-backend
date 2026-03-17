@@ -105,11 +105,15 @@
     if (typeof window.normalizeScoreData === 'function') {
         flatData = window.normalizeScoreData(matchData);
     }
-    console.log('[DEBUG ENGINE] Normalized matchName:', flatData.matchName);
+console.log('[DEBUG ENGINE] ✅ About to postMessage normalized data with matchName:', flatData.matchName);
 
-    if (typeof window.normalizeScoreData === 'function') {
-        flatData = window.normalizeScoreData(matchData);
-    }
+    // SINGLE normalization call (removed duplicate)
+    window.postMessage({ 
+      type: 'UPDATE_SCORE', 
+      data: flatData 
+    }, '*');
+
+    console.log('[DEBUG ENGINE] ✅ postMessage sent to template');
 
     // Trick the HTML template into thinking it received a postMessage from a parent window
     window.postMessage({ 

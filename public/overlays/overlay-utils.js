@@ -50,8 +50,21 @@ window.normalizeScoreData = function(data) {
     }
 
     // 3. Return the perfectly flattened object the HTML overlays expect
+    // DEBUG: Log raw data sources for matchName
+    console.log('[UTILS DEBUG] Raw match data:', {
+      hasName: !!data.name, name: data.name,
+      team1: data.team1Name || data.team1?.name,
+      team2: data.team2Name || data.team2?.name
+    });
+    
+    const computedMatchName = data.name || 
+      `${data.team1Name || data.team1?.name || data.team1?.shortName || '?'} vs ${data.team2Name || data.team2?.name || data.team2?.shortName || '?'}` || 
+      'Live Match (No Teams)';
+    
+    console.log('[UTILS DEBUG] Computed matchName:', computedMatchName);
+    
     return {
-        matchName: data.name || `${data.team1Name || data.team1?.name || '?'} vs ${data.team2Name || data.team2?.name || '?'}` || 'Live Match',
+        matchName: computedMatchName,
         tournamentName: data.tournament?.name || data.tournamentName || 'Live Match',
         team1Name: data.battingTeamName || data.team1Name || data.team1?.name || data.team1?.shortName || 'Team 1',
 
