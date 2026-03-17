@@ -282,13 +282,30 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
 
     console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
     
-    // ✅ Prioritize URL params for live overrides
-    const matchId = req.query.matchId as string || req.query.match as string || 
-                    (overlay.match as any)?._id?.toString() || overlay.match?.toString() || null;
-    const tournamentId = req.query.tournamentId as string || 
-                         (overlay.tournament as any)?._id?.toString() || overlay.tournament?.toString() || null;
+    let matchId = (req.query.matchId as string) || (req.query.match as string) || 
+                  (overlay.match as any)?._id?.toString() || (overlay.match as any)?.toString() || null;
+    let tournamentId = (req.query.tournamentId as string) || 
+                       (overlay.tournament as any)?._id?.toString() || (overlay.tournament as any)?.toString() || null;
     
-    console.log('[serveOverlay] Using matchId:', matchId, 'tournamentId:', tournamentId);
+    // 🆕 NEW: Tournament Context - Auto-pick live match if no specific matchId
+    if (!matchId && tournamentId && mongoose.Types.ObjectId.isValid(tournamentId)) {
+      console.log('[serveOverlay] No matchId, finding live match for tournament:', tournamentId);
+      const now = new Date();
+      const liveMatch = await Match.findOne({
+        tournamentId: new mongoose.Types.ObjectId(tournamentId),
+        status: { $in: ['live', 'ongoing'] },
+        date: { $gte: new Date(now.getTime() - 24*60*60*1000) } // Recent matches
+      }).sort({ date: 1 }).select('_id').lean();
+      
+      if (liveMatch) {
+        matchId = liveMatch._id.toString();
+        console.log('[serveOverlay] ✅ Auto-selected live match:', matchId);
+      } else {
+        console.warn('[serveOverlay] No live match found for tournament:', tournamentId);
+      }
+    }
+    
+    console.log('[serveOverlay] Final - matchId:', matchId, 'tournamentId:', tournamentId);
     
     const apiBaseUrl = getBaseUrl();
 

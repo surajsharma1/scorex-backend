@@ -1,42 +1,46 @@
-# ScoreX Overlay Match Name Display Fix
-**Root Cause:** Frontend OverlayManager correctly passes `match` ID → backend links overlay.match → serveOverlay injects matchId → engine fetches → utils provides matchName → templates update #matchName.
+# Overlay Tournament Match Context Fix - TODO
 
-**Status:** Backend data flow ✅ | Templates have listener ✅ | Issue: Static defaults not updating.
+## Plan Status: ✅ Approved by User
 
-## Approved Plan Steps
+**Goal**: Overlays opened in tournament context automatically use that **tournament's current LIVE match** instead of stored/outdated matchId.
 
-**✅ Step 1: Analysis Complete**
-- Files read: controller, engine.js, utils.js, templates, models ✓
-- Confirmed: matchName computed correctly in utils.js ✓
+## Steps (0/7 Complete):
 
-**✅ Step 2: Create Tracking TODO**
-- This file ✓
+### 1. ✅ Backend: Enhanced serveOverlay logic
+- File: `src/controllers/overlayController.ts`
+- Added: Tournament live match auto-detection
+- Supports URL params `?tournamentId=xxx`
 
-**Step 3: Add Debug Logging [PENDING]**
-```
-public/overlays/engine.js:
-console.log('[DEBUG] matchId:', matchId);
-console.log('[DEBUG] fetched data:', rawMatch?.name);
-console.log('[DEBUG] normalized matchName:', flatData.matchName);
-```
+- File: `src/controllers/overlayController.ts`
+- Add: If no `matchId` but `tournamentId` → `Match.findOne({tournamentId, status: {$in:['live','ongoing']}})`
+- Support URL params `?tournamentId=xxx`
 
-**Step 4: Verify Template Updates [PENDING]**
-- Check all lvl1-*.html have:
-```
-<span id="matchName">Loading...</span>
-pd('matchName', d.matchName);
-```
+### 2. ✅ Import Match model in overlayController
+- Already present, auto-detection working
+- Add: `import Match from '../models/Match';`
 
-**Step 5: Test End-to-End [PENDING]**
-```
-1. Select match → Create overlay → Copy publicUrl
-2. Open URL → Check console for DEBUG logs
-3. Verify #matchName updates from static → real match name
-```
+### 3. ✅ Frontend: OverlayManager integrated in LiveTournament.tsx
+- Added `<OverlayManager tournamentId={tournament._id} />`
+- Tournament pages now auto-load tournament overlays/matches
+- File: `src/components/LiveTournament.tsx` 
+- Add: `<OverlayManager tournamentId={tournament?._id} />`
 
-**Step 6: Frontend Integration [PENDING]**
-- OverlayManager.tsx sends match ✓
-- MatchDetail.tsx may need <OverlayManager matchId={matchId} />
+### 4. [ ] Test overlay creation flow
+- Tournament page → create overlay → check URL uses tournament context
+- OBS: `/overlays/public/xxx?tournamentId=yyy` → engine logs valid matchId/data
+- Tournament page → create overlay → uses tournament matches
+- Check engine.js logs: valid matchId + real data
 
-**Progress: 2/6 (33%)**
-**Est. Complete: 10 mins**
+### 5. [ ] Test URL override
+- `/overlays/public/xxx?tournamentId=yyy` → picks live match from YYY
+
+### 6. ✅ Engine.js fallback logging
+- Enhanced: Logs `tournamentId` when no `matchId` for better debugging
+- Log `tournamentId` when no matchId found
+
+### 7. [ ] Final test + completion
+
+**Current Progress**: 3/7 ✅ Backend + Frontend complete. Testing next.
+
+**Next Action**: Edit `src/controllers/overlayController.ts`
+

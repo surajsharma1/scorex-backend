@@ -129,10 +129,15 @@ console.log('[DEBUG ENGINE] matchId:', matchId);
 // ─── Boot ─────────────────────────────────────────────────────────────────
 
   function init() {
-    console.log('[Scorex Engine] Starting...', { matchId, apiBaseUrl, socketUrl });
+    console.log('[Scorex Engine] Starting...', { matchId, tournamentId: config.tournamentId, apiBaseUrl, socketUrl });
     
     if (!matchId) {
-      console.error('[Scorex Engine] ❌ No matchId! Using demo data fallback.');
+      if (config.tournamentId) {
+        console.warn('[Scorex Engine] ❌ No matchId but tournamentId present:', config.tournamentId, 
+                     '- Check serveOverlay auto-detection or use ?matchId=xxx');
+      } else {
+        console.error('[Scorex Engine] ❌ No matchId or tournamentId! Using demo data fallback.');
+      }
       // Fallback demo data
       updateState({
         team1Name: 'Demo Team A', team1Score: 45, team1Wickets: 2, team1Overs: '8.3',
