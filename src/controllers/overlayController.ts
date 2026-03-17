@@ -27,7 +27,7 @@ import User from '../models/User';
 
 interface AuthRequest extends Request { user?: any; }
 
-const getBaseUrl = () => process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
+const getBaseUrl = () => process.env.API_BASE_URL || '/api/v1';
 const URL_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const JWT_SECRET = process.env.JWT_SECRET || 'scorex-secret-key-change-in-production';
 

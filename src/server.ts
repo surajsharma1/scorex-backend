@@ -28,9 +28,7 @@ const app = express();
 const httpServer = createServer(app);
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000'
+  process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'
 ];
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -56,7 +54,7 @@ app.use('/overlays', express.static('public/overlays'));
 let sessionStore;
 try {
   sessionStore = MongoStore.create({ 
-    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/scorex'
+    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MONGODB_URI env var required for deployment'); })()
   });
   console.log('Session store: MongoDB (connect-mongo)');
 } catch (error) {

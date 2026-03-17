@@ -108,7 +108,7 @@ export const generateSecureToken = (length: number = 32): string => {
  * Get frontend URL from environment or use default
  */
 const getFrontendUrl = (): string => {
-  return process.env.FRONTEND_URL || 'http://localhost:3000';
+  return process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
 };
 
 /**
