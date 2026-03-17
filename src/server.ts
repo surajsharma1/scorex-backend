@@ -206,6 +206,26 @@ app.get('/api/health/google', async (_req, res) => {
   });
 });
 
+// Alias for frontend calling wrong path /api/v1/api/health/google
+app.get('/api/v1/api/health/google', async (_req, res) => {
+  const checks = {
+    googleClientId: !!process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+    backendUrl: !!process.env.BACKEND_URL,
+    mongodbUri: !!process.env.MONGODB_URI,
+    sessionSecret: !!process.env.SESSION_SECRET,
+    dbConnected: mongoose.connection.readyState === 1,
+    passportGoogle: hasGoogleStrategy
+  };
+  const passed = Object.values(checks).every(Boolean);
+  res.json({ 
+    status: passed ? 'ok' : 'error', 
+    checks, 
+    message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
+    ts: new Date()
+  });
+});
+
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Error:', err.message);
