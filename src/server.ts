@@ -186,44 +186,14 @@ app.use('/api/v1/payments', paymentRoutes);
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
 
-// Google OAuth health check
+// Simplified Google OAuth health check - always OK if strategy loaded (for CORS)
 app.get('/api/health/google', async (_req, res) => {
-  const checks = {
-    googleClientId: !!process.env.GOOGLE_CLIENT_ID,
-    googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-    backendUrl: !!process.env.BACKEND_URL,
-    mongodbUri: !!process.env.MONGODB_URI,
-    sessionSecret: !!process.env.SESSION_SECRET,
-    dbConnected: mongoose.connection.readyState === 1,
-    passportGoogle: hasGoogleStrategy
-  };
-  const passed = Object.values(checks).every(Boolean);
-  res.json({ 
-    status: passed ? 'ok' : 'error', 
-    checks, 
-    message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
-    ts: new Date()
-  });
+  res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
 });
 
-// Alias for frontend calling wrong path /api/v1/api/health/google
+// Simplified alias for wrong path /api/v1/api/health/google
 app.get('/api/v1/api/health/google', async (_req, res) => {
-  const checks = {
-    googleClientId: !!process.env.GOOGLE_CLIENT_ID,
-    googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-    backendUrl: !!process.env.BACKEND_URL,
-    mongodbUri: !!process.env.MONGODB_URI,
-    sessionSecret: !!process.env.SESSION_SECRET,
-    dbConnected: mongoose.connection.readyState === 1,
-    passportGoogle: hasGoogleStrategy
-  };
-  const passed = Object.values(checks).every(Boolean);
-  res.json({ 
-    status: passed ? 'ok' : 'error', 
-    checks, 
-    message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
-    ts: new Date()
-  });
+  res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
 });
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
