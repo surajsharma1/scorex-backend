@@ -140,7 +140,16 @@ exports.startTournament = startTournament;
 const getTournamentMatches = async (req, res, next) => {
     try {
         const Tournament = await Promise.resolve().then(() => __importStar(require('../models/Tournament'))).then(m => m.default);
-        const tournament = await Tournament.findById(req.params.id).populate('matches');
+        const Match = await Promise.resolve().then(() => __importStar(require('../models/Match'))).then(m => m.default);
+        const tournament = await Tournament.findById(req.params.id)
+            .populate({
+            path: 'matches',
+            populate: [
+                { path: 'team1', select: 'name shortName logo' },
+                { path: 'team2', select: 'name shortName logo' },
+                { path: 'tournamentId', select: 'name' }
+            ]
+        });
         if (!tournament)
             return res.status(404).json({ success: false, message: 'Tournament not found' });
         res.json({ success: true, data: tournament.matches });
