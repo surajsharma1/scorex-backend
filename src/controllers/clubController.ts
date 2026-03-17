@@ -111,8 +111,9 @@ export const updateClub = async (req: AuthRequest, res: Response, next: NextFunc
     const club = await Club.findById(req.params.id);
     
     if (!club) {
-      return res.status(404).json({
-        success: false,
+      return res.json({
+        success: true,
+        data: null,
         message: 'Club not found'
       });
     }
@@ -156,8 +157,9 @@ export const deleteClub = async (req: AuthRequest, res: Response, next: NextFunc
     const club = await Club.findById(req.params.id);
     
     if (!club) {
-      return res.status(404).json({
-        success: false,
+      return res.json({
+        success: true,
+        data: null,
         message: 'Club not found'
       });
     }
@@ -189,8 +191,9 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
     const club = await Club.findById(req.params.id);
     
     if (!club) {
-      return res.status(404).json({
-        success: false,
+      return res.json({
+        success: true,
+        data: null,
         message: 'Club not found'
       });
     }
