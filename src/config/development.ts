@@ -1,9 +1,9 @@
 export const config = {
   port: process.env.PORT || 5000,
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/scorex-dev',
+  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MONGODB_URI required'); })(),
   jwtSecret: process.env.JWT_SECRET || 'dev-jwt-secret-key-change-in-production',
   sessionSecret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redisUrl: process.env.REDIS_URL || (() => { throw new Error('REDIS_URL required'); })(),
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
   googleClientId: process.env.GOOGLE_CLIENT_ID,
