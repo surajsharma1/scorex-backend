@@ -16,7 +16,12 @@ const router = express.Router();
 // Public routes - anyone can view clubs
 router.get('/', getClubs);
 router.get('/:clubId', getClub);
-router.get('/my', protect as any, getMyClubs);
+router.get('/my', protect as any, (req, res, next) => {
+  console.log('📍 Route /clubs/my hit');
+  getMyClubs(req as any, res, next);
+});
+
+
 
 // Protected routes - require authentication
 router.post('/', protect as any, createClub as any);

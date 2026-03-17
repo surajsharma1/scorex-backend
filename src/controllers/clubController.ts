@@ -420,6 +420,7 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
 // @access  Private
 export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    console.log('🔍 getMyClubs called. User:', req.user?._id, 'Email:', req.user?.email);
     const clubs = await Club.find({
       $or: [
         { owner: req.user?.id },
@@ -430,6 +431,8 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       .populate('owner', 'username email')
       .sort({ createdAt: -1 });
     
+    console.log('Found', clubs.length, 'clubs for user', req.user?._id);
+    
     res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     res.set('Expires', '0');
     res.set('Pragma', 'no-cache');
@@ -438,9 +441,11 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       data: clubs
     });
   } catch (error) {
+    console.error('getMyClubs error:', error);
     next(error);
   }
 };
+
 
 export default {
   getClubs,
