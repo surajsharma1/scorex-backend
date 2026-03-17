@@ -7,11 +7,13 @@ exports.isAdmin = exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const protect = async (req, res, next) => {
+    console.log('🔐 AUTH: /clubs/my - Headers:', req.headers.authorization?.substring(0, 20) + '...');
     let token;
     if (req.headers.authorization?.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
     if (!token) {
+        console.log('🔐 AUTH: No token found');
         return res.status(401).json({
             success: false,
             message: 'No token, authorization denied'
@@ -19,16 +21,20 @@ const protect = async (req, res, next) => {
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        console.log('🔐 AUTH: Token decoded for user ID:', decoded.id);
         req.user = await User_1.default.findById(decoded.id).select('-password');
         if (!req.user) {
+            console.log('🔐 AUTH: User not found for ID:', decoded.id);
             return res.status(401).json({
                 success: false,
                 message: 'User not found'
             });
         }
+        console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role);
         next();
     }
     catch (error) {
+        console.log('🔐 AUTH: Token verification failed:', error.message);
         res.status(401).json({
             success: false,
             message: 'Token invalid'

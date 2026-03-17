@@ -28,6 +28,9 @@ const getClubs = async (req, res, next) => {
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));
         const total = await Club_1.default.countDocuments(query);
+        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+        res.set('Expires', '0');
+        res.set('Pragma', 'no-cache');
         res.json({
             success: true,
             data: clubs,
@@ -374,21 +377,38 @@ exports.removeMember = removeMember;
 // @access  Private
 const getMyClubs = async (req, res, next) => {
     try {
-        const clubs = await Club_1.default.find({
+        console.log('🎯 CONTROLLER: getMyClubs ENTRY - User:', req.user?._id, req.user?.email);
+        const userId = req.user.id;
+        // Build and log exact query
+        const query = {
             $or: [
-                { owner: req.user?.id },
-                { members: req.user?.id }
+                { owner: userId },
+                { members: userId }
             ],
             isActive: true
-        })
-            .populate('owner', 'username email')
+        };
+        console.log('🔍 QUERY: Exact MongoDB query:', JSON.stringify(query, null, 2));
+        const clubs = await Club_1.default.find(query)
+            .populate('owner', 'username email fullName')
+            .populate('members', 'username email fullName')
             .sort({ createdAt: -1 });
-        res.json({
+        const totalCount = await Club_1.default.countDocuments(query);
+        console.log(`🎯 CONTROLLER: Found ${clubs.length} clubs (query matched ${totalCount} docs) for user ${userId}`);
+        // Always success, even if empty
+        const response = {
             success: true,
-            data: clubs
-        });
+            data: clubs,
+            count: clubs.length,
+            message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs found. Create your first club!'
+        };
+        console.log('🎯 CONTROLLER: Response:', JSON.stringify(response, null, 2));
+        res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+        res.set('Expires', '0');
+        res.set('Pragma', 'no-cache');
+        res.json(response);
     }
     catch (error) {
+        console.error('❌ getMyClubs ERROR:', error);
         next(error);
     }
 };
