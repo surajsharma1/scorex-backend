@@ -298,12 +298,13 @@ const serveOverlay = async (req, res) => {
             res.status(404).send(`Template not found: ${templateFile}`);
             return;
         }
-        // FIX: Allow URL query parameters to dynamically set the match!
-        const dbMatchId = overlay.match?._id?.toString() || overlay.match?.toString();
-        const matchId = req.query.matchId || req.query.match || dbMatchId || null;
-        // Optional: Allow tournament ID injection too
-        const dbTournamentId = overlay.tournament?._id?.toString() || overlay.tournament?.toString();
-        const tournamentId = req.query.tournamentId || dbTournamentId || null;
+        console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
+        // ✅ Prioritize URL params for live overrides
+        const matchId = req.query.matchId || req.query.match ||
+            overlay.match?._id?.toString() || overlay.match?.toString() || null;
+        const tournamentId = req.query.tournamentId ||
+            overlay.tournament?._id?.toString() || overlay.tournament?.toString() || null;
+        console.log('[serveOverlay] Using matchId:', matchId, 'tournamentId:', tournamentId);
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
         // FIX: Inject Socket.io, utils, OVERLAY_CONFIG, and engine.js into EVERY template

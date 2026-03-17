@@ -111,17 +111,42 @@
     }, '*');
   }
 
-  // ─── Boot ─────────────────────────────────────────────────────────────────
+// ─── Boot ─────────────────────────────────────────────────────────────────
   function init() {
+    console.log('[Scorex Engine] Starting...', { matchId, apiBaseUrl, socketUrl });
+    
     if (!matchId) {
-      console.warn('[Scorex Engine] No matchId - overlay will show static content.');
+      console.error('[Scorex Engine] ❌ No matchId! Using demo data fallback.');
+      // Fallback demo data
+      updateState({
+        team1Name: 'Demo Team A', team1Score: 45, team1Wickets: 2, team1Overs: '8.3',
+        strikerName: 'Player X (25*)', strikerRuns: 25, strikerBalls: 18,
+        nonStrikerName: 'Player Y (18)', nonStrikerRuns: 18, nonStrikerBalls: 15,
+        bowlerName: 'Bowler Z', bowlerRuns: 32, bowlerWickets: 1, bowlerOvers: '2.0'
+      });
       return;
     }
-    fetchMatchData();       // Get initial state via REST
-    connectSocket();        // Subscribe to live updates
     
-    // Fallback polling just in case socket drops
-    setInterval(fetchMatchData, 30000);
+    fetchMatchData();       // Initial REST fetch
+    connectSocket();        // Live updates
+    
+    // Aggressive polling fallback (every 5s if no data for 30s)
+    let noDataCount = 0;
+    const pollInterval = setInterval(() => {
+      fetchMatchData();
+      noDataCount++;
+      if (noDataCount > 6) {  // After 30s no data
+        console.error('[Scorex Engine] No live data after 30s - check matchId/backend');
+      }
+    }, 5000);
+    
+    // Stop polling once we get real data
+    const stopPolling = () => {
+      clearInterval(pollInterval);
+      noDataCount = 0;
+    };
+    // Trigger on first successful update
+    window.addEventListener('scorex:update', stopPolling, { once: true });
   }
 
   if (document.readyState === 'loading') {

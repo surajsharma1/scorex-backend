@@ -89,9 +89,23 @@ const io = new socket_io_1.Server(httpServer, {
 app.set('io', io);
 io.on('connection', (socket) => {
     console.log('Socket connected:', socket.id);
-    socket.on('joinMatch', (matchId) => {
+    socket.on('joinMatch', async (matchId) => {
         socket.join(`match:${matchId}`);
         console.log(`Socket ${socket.id} joined match:${matchId}`);
+        // ✅ FIX: Send current match state immediately on join
+        try {
+            const Match = mongoose_1.default.models.Match;
+            const match = await Match.findById(matchId)
+                .populate('team1 team2 tournamentId')
+                .lean();
+            if (match) {
+                socket.emit('scoreUpdate', { match });
+                console.log(`Sent initial match data to ${socket.id}`);
+            }
+        }
+        catch (err) {
+            console.error(`Failed to send initial match ${matchId}:`, err);
+        }
     });
     socket.on('leaveMatch', (matchId) => {
         socket.leave(`match:${matchId}`);

@@ -280,14 +280,16 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-  // FIX: Allow URL query parameters to dynamically set the match!
-    const dbMatchId = (overlay.match as any)?._id?.toString() || overlay.match?.toString();
-    const matchId = req.query.matchId || req.query.match || dbMatchId || null;
+    console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
     
-    // Optional: Allow tournament ID injection too
-    const dbTournamentId = (overlay.tournament as any)?._id?.toString() || overlay.tournament?.toString();
-    const tournamentId = req.query.tournamentId || dbTournamentId || null;
-
+    // ✅ Prioritize URL params for live overrides
+    const matchId = req.query.matchId as string || req.query.match as string || 
+                    (overlay.match as any)?._id?.toString() || overlay.match?.toString() || null;
+    const tournamentId = req.query.tournamentId as string || 
+                         (overlay.tournament as any)?._id?.toString() || overlay.tournament?.toString() || null;
+    
+    console.log('[serveOverlay] Using matchId:', matchId, 'tournamentId:', tournamentId);
+    
     const apiBaseUrl = getBaseUrl();
 
     let html = fs.readFileSync(templatePath, 'utf8');
