@@ -1,22 +1,25 @@
-# Fix Club API Issues
+# Club /clubs/my 404 Fix Plan
+Status: [Approved - In Progress]
 
-Status: [In Progress]
+## Breakdown:
 
-## Steps:
+### 1. Run seeds & verify data ✅ (executed - data ready)
+```
+cd scorex-backend/scorex-backend
+node seed-clubs.ts
+```
 
-# ✅ Club API Issues FIXED
+### 2. Add DEBUG logs to clubController.ts ✅
 
-## Summary:
-- [x] Fixed 304 with body via no-cache headers in clubController.ts
-- [x] Seeded test club "Test Club" owned by organizer@example.com (login: organizer@example.com / organizer123)
-- [x] Frontend search: No wrong getClub calls found
-- Backend ready for deploy
+### 3. Local backend test [STARTING - npm run dev executed]
 
-## Test:
-Login as organizer, check /api/v1/clubs/my → should return Test Club
-Deploy to render.com
+### 3. Add debug logging to getMyClubs
 
-Run: node seed-clubs.ts anytime to re-seed.
+### 4. Deploy & check render logs
 
-**Task complete!**
+### 5. Frontend empty state (if needed)
+
+### 6. Test prod flow
+
+**Current: Plan approved. Starting step-by-step implementation.**
 

@@ -420,7 +420,15 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
 // @access  Private
 export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    console.log('🔍 getMyClubs called. User:', req.user?._id, 'Email:', req.user?.email);
+console.log('🔍 getMyClubs called. User:', req.user?._id, 'Email:', req.user?.email);
+    
+    // DEBUG: Full request context
+    console.log('🔍 DEBUG /clubs/my - User full:', {
+      id: req.user?._id,
+      email: req.user?.email,
+      role: req.user?.role
+    });
+    
     const clubs = await Club.find({
       $or: [
         { owner: req.user?.id },
@@ -429,7 +437,14 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       isActive: true
     })
       .populate('owner', 'username email')
+      .populate('members', 'username email')  // DEBUG: populate members too
       .sort({ createdAt: -1 });
+  
+    // DEBUG: Query details
+    const queryCount = await Club.countDocuments({
+      $or: [{ owner: req.user?.id }, { members: req.user?.id }], isActive: true
+    });
+    console.log('🔍 DEBUG /clubs/my - Query count:', queryCount, 'Found clubs:', clubs.length);
     
     console.log('Found', clubs.length, 'clubs for user', req.user?._id);
     
