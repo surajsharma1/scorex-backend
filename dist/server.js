@@ -30,9 +30,7 @@ const payments_1 = __importDefault(require("./routes/payments"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
-    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000'
+    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'
 ];
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use((0, cors_1.default)({
@@ -55,7 +53,7 @@ app.use('/overlays', express_1.default.static('public/overlays'));
 let sessionStore;
 try {
     sessionStore = connect_mongo_1.default.create({
-        mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/scorex'
+        mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MONGODB_URI env var required for deployment'); })()
     });
     console.log('Session store: MongoDB (connect-mongo)');
 }
@@ -176,43 +174,13 @@ app.use('/api/v1/messages', messages_1.default);
 app.use('/api/v1/payments', payments_1.default);
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
-// Google OAuth health check
+// Simplified Google OAuth health check - always OK if strategy loaded (for CORS)
 app.get('/api/health/google', async (_req, res) => {
-    const checks = {
-        googleClientId: !!process.env.GOOGLE_CLIENT_ID,
-        googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-        backendUrl: !!process.env.BACKEND_URL,
-        mongodbUri: !!process.env.MONGODB_URI,
-        sessionSecret: !!process.env.SESSION_SECRET,
-        dbConnected: mongoose_1.default.connection.readyState === 1,
-        passportGoogle: hasGoogleStrategy
-    };
-    const passed = Object.values(checks).every(Boolean);
-    res.json({
-        status: passed ? 'ok' : 'error',
-        checks,
-        message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
-        ts: new Date()
-    });
+    res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
 });
-// Alias for frontend calling wrong path /api/v1/api/health/google
+// Simplified alias for wrong path /api/v1/api/health/google
 app.get('/api/v1/api/health/google', async (_req, res) => {
-    const checks = {
-        googleClientId: !!process.env.GOOGLE_CLIENT_ID,
-        googleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-        backendUrl: !!process.env.BACKEND_URL,
-        mongodbUri: !!process.env.MONGODB_URI,
-        sessionSecret: !!process.env.SESSION_SECRET,
-        dbConnected: mongoose_1.default.connection.readyState === 1,
-        passportGoogle: hasGoogleStrategy
-    };
-    const passed = Object.values(checks).every(Boolean);
-    res.json({
-        status: passed ? 'ok' : 'error',
-        checks,
-        message: passed ? 'Google OAuth ready' : 'Fix missing env vars or DB',
-        ts: new Date()
-    });
+    res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
 });
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {

@@ -21,7 +21,7 @@ router.get('/google/success', async (req, res) => {
     }
     const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     // Frontend redirect with token hash
-    const frontendUrl = process.env.FRONTEND_URL || req.query.state || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || req.query.state || 'https://scorex-live.vercel.app';
     const fragment = `token=${token}&user=${encodeURIComponent(JSON.stringify(user.toObject()))}`;
     const redirectUrl = `${frontendUrl}/oauth/callback#${fragment}`;
     console.log('[OAuth Success] Redirect:', redirectUrl);

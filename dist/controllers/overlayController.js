@@ -28,7 +28,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const Overlay_1 = __importDefault(require("../models/Overlay"));
 const Match_1 = __importDefault(require("../models/Match"));
 const User_1 = __importDefault(require("../models/User"));
-const getBaseUrl = () => process.env.API_BASE_URL || 'http://localhost:5000/api/v1';
+const getBaseUrl = () => process.env.API_BASE_URL || '/api/v1';
 const URL_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const JWT_SECRET = process.env.JWT_SECRET || 'scorex-secret-key-change-in-production';
 // ─── membership helper ────────────────────────────────────────────────────────

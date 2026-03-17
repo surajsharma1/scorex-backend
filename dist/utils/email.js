@@ -60,7 +60,7 @@ exports.generateSecureToken = generateSecureToken;
  * Get frontend URL from environment or use default
  */
 const getFrontendUrl = () => {
-    return process.env.FRONTEND_URL || 'http://localhost:3000';
+    return process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
 };
 /**
  * Send email using EmailJS

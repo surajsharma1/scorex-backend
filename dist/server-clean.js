@@ -23,9 +23,7 @@ const teams_1 = __importDefault(require("./routes/teams"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
-    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000'
+    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'
 ];
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use((0, cors_1.default)({
@@ -47,7 +45,7 @@ app.use(express_1.default.urlencoded({ extended: true }));
 let sessionStore;
 try {
     sessionStore = connect_mongo_1.default.create({
-        mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/scorex'
+        mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MONGODB_URI env var required for deployment'); })()
     });
     console.log('Session store: MongoDB (connect-mongo)');
 }
