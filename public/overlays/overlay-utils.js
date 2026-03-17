@@ -51,8 +51,10 @@ window.normalizeScoreData = function(data) {
 
     // 3. Return the perfectly flattened object the HTML overlays expect
     return {
+        matchName: data.name || `${data.team1Name || data.team1?.name || '?'} vs ${data.team2Name || data.team2?.name || '?'}` || 'Live Match',
         tournamentName: data.tournament?.name || data.tournamentName || 'Live Match',
         team1Name: data.battingTeamName || data.team1Name || data.team1?.name || data.team1?.shortName || 'Team 1',
+
         team1Score: t1Score,
         team1Wickets: t1Wickets,
         team1Overs: t1Overs,
@@ -78,8 +80,12 @@ window.normalizeScoreData = function(data) {
     };
 };
 
+// 0. Add matchName field to normalized output
+        matchName: data.name || `${data.team1Name || data.team1?.name || '?'} vs ${data.team2Name || data.team2?.name || '?'}` || 'Live Match',
+
 // Optional: Keep your existing safeSetText helper just in case any custom templates use it
 window.safeSetText = function(id, text) {
     const el = document.getElementById(id);
     if (el && text !== undefined && text !== null) el.textContent = text;
 };
+

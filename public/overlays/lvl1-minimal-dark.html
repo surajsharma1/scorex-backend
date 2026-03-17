@@ -70,8 +70,13 @@
 </head>
 <body>
 
+  <!-- Static Match Name -->
+  <div id="match-title" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,210,211,0.95); color: #111; padding: 6px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,210,211,0.4);">
+    <span id="matchName">RCB vs PBKS</span>
+  </div>
   <div id="md-island">SCOREX <span class="accent">PRO LEAGUE</span></div>
   <div id="md-event"></div>
+
 
   <div id="md-bottom">
     
@@ -132,10 +137,12 @@
 
     function ingest(d) {
       mDat = d;
+      put('matchName', d.matchName || 'Live Match');
       put('teamName', d.team1Name); put('teamScore', d.team1Score); put('teamWickets', d.team1Wickets); put('teamOvers', d.team1Overs);
       put('strikerName', d.strikerName); put('strikerRuns', d.strikerRuns); put('strikerBalls', d.strikerBalls);
       put('nonStrikerName', d.nonStrikerName); put('nonStrikerRuns', d.nonStrikerRuns); put('nonStrikerBalls', d.nonStrikerBalls);
       put('bowlerName', d.bowlerName); put('bowlerRuns', d.bowlerRuns); put('bowlerWickets', d.bowlerWickets); put('bowlerOvers', d.bowlerOvers);
+
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (mSc !== -1) {

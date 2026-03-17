@@ -38,6 +38,8 @@
       
       // Handle backend wrapper { success: true, data: {...} }
       const rawMatch = json.data ? json.data : json;
+      console.log('[DEBUG ENGINE] Fetched match data:', rawMatch ? {name: rawMatch.name, team1Name: rawMatch.team1Name, team2Name: rawMatch.team2Name} : 'NO DATA');
+
       updateState(rawMatch);
     } catch (err) {
       console.error('[Scorex Engine] Fetch error:', err);
@@ -103,6 +105,11 @@
     if (typeof window.normalizeScoreData === 'function') {
         flatData = window.normalizeScoreData(matchData);
     }
+    console.log('[DEBUG ENGINE] Normalized matchName:', flatData.matchName);
+
+    if (typeof window.normalizeScoreData === 'function') {
+        flatData = window.normalizeScoreData(matchData);
+    }
 
     // Trick the HTML template into thinking it received a postMessage from a parent window
     window.postMessage({ 
@@ -111,7 +118,12 @@
     }, '*');
   }
 
+// ─── DEBUG LOGGING ──────────────────────────────────────────────────────
+console.log('[DEBUG ENGINE] Config:', config);
+console.log('[DEBUG ENGINE] matchId:', matchId);
+
 // ─── Boot ─────────────────────────────────────────────────────────────────
+
   function init() {
     console.log('[Scorex Engine] Starting...', { matchId, apiBaseUrl, socketUrl });
     

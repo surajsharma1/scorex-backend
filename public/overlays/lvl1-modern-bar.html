@@ -69,8 +69,13 @@
 </head>
 <body>
 
+  <!-- Static Match Name -->
+  <div id="match-title" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(72,52,212,0.9); color: #fff; padding: 6px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(72,52,212,0.4);">
+    <span id="matchName">CSK vs MI</span>
+  </div>
   <div id="el-island" class="neumorph">SUMMER INVITATIONAL</div>
   <div id="el-event" class="neumorph"></div>
+
 
   <div id="el-bottom">
     
@@ -131,10 +136,12 @@
 
     function rx(d) {
       eDat = d;
+      pd('matchName', d.matchName || 'Live Match');
       pd('teamName', d.team1Name); pd('teamScore', d.team1Score); pd('teamWickets', d.team1Wickets); pd('teamOvers', d.team1Overs);
       pd('strikerName', d.strikerName); pd('strikerRuns', d.strikerRuns); pd('strikerBalls', d.strikerBalls);
       pd('nonStrikerName', d.nonStrikerName); pd('nonStrikerRuns', d.nonStrikerRuns); pd('nonStrikerBalls', d.nonStrikerBalls);
       pd('bowlerName', d.bowlerName); pd('bowlerRuns', d.bowlerRuns); pd('bowlerWickets', d.bowlerWickets); pd('bowlerOvers', d.bowlerOvers);
+
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (eSc !== -1) {

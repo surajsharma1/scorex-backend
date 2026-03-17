@@ -84,8 +84,13 @@
 </head>
 <body>
 
+  <!-- Static Match Name -->
+  <div id="match-title" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #e94560, #ff6b6b); color: #fff; padding: 5px 18px; border-radius: 15px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 3px 10px rgba(233,69,96,0.5);">
+    <span id="matchName">IND vs AUS</span>
+  </div>
   <div id="top-island">SCOREX CHAMPIONSHIP</div>
   <div id="event-popup"></div>
+
 
   <div id="bottom-bar">
     <div class="segment score-seg">
@@ -145,11 +150,13 @@
 
     function handleData(d) {
       pData = d;
+      set('matchName', d.matchName || 'Live Match');
       set('teamName', d.team1Name);
       set('teamScore', d.team1Score); set('teamWickets', d.team1Wickets); set('teamOvers', d.team1Overs);
       set('strikerName', d.strikerName); set('strikerRuns', d.strikerRuns); set('strikerBalls', d.strikerBalls);
       set('nonStrikerName', d.nonStrikerName); set('nonStrikerRuns', d.nonStrikerRuns); set('nonStrikerBalls', d.nonStrikerBalls);
       set('bowlerName', d.bowlerName); set('bowlerRuns', d.bowlerRuns); set('bowlerWickets', d.bowlerWickets); set('bowlerOvers', d.bowlerOvers);
+
 
       let cS = parseInt(d.team1Score)||0, cW = parseInt(d.team1Wickets)||0;
       if (pScore !== -1) {
