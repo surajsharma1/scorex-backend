@@ -34,6 +34,9 @@ export const getClubs = async (req: Request, res: Response, next: NextFunction) 
     
     const total = await Club.countDocuments(query);
     
+    res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.set('Expires', '0');
+    res.set('Pragma', 'no-cache');
     res.json({
       success: true,
       data: clubs,
@@ -427,6 +430,9 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       .populate('owner', 'username email')
       .sort({ createdAt: -1 });
     
+    res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.set('Expires', '0');
+    res.set('Pragma', 'no-cache');
     res.json({
       success: true,
       data: clubs
