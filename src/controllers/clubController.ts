@@ -62,16 +62,9 @@ export const getClub = async (req: Request, res: Response, next: NextFunction) =
       .populate('viceLeaders', 'username email fullName profilePicture')
       .populate('joinRequests', 'username email fullName');
     
-    if (!club) {
-      return res.status(404).json({
-        success: false,
-        message: 'Club not found'
-      });
-    }
-    
     res.json({
       success: true,
-      data: club
+      data: club || null
     });
   } catch (error) {
     next(error);
