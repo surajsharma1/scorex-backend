@@ -1,0 +1,16 @@
+{
+  "basic": {
+    "name": "Basic",
+    "price": 9,
+    "duration": 30,
+    "level": 1,
+    "features": ["Basic overlays", "Standard support"]
+  },
+  "premium": {
+    "name": "Premium",
+    "price": 19,
+    "duration": 30,
+    "level": 2,
+    "features": ["All overlays", "Priority support", "Advanced analytics"]
+  }
+}
