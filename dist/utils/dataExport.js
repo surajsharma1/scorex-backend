@@ -72,6 +72,35 @@ class DataExportService {
             res.status(500).json({ message: 'Export failed' });
         }
     }
+    static async exportPayments(res, format = 'json') {
+        try {
+            const payments = await User_1.default.aggregate([
+                { $unwind: { path: '$paymentHistory', preserveNullAndEmptyArrays: true } },
+                { $match: { 'paymentHistory.status': 'completed' } },
+                { $project: {
+                        username: '$username',
+                        email: '$email',
+                        amount: '$paymentHistory.amount',
+                        currency: '$paymentHistory.currency',
+                        level: '$paymentHistory.level',
+                        date: '$paymentHistory.date',
+                        status: '$paymentHistory.status'
+                    } }
+            ]);
+            if (format === 'csv') {
+                const csvData = this.convertToCSV(payments, ['username', 'email', 'amount', 'currency', 'level', 'date', 'status']);
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
+                res.send(csvData);
+            }
+            else {
+                res.json(payments);
+            }
+        }
+        catch (error) {
+            res.status(500).json({ message: 'Export failed' });
+        }
+    }
     static convertToCSV(data, fields) {
         if (data.length === 0)
             return '';
@@ -80,7 +109,7 @@ class DataExportService {
             const value = this.getNestedValue(item, field);
             return `"${String(value || '').replace(/"/g, '""')}"`;
         }).join(','));
-        return [headers, ...rows].join('\n');
+        return [headers, ...rows].join('\\n');
     }
     static getNestedValue(obj, path) {
         return path.split('.').reduce((current, key) => current?.[key], obj);

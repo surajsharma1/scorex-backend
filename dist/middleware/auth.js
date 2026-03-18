@@ -31,6 +31,15 @@ const protect = async (req, res, next) => {
             });
         }
         console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role);
+        // Check ban status
+        if (req.user.isBanned()) {
+            const until = req.user.banned.until;
+            const reason = req.user.banned.reason || 'No reason provided';
+            return res.status(403).json({
+                success: false,
+                message: `Account banned until ${until.toISOString().split('T')[0]}. Reason: ${reason}`
+            });
+        }
         next();
     }
     catch (error) {

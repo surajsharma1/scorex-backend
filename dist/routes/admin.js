@@ -41,15 +41,40 @@ const auth_1 = require("../middleware/auth");
 const auth_2 = require("../middleware/auth");
 const adminController = __importStar(require("../controllers/adminController"));
 const userController = __importStar(require("../controllers/userController"));
+const tournamentController = __importStar(require("../controllers/tournamentController"));
+const matchController = __importStar(require("../controllers/matchController"));
 const dataExport_1 = require("../utils/dataExport");
+const promises_1 = __importDefault(require("fs/promises"));
+const path_1 = __importDefault(require("path"));
+const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
 router.get('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.getMembershipPrices);
 router.post('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.updateMembershipPrices);
 router.get('/users', auth_1.protect, auth_2.isAdmin, userController.getUsers);
 router.patch('/users/:id/role', auth_1.protect, auth_2.isAdmin, userController.updateRole);
 router.get('/export/users', auth_1.protect, auth_2.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
-// Payments report - aggregate from users
-const User_1 = __importDefault(require("../models/User"));
+// User management
+router.post('/users/:id/ban', auth_1.protect, auth_2.isAdmin, userController.banUser);
+router.post('/users/:id/unban', auth_1.protect, auth_2.isAdmin, userController.unbanUser);
+// Membership assign
+router.patch('/users/:id/membership', auth_1.protect, auth_2.isAdmin, userController.updateMembership);
+// Tournament/Match admin delete
+router.delete('/tournaments/:id', auth_1.protect, auth_2.isAdmin, tournamentController.deleteTournament);
+router.delete('/matches/:id', auth_1.protect, auth_2.isAdmin, matchController.deleteMatch);
+// Payments CSV export
+router.get('/export/payments', auth_1.protect, auth_2.isAdmin, (req, res) => dataExport_1.DataExportService.exportPayments(res, 'csv'));
+// Logs
+router.get('/logs', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+    try {
+        const logsPath = path_1.default.join(process.cwd(), 'logs');
+        const logFiles = await promises_1.default.readdir(logsPath);
+        res.json({ success: true, data: logFiles.slice(-20) }); // Last 20 logs
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+// Payments report
 router.get('/payments', auth_1.protect, auth_2.isAdmin, async (req, res) => {
     try {
         const payments = await User_1.default.aggregate([

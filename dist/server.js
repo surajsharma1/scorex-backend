@@ -29,6 +29,7 @@ const messages_1 = __importDefault(require("./routes/messages"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const users_1 = __importDefault(require("./routes/users"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const stats_1 = __importDefault(require("./routes/stats"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
@@ -36,8 +37,8 @@ const allowedOrigins = [
 ];
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use((0, cors_1.default)({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         }
         else {
@@ -45,8 +46,9 @@ app.use((0, cors_1.default)({
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Set-Cookie']
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -176,6 +178,7 @@ app.use('/api/v1/messages', messages_1.default);
 app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
+app.use('/api/v1/stats', stats_1.default);
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
 // Simplified Google OAuth health check - always OK if strategy loaded (for CORS)

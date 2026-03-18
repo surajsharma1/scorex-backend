@@ -90,6 +90,12 @@ const UserSchema = new mongoose_1.Schema({
         notifications: { type: Boolean, default: true },
         darkMode: { type: Boolean, default: false },
         language: { type: String, default: 'en' }
+    },
+    banned: {
+        until: { type: Date },
+        reason: String,
+        bannedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
+        duration: String
     }
 }, {
     timestamps: true
@@ -118,6 +124,11 @@ UserSchema.methods.hasPermission = function (permission) {
         [UserRole.VIEWER]: ['read:*']
     };
     return rolePermissions[this.role].some(p => permission === p || p === '*' || permission.startsWith(p.replace('*', '')));
+};
+UserSchema.methods.isBanned = function () {
+    if (!this.banned || !this.banned.until)
+        return false;
+    return new Date() < new Date(this.banned.until);
 };
 const User = mongoose_1.default.model('User', UserSchema);
 exports.default = User;
