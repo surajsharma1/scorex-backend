@@ -15,7 +15,7 @@ const router = express.Router();
 router.use(protect as any);
 
 // Send friend request
-router.post('/request', sendFriendRequest as any);
+router.post('/:userId/request', sendFriendRequest as any);
 
 // Accept friend request
 router.put('/request/:requestId/accept', acceptFriendRequest as any);
