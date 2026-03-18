@@ -33,7 +33,10 @@ window.normalizeScoreData = function(data) {
     let validInning = null;
     if (data.innings && Array.isArray(data.innings) && data.innings.length > 0) {
         // CLAMP INDEX TO VALID RANGE
+        // EXTRA CLAMP vs RangeError - ensure valid length param
         const rawIdx = Number(data.currentInnings || 1) - 1;
+        const rawIdx = Number(data.currentInnings || 1) - 1;
+        const safeIdx = Math.max(0, Math.min(inningsLen - 1, Math.floor(rawIdx)));
         const safeIdx = Math.max(0, Math.min(data.innings.length - 1, rawIdx));
         
         if (rawIdx !== safeIdx || isNaN(rawIdx)) {
