@@ -2,6 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/auth';
 import { isAdmin } from '../middleware/auth';
 import Tournament from '../models/Tournament';
+import Match from '../models/Match';
 import User from '../models/User';
 
 const router = express.Router();
@@ -43,20 +44,24 @@ router.get('/users', async (req, res) => {
 
 router.get('/admin', protect, isAdmin, async (req, res) => {
   try {
-    const [totalUsers, adminUsers, organizerUsers, activeMemberships] = await Promise.all([
+    const [totalUsers, totalTournaments, totalMatches, totalRevenue] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ role: 'admin' }),
-      User.countDocuments({ role: 'organizer' }),
-      User.countDocuments({ membershipLevel: { $gt: 0 } })
+      Tournament.countDocuments(),
+      Match.countDocuments(),
+      User.aggregate([
+        { $unwind: { path: '$paymentHistory', preserveNullAndEmptyArrays: true } },
+        { $group: { _id: null, revenue: { $sum: '$paymentHistory.amount' } } },
+        { $project: { _id: 0, revenue: { $ifNull: ['$revenue', 0] } } }
+      ])
     ]);
 
     res.json({ 
       success: true,
       data: { 
-        totalUsers, 
-        adminUsers, 
-        organizerUsers, 
-        activeMemberships 
+        users: totalUsers,
+        tournaments: totalTournaments,
+        matches: totalMatches,
+        revenue: totalRevenue[0]?.revenue || 0 
       } 
     });
   } catch (error) {
