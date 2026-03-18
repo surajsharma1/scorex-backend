@@ -28,6 +28,7 @@ const friends_1 = __importDefault(require("./routes/friends"));
 const messages_1 = __importDefault(require("./routes/messages"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const users_1 = __importDefault(require("./routes/users"));
+const admin_1 = __importDefault(require("./routes/admin"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
@@ -174,6 +175,7 @@ app.use('/api/v1/friends', friends_1.default);
 app.use('/api/v1/messages', messages_1.default);
 app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);
+app.use('/api/v1/admin', admin_1.default);
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
 // Simplified Google OAuth health check - always OK if strategy loaded (for CORS)

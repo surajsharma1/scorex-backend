@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const auth_1 = require("../middleware/auth");
+const auth_2 = require("../middleware/auth");
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
@@ -35,6 +37,28 @@ router.get('/users', async (req, res) => {
         const adminUsers = await User_1.default.countDocuments({ role: 'admin' });
         const organizerUsers = await User_1.default.countDocuments({ role: 'organizer' });
         res.json({ totalUsers, adminUsers, organizerUsers });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+router.get('/admin', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+    try {
+        const [totalUsers, adminUsers, organizerUsers, activeMemberships] = await Promise.all([
+            User_1.default.countDocuments(),
+            User_1.default.countDocuments({ role: 'admin' }),
+            User_1.default.countDocuments({ role: 'organizer' }),
+            User_1.default.countDocuments({ membershipLevel: { $gt: 0 } })
+        ]);
+        res.json({
+            success: true,
+            data: {
+                totalUsers,
+                adminUsers,
+                organizerUsers,
+                activeMemberships
+            }
+        });
     }
     catch (error) {
         res.status(500).json({ message: 'Server error' });

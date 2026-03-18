@@ -10,7 +10,7 @@ const router = express_1.default.Router();
 // All friend routes require authentication
 router.use(auth_1.protect);
 // Send friend request
-router.post('/request', friendController_1.sendFriendRequest);
+router.post('/:userId/request', friendController_1.sendFriendRequest);
 // Accept friend request
 router.put('/request/:requestId/accept', friendController_1.acceptFriendRequest);
 // Reject friend request
