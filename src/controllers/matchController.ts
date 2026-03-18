@@ -213,6 +213,15 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
 
+    // Validate active striker exists
+    const innings = match.innings?.[match.currentInnings - 1];
+    if (!innings?.batsmen?.some((b: any) => b.isStriker && !b.isOut)) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active striker found. Please select striker/non-striker/bowler first.'
+      });
+    }
+
     const result = await match.addBall(req.body);
 
     await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
