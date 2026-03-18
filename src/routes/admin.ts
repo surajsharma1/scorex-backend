@@ -3,7 +3,12 @@ import { protect } from '../middleware/auth';
 import { isAdmin } from '../middleware/auth';
 import * as adminController from '../controllers/adminController';
 import * as userController from '../controllers/userController';
+import * as tournamentController from '../controllers/tournamentController';
+import * as matchController from '../controllers/matchController';
 import { DataExportService } from '../utils/dataExport';
+import fs from 'fs/promises';
+import path from 'path';
+import User from '../models/User';
 
 const router = express.Router();
 
@@ -14,9 +19,32 @@ router.get('/users', protect, isAdmin, userController.getUsers);
 router.patch('/users/:id/role', protect, isAdmin, userController.updateRole);
 router.get('/export/users', protect, isAdmin, (req, res) => DataExportService.exportUsers(res, 'csv'));
 
-// Payments report - aggregate from users
-import User from '../models/User';
+// User management
+router.post('/users/:id/ban', protect, isAdmin, userController.banUser);
+router.post('/users/:id/unban', protect, isAdmin, userController.unbanUser);
 
+// Membership assign
+router.patch('/users/:id/membership', protect, isAdmin, userController.updateMembership);
+
+// Tournament/Match admin delete
+router.delete('/tournaments/:id', protect, isAdmin, tournamentController.deleteTournament);
+router.delete('/matches/:id', protect, isAdmin, matchController.deleteMatch);
+
+// Payments CSV export
+router.get('/export/payments', protect, isAdmin, (req, res) => DataExportService.exportPayments(res, 'csv'));
+
+// Logs
+router.get('/logs', protect, isAdmin, async (req, res) => {
+  try {
+    const logsPath = path.join(process.cwd(), 'logs');
+    const logFiles = await fs.readdir(logsPath);
+    res.json({ success: true, data: logFiles.slice(-20) }); // Last 20 logs
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Payments report
 router.get('/payments', protect, isAdmin, async (req, res) => {
   try {
     const payments = await User.aggregate([

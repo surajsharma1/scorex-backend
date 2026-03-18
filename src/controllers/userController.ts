@@ -63,6 +63,56 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
+export const banUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { duration, reason } = req.body;
+    const adminId = req.user._id;
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const durationMs = {
+      '1day': 24*60*60*1000,
+      '3day': 3*24*60*60*1000,
+      '1week': 7*24*60*60*1000,
+      '1month': 30*24*60*60*1000,
+      '3month': 90*24*60*60*1000,
+      'lifetime': 100 * 365 *24*60*60*1000 // ~100 years
+    }[duration];
+
+    if (!durationMs) return res.status(400).json({ success: false, message: 'Invalid duration' });
+
+    user.banned = {
+      until: new Date(Date.now() + durationMs),
+      reason: reason || 'No reason provided',
+      bannedBy: adminId.toString(),
+      duration
+    };
+
+    await user.save();
+
+    res.json({ success: true, message: 'User banned successfully', data: user });
+  } catch (error) { 
+    next(error); 
+  }
+};
+
+export const unbanUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.banned = undefined;
+    await user.save();
+
+    res.json({ success: true, message: 'User unbanned successfully', data: user });
+  } catch (error) { 
+    next(error); 
+  }
+};
+
 export const updateRole = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const user = await User.findById(req.params.id);
@@ -77,7 +127,7 @@ export const updateRole = async (req: AuthRequest, res: Response, next: NextFunc
 
 export default { 
   searchUsers, getUsers, getUser, getProfile, 
-  updateProfile, updateRole, updateMembership 
-};
+  updateProfile, updateRole, updateMembership, banUser, unbanUser 
+ };
 
 

@@ -49,11 +49,18 @@ export interface IUser extends Document {
     darkMode: boolean;
     language: string;
   };
+  banned?: {
+    until: Date;
+    reason?: string;
+    bannedBy: string;
+    duration: string;
+  };
 
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
   isMembershipActive(): boolean;
   hasPermission(permission: string): boolean;
+  isBanned(): boolean;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -95,6 +102,12 @@ const UserSchema = new Schema<IUser>({
     notifications: { type: Boolean, default: true },
     darkMode: { type: Boolean, default: false },
     language: { type: String, default: 'en' }
+  },
+  banned: {
+    until: { type: Date },
+    reason: String,
+    bannedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    duration: String
   }
 }, {
   timestamps: true
@@ -128,6 +141,11 @@ UserSchema.methods.hasPermission = function(permission: string): boolean {
   return rolePermissions[this.role as UserRole].some(p => 
     permission === p || p === '*' || permission.startsWith(p.replace('*', ''))
   );
+};
+
+UserSchema.methods.isBanned = function(): boolean {
+  if (!this.banned || !this.banned.until) return false;
+  return new Date() < new Date(this.banned.until);
 };
 
 const User: Model<IUser> = mongoose.model<IUser>('User', UserSchema);

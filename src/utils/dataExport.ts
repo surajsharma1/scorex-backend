@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import Tournament from '../models/Tournament';
 import Team from '../models/Team';
-
 import Match from '../models/Match';
+import path from 'path';
+import fs from 'fs/promises';
 
 export class DataExportService {
   static async exportUsers(res: Response, format: 'json' | 'csv' = 'json'): Promise<void> {
@@ -71,6 +72,35 @@ export class DataExportService {
     }
   }
 
+  static async exportPayments(res: Response, format: 'json' | 'csv' = 'json'): Promise<void> {
+    try {
+      const payments = await User.aggregate([
+        { $unwind: { path: '$paymentHistory', preserveNullAndEmptyArrays: true } },
+        { $match: { 'paymentHistory.status': 'completed' } },
+        { $project: {
+          username: '$username',
+          email: '$email',
+          amount: '$paymentHistory.amount',
+          currency: '$paymentHistory.currency',
+          level: '$paymentHistory.level',
+          date: '$paymentHistory.date',
+          status: '$paymentHistory.status'
+        } }
+      ]);
+
+      if (format === 'csv') {
+        const csvData = this.convertToCSV(payments, ['username', 'email', 'amount', 'currency', 'level', 'date', 'status']);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
+        res.send(csvData);
+      } else {
+        res.json(payments);
+      }
+    } catch (error) {
+      res.status(500).json({ message: 'Export failed' });
+    }
+  }
+
   private static convertToCSV(data: any[], fields: string[]): string {
     if (data.length === 0) return '';
 
@@ -82,10 +112,11 @@ export class DataExportService {
       }).join(',')
     );
 
-    return [headers, ...rows].join('\n');
+    return [headers, ...rows].join('\\n');
   }
 
   private static getNestedValue(obj: any, path: string): any {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   }
 }
+
