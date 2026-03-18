@@ -8,8 +8,8 @@ const promises_1 = __importDefault(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 const PRICES_FILE = path_1.default.join(process.cwd(), 'public', 'membership-prices.json');
 const DEFAULT_MEMBERSHIP_PLANS = {
-    basic: { name: 'Basic', price: 9, duration: 30, level: 1, features: ['Basic overlays', 'Standard support'] },
-    premium: { name: 'Premium', price: 19, duration: 30, level: 2, features: ['All overlays', 'Priority support', 'Advanced analytics'] }
+    1: { '1day': 149, '1week': 499, '1month': 1499 },
+    2: { '1day': 249, '1week': 999, '1month': 2499 }
 };
 async function loadPrices() {
     try {
@@ -29,13 +29,10 @@ async function savePrices(plans) {
  */
 const getMembershipPrices = async (req, res, next) => {
     try {
-        const plans = await loadPrices();
+        const prices = await loadPrices();
         res.json({
             success: true,
-            data: Object.entries(plans).map(([key, plan]) => ({
-                id: key,
-                ...plan
-            }))
+            prices
         });
     }
     catch (error) {
@@ -48,11 +45,11 @@ exports.getMembershipPrices = getMembershipPrices;
  */
 const updateMembershipPrices = async (req, res, next) => {
     try {
-        const { plans } = req.body;
-        if (!plans || typeof plans !== 'object') {
-            return res.status(400).json({ success: false, message: 'Invalid plans data' });
+        const { prices } = req.body;
+        if (!prices || typeof prices !== 'object') {
+            return res.status(400).json({ success: false, message: 'Invalid prices data' });
         }
-        await savePrices(plans);
+        await savePrices(prices);
         res.json({ success: true, message: 'Membership prices updated' });
     }
     catch (error) {
