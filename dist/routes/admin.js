@@ -40,7 +40,37 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const auth_2 = require("../middleware/auth");
 const adminController = __importStar(require("../controllers/adminController"));
+const userController = __importStar(require("../controllers/userController"));
+const dataExport_1 = require("../utils/dataExport");
 const router = express_1.default.Router();
 router.get('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.getMembershipPrices);
 router.post('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.updateMembershipPrices);
+router.get('/users', auth_1.protect, auth_2.isAdmin, userController.getUsers);
+router.patch('/users/:id/role', auth_1.protect, auth_2.isAdmin, userController.updateRole);
+router.get('/export/users', auth_1.protect, auth_2.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
+// Payments report - aggregate from users
+const User_1 = __importDefault(require("../models/User"));
+router.get('/payments', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+    try {
+        const payments = await User_1.default.aggregate([
+            { $unwind: '$paymentHistory' },
+            { $sort: { 'paymentHistory.date': -1 } },
+            { $limit: 50 },
+            { $project: {
+                    userId: '$_id',
+                    username: 1,
+                    email: 1,
+                    amount: '$paymentHistory.amount',
+                    currency: '$paymentHistory.currency',
+                    level: '$paymentHistory.level',
+                    date: '$paymentHistory.date',
+                    status: '$paymentHistory.status'
+                } }
+        ]);
+        res.json({ success: true, data: payments });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 exports.default = router;

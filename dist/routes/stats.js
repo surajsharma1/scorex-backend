@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const auth_2 = require("../middleware/auth");
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const Match_1 = __importDefault(require("../models/Match"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
 router.get('/tournaments', async (req, res) => {
@@ -44,19 +45,23 @@ router.get('/users', async (req, res) => {
 });
 router.get('/admin', auth_1.protect, auth_2.isAdmin, async (req, res) => {
     try {
-        const [totalUsers, adminUsers, organizerUsers, activeMemberships] = await Promise.all([
+        const [totalUsers, totalTournaments, totalMatches, totalRevenue] = await Promise.all([
             User_1.default.countDocuments(),
-            User_1.default.countDocuments({ role: 'admin' }),
-            User_1.default.countDocuments({ role: 'organizer' }),
-            User_1.default.countDocuments({ membershipLevel: { $gt: 0 } })
+            Tournament_1.default.countDocuments(),
+            Match_1.default.countDocuments(),
+            User_1.default.aggregate([
+                { $unwind: { path: '$paymentHistory', preserveNullAndEmptyArrays: true } },
+                { $group: { _id: null, revenue: { $sum: '$paymentHistory.amount' } } },
+                { $project: { _id: 0, revenue: { $ifNull: ['$revenue', 0] } } }
+            ])
         ]);
         res.json({
             success: true,
             data: {
-                totalUsers,
-                adminUsers,
-                organizerUsers,
-                activeMemberships
+                users: totalUsers,
+                tournaments: totalTournaments,
+                matches: totalMatches,
+                revenue: totalRevenue[0]?.revenue || 0
             }
         });
     }
