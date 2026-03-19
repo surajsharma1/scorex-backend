@@ -35,7 +35,7 @@ window.normalizeScoreData = function(data) {
         // CLAMP INDEX TO VALID RANGE
         // EXTRA CLAMP vs RangeError - ensure valid length param
         const rawIdx = Number(data.currentInnings || 1) - 1;
-        const rawIdx = Number(data.currentInnings || 1) - 1;
+
         const safeIdx = Math.max(0, Math.min(inningsLen - 1, Math.floor(rawIdx)));
         const safeIdx = Math.max(0, Math.min(data.innings.length - 1, rawIdx));
         
@@ -66,9 +66,9 @@ window.normalizeScoreData = function(data) {
             nsBalls = Math.max(0, Number(nonStriker.balls) || 0);
         }
         
-        // BOWLER SAFE LOOKUP
+        // BOWLER SAFE LOOKUP - Enhanced like batsmen
         if (validInning.bowlers && Array.isArray(validInning.bowlers)) {
-            const bowler = validInning.bowlers.find(b => b && b.name === data.currentBowlerName) || {};
+            const bowler = validInning.bowlers.find(b => b && b.name === data.currentBowlerName) || { name: data.currentBowlerName || '' };
             bRuns = Math.max(0, Number(bowler.runs) || 0);
             bWickets = Math.max(0, Number(bowler.wickets) || 0);
             
@@ -77,6 +77,9 @@ window.normalizeScoreData = function(data) {
             const bowlerOversNum = Math.floor(bowlerBalls / 6);
             const ballsInOver = bowlerBalls % 6;
             bOvers = bowlerBalls > 0 ? `${bowlerOversNum}.${ballsInOver}` : '0.0';
+            
+            // Ensure bowlerName always has value from currentBowlerName fallback
+            data.currentBowlerName = bowler.name || data.currentBowlerName || 'Bowler';
         }
         
         if (validInning.targetScore) target = Math.max(0, Number(validInning.targetScore));
