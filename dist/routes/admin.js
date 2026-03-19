@@ -74,6 +74,28 @@ router.get('/logs', auth_1.protect, auth_2.isAdmin, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+// Log download
+router.get('/logs/:filename', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const logsPath = path_1.default.join(process.cwd(), 'logs', filename);
+        // Security: validate filename
+        if (!filename.match(/^[a-zA-Z0-9\-_.]+\.log$/)) {
+            return res.status(400).json({ message: 'Invalid filename' });
+        }
+        const data = await promises_1.default.readFile(logsPath, 'utf8');
+        res.set({
+            'Content-Type': 'text/plain',
+            'Content-Disposition': `attachment; filename="scorex-${filename}"`,
+            'Content-Length': data.length
+        });
+        res.status(200).send(data);
+    }
+    catch (error) {
+        console.error('Log download error:', error);
+        res.status(404).json({ message: 'Log file not found' });
+    }
+});
 // Payments report
 router.get('/payments', auth_1.protect, auth_2.isAdmin, async (req, res) => {
     try {
