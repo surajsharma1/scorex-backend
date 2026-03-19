@@ -31,4 +31,9 @@ router.post('/:clubId/approve/:userId', protect, approveJoinRequest);
 router.post('/:clubId/vice-leader/:userId', protect, addViceLeader);
 router.delete('/:clubId/members/:userId', protect, removeMember);
 
+// Image upload routes
+import { uploadLogo, uploadBanner } from '../controllers/clubImageController';
+router.post('/:clubId/upload-logo', protect, uploadLogo);
+router.post('/:clubId/upload-banner', protect, uploadBanner);
+
 export default router;

@@ -20,4 +20,8 @@ router.post('/:clubId/leave', auth_1.protect, clubController_1.leaveClub);
 router.post('/:clubId/approve/:userId', auth_1.protect, clubController_1.approveJoinRequest);
 router.post('/:clubId/vice-leader/:userId', auth_1.protect, clubController_1.addViceLeader);
 router.delete('/:clubId/members/:userId', auth_1.protect, clubController_1.removeMember);
+// Image upload routes
+const clubImageController_1 = require("../controllers/clubImageController");
+router.post('/:clubId/upload-logo', auth_1.protect, clubImageController_1.uploadLogo);
+router.post('/:clubId/upload-banner', auth_1.protect, clubImageController_1.uploadBanner);
 exports.default = router;

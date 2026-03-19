@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMyClubs = exports.removeMember = exports.addViceLeader = exports.approveJoinRequest = exports.leaveClub = exports.joinClub = exports.deleteClub = exports.updateClub = exports.createClub = exports.getClub = exports.getClubs = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Club_1 = __importDefault(require("../models/Club"));
+const User_1 = __importDefault(require("../models/User"));
+const notificationUtils_1 = require("../utils/notificationUtils");
 // @desc    Get all clubs
 // @route   GET /api/v1/clubs
 // @access  Public
@@ -22,8 +24,9 @@ const getClubs = async (req, res, next) => {
             ];
         }
         const clubs = await Club_1.default.find(query)
-            .populate('owner', 'username email fullName')
-            .populate('members', 'username email fullName')
+            .populate('owner', 'username email fullName profilePicture')
+            .populate('viceLeaders', 'username email fullName profilePicture')
+            .populate('members', 'username email fullName profilePicture')
             .sort({ createdAt: -1 })
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));
@@ -53,7 +56,9 @@ const getClub = async (req, res, next) => {
     try {
         const club = await Club_1.default.findById(req.params.id)
             .populate('owner', 'username email fullName profilePicture')
-            .populate('viceLeaders', 'username email fullName profilePicture');
+            .populate('viceLeaders', 'username email fullName profilePicture')
+            .populate('members', 'username email fullName profilePicture')
+            .populate('joinRequests', 'username email fullName profilePicture');
         res.json({
             success: true,
             data: club || null,
@@ -206,8 +211,9 @@ const joinClub = async (req, res, next) => {
             });
         }
         if (club.isPublic) {
-            club.members.push(new mongoose_1.default.Types.ObjectId(req.user.id));
-            await club.save();
+            await club.addMember(new mongoose_1.default.Types.ObjectId(req.user.id));
+            // Notify club admins
+            await (0, notificationUtils_1.notifyClubOwnerAndViceLeaders)(club._id.toString(), 'New Member Joined', `${req.user.username || 'A member'} joined ${club.name}`);
             res.json({
                 success: true,
                 message: 'Joined club successfully'
@@ -216,6 +222,8 @@ const joinClub = async (req, res, next) => {
         else {
             club.joinRequests.push(new mongoose_1.default.Types.ObjectId(req.user.id));
             await club.save();
+            // Notify club admins about new request
+            await (0, notificationUtils_1.notifyClubOwnerAndViceLeaders)(club._id.toString(), 'New Join Request', `${req.user.username || 'Someone'} requested to join ${club.name}`);
             res.json({
                 success: true,
                 message: 'Join request submitted'
@@ -286,9 +294,19 @@ const approveJoinRequest = async (req, res, next) => {
                 message: 'No join request from this user'
             });
         }
-        club.joinRequests = club.joinRequests.filter((r) => r.toString() !== userId);
-        club.members.push(new mongoose_1.default.Types.ObjectId(userId));
+        club.approveJoinRequest(new mongoose_1.default.Types.ObjectId(userId));
         await club.save();
+        // Notify new member
+        const newMember = await User_1.default.findById(userId);
+        await (0, notificationUtils_1.createNotification)({
+            userId,
+            type: 'club',
+            title: `Welcome to ${club.name}!`,
+            message: `Your join request has been approved by ${req.user.username}.`,
+            link: `/clubs/${club._id}`,
+        });
+        // Notify other members
+        await (0, notificationUtils_1.notifyClubMembers)(club._id.toString(), `${newMember?.username || 'New member'} joined the club`, `${newMember?.username || 'A new member'} has joined ${club.name}`, req.user.id);
         res.json({
             success: true,
             message: 'Join request approved'
@@ -406,7 +424,9 @@ const getMyClubs = async (req, res, next) => {
             ];
         }
         const clubs = await Club_1.default.find(query)
-            .populate('owner', 'username email fullName')
+            .populate('owner', 'username email fullName profilePicture')
+            .populate('viceLeaders', 'username email fullName profilePicture')
+            .populate('members', 'username email fullName profilePicture')
             .sort({ createdAt: -1 })
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));

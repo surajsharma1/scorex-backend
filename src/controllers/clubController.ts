@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Club from '../models/Club';
 import User from '../models/User';
+import { createNotification, notifyClubMembers, notifyClubOwnerAndViceLeaders } from '../utils/notificationUtils';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -25,9 +26,10 @@ export const getClubs = async (req: Request, res: Response, next: NextFunction) 
     }
 
     
-    const clubs = await Club.find(query)
-      .populate('owner', 'username email fullName')
-      .populate('members', 'username email fullName')
+const clubs = await Club.find(query)
+      .populate('owner', 'username email fullName profilePicture')
+      .populate('viceLeaders', 'username email fullName profilePicture')
+      .populate('members', 'username email fullName profilePicture')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
@@ -56,9 +58,11 @@ export const getClubs = async (req: Request, res: Response, next: NextFunction) 
 // @access  Public
 export const getClub = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const club = await Club.findById(req.params.id)
+const club = await Club.findById(req.params.id)
       .populate('owner', 'username email fullName profilePicture')
-      .populate('viceLeaders', 'username email fullName profilePicture');
+      .populate('viceLeaders', 'username email fullName profilePicture')
+      .populate('members', 'username email fullName profilePicture')
+      .populate('joinRequests', 'username email fullName profilePicture');
     
     res.json({
       success: true,
@@ -223,8 +227,10 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
     }
     
     if (club.isPublic) {
-      club.members.push(new mongoose.Types.ObjectId(req.user!.id));
-      await club.save();
+      await club.addMember(new mongoose.Types.ObjectId(req.user!.id));
+      
+      // Notify club admins
+      await notifyClubOwnerAndViceLeaders(club._id.toString(), 'New Member Joined', `${req.user.username || 'A member'} joined ${club.name}`);
       
       res.json({
         success: true,
@@ -233,6 +239,9 @@ export const joinClub = async (req: AuthRequest, res: Response, next: NextFuncti
     } else {
       club.joinRequests.push(new mongoose.Types.ObjectId(req.user!.id));
       await club.save();
+      
+      // Notify club admins about new request
+      await notifyClubOwnerAndViceLeaders(club._id.toString(), 'New Join Request', `${req.user.username || 'Someone'} requested to join ${club.name}`);
       
       res.json({
         success: true,
@@ -313,10 +322,21 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
       });
     }
     
-club.joinRequests = club.joinRequests.filter((r: any) => r.toString() !== userId);
-    club.members.push(new mongoose.Types.ObjectId(userId));
-    
+club.approveJoinRequest(new mongoose.Types.ObjectId(userId));
     await club.save();
+    
+    // Notify new member
+    const newMember = await User.findById(userId);
+    await createNotification({
+      userId,
+      type: 'club',
+      title: `Welcome to ${club.name}!`,
+      message: `Your join request has been approved by ${req.user.username}.`,
+      link: `/clubs/${club._id}`,
+    });
+    
+    // Notify other members
+    await notifyClubMembers(club._id.toString(), `${newMember?.username || 'New member'} joined the club`, `${newMember?.username || 'A new member'} has joined ${club.name}`, req.user!.id);
     
     res.json({
       success: true,
@@ -450,8 +470,10 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       ];
     }
 
-    const clubs = await Club.find(query)
-      .populate('owner', 'username email fullName')
+const clubs = await Club.find(query)
+      .populate('owner', 'username email fullName profilePicture')
+      .populate('viceLeaders', 'username email fullName profilePicture')
+      .populate('members', 'username email fullName profilePicture')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
