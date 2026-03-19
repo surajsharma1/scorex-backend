@@ -58,7 +58,7 @@ const clubs = await Club.find(query)
 // @access  Public
 export const getClub = async (req: Request, res: Response, next: NextFunction) => {
   try {
-const club = await Club.findById(req.params.id)
+const club = await Club.findOne({ _id: req.params.id, isActive: true })
       .populate('owner', 'username email fullName profilePicture')
       .populate('viceLeaders', 'username email fullName profilePicture')
       .populate('members', 'username email fullName profilePicture')
