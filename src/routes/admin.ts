@@ -44,6 +44,31 @@ router.get('/logs', protect, isAdmin, async (req, res) => {
   }
 });
 
+// Log download
+router.get('/logs/:filename', protect, isAdmin, async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const logsPath = path.join(process.cwd(), 'logs', filename);
+    
+    // Security: validate filename
+    if (!filename.match(/^[a-zA-Z0-9\-_.]+\.log$/)) {
+      return res.status(400).json({ message: 'Invalid filename' });
+    }
+    
+    const data = await fs.readFile(logsPath, 'utf8');
+    
+    res.set({
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `attachment; filename="scorex-${filename}"`,
+      'Content-Length': data.length
+    });
+    res.status(200).send(data);
+  } catch (error) {
+    console.error('Log download error:', error);
+    res.status(404).json({ message: 'Log file not found' });
+  }
+});
+
 // Payments report
 router.get('/payments', protect, isAdmin, async (req, res) => {
   try {

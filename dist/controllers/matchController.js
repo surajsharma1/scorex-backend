@@ -69,7 +69,7 @@ exports.getMatch = getMatch;
 // ─── POST /matches ────────────────────────────────────────────────────────────
 const createMatch = async (req, res, next) => {
     try {
-        const { name, tournamentId, round, matchNumber, team1, team2, date, time, format, venue } = req.body;
+        const { name, tournamentId, round, matchNumber, team1, team2, date, time, format, venue, maxOvers } = req.body;
         if (!team1 || !team2)
             return res.status(400).json({ success: false, message: 'team1 and team2 are required' });
         if (!date)
@@ -93,7 +93,7 @@ const createMatch = async (req, res, next) => {
             team1, team2, venue: venue || 'TBD',
             date: new Date(date), time,
             format: fmt,
-            maxOvers: oversMap[fmt] || 20,
+            maxOvers: maxOvers || oversMap[fmt] || 20,
             status: 'upcoming',
             scorerId: req.user?.id
         });
@@ -222,6 +222,14 @@ const addBall = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
+        // Validate active striker exists
+        const innings = match.innings?.[match.currentInnings - 1];
+        if (!innings?.batsmen?.some((b) => b.isStriker && !b.isOut)) {
+            return res.status(400).json({
+                success: false,
+                message: 'No active striker found. Please select striker/non-striker/bowler first.'
+            });
+        }
         const result = await match.addBall(req.body);
         await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
         const io = req.app.get('io');

@@ -62,9 +62,9 @@ export const getMatch = async (req: Request, res: Response, next: NextFunction) 
 // ─── POST /matches ────────────────────────────────────────────────────────────
 export const createMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const {
+const {
       name, tournamentId, round, matchNumber,
-      team1, team2, date, time, format, venue
+      team1, team2, date, time, format, venue, maxOvers
     } = req.body;
 
     if (!team1 || !team2) return res.status(400).json({ success: false, message: 'team1 and team2 are required' });
@@ -89,7 +89,7 @@ export const createMatch = async (req: AuthRequest, res: Response, next: NextFun
       team1, team2, venue: venue || 'TBD',
       date: new Date(date), time,
       format: fmt,
-      maxOvers: oversMap[fmt] || 20,
+      maxOvers: maxOvers || oversMap[fmt] || 20,
       status: 'upcoming',
       scorerId: req.user?.id
     });
