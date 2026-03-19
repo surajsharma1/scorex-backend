@@ -53,6 +53,7 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/overlays', express_1.default.static('public/overlays'));
+app.use('/uploads', express_1.default.static('public/uploads'));
 // ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
 try {

@@ -13,6 +13,8 @@ router.use(auth_1.protect);
 router.post('/:userId/request', friendController_1.sendFriendRequest);
 // Accept friend request
 router.put('/request/:requestId/accept', friendController_1.acceptFriendRequest);
+// Accept friend request (frontend POST variant)
+router.post('/requests/:id/accept', friendController_1.acceptFriendRequest);
 // Reject friend request
 router.delete('/request/:requestId/reject', friendController_1.rejectFriendRequest);
 // Get user's friends

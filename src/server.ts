@@ -54,6 +54,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/overlays', express.static('public/overlays'));
 
+app.use('/uploads', express.static('public/uploads'));
+
 // ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
 try {
