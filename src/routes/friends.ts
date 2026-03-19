@@ -20,6 +20,9 @@ router.post('/:userId/request', sendFriendRequest as any);
 // Accept friend request
 router.put('/request/:requestId/accept', acceptFriendRequest as any);
 
+// Accept friend request (frontend POST variant)
+router.post('/requests/:id/accept', acceptFriendRequest as any);
+
 // Reject friend request
 router.delete('/request/:requestId/reject', rejectFriendRequest as any);
 
