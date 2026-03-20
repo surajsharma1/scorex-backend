@@ -117,7 +117,7 @@ export interface IMatch extends Document {
   venue: string;
   date: Date;
   time?: string;
-  format: 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom';
+  format: 'T10' | 'T20' | 'ODI' | 'Test';
   maxOvers: number;
   status: MatchStatus;
   tossWinner?: mongoose.Types.ObjectId;
@@ -277,7 +277,7 @@ const MatchSchema = new Schema<IMatch>({
   venue: { type: String, default: 'TBD' },
   date: { type: Date, required: true },
   time: String,
-  format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' },
+  format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test'], default: 'T20' },
   maxOvers: { type: Number, default: 20 },
   status: { type: String, enum: Object.values(MatchStatus), default: MatchStatus.UPCOMING, index: true },
   tossWinner: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
@@ -311,6 +311,10 @@ function formatOvers(completedOvers: number, ballsInOver: number): string {
   return `${completedOvers}.${ballsInOver}`;
 }
 
+function oversToDecimal(completedOvers: number, ballsInOver: number): number {
+  return completedOvers + ballsInOver / 6;
+}
+
 function calcRunRate(score: number, overs: number, balls: number): number {
   const totalOvers = overs + balls / 6;
   return totalOvers > 0 ? parseFloat((score / totalOvers).toFixed(2)) : 0;
@@ -332,9 +336,7 @@ MatchSchema.methods.startMatch = async function(data: StartMatchData): Promise<v
 
   // Determine max overs based on format
   const oversMap: Record<string, number> = { T10: 10, T20: 20, ODI: 50, Test: 90 };
-  if (this.format !== 'Custom') {
-    this.maxOvers = oversMap[this.format] || 20;
-  }
+  this.maxOvers = oversMap[this.format] || 20;
 
   this.innings = [{
     teamId: new mongoose.Types.ObjectId(data.battingTeamId),
@@ -406,6 +408,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   let runsFromBat = 0;
   let extrasRuns = 0;
   let ballDesc = '';
+  let totalRunsThisBall = 0;
 
   // SAVE HISTORY SNAPSHOT BEFORE CHANGES
   const historyEntry = {
@@ -428,11 +431,13 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     innings.extras.wides += 1;
     innings.extras.total += extrasRuns;
     innings.score += extrasRuns;
+    totalRunsThisBall = extrasRuns;
     if (bowler) {
       bowler.runs += extrasRuns;
       bowler.wides += 1;
     }
     ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`;
+    // Wide = not a legal delivery (no ball count, but over ends on runs if it causes out)
     isLegalDelivery = false;
   }
   // ---- NO BALL ----
@@ -442,10 +447,12 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     innings.extras.noBalls += 1;
     innings.extras.total += 1 + runs + byeRuns + legByeRuns;
     innings.score += 1 + runs + byeRuns + legByeRuns;
+    totalRunsThisBall = 1 + runs + byeRuns + legByeRuns;
     if (bowler) {
       bowler.runs += 1 + runs;
       bowler.noBalls += 1;
     }
+    // Batsman gets credit for runs on bat (not extras)
     if (runs > 0) {
       striker.runs += runs;
       if (runs === 4) striker.fours += 1;
@@ -453,7 +460,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     }
     striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0;
     ballDesc = `NB${runs > 0 ? `+${runs}` : ''}`;
-    isLegalDelivery = false; 
+    isLegalDelivery = false; // no ball counts as legal for face count in some rules, but NOT for over
   }
   // ---- BYE ----
   else if (byeRuns > 0) {
@@ -461,6 +468,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     innings.extras.byes += byeRuns;
     innings.extras.total += byeRuns;
     innings.score += byeRuns;
+    totalRunsThisBall = byeRuns;
     striker.balls += 1;
     if (bowler) bowler.balls += 1;
     ballDesc = `B${byeRuns}`;
@@ -471,6 +479,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     innings.extras.legByes += legByeRuns;
     innings.extras.total += legByeRuns;
     innings.score += legByeRuns;
+    totalRunsThisBall = legByeRuns;
     striker.balls += 1;
     if (bowler) bowler.balls += 1;
     ballDesc = `LB${legByeRuns}`;
@@ -479,6 +488,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   else {
     runsFromBat = runs;
     innings.score += runs + penaltyRuns;
+    totalRunsThisBall = runs + penaltyRuns;
     striker.runs += runs;
     striker.balls += 1;
     if (runs === 4) striker.fours += 1;
@@ -526,46 +536,58 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
 
   // ---- LEGAL BALL: increment balls faced / over count ----
   let overChanged = false;
-  if (isLegalDelivery) {
-    innings.balls += 1;
-    const ballsInOver = innings.balls % 6;
-    if (ballsInOver === 0) {
-      innings.overs = Math.floor(innings.balls / 6);
-      overChanged = true;
+  if (isLegalDelivery || isNoBall) {
+    // Note: No-ball doesn't count towards over
+    if (isLegalDelivery) {
+      innings.balls += 1;
+      const ballsInOver = innings.balls % 6;
+      if (ballsInOver === 0) {
+        // Over completed
+        innings.overs = Math.floor(innings.balls / 6);
+        overChanged = true;
 
-      if (bowler) {
-        bowler.overs = Math.floor(bowler.balls / 6);
-        bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
+        // Calculate maiden: if bowler conceded 0 runs this over
+        if (bowler && bowler.balls >= 6) {
+          const runsThisOver = bowler.runs - (bowler.economy * bowler.overs || 0);
+          // Simple maiden check: store bowler over start
+        }
+
+        // Update bowler completed overs
+        if (bowler) {
+          bowler.overs = Math.floor(bowler.balls / 6);
+          bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
+        }
+
+        // End of over: new bowler needed (and possibly new batsman if wicket)
+        needPlayerSelection = true;
       }
-      needPlayerSelection = true;
     }
   }
 
   // ---- STRIKE ROTATION ----
+  // Rotate on odd runs (not wide, not run-out misfield)
   const runsForRotation = isWide ? runs : (byeRuns || legByeRuns || runs);
-  
-  if (runsForRotation % 2 === 1) {
-    // Swap striker/non-striker slots REGARDLESS of wicket status.
-    const currentStriker = innings.batsmen.find((b: IBatsman) => b.isStriker);
-    const currentNonStriker = innings.batsmen.find((b: IBatsman) => !b.isStriker && b.enteredAt !== undefined); 
-    
-    if (currentStriker && currentNonStriker) {
-      currentStriker.isStriker = false;
-      currentNonStriker.isStriker = true;
-      this.strikerName = currentNonStriker.name;
-      this.nonStrikerName = currentStriker.name;
+  if (runsForRotation % 2 === 1 && !isWide) {
+    // Swap striker/non-striker
+    const nonStrikerIdx = innings.batsmen.findIndex((b: IBatsman) => !b.isStriker && !b.isOut);
+    if (nonStrikerIdx >= 0 && strikerIdx >= 0 && !isWicket) {
+      innings.batsmen[strikerIdx].isStriker = false;
+      innings.batsmen[nonStrikerIdx].isStriker = true;
+      // Update names
+      this.strikerName = innings.batsmen[nonStrikerIdx].name;
+      this.nonStrikerName = striker.name;
     }
   }
 
   // At end of over, batsmen swap ends
   if (overChanged) {
-    const currentStriker = innings.batsmen.find((b: IBatsman) => b.isStriker);
-    const currentNonStriker = innings.batsmen.find((b: IBatsman) => !b.isStriker && b.enteredAt !== undefined);
-    if (currentStriker && currentNonStriker) {
-      currentStriker.isStriker = false;
-      currentNonStriker.isStriker = true;
-      this.strikerName = currentNonStriker.name;
-      this.nonStrikerName = currentStriker.name;
+    const activeStrikerIdx = innings.batsmen.findIndex((b: IBatsman) => b.isStriker && !b.isOut);
+    const activeNonStrikerIdx = innings.batsmen.findIndex((b: IBatsman) => !b.isStriker && !b.isOut);
+    if (activeStrikerIdx >= 0 && activeNonStrikerIdx >= 0) {
+      innings.batsmen[activeStrikerIdx].isStriker = false;
+      innings.batsmen[activeNonStrikerIdx].isStriker = true;
+      this.strikerName = innings.batsmen[activeNonStrikerIdx].name;
+      this.nonStrikerName = innings.batsmen[activeStrikerIdx].name;
     }
   }
 
@@ -597,6 +619,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   const allOut = innings.wickets >= 10;
   const oversUp = legalBallsFaced >= maxBalls;
 
+  // 2nd innings: team chasing won
   const chaseComplete = this.currentInnings === 2 &&
     innings.targetScore &&
     innings.score >= innings.targetScore;
@@ -663,6 +686,7 @@ MatchSchema.methods.endInnings = async function(): Promise<void> {
   }
 
   if (this.currentInnings === 1) {
+    // Determine who bats 2nd (team that didn't bat 1st)
     const firstBattingTeamId = innings?.teamId?.toString();
     const secondBattingTeamId = firstBattingTeamId === this.team1.toString()
       ? this.team2.toString()
@@ -714,6 +738,7 @@ MatchSchema.methods.endMatch = async function(
   if (winnerName) this.winnerName = winnerName;
   if (resultSummary) this.resultSummary = resultSummary;
 
+  // Mark current innings completed
   const innings = this.innings[this.currentInnings - 1];
   if (innings) innings.status = 'completed';
 
@@ -732,16 +757,20 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
   const last = innings.ballHistory.pop();
   if (!last) throw new Error('No history to undo');
 
+  // Restore score and wickets from snapshot
   innings.score = last.totalBefore;
   innings.wickets = last.wicketsBefore;
 
+  // Revert balls count if it was a legal delivery
   if (!last.extras.includes('wide') && !last.extras.includes('nb')) {
     if (innings.balls > 0) innings.balls -= 1;
   }
   innings.overs = Math.floor(innings.balls / 6);
 
+  // Revert fall of wickets
   if (last.wicket) {
     innings.fallOfWickets.pop();
+    // Revive the batsman
     const outBatsman = innings.batsmen.find((b: IBatsman) => b.name === last.batsmanName && b.isOut);
     if (outBatsman) {
       outBatsman.isOut = false;
@@ -750,6 +779,7 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
     }
   }
 
+  // Revert batsman stats
   const batsman = innings.batsmen.find((b: IBatsman) => b.name === last.batsmanName);
   if (batsman && !last.extras.includes('wide')) {
     if (batsman.balls > 0) batsman.balls -= 1;
@@ -759,6 +789,7 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
     batsman.strikeRate = batsman.balls > 0 ? parseFloat(((batsman.runs / batsman.balls) * 100).toFixed(1)) : 0;
   }
 
+  // Revert bowler stats
   const bowler = innings.bowlers.find((b: IBowler) => b.name === last.bowlerName);
   if (bowler) {
     if (!last.extras.includes('wide') && !last.extras.includes('nb')) {
@@ -770,12 +801,14 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
     bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
   }
 
+  // Revert extras
   if (last.extras === 'wide' && innings.extras.wides > 0) innings.extras.wides -= 1;
   if (last.extras === 'nb' && innings.extras.noBalls > 0) innings.extras.noBalls -= 1;
   if (last.extras === 'bye' && innings.extras.byes > 0) innings.extras.byes -= last.runs;
   if (last.extras === 'lb' && innings.extras.legByes > 0) innings.extras.legByes -= last.runs;
   innings.extras.total = innings.extras.wides + innings.extras.noBalls + innings.extras.byes + innings.extras.legByes;
 
+  // Recalculate run rate
   innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
 
   this._updateSummary(innings);
@@ -791,6 +824,7 @@ MatchSchema.methods.selectPlayers = async function(data: SelectPlayersData): Pro
 
   if (data.striker) {
     this.strikerName = data.striker;
+    // Add to batsmen if not already present
     const existing = innings.batsmen.find((b: IBatsman) => b.name === data.striker);
     if (!existing) {
       innings.batsmen.push({
@@ -800,6 +834,7 @@ MatchSchema.methods.selectPlayers = async function(data: SelectPlayersData): Pro
         enteredAt: innings.balls
       });
     } else {
+      // Clear old striker
       innings.batsmen.forEach((b: IBatsman) => { b.isStriker = false; });
       existing.isStriker = true;
     }
