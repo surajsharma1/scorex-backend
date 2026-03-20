@@ -66,103 +66,15 @@ var TossDecision;
 // ============================================
 // SCHEMA
 // ============================================
-const BatsmanSchema = new mongoose_1.Schema({
-    playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' },
-    name: { type: String, required: true },
-    runs: { type: Number, default: 0 },
-    balls: { type: Number, default: 0 },
-    fours: { type: Number, default: 0 },
-    sixes: { type: Number, default: 0 },
-    strikeRate: { type: Number, default: 0 },
-    isOut: { type: Boolean, default: false },
-    isStriker: { type: Boolean, default: false },
-    outType: String,
-    outTo: String,
-    outFielder: String,
-    enteredAt: Number
-}, { _id: false });
-const BowlerSchema = new mongoose_1.Schema({
-    playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' },
-    name: { type: String, required: true },
-    overs: { type: Number, default: 0 },
-    balls: { type: Number, default: 0 },
-    maidens: { type: Number, default: 0 },
-    runs: { type: Number, default: 0 },
-    wickets: { type: Number, default: 0 },
-    economy: { type: Number, default: 0 },
-    wides: { type: Number, default: 0 },
-    noBalls: { type: Number, default: 0 }
-}, { _id: false });
-const InningsSchema = new mongoose_1.Schema({
-    teamId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true },
-    teamName: { type: String, required: true },
-    status: { type: String, enum: ['in_progress', 'completed'], default: 'in_progress' },
-    score: { type: Number, default: 0 },
-    wickets: { type: Number, default: 0 },
-    overs: { type: Number, default: 0 },
-    balls: { type: Number, default: 0 },
-    runRate: { type: Number, default: 0 },
-    targetScore: Number,
-    requiredRuns: Number,
-    requiredRunRate: Number,
-    extras: {
-        wides: { type: Number, default: 0 },
-        noBalls: { type: Number, default: 0 },
-        byes: { type: Number, default: 0 },
-        legByes: { type: Number, default: 0 },
-        total: { type: Number, default: 0 }
-    },
-    batsmen: [BatsmanSchema],
-    bowlers: [BowlerSchema],
-    fallOfWickets: [mongoose_1.Schema.Types.Mixed],
-    ballHistory: [mongoose_1.Schema.Types.Mixed]
-}, { _id: false });
-const MatchSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    tournamentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tournament', index: true },
-    round: String,
-    matchNumber: Number,
-    team1: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true },
-    team1Name: { type: String, required: true },
-    team2: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true },
-    team2Name: { type: String, required: true },
-    venue: { type: String, default: 'TBD' },
-    date: { type: Date, required: true },
-    time: String,
-    format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' },
-    maxOvers: { type: Number, default: 20 },
-    status: { type: String, enum: Object.values(MatchStatus), default: MatchStatus.UPCOMING, index: true },
-    tossWinner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' },
-    tossWinnerName: String,
-    tossDecision: { type: String, enum: Object.values(TossDecision) },
-    innings: [InningsSchema],
-    currentInnings: { type: Number, default: 1 },
-    strikerName: { type: String, default: '' },
-    nonStrikerName: { type: String, default: '' },
-    currentBowlerName: { type: String, default: '' },
-    team1Score: { type: Number, default: 0 },
-    team1Wickets: { type: Number, default: 0 },
-    team1Overs: { type: Number, default: 0 },
-    team2Score: { type: Number, default: 0 },
-    team2Wickets: { type: Number, default: 0 },
-    team2Overs: { type: Number, default: 0 },
-    winner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' },
-    winnerName: String,
-    resultSummary: String,
-    playerOfMatch: String,
-    scorerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User' }
-}, { timestamps: true });
+const BatsmanSchema = new mongoose_1.Schema({ playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, name: { type: String, required: true }, runs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, fours: { type: Number, default: 0 }, sixes: { type: Number, default: 0 }, strikeRate: { type: Number, default: 0 }, isOut: { type: Boolean, default: false }, isStriker: { type: Boolean, default: false }, outType: String, outTo: String, outFielder: String, enteredAt: Number }, { _id: false });
+const BowlerSchema = new mongoose_1.Schema({ playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, name: { type: String, required: true }, overs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, maidens: { type: Number, default: 0 }, runs: { type: Number, default: 0 }, wickets: { type: Number, default: 0 }, economy: { type: Number, default: 0 }, wides: { type: Number, default: 0 }, noBalls: { type: Number, default: 0 } }, { _id: false });
+const InningsSchema = new mongoose_1.Schema({ teamId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, teamName: { type: String, required: true }, status: { type: String, enum: ['in_progress', 'completed'], default: 'in_progress' }, score: { type: Number, default: 0 }, wickets: { type: Number, default: 0 }, overs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, runRate: { type: Number, default: 0 }, targetScore: Number, requiredRuns: Number, requiredRunRate: Number, extras: { wides: { type: Number, default: 0 }, noBalls: { type: Number, default: 0 }, byes: { type: Number, default: 0 }, legByes: { type: Number, default: 0 }, total: { type: Number, default: 0 } }, batsmen: [BatsmanSchema], bowlers: [BowlerSchema], fallOfWickets: [mongoose_1.Schema.Types.Mixed], ballHistory: [mongoose_1.Schema.Types.Mixed] }, { _id: false });
+const MatchSchema = new mongoose_1.Schema({ name: { type: String, required: true }, tournamentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tournament', index: true }, round: String, matchNumber: Number, team1: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team1Name: { type: String, required: true }, team2: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team2Name: { type: String, required: true }, venue: { type: String, default: 'TBD' }, date: { type: Date, required: true }, time: String, format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' }, maxOvers: { type: Number, default: 20 }, status: { type: String, enum: Object.values(MatchStatus), default: MatchStatus.UPCOMING, index: true }, tossWinner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, tossWinnerName: String, tossDecision: { type: String, enum: Object.values(TossDecision) }, innings: [InningsSchema], currentInnings: { type: Number, default: 1 }, strikerName: { type: String, default: '' }, nonStrikerName: { type: String, default: '' }, currentBowlerName: { type: String, default: '' }, team1Score: { type: Number, default: 0 }, team1Wickets: { type: Number, default: 0 }, team1Overs: { type: Number, default: 0 }, team2Score: { type: Number, default: 0 }, team2Wickets: { type: Number, default: 0 }, team2Overs: { type: Number, default: 0 }, winner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, winnerName: String, resultSummary: String, playerOfMatch: String, scorerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User' } }, { timestamps: true });
 MatchSchema.index({ tournamentId: 1, status: 1 });
 MatchSchema.index({ status: 1, date: -1 });
-// ============================================
-// HELPERS
-// ============================================
 function formatOvers(completedOvers, ballsInOver) { return `${completedOvers}.${ballsInOver}`; }
 function calcRunRate(score, overs, balls) { const totalOvers = overs + balls / 6; return totalOvers > 0 ? parseFloat((score / totalOvers).toFixed(2)) : 0; }
 function calcRequiredRunRate(required, remainingOvers, remainingBalls) { const total = remainingOvers + remainingBalls / 6; return total > 0 ? parseFloat((required / total).toFixed(2)) : 0; }
-// ============================================
-// startMatch METHOD
-// ============================================
 MatchSchema.methods.startMatch = async function (data) {
     this.tossWinner = new mongoose_1.default.Types.ObjectId(data.tossWinnerId);
     this.tossWinnerName = data.tossWinnerName;
@@ -172,13 +84,9 @@ MatchSchema.methods.startMatch = async function (data) {
     if (this.format !== 'Custom')
         this.maxOvers = oversMap[this.format] || 20;
     this.innings = [{
-            teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress',
-            score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
+            teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress', score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
             extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-            batsmen: [
-                { name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: 0 },
-                { name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 }
-            ],
+            batsmen: [{ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: 0 }, { name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 }],
             bowlers: [{ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }],
             fallOfWickets: [], ballHistory: []
         }];
@@ -188,14 +96,10 @@ MatchSchema.methods.startMatch = async function (data) {
     this.currentBowlerName = data.bowler;
     await this.save();
 };
-// ============================================
-// addBall METHOD
-// ============================================
 MatchSchema.methods.addBall = async function (data) {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings || innings.status !== 'in_progress')
         throw new Error('No active innings');
-    // --- INTERCEPT: RETIREMENTS & PENALTIES (No dot balls added) ---
     if (data.retired || data.penalty) {
         if (data.retired) {
             const outBatsman = innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut);
@@ -212,13 +116,9 @@ MatchSchema.methods.addBall = async function (data) {
             innings.extras.total += data.penalty;
         }
         this._updateSummary(innings);
+        this.markModified('innings');
         await this.save();
-        return {
-            score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate,
-            requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore,
-            ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`,
-            overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired
-        };
+        return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired };
     }
     const runs = data.runs || 0;
     const isWide = data.wide || false;
@@ -313,7 +213,6 @@ MatchSchema.methods.addBall = async function (data) {
             outBatsman.outType = data.outType || 'bowled';
             outBatsman.outTo = this.currentBowlerName;
             outBatsman.outFielder = data.outFielder;
-            outBatsman.isStriker = false;
             innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName });
             if (bowler && data.outType !== 'run_out')
                 bowler.wickets += 1;
@@ -334,31 +233,26 @@ MatchSchema.methods.addBall = async function (data) {
             needPlayerSelection = true;
         }
     }
-    // --- BULLETPROOF STRIKE ROTATION ---
     const runsForRotation = isWide ? runs : (byeRuns || legByeRuns || runs);
     if (runsForRotation % 2 === 1) {
-        // Swap Names completely (Even if one of them is Out)
-        const temp = this.strikerName;
-        this.strikerName = this.nonStrikerName;
-        this.nonStrikerName = temp;
-        // Apply flags
-        innings.batsmen.forEach((b) => {
-            if (b.name === this.strikerName)
-                b.isStriker = true;
-            else if (b.name === this.nonStrikerName)
-                b.isStriker = false;
-        });
+        const p1 = innings.batsmen.find((b) => b.name === this.strikerName);
+        const p2 = innings.batsmen.find((b) => b.name === this.nonStrikerName);
+        if (p1 && p2) {
+            p1.isStriker = false;
+            p2.isStriker = true;
+            this.strikerName = p2.name;
+            this.nonStrikerName = p1.name;
+        }
     }
     if (overChanged) {
-        const temp = this.strikerName;
-        this.strikerName = this.nonStrikerName;
-        this.nonStrikerName = temp;
-        innings.batsmen.forEach((b) => {
-            if (b.name === this.strikerName)
-                b.isStriker = true;
-            else if (b.name === this.nonStrikerName)
-                b.isStriker = false;
-        });
+        const p1 = innings.batsmen.find((b) => b.name === this.strikerName);
+        const p2 = innings.batsmen.find((b) => b.name === this.nonStrikerName);
+        if (p1 && p2) {
+            p1.isStriker = false;
+            p2.isStriker = true;
+            this.strikerName = p2.name;
+            this.nonStrikerName = p1.name;
+        }
     }
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
     if (this.currentInnings === 2 && innings.targetScore) {
@@ -373,19 +267,33 @@ MatchSchema.methods.addBall = async function (data) {
     if (innings.wickets >= 10 || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
         innings.status = 'completed';
         inningsEnded = true;
-        if (this.currentInnings === 2 || chaseComplete)
+        if (this.currentInnings === 2 || chaseComplete) {
             matchEnded = true;
+            this.status = MatchStatus.COMPLETED;
+        }
+        // --- BUG FIX: AUTO CREATE 2ND INNINGS TO UNFREEZE OVERLAYS ---
+        if (inningsEnded && !matchEnded && this.currentInnings === 1) {
+            const firstBattingTeamId = innings.teamId.toString();
+            const t1Id = this.team1._id ? this.team1._id.toString() : this.team1.toString();
+            const t2Id = this.team2._id ? this.team2._id.toString() : this.team2.toString();
+            const secondBattingTeamId = firstBattingTeamId === t1Id ? t2Id : t1Id;
+            const secondBattingTeamName = firstBattingTeamId === t1Id ? this.team2Name : this.team1Name;
+            const target = innings.score + 1;
+            this.innings.push({
+                teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
+                score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
+                extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+            });
+            this.currentInnings = 2;
+            this.strikerName = '';
+            this.nonStrikerName = '';
+            this.currentBowlerName = '';
+        }
     }
+    this.markModified('innings');
     await this.save();
-    return {
-        score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate,
-        requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore,
-        ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded
-    };
+    return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded };
 };
-// ============================================
-// _updateSummary METHOD
-// ============================================
 MatchSchema.methods._updateSummary = function (innings) {
     if (this.currentInnings === 1) {
         if (innings.teamId.toString() === this.team1.toString()) {
@@ -412,17 +320,16 @@ MatchSchema.methods._updateSummary = function (innings) {
         }
     }
 };
-// ============================================
-// endInnings METHOD
-// ============================================
 MatchSchema.methods.endInnings = async function () {
     const innings = this.innings[this.currentInnings - 1];
     if (innings)
         innings.status = 'completed';
     if (this.currentInnings === 1) {
         const firstBattingTeamId = innings?.teamId?.toString();
-        const secondBattingTeamId = firstBattingTeamId === this.team1.toString() ? this.team2.toString() : this.team1.toString();
-        const secondBattingTeamName = firstBattingTeamId === this.team1.toString() ? this.team2Name : this.team1Name;
+        const t1Id = this.team1._id ? this.team1._id.toString() : this.team1.toString();
+        const t2Id = this.team2._id ? this.team2._id.toString() : this.team2.toString();
+        const secondBattingTeamId = firstBattingTeamId === t1Id ? t2Id : t1Id;
+        const secondBattingTeamName = firstBattingTeamId === t1Id ? this.team2Name : this.team1Name;
         const target = (innings?.score || 0) + 1;
         this.innings.push({
             teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
@@ -436,9 +343,6 @@ MatchSchema.methods.endInnings = async function () {
     }
     await this.save();
 };
-// ============================================
-// endMatch METHOD
-// ============================================
 MatchSchema.methods.endMatch = async function (winnerId, winnerName, resultSummary) {
     this.status = MatchStatus.COMPLETED;
     if (winnerId)
@@ -452,9 +356,6 @@ MatchSchema.methods.endMatch = async function (winnerId, winnerName, resultSumma
         innings.status = 'completed';
     await this.save();
 };
-// ============================================
-// undoLastBall METHOD
-// ============================================
 MatchSchema.methods.undoLastBall = async function () {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings || !innings.ballHistory || innings.ballHistory.length === 0)
@@ -512,11 +413,9 @@ MatchSchema.methods.undoLastBall = async function () {
     innings.extras.total = innings.extras.wides + innings.extras.noBalls + innings.extras.byes + innings.extras.legByes;
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
     this._updateSummary(innings);
+    this.markModified('innings');
     await this.save();
 };
-// ============================================
-// selectPlayers METHOD
-// ============================================
 MatchSchema.methods.selectPlayers = async function (data) {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings)
@@ -528,8 +427,8 @@ MatchSchema.methods.selectPlayers = async function (data) {
             innings.batsmen.push({ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls });
         }
         else {
-            innings.batsmen.forEach((b) => { b.isStriker = false; });
             existing.isStriker = true;
+            existing.isOut = false;
         }
     }
     if (data.nonStriker) {
@@ -540,8 +439,15 @@ MatchSchema.methods.selectPlayers = async function (data) {
         }
         else {
             existing.isStriker = false;
+            existing.isOut = false;
         }
     }
+    innings.batsmen.forEach((b) => {
+        if (b.name === this.strikerName)
+            b.isStriker = true;
+        else
+            b.isStriker = false;
+    });
     if (data.bowler) {
         this.currentBowlerName = data.bowler;
         const existing = innings.bowlers.find((b) => b.name === data.bowler);
@@ -549,11 +455,9 @@ MatchSchema.methods.selectPlayers = async function (data) {
             innings.bowlers.push({ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 });
         }
     }
+    this.markModified('innings');
     await this.save();
 };
-// ============================================
-// getOverSummary METHOD
-// ============================================
 MatchSchema.methods.getOverSummary = function () {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings || innings.ballHistory.length === 0)

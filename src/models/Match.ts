@@ -16,7 +16,7 @@ export interface IFallOfWicket { wicket: number; score: number; overs: string; b
 export interface IInnings { teamId: mongoose.Types.ObjectId; teamName: string; status: 'in_progress' | 'completed'; score: number; wickets: number; overs: number; balls: number; runRate: number; targetScore?: number; requiredRuns?: number; requiredRunRate?: number; extras: { wides: number; noBalls: number; byes: number; legByes: number; total: number; }; batsmen: IBatsman[]; bowlers: IBowler[]; fallOfWickets: IFallOfWicket[]; ballHistory: Array<any>; }
 
 export interface IMatch extends Document {
-  name: string; tournamentId?: mongoose.Types.ObjectId; round?: string; matchNumber?: number; team1: mongoose.Types.ObjectId; team1Name: string; team2: mongoose.Types.ObjectId; team2Name: string; venue: string; date: Date; time?: string; format: 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom'; maxOvers: number; status: MatchStatus; tossWinner?: mongoose.Types.ObjectId; tossWinnerName?: string; tossDecision?: TossDecision; innings: IInnings[]; currentInnings: number; strikerName: string; nonStrikerName: string; currentBowlerName: string; team1Score: number; team1Wickets: number; team1Overs: number; team2Score: number; team2Wickets: number; team2Overs: number; winner?: mongoose.Types.ObjectId; winnerName?: string; resultSummary?: string; playerOfMatch?: string; scorerId?: mongoose.Types.ObjectId; createdAt: Date; updatedAt: Date;
+  name: string; tournamentId?: mongoose.Types.ObjectId; round?: string; matchNumber?: number; team1: any; team1Name: string; team2: any; team2Name: string; venue: string; date: Date; time?: string; format: 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom'; maxOvers: number; status: MatchStatus; tossWinner?: mongoose.Types.ObjectId; tossWinnerName?: string; tossDecision?: TossDecision; innings: IInnings[]; currentInnings: number; strikerName: string; nonStrikerName: string; currentBowlerName: string; team1Score: number; team1Wickets: number; team1Overs: number; team2Score: number; team2Wickets: number; team2Overs: number; winner?: mongoose.Types.ObjectId; winnerName?: string; resultSummary?: string; playerOfMatch?: string; scorerId?: mongoose.Types.ObjectId; createdAt: Date; updatedAt: Date;
   addBall(data: AddBallData): Promise<ScoreUpdateResult>; startMatch(data: StartMatchData): Promise<void>; endInnings(): Promise<void>; endMatch(winnerId?: string, winnerName?: string, resultSummary?: string): Promise<void>; undoLastBall(): Promise<void>; selectPlayers(data: SelectPlayersData): Promise<void>; getOverSummary(): string; _updateSummary(innings: IInnings): void;
 }
 
@@ -38,7 +38,7 @@ function formatOvers(completedOvers: number, ballsInOver: number): string { retu
 function calcRunRate(score: number, overs: number, balls: number): number { const totalOvers = overs + balls / 6; return totalOvers > 0 ? parseFloat((score / totalOvers).toFixed(2)) : 0; }
 function calcRequiredRunRate(required: number, remainingOvers: number, remainingBalls: number): number { const total = remainingOvers + remainingBalls / 6; return total > 0 ? parseFloat((required / total).toFixed(2)) : 0; }
 
-MatchSchema.methods.startMatch = async function (data: StartMatchData): Promise<void> {
+MatchSchema.methods.startMatch = async function(data: StartMatchData): Promise<void> {
   this.tossWinner = new mongoose.Types.ObjectId(data.tossWinnerId); this.tossWinnerName = data.tossWinnerName; this.tossDecision = data.tossDecision; this.status = MatchStatus.LIVE;
   const oversMap: Record<string, number> = { T10: 10, T20: 20, ODI: 50, Test: 90 }; if (this.format !== 'Custom') this.maxOvers = oversMap[this.format] || 20;
   this.innings = [{
@@ -52,7 +52,7 @@ MatchSchema.methods.startMatch = async function (data: StartMatchData): Promise<
   await this.save();
 };
 
-MatchSchema.methods.addBall = async function (data: AddBallData): Promise<ScoreUpdateResult> {
+MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUpdateResult> {
   const innings = this.innings[this.currentInnings - 1];
   if (!innings || innings.status !== 'in_progress') throw new Error('No active innings');
 
@@ -76,14 +76,10 @@ MatchSchema.methods.addBall = async function (data: AddBallData): Promise<ScoreU
   const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets };
   innings.ballHistory.push(historyEntry);
 
-  if (isWide) {
-    extrasRuns = 1 + runs + byeRuns + legByeRuns; innings.extras.wides += 1; innings.extras.total += extrasRuns; innings.score += extrasRuns; if (bowler) { bowler.runs += extrasRuns; bowler.wides += 1; } ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`; isLegalDelivery = false;
-  } else if (isNoBall) {
-    extrasRuns = 1; innings.extras.noBalls += 1; innings.extras.total += 1 + runs + byeRuns + legByeRuns; innings.score += 1 + runs + byeRuns + legByeRuns; if (bowler) { bowler.runs += 1 + runs; bowler.noBalls += 1; } if (runs > 0) { striker.runs += runs; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; } striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0; ballDesc = `NB${runs > 0 ? `+${runs}` : ''}`; isLegalDelivery = false;
-  } else if (byeRuns > 0) {
-    extrasRuns = byeRuns; innings.extras.byes += byeRuns; innings.extras.total += byeRuns; innings.score += byeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `B${byeRuns}`;
-  } else if (legByeRuns > 0) {
-    extrasRuns = legByeRuns; innings.extras.legByes += legByeRuns; innings.extras.total += legByeRuns; innings.score += legByeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `LB${legByeRuns}`;
+  if (isWide) { extrasRuns = 1 + runs + byeRuns + legByeRuns; innings.extras.wides += 1; innings.extras.total += extrasRuns; innings.score += extrasRuns; if (bowler) { bowler.runs += extrasRuns; bowler.wides += 1; } ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`; isLegalDelivery = false;
+  } else if (isNoBall) { extrasRuns = 1; innings.extras.noBalls += 1; innings.extras.total += 1 + runs + byeRuns + legByeRuns; innings.score += 1 + runs + byeRuns + legByeRuns; if (bowler) { bowler.runs += 1 + runs; bowler.noBalls += 1; } if (runs > 0) { striker.runs += runs; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; } striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0; ballDesc = `NB${runs > 0 ? `+${runs}` : ''}`; isLegalDelivery = false; 
+  } else if (byeRuns > 0) { extrasRuns = byeRuns; innings.extras.byes += byeRuns; innings.extras.total += byeRuns; innings.score += byeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `B${byeRuns}`;
+  } else if (legByeRuns > 0) { extrasRuns = legByeRuns; innings.extras.legByes += legByeRuns; innings.extras.total += legByeRuns; innings.score += legByeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `LB${legByeRuns}`;
   } else { innings.score += runs; striker.runs += runs; striker.balls += 1; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; striker.strikeRate = parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)); if (bowler) { bowler.runs += runs; bowler.balls += 1; } ballDesc = runs === 0 ? '•' : String(runs); }
 
   let needPlayerSelection = false;
@@ -91,8 +87,7 @@ MatchSchema.methods.addBall = async function (data: AddBallData): Promise<ScoreU
     innings.wickets += 1;
     const outBatsman = data.outBatsmanName ? innings.batsmen.find((b: IBatsman) => b.name === data.outBatsmanName && !b.isOut) : striker;
     if (outBatsman) {
-      outBatsman.isOut = true; outBatsman.outType = data.outType || 'bowled'; outBatsman.outTo = this.currentBowlerName; outBatsman.outFielder = data.outFielder;
-      // isStriker purposely NOT set to false here to allow safe crossing/rotation below.
+      outBatsman.isOut = true; outBatsman.outType = data.outType || 'bowled'; outBatsman.outTo = this.currentBowlerName; outBatsman.outFielder = data.outFielder; 
       innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName });
       if (bowler && data.outType !== 'run_out') bowler.wickets += 1;
     }
@@ -109,9 +104,8 @@ MatchSchema.methods.addBall = async function (data: AddBallData): Promise<ScoreU
     }
   }
 
-  // --- BULLETPROOF STRIKE ROTATION ---
   const runsForRotation = isWide ? runs : (byeRuns || legByeRuns || runs);
-
+  
   if (runsForRotation % 2 === 1) {
     const p1 = innings.batsmen.find((b: IBatsman) => b.name === this.strikerName);
     const p2 = innings.batsmen.find((b: IBatsman) => b.name === this.nonStrikerName);
@@ -134,33 +128,59 @@ MatchSchema.methods.addBall = async function (data: AddBallData): Promise<ScoreU
   this._updateSummary(innings);
   let inningsEnded = false; let matchEnded = false;
   const chaseComplete = this.currentInnings === 2 && innings.targetScore && innings.score >= innings.targetScore;
+  
   if (innings.wickets >= 10 || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
     innings.status = 'completed'; inningsEnded = true;
-    if (this.currentInnings === 2 || chaseComplete) matchEnded = true;
+    if (this.currentInnings === 2 || chaseComplete) {
+        matchEnded = true;
+        this.status = MatchStatus.COMPLETED;
+    }
+    
+    // --- BUG FIX: AUTO CREATE 2ND INNINGS TO UNFREEZE OVERLAYS ---
+    if (inningsEnded && !matchEnded && this.currentInnings === 1) {
+        const firstBattingTeamId = innings.teamId.toString();
+        const t1Id = this.team1._id ? this.team1._id.toString() : this.team1.toString();
+        const t2Id = this.team2._id ? this.team2._id.toString() : this.team2.toString();
+        const secondBattingTeamId = firstBattingTeamId === t1Id ? t2Id : t1Id;
+        const secondBattingTeamName = firstBattingTeamId === t1Id ? this.team2Name : this.team1Name;
+        const target = innings.score + 1;
+        
+        this.innings.push({
+            teamId: new mongoose.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
+            score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
+            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+        } as any);
+        this.currentInnings = 2;
+        this.strikerName = '';
+        this.nonStrikerName = '';
+        this.currentBowlerName = '';
+    }
   }
 
-  this.markModified('innings'); // Forces Mongoose to save the nested array changes
+  this.markModified('innings');
   await this.save();
   return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded };
 };
 
-MatchSchema.methods._updateSummary = function (innings: IInnings) {
+MatchSchema.methods._updateSummary = function(innings: IInnings) {
   if (this.currentInnings === 1) {
-    if (innings.teamId.toString() === this.team1.toString()) { this.team1Score = innings.score; this.team1Wickets = innings.wickets; this.team1Overs = innings.overs + (innings.balls % 6) / 10; }
+    if (innings.teamId.toString() === this.team1.toString()) { this.team1Score = innings.score; this.team1Wickets = innings.wickets; this.team1Overs = innings.overs + (innings.balls % 6) / 10; } 
     else { this.team2Score = innings.score; this.team2Wickets = innings.wickets; this.team2Overs = innings.overs + (innings.balls % 6) / 10; }
   } else {
-    if (innings.teamId.toString() === this.team1.toString()) { this.team1Score = innings.score; this.team1Wickets = innings.wickets; this.team1Overs = innings.overs + (innings.balls % 6) / 10; }
+    if (innings.teamId.toString() === this.team1.toString()) { this.team1Score = innings.score; this.team1Wickets = innings.wickets; this.team1Overs = innings.overs + (innings.balls % 6) / 10; } 
     else { this.team2Score = innings.score; this.team2Wickets = innings.wickets; this.team2Overs = innings.overs + (innings.balls % 6) / 10; }
   }
 };
 
-MatchSchema.methods.endInnings = async function (): Promise<void> {
+MatchSchema.methods.endInnings = async function(): Promise<void> {
   const innings = this.innings[this.currentInnings - 1];
   if (innings) innings.status = 'completed';
   if (this.currentInnings === 1) {
     const firstBattingTeamId = innings?.teamId?.toString();
-    const secondBattingTeamId = firstBattingTeamId === this.team1.toString() ? this.team2.toString() : this.team1.toString();
-    const secondBattingTeamName = firstBattingTeamId === this.team1.toString() ? this.team2Name : this.team1Name;
+    const t1Id = this.team1._id ? this.team1._id.toString() : this.team1.toString();
+    const t2Id = this.team2._id ? this.team2._id.toString() : this.team2.toString();
+    const secondBattingTeamId = firstBattingTeamId === t1Id ? t2Id : t1Id;
+    const secondBattingTeamName = firstBattingTeamId === t1Id ? this.team2Name : this.team1Name;
     const target = (innings?.score || 0) + 1;
     this.innings.push({
       teamId: new mongoose.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
@@ -172,7 +192,7 @@ MatchSchema.methods.endInnings = async function (): Promise<void> {
   await this.save();
 };
 
-MatchSchema.methods.endMatch = async function (winnerId?: string, winnerName?: string, resultSummary?: string): Promise<void> {
+MatchSchema.methods.endMatch = async function(winnerId?: string, winnerName?: string, resultSummary?: string): Promise<void> {
   this.status = MatchStatus.COMPLETED;
   if (winnerId) this.winner = new mongoose.Types.ObjectId(winnerId);
   if (winnerName) this.winnerName = winnerName;
@@ -182,7 +202,7 @@ MatchSchema.methods.endMatch = async function (winnerId?: string, winnerName?: s
   await this.save();
 };
 
-MatchSchema.methods.undoLastBall = async function (): Promise<void> {
+MatchSchema.methods.undoLastBall = async function(): Promise<void> {
   const innings = this.innings[this.currentInnings - 1];
   if (!innings || !innings.ballHistory || innings.ballHistory.length === 0) throw new Error('Nothing to undo');
   const last = innings.ballHistory.pop();
@@ -222,27 +242,24 @@ MatchSchema.methods.undoLastBall = async function (): Promise<void> {
   this._updateSummary(innings); this.markModified('innings'); await this.save();
 };
 
-MatchSchema.methods.selectPlayers = async function (data: SelectPlayersData): Promise<void> {
+MatchSchema.methods.selectPlayers = async function(data: SelectPlayersData): Promise<void> {
   const innings = this.innings[this.currentInnings - 1];
   if (!innings) throw new Error('No active innings');
 
-  // Safely assign new Striker
   if (data.striker) {
     this.strikerName = data.striker;
     const existing = innings.batsmen.find((b: IBatsman) => b.name === data.striker);
-    if (!existing) { innings.batsmen.push({ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls }); }
+    if (!existing) { innings.batsmen.push({ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls }); } 
     else { existing.isStriker = true; existing.isOut = false; }
   }
 
-  // Safely assign new Non-Striker
   if (data.nonStriker) {
     this.nonStrikerName = data.nonStriker;
     const existing = innings.batsmen.find((b: IBatsman) => b.name === data.nonStriker);
-    if (!existing) { innings.batsmen.push({ name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls }); }
+    if (!existing) { innings.batsmen.push({ name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls }); } 
     else { existing.isStriker = false; existing.isOut = false; }
   }
 
-  // FORCE Clean up any ghost flags (This was the bug!)
   innings.batsmen.forEach((b: IBatsman) => {
     if (b.name === this.strikerName) b.isStriker = true;
     else b.isStriker = false;
@@ -253,12 +270,12 @@ MatchSchema.methods.selectPlayers = async function (data: SelectPlayersData): Pr
     const existing = innings.bowlers.find((b: IBowler) => b.name === data.bowler);
     if (!existing) { innings.bowlers.push({ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }); }
   }
-
-  this.markModified('innings'); // Guarantee Mongoose saves deep changes
+  
+  this.markModified('innings');
   await this.save();
 };
 
-MatchSchema.methods.getOverSummary = function (): string {
+MatchSchema.methods.getOverSummary = function(): string {
   const innings = this.innings[this.currentInnings - 1];
   if (!innings || innings.ballHistory.length === 0) return '';
   const ballsInOver = innings.balls % 6;
