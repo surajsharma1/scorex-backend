@@ -114,13 +114,7 @@ const InningsSchema = new mongoose_1.Schema({
     },
     batsmen: [BatsmanSchema],
     bowlers: [BowlerSchema],
-    fallOfWickets: [{
-            wicket: Number,
-            score: Number,
-            overs: String,
-            batsman: String,
-            bowler: String
-        }],
+    fallOfWickets: [mongoose_1.Schema.Types.Mixed],
     ballHistory: [mongoose_1.Schema.Types.Mixed]
 }, { _id: false });
 const MatchSchema = new mongoose_1.Schema({
@@ -163,17 +157,9 @@ MatchSchema.index({ status: 1, date: -1 });
 // ============================================
 // HELPERS
 // ============================================
-function formatOvers(completedOvers, ballsInOver) {
-    return `${completedOvers}.${ballsInOver}`;
-}
-function calcRunRate(score, overs, balls) {
-    const totalOvers = overs + balls / 6;
-    return totalOvers > 0 ? parseFloat((score / totalOvers).toFixed(2)) : 0;
-}
-function calcRequiredRunRate(required, remainingOvers, remainingBalls) {
-    const total = remainingOvers + remainingBalls / 6;
-    return total > 0 ? parseFloat((required / total).toFixed(2)) : 0;
-}
+function formatOvers(completedOvers, ballsInOver) { return `${completedOvers}.${ballsInOver}`; }
+function calcRunRate(score, overs, balls) { const totalOvers = overs + balls / 6; return totalOvers > 0 ? parseFloat((score / totalOvers).toFixed(2)) : 0; }
+function calcRequiredRunRate(required, remainingOvers, remainingBalls) { const total = remainingOvers + remainingBalls / 6; return total > 0 ? parseFloat((required / total).toFixed(2)) : 0; }
 // ============================================
 // startMatch METHOD
 // ============================================
@@ -182,42 +168,19 @@ MatchSchema.methods.startMatch = async function (data) {
     this.tossWinnerName = data.tossWinnerName;
     this.tossDecision = data.tossDecision;
     this.status = MatchStatus.LIVE;
-    // Determine max overs based on format
     const oversMap = { T10: 10, T20: 20, ODI: 50, Test: 90 };
-    if (this.format !== 'Custom') {
+    if (this.format !== 'Custom')
         this.maxOvers = oversMap[this.format] || 20;
-    }
     this.innings = [{
-            teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId),
-            teamName: data.battingTeamName,
-            status: 'in_progress',
-            score: 0,
-            wickets: 0,
-            overs: 0,
-            balls: 0,
-            runRate: 0,
+            teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress',
+            score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
             extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
             batsmen: [
-                {
-                    name: data.striker,
-                    runs: 0, balls: 0, fours: 0, sixes: 0,
-                    strikeRate: 0, isOut: false, isStriker: true,
-                    enteredAt: 0
-                },
-                {
-                    name: data.nonStriker,
-                    runs: 0, balls: 0, fours: 0, sixes: 0,
-                    strikeRate: 0, isOut: false, isStriker: false,
-                    enteredAt: 0
-                }
+                { name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: 0 },
+                { name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 }
             ],
-            bowlers: [{
-                    name: data.bowler,
-                    overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0,
-                    economy: 0, wides: 0, noBalls: 0
-                }],
-            fallOfWickets: [],
-            ballHistory: []
+            bowlers: [{ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }],
+            fallOfWickets: [], ballHistory: []
         }];
     this.currentInnings = 1;
     this.strikerName = data.striker;
@@ -226,12 +189,36 @@ MatchSchema.methods.startMatch = async function (data) {
     await this.save();
 };
 // ============================================
-// addBall METHOD — CORE SCORING ENGINE
+// addBall METHOD
 // ============================================
 MatchSchema.methods.addBall = async function (data) {
     const innings = this.innings[this.currentInnings - 1];
-    if (!innings || innings.status !== 'in_progress') {
+    if (!innings || innings.status !== 'in_progress')
         throw new Error('No active innings');
+    // --- INTERCEPT: RETIREMENTS & PENALTIES (No dot balls added) ---
+    if (data.retired || data.penalty) {
+        if (data.retired) {
+            const outBatsman = innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut);
+            if (outBatsman) {
+                outBatsman.isOut = true;
+                outBatsman.outType = 'retired_hurt';
+                outBatsman.isStriker = false;
+                innings.wickets += 1;
+                innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName });
+            }
+        }
+        if (data.penalty) {
+            innings.score += data.penalty;
+            innings.extras.total += data.penalty;
+        }
+        this._updateSummary(innings);
+        await this.save();
+        return {
+            score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate,
+            requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore,
+            ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`,
+            overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired
+        };
     }
     const runs = data.runs || 0;
     const isWide = data.wide || false;
@@ -239,8 +226,6 @@ MatchSchema.methods.addBall = async function (data) {
     const byeRuns = data.bye || 0;
     const legByeRuns = data.legBye || 0;
     const isWicket = data.wicket || false;
-    const penaltyRuns = data.penalty || 0;
-    // Find striker and current bowler
     const strikerIdx = innings.batsmen.findIndex((b) => b.isStriker && !b.isOut);
     const bowlerIdx = innings.bowlers.findIndex((b) => b.name === this.currentBowlerName);
     if (strikerIdx === -1)
@@ -248,24 +233,10 @@ MatchSchema.methods.addBall = async function (data) {
     const striker = innings.batsmen[strikerIdx];
     const bowler = bowlerIdx >= 0 ? innings.bowlers[bowlerIdx] : null;
     let isLegalDelivery = !isWide && !isNoBall;
-    let runsFromBat = 0;
     let extrasRuns = 0;
     let ballDesc = '';
-    // SAVE HISTORY SNAPSHOT BEFORE CHANGES
-    const historyEntry = {
-        over: innings.overs,
-        ball: innings.balls % 6,
-        runs,
-        extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '',
-        wicket: isWicket,
-        outType: data.outType || '',
-        batsmanName: striker.name,
-        bowlerName: this.currentBowlerName,
-        totalBefore: innings.score,
-        wicketsBefore: innings.wickets
-    };
+    const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets };
     innings.ballHistory.push(historyEntry);
-    // ---- WIDE ----
     if (isWide) {
         extrasRuns = 1 + runs + byeRuns + legByeRuns;
         innings.extras.wides += 1;
@@ -278,10 +249,8 @@ MatchSchema.methods.addBall = async function (data) {
         ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`;
         isLegalDelivery = false;
     }
-    // ---- NO BALL ----
     else if (isNoBall) {
         extrasRuns = 1;
-        runsFromBat = runs;
         innings.extras.noBalls += 1;
         innings.extras.total += 1 + runs + byeRuns + legByeRuns;
         innings.score += 1 + runs + byeRuns + legByeRuns;
@@ -300,7 +269,6 @@ MatchSchema.methods.addBall = async function (data) {
         ballDesc = `NB${runs > 0 ? `+${runs}` : ''}`;
         isLegalDelivery = false;
     }
-    // ---- BYE ----
     else if (byeRuns > 0) {
         extrasRuns = byeRuns;
         innings.extras.byes += byeRuns;
@@ -311,7 +279,6 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.balls += 1;
         ballDesc = `B${byeRuns}`;
     }
-    // ---- LEG BYE ----
     else if (legByeRuns > 0) {
         extrasRuns = legByeRuns;
         innings.extras.legByes += legByeRuns;
@@ -322,10 +289,8 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.balls += 1;
         ballDesc = `LB${legByeRuns}`;
     }
-    // ---- NORMAL BALL ----
     else {
-        runsFromBat = runs;
-        innings.score += runs + penaltyRuns;
+        innings.score += runs;
         striker.runs += runs;
         striker.balls += 1;
         if (runs === 4)
@@ -339,41 +304,27 @@ MatchSchema.methods.addBall = async function (data) {
         }
         ballDesc = runs === 0 ? '•' : String(runs);
     }
-    // ---- WICKET ----
     let needPlayerSelection = false;
     if (isWicket) {
         innings.wickets += 1;
-        const outBatsman = data.outBatsmanName
-            ? innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut)
-            : striker;
+        const outBatsman = data.outBatsmanName ? innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut) : striker;
         if (outBatsman) {
             outBatsman.isOut = true;
             outBatsman.outType = data.outType || 'bowled';
             outBatsman.outTo = this.currentBowlerName;
             outBatsman.outFielder = data.outFielder;
             outBatsman.isStriker = false;
-            // Fall of wickets
-            innings.fallOfWickets.push({
-                wicket: innings.wickets,
-                score: innings.score,
-                overs: formatOvers(innings.overs, innings.balls % 6),
-                batsman: outBatsman.name,
-                bowler: this.currentBowlerName
-            });
-            // Bowler gets wicket (not if run out)
-            if (bowler && data.outType !== 'run_out' && data.outType !== 'retired_hurt') {
+            innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName });
+            if (bowler && data.outType !== 'run_out')
                 bowler.wickets += 1;
-            }
         }
         ballDesc += ' W';
         needPlayerSelection = innings.wickets < 10;
     }
-    // ---- LEGAL BALL: increment balls faced / over count ----
     let overChanged = false;
     if (isLegalDelivery) {
         innings.balls += 1;
-        const ballsInOver = innings.balls % 6;
-        if (ballsInOver === 0) {
+        if (innings.balls % 6 === 0) {
             innings.overs = Math.floor(innings.balls / 6);
             overChanged = true;
             if (bowler) {
@@ -383,79 +334,58 @@ MatchSchema.methods.addBall = async function (data) {
             needPlayerSelection = true;
         }
     }
-    // ---- STRIKE ROTATION ----
+    // --- BULLETPROOF STRIKE ROTATION ---
     const runsForRotation = isWide ? runs : (byeRuns || legByeRuns || runs);
     if (runsForRotation % 2 === 1) {
-        // Swap striker/non-striker slots REGARDLESS of wicket status.
-        const currentStriker = innings.batsmen.find((b) => b.isStriker);
-        const currentNonStriker = innings.batsmen.find((b) => !b.isStriker && b.enteredAt !== undefined);
-        if (currentStriker && currentNonStriker) {
-            currentStriker.isStriker = false;
-            currentNonStriker.isStriker = true;
-            this.strikerName = currentNonStriker.name;
-            this.nonStrikerName = currentStriker.name;
-        }
+        // Swap Names completely (Even if one of them is Out)
+        const temp = this.strikerName;
+        this.strikerName = this.nonStrikerName;
+        this.nonStrikerName = temp;
+        // Apply flags
+        innings.batsmen.forEach((b) => {
+            if (b.name === this.strikerName)
+                b.isStriker = true;
+            else if (b.name === this.nonStrikerName)
+                b.isStriker = false;
+        });
     }
-    // At end of over, batsmen swap ends
     if (overChanged) {
-        const currentStriker = innings.batsmen.find((b) => b.isStriker);
-        const currentNonStriker = innings.batsmen.find((b) => !b.isStriker && b.enteredAt !== undefined);
-        if (currentStriker && currentNonStriker) {
-            currentStriker.isStriker = false;
-            currentNonStriker.isStriker = true;
-            this.strikerName = currentNonStriker.name;
-            this.nonStrikerName = currentStriker.name;
-        }
+        const temp = this.strikerName;
+        this.strikerName = this.nonStrikerName;
+        this.nonStrikerName = temp;
+        innings.batsmen.forEach((b) => {
+            if (b.name === this.strikerName)
+                b.isStriker = true;
+            else if (b.name === this.nonStrikerName)
+                b.isStriker = false;
+        });
     }
-    // ---- RUN RATE ----
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
-    // ---- UPDATE REQUIRED RUNS (2nd innings) ----
     if (this.currentInnings === 2 && innings.targetScore) {
         innings.requiredRuns = innings.targetScore - innings.score;
         const remainingLegalBalls = (this.maxOvers * 6) - innings.balls;
-        const remainOvers = Math.floor(remainingLegalBalls / 6);
-        const remainBalls = remainingLegalBalls % 6;
-        innings.requiredRunRate = innings.requiredRuns > 0
-            ? calcRequiredRunRate(innings.requiredRuns, remainOvers, remainBalls)
-            : 0;
+        innings.requiredRunRate = innings.requiredRuns > 0 ? calcRequiredRunRate(innings.requiredRuns, Math.floor(remainingLegalBalls / 6), remainingLegalBalls % 6) : 0;
     }
-    // ---- UPDATE TOP-LEVEL SUMMARY ----
     this._updateSummary(innings);
-    // ---- CHECK INNINGS END CONDITIONS ----
     let inningsEnded = false;
     let matchEnded = false;
-    const maxOver = this.maxOvers;
-    const legalBallsFaced = innings.balls;
-    const maxBalls = maxOver * 6;
-    const allOut = innings.wickets >= 10;
-    const oversUp = legalBallsFaced >= maxBalls;
-    const chaseComplete = this.currentInnings === 2 &&
-        innings.targetScore &&
-        innings.score >= innings.targetScore;
-    if (allOut || oversUp || chaseComplete) {
+    const chaseComplete = this.currentInnings === 2 && innings.targetScore && innings.score >= innings.targetScore;
+    if (innings.wickets >= 10 || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
         innings.status = 'completed';
         inningsEnded = true;
-        if (this.currentInnings === 2 || chaseComplete) {
+        if (this.currentInnings === 2 || chaseComplete)
             matchEnded = true;
-        }
     }
     await this.save();
     return {
-        score: innings.score,
-        wickets: innings.wickets,
-        overs: formatOvers(innings.overs, innings.balls % 6),
-        runRate: innings.runRate,
-        requiredRuns: innings.requiredRuns,
-        requiredRunRate: innings.requiredRunRate,
-        targetScore: innings.targetScore,
-        ballDescription: ballDesc,
-        overChanged,
-        inningsEnded,
-        matchEnded,
-        needPlayerSelection: needPlayerSelection && !matchEnded
+        score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate,
+        requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore,
+        ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded
     };
 };
-// ---- Update summary denormalized fields ----
+// ============================================
+// _updateSummary METHOD
+// ============================================
 MatchSchema.methods._updateSummary = function (innings) {
     if (this.currentInnings === 1) {
         if (innings.teamId.toString() === this.team1.toString()) {
@@ -487,35 +417,17 @@ MatchSchema.methods._updateSummary = function (innings) {
 // ============================================
 MatchSchema.methods.endInnings = async function () {
     const innings = this.innings[this.currentInnings - 1];
-    if (innings) {
+    if (innings)
         innings.status = 'completed';
-    }
     if (this.currentInnings === 1) {
         const firstBattingTeamId = innings?.teamId?.toString();
-        const secondBattingTeamId = firstBattingTeamId === this.team1.toString()
-            ? this.team2.toString()
-            : this.team1.toString();
-        const secondBattingTeamName = firstBattingTeamId === this.team1.toString()
-            ? this.team2Name
-            : this.team1Name;
+        const secondBattingTeamId = firstBattingTeamId === this.team1.toString() ? this.team2.toString() : this.team1.toString();
+        const secondBattingTeamName = firstBattingTeamId === this.team1.toString() ? this.team2Name : this.team1Name;
         const target = (innings?.score || 0) + 1;
         this.innings.push({
-            teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId),
-            teamName: secondBattingTeamName,
-            status: 'in_progress',
-            score: 0,
-            wickets: 0,
-            overs: 0,
-            balls: 0,
-            runRate: 0,
-            targetScore: target,
-            requiredRuns: target,
-            requiredRunRate: 0,
-            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-            batsmen: [],
-            bowlers: [],
-            fallOfWickets: [],
-            ballHistory: []
+            teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
+            score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
+            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
         });
         this.currentInnings = 2;
         this.strikerName = '';
@@ -545,9 +457,8 @@ MatchSchema.methods.endMatch = async function (winnerId, winnerName, resultSumma
 // ============================================
 MatchSchema.methods.undoLastBall = async function () {
     const innings = this.innings[this.currentInnings - 1];
-    if (!innings || !innings.ballHistory || innings.ballHistory.length === 0) {
+    if (!innings || !innings.ballHistory || innings.ballHistory.length === 0)
         throw new Error('Nothing to undo');
-    }
     const last = innings.ballHistory.pop();
     if (!last)
         throw new Error('No history to undo');
@@ -614,12 +525,7 @@ MatchSchema.methods.selectPlayers = async function (data) {
         this.strikerName = data.striker;
         const existing = innings.batsmen.find((b) => b.name === data.striker);
         if (!existing) {
-            innings.batsmen.push({
-                name: data.striker,
-                runs: 0, balls: 0, fours: 0, sixes: 0,
-                strikeRate: 0, isOut: false, isStriker: true,
-                enteredAt: innings.balls
-            });
+            innings.batsmen.push({ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls });
         }
         else {
             innings.batsmen.forEach((b) => { b.isStriker = false; });
@@ -630,12 +536,7 @@ MatchSchema.methods.selectPlayers = async function (data) {
         this.nonStrikerName = data.nonStriker;
         const existing = innings.batsmen.find((b) => b.name === data.nonStriker);
         if (!existing) {
-            innings.batsmen.push({
-                name: data.nonStriker,
-                runs: 0, balls: 0, fours: 0, sixes: 0,
-                strikeRate: 0, isOut: false, isStriker: false,
-                enteredAt: innings.balls
-            });
+            innings.batsmen.push({ name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls });
         }
         else {
             existing.isStriker = false;
@@ -645,26 +546,20 @@ MatchSchema.methods.selectPlayers = async function (data) {
         this.currentBowlerName = data.bowler;
         const existing = innings.bowlers.find((b) => b.name === data.bowler);
         if (!existing) {
-            innings.bowlers.push({
-                name: data.bowler,
-                overs: 0, balls: 0, maidens: 0,
-                runs: 0, wickets: 0, economy: 0,
-                wides: 0, noBalls: 0
-            });
+            innings.bowlers.push({ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 });
         }
     }
     await this.save();
 };
 // ============================================
-// getOverSummary
+// getOverSummary METHOD
 // ============================================
 MatchSchema.methods.getOverSummary = function () {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings || innings.ballHistory.length === 0)
         return '';
     const ballsInOver = innings.balls % 6;
-    const thisOverBalls = innings.ballHistory.slice(-ballsInOver);
-    return thisOverBalls.map((b) => {
+    return innings.ballHistory.slice(-ballsInOver).map((b) => {
         if (b.wicket)
             return 'W';
         if (b.extras === 'wide')
