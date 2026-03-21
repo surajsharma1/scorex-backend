@@ -110,7 +110,8 @@ export const getPointsTable = async (req: Request, res: Response, next: NextFunc
         const w = match.winner.toString(), l = w === t1 ? t2 : t1;
         if (teamMap[w]) { teamMap[w].won++; teamMap[w].points += 2; }
         if (teamMap[l]) teamMap[l].lost++;
-      } else { teamMap[t1].nr++; teamMap[t1].points += 1; teamMap[t2].nr++; teamMap[t2].points += 1; }
+      } else { teamMap[t1].nr++; teamMap[t2].nr++; /* No points for no-result */ }
+
     });
     Object.values(teamMap).forEach((team: any) => {
       const rpf = team.oversFor > 0 ? team.runsFor / team.oversFor : 0;
