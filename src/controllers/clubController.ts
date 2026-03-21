@@ -64,11 +64,23 @@ const club = await Club.findOne({ _id: req.params.id, isActive: true })
       .populate('members', 'username email fullName profilePicture')
       .populate('joinRequests', 'username email fullName profilePicture');
     
+    if (!club) {
+      res.status(404).json({
+        success: false,
+        message: 'Club not found'
+      });
+      return;
+    }
+
+    res.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.set('Expires', '0');
+    res.set('Pragma', 'no-cache');
+    
     res.json({
       success: true,
-      data: club || null,
-      message: club ? undefined : 'Club not found'
+      data: club
     });
+
   } catch (error) {
     console.error('getClub error:', error);
     res.status(500).json({
