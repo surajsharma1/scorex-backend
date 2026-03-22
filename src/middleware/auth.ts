@@ -7,7 +7,7 @@ export interface AuthRequest extends Request {
 }
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-// Removed verbose /clubs/my logging to reduce spam
+  console.log('🔐 AUTH: /clubs/my - Headers:', req.headers.authorization?.substring(0, 20) + '...');
   
   let token;
   
@@ -25,7 +25,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    // console.log('🔐 AUTH: Token decoded for user ID:', decoded.id); // Disabled verbose logging
+    console.log('🔐 AUTH: Token decoded for user ID:', decoded.id);
     
     req.user = await User.findById(decoded.id).select('-password');
     
@@ -37,7 +37,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       });
     }
     
-    // console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role); // Disabled verbose logging
+    console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role);
 
     // Check ban status
     if (req.user.isBanned()) {
