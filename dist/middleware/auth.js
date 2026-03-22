@@ -7,7 +7,7 @@ exports.isAdmin = exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const protect = async (req, res, next) => {
-    // Removed verbose /clubs/my logging to reduce spam
+    console.log('🔐 AUTH: /clubs/my - Headers:', req.headers.authorization?.substring(0, 20) + '...');
     let token;
     if (req.headers.authorization?.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
@@ -21,7 +21,7 @@ const protect = async (req, res, next) => {
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        // console.log('🔐 AUTH: Token decoded for user ID:', decoded.id); // Disabled verbose logging
+        console.log('🔐 AUTH: Token decoded for user ID:', decoded.id);
         req.user = await User_1.default.findById(decoded.id).select('-password');
         if (!req.user) {
             console.log('🔐 AUTH: User not found for ID:', decoded.id);
@@ -30,7 +30,7 @@ const protect = async (req, res, next) => {
                 message: 'User not found'
             });
         }
-        // console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role); // Disabled verbose logging
+        console.log('🔐 AUTH: User loaded:', req.user.email, 'Role:', req.user.role);
         // Check ban status
         if (req.user.isBanned()) {
             const until = req.user.banned.until;
