@@ -1,16 +1,12 @@
 {
-  "basic": {
-    "name": "Basic",
-    "price": 9,
-    "duration": 30,
-    "level": 1,
-    "features": ["Basic overlays", "Standard support"]
+  "1": {
+    "1day": 149,
+    "1week": 499,
+    "1month": 1499
   },
-  "premium": {
-    "name": "Premium",
-    "price": 19,
-    "duration": 30,
-    "level": 2,
-    "features": ["All overlays", "Priority support", "Advanced analytics"]
+  "2": {
+    "1day": 249,
+    "1week": 999,
+    "1month": 2499
   }
 }
