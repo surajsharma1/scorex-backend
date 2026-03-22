@@ -191,9 +191,7 @@ const getPointsTable = async (req, res, next) => {
             }
             else {
                 teamMap[t1].nr++;
-                teamMap[t1].points += 1;
-                teamMap[t2].nr++;
-                teamMap[t2].points += 1;
+                teamMap[t2].nr++; /* No points for no-result */
             }
         });
         Object.values(teamMap).forEach((team) => {

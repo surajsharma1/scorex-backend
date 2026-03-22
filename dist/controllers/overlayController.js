@@ -239,43 +239,53 @@ exports.getMembershipStatus = getMembershipStatus;
 // ─── serveOverlay ─────────────────────────────────────────────────────────────
 const serveOverlay = async (req, res) => {
     try {
-        const overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
-            .populate('tournament')
-            .populate('match')
-            .populate('createdBy', 'role membershipLevel membershipExpiresAt');
-        if (!overlay) {
-            res.status(404).send('Overlay not found');
-            return;
+        const isDemo = req.query.demo === 'true';
+        let overlay = null;
+        // For demo/preview mode, skip DB lookup and use template directly
+        if (isDemo) {
+            const templateId = (req.params.id || req.query.template || 'lvl1-modern-blue');
+            const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
+            // ... rest of template lookup logic ...
+            // Skip membership check for demo
+            console.log('[serveOverlay] Demo mode enabled for template:', templateFile);
         }
-        let userMembership = { hasMembership: false, level: 0, isAdmin: false };
-        const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-            try {
-                const token = authHeader.slice(7);
-                // FIX #2: was atob(token.split('.')[1]) — unverified, forgeable
-                const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
-                if (decoded?.id) {
-                    userMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(decoded.id));
+        else {
+            overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
+                .populate('tournament')
+                .populate('match')
+                .populate('createdBy', 'role membershipLevel membershipExpiresAt');
+            if (!overlay) {
+                res.status(404).send('Overlay not found');
+                return;
+            }
+            let userMembership = { hasMembership: false, level: 0, isAdmin: false };
+            const authHeader = req.headers.authorization;
+            if (authHeader?.startsWith('Bearer ')) {
+                try {
+                    const token = authHeader.slice(7);
+                    const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+                    if (decoded?.id) {
+                        userMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(decoded.id));
+                    }
+                }
+                catch {
+                    // Invalid token
                 }
             }
-            catch {
-                // Invalid/expired token — continue as unauthenticated
+            if (!userMembership.hasMembership && !userMembership.isAdmin && overlay.membershipAtCreation > 0) {
+                res.status(403).send(`
+          <html><head><title>Membership Required</title>
+          <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+          .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
+          h1{color:#ff6b6b}a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;border-radius:30px;font-weight:bold}</style>
+          </head><body><div class="box">
+          <h1>🔒 Membership Required</h1>
+          <p>This overlay requires a premium membership.</p>
+          <a href="${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/membership">Upgrade Now</a>
+          </div></body></html>
+        `);
+                return;
             }
-        }
-        // Gate access for membership-required overlays
-        if (!userMembership.hasMembership && !userMembership.isAdmin && overlay.membershipAtCreation > 0) {
-            res.status(403).send(`
-        <html><head><title>Membership Required</title>
-        <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-        .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
-        h1{color:#ff6b6b}a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;border-radius:30px;font-weight:bold}</style>
-        </head><body><div class="box">
-        <h1>🔒 Membership Required</h1>
-        <p>This overlay requires a premium membership.</p>
-        <a href="${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/membership">Upgrade Now</a>
-        </div></body></html>
-      `);
-            return;
         }
         const templateId = req.query.template || overlay.template || 'lvl1-modern-bar';
         const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
