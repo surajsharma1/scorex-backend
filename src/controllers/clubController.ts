@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { cacheService } from '../utils/cache';
 import Club from '../models/Club';
 import User from '../models/User';
 import { createNotification, notifyClubMembers, notifyClubOwnerAndViceLeaders } from '../utils/notificationUtils';
@@ -462,6 +463,20 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
     const userId = req.user.id;
     const { search, limit = 20, page = 1 } = req.query;
     
+    // Cache key
+    const cacheKey = `myClubs:${userId}:${String(search || '')}:${page}:${limit}`;
+    
+    // Try cache first
+    try {
+      const cached = await cacheService.getJSON(cacheKey);
+      if (cached) {
+        console.log(`[CACHE HIT] myClubs ${cacheKey}`);
+        return res.json(cached);
+      }
+    } catch (cacheError) {
+      console.warn('Cache unavailable:', cacheError);
+    }
+    
     const query: any = {
       $or: [
         { owner: userId },
@@ -482,7 +497,7 @@ export const getMyClubs = async (req: AuthRequest, res: Response, next: NextFunc
       ];
     }
 
-const clubs = await Club.find(query)
+    const clubs = await Club.find(query)
       .populate('owner', 'username email fullName profilePicture')
       .populate('viceLeaders', 'username email fullName profilePicture')
       .populate('members', 'username email fullName profilePicture')
@@ -492,7 +507,7 @@ const clubs = await Club.find(query)
 
     const total = await Club.countDocuments(query);
     
-    res.json({
+    const result = {
       success: true,
       data: clubs,
       pagination: {
@@ -501,12 +516,23 @@ const clubs = await Club.find(query)
         pages: Math.ceil(total / Number(limit))
       },
       message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs yet. Create your first!'
-    });
+    };
+    
+    // Cache result (5 min TTL)
+    try {
+      await cacheService.setJSON(cacheKey, result, 300);
+      console.log(`[CACHED] myClubs ${cacheKey}`);
+    } catch (cacheError) {
+      console.warn('Cache set failed:', cacheError);
+    }
+    
+    res.json(result);
   } catch (error) {
     console.error('getMyClubs error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 
 
