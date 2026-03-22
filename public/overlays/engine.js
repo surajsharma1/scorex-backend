@@ -119,15 +119,16 @@
   }
 
   // FALLBACK DEMO DATA
-  function getDemoData() {
+function getDemoData() {
     return {
-      matchName: 'DEMO MATCH (Data Error Recovery)',
-      team1Name: 'Team A',
-      team1Score: 45, team1Wickets: 2, team1Overs: '8.3',
-      strikerName: 'Striker (25*)', strikerRuns: 25, strikerBalls: 18,
-      nonStrikerName: 'Non-Striker (18)', nonStrikerRuns: 18, nonStrikerBalls: 15,
-      bowlerName: 'Bowler', bowlerRuns: 32, bowlerWickets: 1, bowlerOvers: '2.0',
-      target: 0, runRate: '5.12', requiredRunRate: '0.00'
+      matchName: 'ScoreX Premium Showcase',
+      tournamentName: 'MEMBERSHIP DEMO',
+      team1Name: 'PREMIUM BATS',
+      team1Score: 124, team1Wickets: 3, team1Overs: '14.2',
+      strikerName: 'V Kohli', strikerRuns: 68, strikerBalls: 42,
+      nonStrikerName: 'R Sharma', nonStrikerRuns: 32, nonStrikerBalls: 28,
+      bowlerName: 'J Anderson', bowlerRuns: 45, bowlerWickets: 2, bowlerOvers: '3.4',
+      target: 180, runRate: '8.44', requiredRunRate: '9.23'
     };
   }
 
