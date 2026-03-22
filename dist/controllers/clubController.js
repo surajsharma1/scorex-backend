@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMyClubs = exports.removeMember = exports.addViceLeader = exports.approveJoinRequest = exports.leaveClub = exports.joinClub = exports.deleteClub = exports.updateClub = exports.createClub = exports.getClub = exports.getClubs = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
+const cache_1 = require("../utils/cache");
 const Club_1 = __importDefault(require("../models/Club"));
 const User_1 = __importDefault(require("../models/User"));
 const notificationUtils_1 = require("../utils/notificationUtils");
@@ -414,6 +415,19 @@ const getMyClubs = async (req, res, next) => {
         }
         const userId = req.user.id;
         const { search, limit = 20, page = 1 } = req.query;
+        // Cache key
+        const cacheKey = `myClubs:${userId}:${String(search || '')}:${page}:${limit}`;
+        // Try cache first
+        try {
+            const cached = await cache_1.cacheService.getJSON(cacheKey);
+            if (cached) {
+                console.log(`[CACHE HIT] myClubs ${cacheKey}`);
+                return res.json(cached);
+            }
+        }
+        catch (cacheError) {
+            console.warn('Cache unavailable:', cacheError);
+        }
         const query = {
             $or: [
                 { owner: userId },
@@ -440,7 +454,7 @@ const getMyClubs = async (req, res, next) => {
             .limit(Number(limit))
             .skip((Number(page) - 1) * Number(limit));
         const total = await Club_1.default.countDocuments(query);
-        res.json({
+        const result = {
             success: true,
             data: clubs,
             pagination: {
@@ -449,7 +463,16 @@ const getMyClubs = async (req, res, next) => {
                 pages: Math.ceil(total / Number(limit))
             },
             message: clubs.length > 0 ? `${clubs.length} clubs found` : 'No clubs yet. Create your first!'
-        });
+        };
+        // Cache result (5 min TTL)
+        try {
+            await cache_1.cacheService.setJSON(cacheKey, result, 300);
+            console.log(`[CACHED] myClubs ${cacheKey}`);
+        }
+        catch (cacheError) {
+            console.warn('Cache set failed:', cacheError);
+        }
+        res.json(result);
     }
     catch (error) {
         console.error('getMyClubs error:', error);
