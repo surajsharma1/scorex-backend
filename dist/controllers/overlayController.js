@@ -203,9 +203,9 @@ const getOverlayTemplates = async (req, res) => {
         { id: 'lvl1-side-panel', name: 'Level 1: Side Panel', url: '/overlays/lvl1-side-panel.html', level: 1 },
         { id: 'lvl1-simple-text', name: 'Level 1: Simple Text', url: '/overlays/lvl1-simple-text.html', level: 1 },
         { id: 'lvl2-broadcast-pro', name: 'Level 2: Broadcast Pro', url: '/overlays/lvl2-broadcast-pro.html', level: 2 },
-        { id: 'lvl2-cosmic-orbit', name: 'Level 2: Cosmic Orbit', url: '/overlays/lvl2-cosmic-orbit.html', level: 2 },
+        { id: 'lvl2-fluid-ribbon', name: 'Level 2: Fluid Ribbon', url: '/overlays/lvl2-Fluid-Ribbon.html', level: 2 },
         { id: 'lvl2-cyber-glitch', name: 'Level 2: Cyber Glitch', url: '/overlays/lvl2-cyber-glitch.html', level: 2 },
-        { id: 'lvl2-flame-thrower', name: 'Level 2: Flame Thrower', url: '/overlays/lvl2-flame-thrower.html', level: 2 },
+        { id: 'lvl2-global-sports-ticker', name: 'Level 2: Global Sports Ticker', url: '/overlays/lvl2-Global-Sports-Ticker.html', level: 2 },
         { id: 'lvl2-glass-morphism', name: 'Level 2: Glass Morphism', url: '/overlays/lvl2-glass-morphism.html', level: 2 },
         { id: 'lvl2-gold-rush', name: 'Level 2: Gold Rush', url: '/overlays/lvl2-gold-rush.html', level: 2 },
         { id: 'lvl2-hologram', name: 'Level 2: Hologram', url: '/overlays/lvl2-hologram.html', level: 2 },
@@ -213,7 +213,7 @@ const getOverlayTemplates = async (req, res) => {
         { id: 'lvl2-neon-pulse', name: 'Level 2: Neon Pulse', url: '/overlays/lvl2-neon-pulse.html', level: 2 },
         { id: 'lvl2-particle-storm', name: 'Level 2: Particle Storm', url: '/overlays/lvl2-particle-storm.html', level: 2 },
         { id: 'lvl2-rgb-split', name: 'Level 2: RGB Split', url: '/overlays/lvl2-rgb-split.html', level: 2 },
-        { id: 'lvl2-speed-racer', name: 'Level 2: Speed Racer', url: '/overlays/lvl2-speed-racer.html', level: 2 },
+        { id: 'lvl2-mechanical-belt', name: 'Level 2: Mechanical Belt', url: '/overlays/lvl2-Mechanical-belt.html', level: 2 },
         { id: 'lvl2-tech-hud', name: 'Level 2: Tech HUD', url: '/overlays/lvl2-tech-hud.html', level: 2 },
         { id: 'lvl2-thunder-strike', name: 'Level 2: Thunder Strike', url: '/overlays/lvl2-thunder-strike.html', level: 2 },
         { id: 'lvl2-vinyl-spin', name: 'Level 2: Vinyl Spin', url: '/overlays/lvl2-vinyl-spin.html', level: 2 },
@@ -239,43 +239,53 @@ exports.getMembershipStatus = getMembershipStatus;
 // ─── serveOverlay ─────────────────────────────────────────────────────────────
 const serveOverlay = async (req, res) => {
     try {
-        const overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
-            .populate('tournament')
-            .populate('match')
-            .populate('createdBy', 'role membershipLevel membershipExpiresAt');
-        if (!overlay) {
-            res.status(404).send('Overlay not found');
-            return;
+        const isDemo = req.query.demo === 'true';
+        let overlay = null;
+        // For demo/preview mode, skip DB lookup and use template directly
+        if (isDemo) {
+            const templateId = (req.params.id || req.query.template || 'lvl1-modern-blue');
+            const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
+            // ... rest of template lookup logic ...
+            // Skip membership check for demo
+            console.log('[serveOverlay] Demo mode enabled for template:', templateFile);
         }
-        let userMembership = { hasMembership: false, level: 0, isAdmin: false };
-        const authHeader = req.headers.authorization;
-        if (authHeader?.startsWith('Bearer ')) {
-            try {
-                const token = authHeader.slice(7);
-                // FIX #2: was atob(token.split('.')[1]) — unverified, forgeable
-                const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
-                if (decoded?.id) {
-                    userMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(decoded.id));
+        else {
+            overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
+                .populate('tournament')
+                .populate('match')
+                .populate('createdBy', 'role membershipLevel membershipExpiresAt');
+            if (!overlay) {
+                res.status(404).send('Overlay not found');
+                return;
+            }
+            let userMembership = { hasMembership: false, level: 0, isAdmin: false };
+            const authHeader = req.headers.authorization;
+            if (authHeader?.startsWith('Bearer ')) {
+                try {
+                    const token = authHeader.slice(7);
+                    const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+                    if (decoded?.id) {
+                        userMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(decoded.id));
+                    }
+                }
+                catch {
+                    // Invalid token
                 }
             }
-            catch {
-                // Invalid/expired token — continue as unauthenticated
+            if (!userMembership.hasMembership && !userMembership.isAdmin && overlay.membershipAtCreation > 0) {
+                res.status(403).send(`
+          <html><head><title>Membership Required</title>
+          <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+          .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
+          h1{color:#ff6b6b}a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;border-radius:30px;font-weight:bold}</style>
+          </head><body><div class="box">
+          <h1>🔒 Membership Required</h1>
+          <p>This overlay requires a premium membership.</p>
+          <a href="${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/membership">Upgrade Now</a>
+          </div></body></html>
+        `);
+                return;
             }
-        }
-        // Gate access for membership-required overlays
-        if (!userMembership.hasMembership && !userMembership.isAdmin && overlay.membershipAtCreation > 0) {
-            res.status(403).send(`
-        <html><head><title>Membership Required</title>
-        <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-        .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
-        h1{color:#ff6b6b}a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;border-radius:30px;font-weight:bold}</style>
-        </head><body><div class="box">
-        <h1>🔒 Membership Required</h1>
-        <p>This overlay requires a premium membership.</p>
-        <a href="${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/membership">Upgrade Now</a>
-        </div></body></html>
-      `);
-            return;
         }
         const templateId = req.query.template || overlay.template || 'lvl1-modern-bar';
         const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
