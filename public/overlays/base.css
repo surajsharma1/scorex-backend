@@ -43,18 +43,18 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 20px;
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
 /* Score Card Base */
 .score-card {
   position: relative;
-  padding: 20px 30px;
-  border-radius: 12px;
+  padding: clamp(1rem, 3vw, 1.25rem) clamp(1.5rem, 4vw, 2rem);
+  border-radius: clamp(0.75rem, 2vw, 1rem);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: clamp(1rem, 3vw, 1.25rem);
 }
 
 /* Team Section */
@@ -82,7 +82,7 @@ body {
 /* VS Section */
 .vs-section {
   text-align: center;
-  padding: 0 20px;
+  padding: 0 clamp(1rem, 4vw, 1.25rem);
 }
 
 .vs-text {
@@ -100,9 +100,9 @@ body {
 .stats-bar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-  padding: 15px 25px;
-  border-radius: 10px;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 4vw, 1.5rem);
+  border-radius: clamp(0.5rem, 1.5vw, 0.75rem);
 }
 
 .stat-item {
@@ -140,11 +140,11 @@ body {
 
 .teams-content {
   width: 90%;
-  max-width: 900px;
+  max-width: clamp(40rem, 90vw, 60rem);
   max-height: 80vh;
   overflow-y: auto;
-  border-radius: 15px;
-  padding: 30px;
+  border-radius: clamp(1rem, 3vw, 1.25rem);
+  padding: clamp(1.5rem, 4vw, 2rem);
 }
 
 .teams-header {
@@ -160,12 +160,12 @@ body {
 .teams-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
+  gap: clamp(1.5rem, 5vw, 2rem);
 }
 
 .team-roster {
-  padding: 20px;
-  border-radius: 12px;
+  padding: clamp(1rem, 3vw, 1.25rem);
+  border-radius: clamp(0.75rem, 2vw, 1rem);
 }
 
 .team-roster h3 {
@@ -216,17 +216,17 @@ body {
 /* Close Button */
 .close-panel-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 35px;
-  height: 35px;
+  top: clamp(0.75rem, 2vw, 1rem);
+  right: clamp(0.75rem, 2vw, 1rem);
+  width: clamp(2rem, 6vw, 2.5rem);
+  height: clamp(2rem, 6vw, 2.5rem);
   border: none;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
   transition: all 0.3s ease;
 }
 
