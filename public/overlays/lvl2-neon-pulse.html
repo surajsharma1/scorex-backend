@@ -2,192 +2,183 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Neon Pulse</title>
+  <title>ScoreX - Lvl 2 Neon Horizon</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Jura:wght@500;700;900&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Teko', sans-serif; }
-    body { background: transparent; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Jura', sans-serif; text-transform: uppercase; }
+    body { background: transparent; overflow: hidden; color: #fff; }
 
-    /* Floating Top Island */
-    #neon-island {
-      position: absolute;
-      top: 20px;
-      left: 30px;
-      background: #0a0a0a;
-      color: #00e5ff;
-      padding: 5px 25px;
-      font-size: 22px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      border: 1px solid #00e5ff;
-      box-shadow: 0 0 10px rgba(0, 229, 255, 0.5), inset 0 0 5px rgba(0, 229, 255, 0.3);
-      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    /* The 3D Floor Grid */
+    #horizon-floor {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 200px;
+      perspective: 600px; overflow: hidden; z-index: 1; pointer-events: none;
+    }
+    .grid-plane {
+      position: absolute; bottom: -50px; left: -50%; width: 200%; height: 200%;
+      background-image: 
+        linear-gradient(rgba(255, 0, 255, 0.4) 2px, transparent 2px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.4) 2px, transparent 2px);
+      background-size: 50px 50px;
+      transform: rotateX(75deg);
+      transform-origin: bottom center;
+      animation: gridMove 2s linear infinite;
+      box-shadow: inset 0 100px 100px rgba(10, 0, 20, 1); /* Fades grid into background */
+    }
+    @keyframes gridMove { 0% { transform: rotateX(75deg) translateY(0); } 100% { transform: rotateX(75deg) translateY(50px); } }
+
+    /* Floating Island */
+    #neo-top {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(20, 5, 30, 0.8); backdrop-filter: blur(5px);
+      border: 2px solid #00ffff; border-radius: 30px;
+      padding: 6px 40px; font-family: 'Righteous', cursive; font-size: 18px; letter-spacing: 2px; color: #00ffff;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.3);
+      z-index: 10;
     }
 
-    /* Center Event Pulse */
-    #neon-event {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      font-size: 150px;
-      font-weight: 700;
-      color: #fff;
-      text-transform: uppercase;
-      opacity: 0;
-      transition: all 0.2s ease-out;
-      pointer-events: none;
+    /* Outrun Event Popup */
+    #neo-event {
+      position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      font-family: 'Righteous', cursive; font-size: 130px;
+      color: transparent; -webkit-text-stroke: 3px #ff00ff;
+      text-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff;
+      opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
     }
-    #neon-event.pulse {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-      animation: neon-flicker 0.5s alternate infinite;
+    #neo-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); color: #fff; -webkit-text-stroke: 0px;}
+
+    /* Floating Panels Wrapper */
+    #neo-bottom {
+      position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 20px; z-index: 5;
     }
 
-    @keyframes neon-flicker {
-      0%, 100% { text-shadow: 0 0 10px #b026ff, 0 0 20px #b026ff, 0 0 40px #b026ff; }
-      50% { text-shadow: 0 0 5px #b026ff, 0 0 10px #b026ff; }
+    /* Panel Base */
+    .neo-panel {
+      background: rgba(10, 0, 20, 0.85); backdrop-filter: blur(10px);
+      border: 2px solid #ff00ff; border-radius: 10px;
+      padding: 15px 30px; display: flex; align-items: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 0, 255, 0.3);
     }
 
-    /* Segmented Bottom Bar */
-    #neon-bottom {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      height: 65px;
-    }
+    /* specific sizing */
+    .n-score { flex-direction: column; justify-content: center; border-color: #00ffff; box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(0, 255, 255, 0.3); min-width: 250px;}
+    .n-bat { flex: 1; min-width: 400px; justify-content: space-around; }
+    .n-bowl { min-width: 320px; justify-content: space-between; }
 
-    .neon-segment {
-      background: rgba(10, 10, 15, 0.95);
-      border: 1px solid #333;
-      border-bottom: 3px solid #b026ff;
-      display: flex;
-      align-items: center;
-      padding: 0 25px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
-      clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
-    }
+    /* Typography */
+    .t-lbl { font-family: 'Righteous', cursive; font-size: 38px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5);}
+    .s-lbl { font-size: 60px; font-weight: 900; line-height: 0.8; color: #00ffff; text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);}
+    .s-lbl span { font-size: 30px; color: #ff00ff; }
+    .o-lbl { font-size: 16px; font-weight: 700; color: #ff00ff; margin-top: 5px; letter-spacing: 2px;}
 
-    /* specific borders for differentiation */
-    .seg-score { border-bottom-color: #00e5ff; min-width: 250px; justify-content: center;}
-    .seg-batsman { border-bottom-color: #b026ff; min-width: 300px; justify-content: space-between;}
-    .seg-bowler { border-bottom-color: #ff0055; min-width: 200px; justify-content: space-between;}
+    .grp { display: flex; flex-direction: column; justify-content: center; }
+    .hdr { font-size: 12px; color: #00ffff; letter-spacing: 2px; margin-bottom: 2px; font-weight: 700;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 12px; }
+    .p-n { font-size: 22px; font-weight: 700; color: #e2e8f0; }
+    .p-s { font-size: 38px; font-weight: 900; color: #fff; line-height: 0.9;}
+    .p-b { font-size: 16px; color: #ff00ff; font-weight: 700; }
 
-    /* Text Styles */
-    .txt-main { color: #fff; font-size: 32px; font-weight: 600; line-height: 1;}
-    .txt-sub { color: #888; font-size: 20px; margin-left: 8px;}
-    .txt-hl { color: #00e5ff; font-weight: 700; }
-    .txt-purple { color: #b026ff; }
-    .txt-red { color: #ff0055; }
+    .striker { border-bottom: 1px solid rgba(255, 0, 255, 0.3); padding-bottom: 5px; margin-bottom: 5px;}
+    .striker .p-s { color: #ff00ff; text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);}
 
-    .team-acr { font-size: 40px; margin-right: 15px; color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.5);}
+    .n-bowl .p-s { color: #00ffff; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);}
+    .n-bowl .hdr { color: #ff00ff; }
+    .n-bowl .p-b { color: #00ffff; }
 
   </style>
 </head>
 <body>
 
-  <div id="neon-island">INITIALIZING...</div>
-  <div id="neon-event"></div>
+  <div id="horizon-floor"><div class="grid-plane"></div></div>
 
-  <div id="neon-bottom">
+  <div id="neo-top"><span id="tournamentName">SYNTHWAVE LEAGUE</span></div>
+  <div id="neo-event">SYSTEM OVERLOAD</div>
+
+  <div id="neo-bottom">
     
-    <div class="neon-segment seg-score">
-      <span id="teamName" class="team-acr">TM</span>
-      <span class="txt-main"><span id="teamScore">0</span><span class="txt-sub">/</span><span id="teamWickets" class="txt-hl">0</span></span>
-      <span class="txt-sub" style="margin-left: 15px;">OV <span id="teamOvers" class="txt-main">0.0</span></span>
+    <div class="neo-panel n-bat">
+      <div class="grp striker">
+        <div class="p-row">
+          <span style="color:#00ffff; font-size: 14px;">▶</span>
+          <span id="strikerName" class="p-n">Striker</span>
+          <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
+        </div>
+      </div>
+      <div class="grp" style="opacity: 0.6;">
+        <div class="p-row" style="padding-left: 20px;">
+          <span id="nonStrikerName" class="p-n">Non-Striker</span>
+          <div><span id="nonStrikerRuns" class="p-s" style="color:#fff; text-shadow: none;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
+        </div>
+      </div>
     </div>
 
-    <div class="neon-segment seg-batsman">
-      <div style="display: flex; align-items: baseline;">
-        <span id="strikerName" class="txt-main">Striker</span>
-        <span class="txt-sub"><span id="strikerRuns" class="txt-main txt-purple" style="margin-left: 10px;">0</span> (<span id="strikerBalls">0</span>)</span>
-      </div>
-      <div style="display: flex; align-items: baseline;">
-        <span id="nonStrikerName" class="txt-main" style="color:#aaa;">NonStrk</span>
-        <span class="txt-sub"><span id="nonStrikerRuns" class="txt-main" style="font-size: 24px; margin-left: 5px;">0</span></span>
-      </div>
+    <div class="neo-panel n-score">
+      <div id="teamName" class="t-lbl">TEAM</div>
+      <div class="s-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+      <div class="o-lbl">OVERS <span id="teamOvers">0.0</span></div>
     </div>
 
-    <div class="neon-segment seg-bowler">
-      <span id="bowlerName" class="txt-main">Bowler</span>
-      <span class="txt-sub"><span id="bowlerWickets" class="txt-main txt-red">0</span>-<span id="bowlerRuns" class="txt-main">0</span></span>
+    <div class="neo-panel n-bowl">
+      <div class="grp">
+        <span class="hdr">ACTIVE BOWLER</span>
+        <span id="bowlerName" class="p-n">Bowler Name</span>
+      </div>
+      <div style="text-align: right;">
+        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+        <div class="p-b">OVERS <span id="bowlerOvers">0.0</span></div>
+      </div>
     </div>
 
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
+
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
   <script>
-    let stateScore = -1, stateWickets = -1;
-    let islandState = 0;
-    let neonData = {};
+    let pSc = -1, pWk = -1, nDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
 
-    function updateDOM(id, value) {
-      const el = document.getElementById(id);
-      if (el && value !== undefined) el.innerText = value;
-    }
-
-    function triggerNeonPulse(msg) {
-      const eventEl = document.getElementById('neon-event');
-      eventEl.innerText = msg;
-      
-      // Remove class to reset animation, then add back
-      eventEl.classList.remove('pulse');
-      void eventEl.offsetWidth; // trigger reflow
-      eventEl.classList.add('pulse');
-      
-      setTimeout(() => eventEl.classList.remove('pulse'), 3000);
+    function fireNeoEvent(txt, glowColor) {
+      const e = document.getElementById('neo-event');
+      e.innerText = txt; 
+      e.style.textShadow = `0 0 30px ${glowColor}, 0 0 60px #fff`;
+      e.classList.remove('show');
+      void e.offsetWidth; 
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 3000);
     }
 
     setInterval(() => {
-      if(!neonData.tournamentName) return;
-      const isl = document.getElementById('neon-island');
-      islandState = (islandState + 1) % 3;
-      if(islandState === 0) isl.innerText = neonData.tournamentName;
-      else if(islandState === 1) isl.innerText = "CRR: " + (neonData.runRate || '0.00');
-      else if(islandState === 2) isl.innerText = neonData.target > 0 ? "REQ: " + neonData.requiredRunRate : "LIVE";
-    }, 4000);
+      const isl = document.getElementById('tournamentName');
+      if(!nDat.tournamentName) return;
+      let st = Math.floor(Date.now() / 4500) % 3;
+      if(st === 0) isl.innerText = nDat.tournamentName;
+      else if(st === 1) isl.innerText = "RATE // " + (nDat.runRate||'0.0');
+      else isl.innerText = nDat.target > 0 ? "TARGET // " + nDat.target : "NIGHT MODE ACTIVE";
+    }, 4500);
 
-    function processNeonData(payload) {
-      neonData = payload;
+    function rx(d) {
+      nDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
-      updateDOM('teamName', payload.team1Name ? payload.team1Name.substring(0,3).toUpperCase() : 'TM');
-      updateDOM('teamScore', payload.team1Score);
-      updateDOM('teamWickets', payload.team1Wickets);
-      updateDOM('teamOvers', payload.team1Overs);
-      
-      updateDOM('strikerName', payload.strikerName);
-      updateDOM('strikerRuns', payload.strikerRuns);
-      updateDOM('strikerBalls', payload.strikerBalls);
-      
-      updateDOM('nonStrikerName', payload.nonStrikerName);
-      updateDOM('nonStrikerRuns', payload.nonStrikerRuns);
-      
-      updateDOM('bowlerName', payload.bowlerName);
-      updateDOM('bowlerRuns', payload.bowlerRuns);
-      updateDOM('bowlerWickets', payload.bowlerWickets);
-
-      let ns = parseInt(payload.team1Score) || 0;
-      let nw = parseInt(payload.team1Wickets) || 0;
-
-      if (stateScore !== -1) {
-        if (nw > stateWickets) triggerNeonPulse("WICKET!");
-        else if (ns - stateScore === 6) triggerNeonPulse("SIX!");
-        else if (ns - stateScore === 4) triggerNeonPulse("FOUR!");
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1) {
+        if (nw > pWk) fireNeoEvent("WICKET", "#ff0000"); // Red
+        else if (ns - pSc === 6) fireNeoEvent("SIX RUNS", "#00ffff"); // Cyan
+        else if (ns - pSc === 4) fireNeoEvent("BOUNDARY", "#ff00ff"); // Magenta
       }
-      
-      stateScore = ns;
-      stateWickets = nw;
+      pSc = ns; pWk = nw;
     }
 
-    window.addEventListener('message', e => { if (e.data && e.data.type === 'UPDATE_SCORE') processNeonData(e.data.data); });
-    if ('BroadcastChannel' in window) {
-      new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if (e.data && e.data.type === 'UPDATE_SCORE') processNeonData(e.data.data); };
-    }
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
   </script>
 </body>
 </html>

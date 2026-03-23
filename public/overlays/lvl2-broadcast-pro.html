@@ -2,146 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Soft Material</title>
+  <title>ScoreX - Lvl 2 Metallic Shield</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Montserrat:ital,wght@0,800;1,900&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background: transparent; overflow: hidden; color: #1f2937; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; }
 
-    /* Top Floating Island */
-    #mat-island {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: #ffffff; color: #4f46e5;
-      padding: 8px 30px; border-radius: 30px;
-      font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      border: 1px solid rgba(0,0,0,0.05);
+    /* Metallic Shine Animation */
+    @keyframes shine {
+      0% { transform: translateX(-100%) skewX(-15deg); }
+      20%, 100% { transform: translateX(200%) skewX(-15deg); }
     }
 
-    /* Event Popup */
-    #mat-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-      background: #4f46e5; color: #ffffff;
-      font-size: 80px; font-weight: 800; text-transform: uppercase;
-      padding: 20px 60px; border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4);
-      opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    #mat-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-    /* Bottom Material Bar */
-    #mat-bottom {
-      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 1100px; height: 95px;
-      background: #ffffff; border-radius: 20px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-      display: flex; overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.05);
+    /* 3D Drop In Animation */
+    @keyframes dropIn {
+      0% { transform: perspective(1000px) rotateX(90deg) translateY(100px); opacity: 0; }
+      100% { transform: perspective(1000px) rotateX(0deg) translateY(0); opacity: 1; }
     }
 
-    .m-sec { display: flex; align-items: center; padding: 0 30px; }
-
-    /* Score Section (Accent Background) */
-    .sec-score {
-      background: #4f46e5; color: #ffffff; min-width: 260px;
-      justify-content: space-between; border-radius: 20px;
+    /* Top Tournament Tag - Anchored left, slanted */
+    #metal-top {
+      position: absolute; top: 20px; left: 40px;
+      background: linear-gradient(to bottom, #2b323c, #151a22);
+      border-left: 6px solid #ffcc00;
+      padding: 8px 30px 8px 15px;
+      font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 16px; font-style: italic; letter-spacing: 2px;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+      animation: dropIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
-    .m-tm { font-size: 22px; font-weight: 800; letter-spacing: 0.5px;}
-    .m-sc { font-size: 42px; font-weight: 800; line-height: 1; margin-top: 4px;}
-    .m-sc span { font-size: 24px; color: #c7d2fe; }
-    .m-ov { font-size: 14px; font-weight: 600; color: #e0e7ff; margin-left: 8px;}
 
-    /* Player Sections */
-    .sec-bat { flex: 1; justify-content: space-around; border-right: 1px solid #f3f4f6;}
-    .bat-wrap { display: flex; flex-direction: column; }
+    /* Huge Metallic Action Splash */
+    #metal-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0) skewX(-10deg);
+      font-family: 'Montserrat', sans-serif; font-size: 140px; font-weight: 900; font-style: italic;
+      color: #fff; text-transform: uppercase;
+      background: linear-gradient(to bottom, #ffcc00, #b38f00);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(5px 5px 0px #000) drop-shadow(10px 10px 20px rgba(0,0,0,0.8));
+      opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #metal-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(-10deg); }
+
+    /* Bottom Asymmetric Layout */
+    #metal-bottom {
+      position: absolute; bottom: 30px; left: 40px;
+      display: flex; align-items: flex-end; gap: 8px;
+      animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* The Main Shield (Score) */
+    .shield-main {
+      background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+      border: 2px solid #334155; border-bottom: 8px solid #ffcc00; border-left: 8px solid #ffcc00;
+      width: 380px; height: 110px;
+      display: flex; flex-direction: column; justify-content: center; padding: 0 25px;
+      clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
+      box-shadow: 15px 15px 30px rgba(0,0,0,0.9);
+      position: relative; overflow: hidden;
+    }
+
+    /* Batting & Bowling Wings */
+    .shield-wing {
+      background: linear-gradient(to bottom, #1e293b, #0f172a);
+      border-top: 3px solid #64748b; border-bottom: 3px solid #000;
+      height: 75px; display: flex; align-items: center; padding: 0 25px;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 10px 10px 20px rgba(0,0,0,0.8);
+      position: relative; overflow: hidden;
+    }
+
+    /* Add the sweeping shine to all panels */
+    .shield-main::after, .shield-wing::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+      animation: shine 4s infinite; pointer-events: none;
+    }
+
+    /* Typography */
+    .m-tm { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 900; font-style: italic; color: #94a3b8; line-height: 1; margin-bottom: 2px;}
+    .m-sc { font-family: 'Teko', sans-serif; font-size: 75px; font-weight: 700; color: #fff; line-height: 0.75; }
+    .m-sc span { font-size: 40px; color: #cbd5e1; }
+    .m-ov { font-family: 'Teko', sans-serif; font-size: 24px; color: #ffcc00; margin-left: 15px; letter-spacing: 1px;}
+
+    .w-box { display: flex; flex-direction: column; justify-content: center; font-family: 'Teko', sans-serif; }
+    .w-n { font-size: 26px; font-weight: 700; color: #f8fafc; line-height: 1;}
+    .w-s { font-size: 38px; font-weight: 700; color: #ffcc00; line-height: 0.9;}
+    .w-b { font-size: 18px; color: #94a3b8; font-family: 'Montserrat', sans-serif; font-weight: 800;}
     
-    .pn { font-size: 18px; font-weight: 700; color: #111827; }
-    .pr { font-size: 26px; font-weight: 800; color: #4f46e5; }
-    .pb { font-size: 14px; color: #6b7280; font-weight: 600; }
-    .strike { color: #f59e0b; margin-right: 6px; font-size: 12px; }
-
-    .sec-bowl { min-width: 300px; justify-content: space-between; background: #f9fafb; }
-    .lbl { color: #9ca3af; font-size: 12px; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;}
+    .w-div { width: 2px; height: 40px; background: rgba(255,255,255,0.1); margin: 0 20px; transform: skewX(-10deg);}
 
   </style>
 </head>
 <body>
 
-  <div id="mat-island">TEST CHAMPIONSHIP</div>
-  <div id="mat-event">WICKET</div>
+  <div id="metal-top"><span id="tournamentName">PREMIUM BROADCAST</span></div>
+  <div id="metal-event"></div>
 
-  <div id="mat-bottom">
+  <div id="metal-bottom">
     
-    <div class="m-sec sec-score">
-      <div id="teamName" class="m-tm">ENGLAND</div>
-      <div style="display:flex; align-items:baseline;">
-        <div class="m-sc"><span id="teamScore">284</span><span>/</span><span id="teamWickets">5</span></div>
-        <div class="m-ov">OV <span id="teamOvers">64.2</span></div>
+    <div class="shield-main">
+      <div id="teamName" class="m-tm">TEAM</div>
+      <div style="display: flex; align-items: baseline;">
+        <div class="m-sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="m-ov">OVERS <span id="teamOvers">0.0</span></div>
       </div>
     </div>
 
-    <div class="m-sec sec-bat">
-      <div class="bat-wrap">
-        <div><span class="strike">●</span><span id="strikerName" class="pn">J. Root</span></div>
-        <div><span id="strikerRuns" class="pr">102</span> <span class="pb">(<span id="strikerBalls">145</span>)</span></div>
+    <div class="shield-wing" style="min-width: 400px; justify-content: space-between;">
+      <div class="w-box">
+        <div><span style="color:#ffcc00; font-size:16px;">▶</span> <span id="strikerName" class="w-n">Striker</span></div>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span id="strikerRuns" class="w-s">0</span>
+          <span class="w-b">(<span id="strikerBalls">0</span>)</span>
+        </div>
       </div>
-      
-      <div class="bat-wrap" style="opacity: 0.6;">
-        <div id="nonStrikerName" class="pn">B. Stokes</div>
-        <div><span id="nonStrikerRuns" class="pr" style="color: #374151;">34</span> <span class="pb">(<span id="nonStrikerBalls">52</span>)</span></div>
+      <div class="w-div"></div>
+      <div class="w-box" style="opacity: 0.6;">
+        <span id="nonStrikerName" class="w-n">Non-Striker</span>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span id="nonStrikerRuns" class="w-s" style="color:#fff;">0</span>
+          <span class="w-b">(<span id="nonStrikerBalls">0</span>)</span>
+        </div>
       </div>
     </div>
 
-    <div class="m-sec sec-bowl">
-      <div class="bat-wrap">
-        <span class="lbl">Bowling</span>
-        <span id="bowlerName" class="pn">P. Cummins</span>
-      </div>
-      <div style="text-align: right;">
-        <span class="pr" style="color: #ef4444;"><span id="bowlerWickets">3</span>-<span id="bowlerRuns">55</span></span>
-        <div class="pb">Overs: <span id="bowlerOvers">14.2</span></div>
+    <div class="shield-wing" style="min-width: 250px; background: linear-gradient(to bottom, #450a0a, #171717); border-top-color: #ef4444;">
+      <div class="w-box" style="width: 100%;">
+        <span id="bowlerName" class="w-n" style="color:#fca5a5;">Bowler</span>
+        <div style="display:flex; align-items:baseline; justify-content: space-between; width: 100%;">
+          <span class="w-s" style="color:#ef4444;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+          <span class="w-b" style="color:#fca5a5;">OV <span id="bowlerOvers">0.0</span></span>
+        </div>
       </div>
     </div>
 
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
-  <script>
-    let mSc = -1, mWk = -1, mSt = 0, mDat = {};
-    const st = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
 
-    function popMat(txt, bg) {
-      const e = document.getElementById('mat-event');
-      e.innerText = txt; e.style.background = bg;
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let cSc = -1, cWk = -1, cDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireMetalEvent(txt, gradientStart, gradientEnd) {
+      const e = document.getElementById('metal-event');
+      e.innerText = txt;
+      e.style.background = `linear-gradient(to bottom, ${gradientStart}, ${gradientEnd})`;
+      e.style.webkitBackgroundClip = 'text';
       e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 2800);
+      setTimeout(() => e.classList.remove('show'), 3000);
     }
 
-    setInterval(() => {
-      const isl = document.getElementById('mat-island');
-      if(!mDat.tournamentName) return;
-      mSt = (mSt + 1) % 3;
-      if(mSt === 0) isl.innerText = mDat.tournamentName;
-      else if(mSt === 1) isl.innerText = "RUN RATE: " + (mDat.runRate||'0.0');
-      else isl.innerText = mDat.target > 0 ? "TARGET: " + mDat.target : "DAY 2";
-    }, 5000);
-
     function rx(d) {
-      mDat = d;
-      st('teamName', d.team1Name); st('teamScore', d.team1Score); st('teamWickets', d.team1Wickets); st('teamOvers', d.team1Overs);
-      st('strikerName', d.strikerName); st('strikerRuns', d.strikerRuns); st('strikerBalls', d.strikerBalls);
-      st('nonStrikerName', d.nonStrikerName); st('nonStrikerRuns', d.nonStrikerRuns); st('nonStrikerBalls', d.nonStrikerBalls);
-      st('bowlerName', d.bowlerName); st('bowlerRuns', d.bowlerRuns); st('bowlerWickets', d.bowlerWickets); st('bowlerOvers', d.bowlerOvers);
+      cDat = d;
+      inject('tournamentName', d.tournamentName || 'LIVE CRICKET');
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (mSc !== -1) {
-        if (nw > mWk) popMat("WICKET!", "#ef4444");
-        else if (ns - mSc === 6) popMat("SIX RUNS!", "#4f46e5");
-        else if (ns - mSc === 4) popMat("BOUNDARY!", "#10b981");
+      if (cSc !== -1) {
+        if (nw > cWk) fireMetalEvent("WICKET", "#ef4444", "#7f1d1d"); // Red
+        else if (ns - cSc === 6) fireMetalEvent("MAXIMUM", "#3b82f6", "#1e3a8a"); // Blue
+        else if (ns - cSc === 4) fireMetalEvent("BOUNDARY", "#ffcc00", "#b38f00"); // Gold
       }
-      mSc = ns; mWk = nw;
+      cSc = ns; cWk = nw;
     }
 
     window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });

@@ -2,145 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Synthwave</title>
+  <title>ScoreX - Lvl 2 RGB Split</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Share+Tech+Mono&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Teko', sans-serif; text-transform: uppercase; }
 
-    /* Neon Island */
-    #synth-island {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: #10002b;
-      padding: 6px 30px; font-family: 'Orbitron', sans-serif; font-size: 14px; letter-spacing: 3px;
-      color: #00f5d4;
-      border: 2px solid #ff007f;
-      box-shadow: 0 0 15px #ff007f, inset 0 0 10px rgba(255, 0, 127, 0.5);
-      border-radius: 4px;
+    /* The core glitch animation */
+    @keyframes glitch-anim {
+      0% { clip-path: inset(10% 0 85% 0); transform: translate(-2px, 2px); }
+      10% { clip-path: inset(40% 0 43% 0); transform: translate(2px, -2px); }
+      20% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 0); }
+      30% { clip-path: inset(15% 0 80% 0); transform: translate(2px, 2px); }
+      40% { clip-path: inset(50% 0 30% 0); transform: translate(-2px, -2px); }
+      50% { clip-path: inset(5% 0 60% 0); transform: translate(2px, 0); }
+      100% { clip-path: inset(10% 0 85% 0); transform: translate(-2px, 2px); }
     }
 
-    /* Glitch/Glow Event Popup */
-    #synth-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-      font-family: 'Orbitron', sans-serif; font-size: 110px; font-weight: 900;
-      color: #fff;
-      text-shadow: 4px 4px 0px #ff007f, -4px -4px 0px #00f5d4;
-      opacity: 0; transition: all 0.3s ease; pointer-events: none;
+    .glitch-wrapper { position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 1400px; height: 110px; }
+    
+    /* Base layers for the RGB Split */
+    .glitch-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: stretch; background: rgba(10,10,10,0.9);
+      border: 2px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
-    #synth-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    
+    /* The Red offset */
+    .glitch-red { background: rgba(255, 0, 60, 0.2); border-color: #ff003c; left: -4px; top: -2px; animation: glitch-anim 2.5s infinite linear alternate-reverse; z-index: 1; opacity: 0.8; mix-blend-mode: screen; pointer-events: none;}
+    /* The Cyan offset */
+    .glitch-cyan { background: rgba(0, 255, 255, 0.2); border-color: #00ffff; left: 4px; top: 2px; animation: glitch-anim 3s infinite linear alternate; z-index: 2; opacity: 0.8; mix-blend-mode: screen; pointer-events: none;}
+    /* The Main solid layer */
+    .glitch-main { z-index: 3; border-top: 4px solid #fff; border-bottom: 4px solid #fff; }
 
-    /* Bottom Grid Bar */
-    #synth-bottom {
-      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 1200px; height: 90px;
-      display: flex; gap: 15px;
+    /* Interior layout */
+    .g-block { display: flex; align-items: center; padding: 0 30px; border-right: 1px dashed rgba(255,255,255,0.2); }
+    .g-block:last-child { border-right: none; }
+
+    .g-bat { flex: 1; justify-content: space-around; }
+    .g-score { min-width: 380px; justify-content: space-between; background: repeating-linear-gradient(45deg, #111, #111 5px, #1a1a1a 5px, #1a1a1a 10px); }
+    .g-bowl { min-width: 320px; justify-content: space-between; }
+
+    /* Typography */
+    .tm-lbl { font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: 2px;}
+    .sc-lbl { font-size: 75px; font-weight: 700; line-height: 0.8; }
+    .sc-lbl span { font-size: 40px; color: #888; }
+    .ov-lbl { font-family: 'Share Tech Mono', monospace; font-size: 16px; background: #fff; color: #000; padding: 2px 10px; margin-left: 15px; font-weight: 700;}
+
+    .grp { display: flex; flex-direction: column; }
+    .hdr { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: #aaa; letter-spacing: 2px; margin-bottom: 2px;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 15px; }
+    .p-n { font-size: 30px; font-weight: 700; color: #fff; }
+    .p-s { font-size: 45px; font-weight: 700; color: #fff; line-height: 0.9;}
+    .p-b { font-family: 'Share Tech Mono', monospace; font-size: 15px; color: #aaa; }
+
+    .striker { color: #fff; }
+    .striker .p-s { color: #00ffff; text-shadow: 2px 2px 0 #ff003c; }
+
+    .g-bowl .p-s { color: #ff003c; text-shadow: 2px 2px 0 #00ffff;}
+
+    /* Top Ticker */
+    #rgb-top {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #000; border: 1px solid #fff; padding: 5px 30px;
+      font-family: 'Share Tech Mono', monospace; font-size: 15px; letter-spacing: 4px;
+      text-shadow: -2px 0 #ff003c, 2px 0 #00ffff;
     }
 
-    .synth-panel {
-      background: linear-gradient(180deg, #240046 0%, #10002b 100%);
-      border: 2px solid #7b2cbf;
-      border-bottom: 4px solid #ff007f;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(123, 44, 191, 0.4);
-      display: flex; align-items: center; padding: 0 25px; border-radius: 4px;
+    #rgb-event {
+      position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 150px; line-height: 1; font-weight: 700;
+      color: #fff; text-shadow: -6px 0 #ff003c, 6px 0 #00ffff;
+      opacity: 0; transition: opacity 0.1s;
     }
-
-    /* Score Box */
-    .p-score { min-width: 280px; justify-content: space-between; border-bottom-color: #00f5d4; }
-    .team { font-family: 'Orbitron', sans-serif; font-size: 26px; color: #ff007f; text-shadow: 0 0 8px #ff007f;}
-    .run-block { text-align: right; }
-    .sc { font-size: 46px; font-weight: 900; line-height: 0.9;}
-    .sc span { font-size: 24px; color: #00f5d4; }
-    .ov { font-size: 14px; color: #9d4edd; font-family: 'Orbitron', sans-serif; font-weight: 700;}
-
-    /* Batting Box */
-    .p-bat { flex: 1; justify-content: space-around; }
-    .bat-info { display: flex; flex-direction: column; }
-    .pn { font-size: 22px; font-weight: 600; font-family: 'Orbitron', sans-serif;}
-    .pr { font-size: 32px; font-weight: 700; color: #fff; line-height: 1;}
-    .pb { font-size: 16px; color: #9d4edd; }
-    .strike { color: #ff007f; margin-right: 8px; text-shadow: 0 0 5px #ff007f;}
-
-    /* Bowling Box */
-    .p-bowl { min-width: 300px; justify-content: space-between; }
-    .bw-rn { font-size: 36px; font-weight: 700; color: #00f5d4; text-shadow: 0 0 8px #00f5d4; line-height: 1;}
+    #rgb-event.show { opacity: 1; animation: glitch-anim 0.2s infinite; }
 
   </style>
 </head>
 <body>
 
-  <div id="synth-island">RETRO LEAGUE 2084</div>
-  <div id="synth-event"></div>
+  <div id="rgb-top"><span id="tournamentName">SYS.ERR // NO SIGNAL</span></div>
+  <div id="rgb-event">WICKET</div>
 
-  <div id="synth-bottom">
+  <div class="glitch-wrapper">
+    <div class="glitch-layer glitch-red"></div>
+    <div class="glitch-layer glitch-cyan"></div>
     
-    <div class="synth-panel p-score">
-      <div id="teamName" class="team">MIAMI</div>
-      <div class="run-block">
-        <div class="sc"><span id="teamScore" style="color:#fff; font-size:46px; text-shadow:none;">192</span><span>/</span><span id="teamWickets" style="font-size:36px;">4</span></div>
-        <div class="ov">OVERS <span id="teamOvers">18.5</span></div>
+    <div class="glitch-layer glitch-main">
+      
+      <div class="g-block g-bat">
+        <div class="grp striker">
+          <span class="hdr" style="color:#00ffff;">> STRIKER_NODE</span>
+          <div class="p-row">
+            <span id="strikerName" class="p-n">Striker</span>
+            <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
+          </div>
+        </div>
+        <div class="grp" style="opacity: 0.6;">
+          <span class="hdr">> STANDBY_NODE</span>
+          <div class="p-row">
+            <span id="nonStrikerName" class="p-n">Non-Striker</span>
+            <div><span id="nonStrikerRuns" class="p-s" style="font-size:35px; color:#fff; text-shadow:none;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="synth-panel p-bat">
-      <div class="bat-info">
-        <div><span class="strike">▶</span><span id="strikerName" class="pn">R. Gosling</span></div>
-        <div><span id="strikerRuns" class="pr">88</span> <span class="pb">(<span id="strikerBalls">42</span>)</span></div>
+      <div class="g-block g-score">
+        <div class="grp">
+          <span class="hdr">> BASE_ENTITY</span>
+          <div id="teamName" class="tm-lbl">TEAM</div>
+        </div>
+        <div style="display:flex; align-items:baseline;">
+          <div class="sc-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov-lbl">OV <span id="teamOvers">0.0</span></div>
+        </div>
       </div>
-      <div class="bat-info" style="opacity: 0.6;">
-        <div id="nonStrikerName" class="pn" style="color: #c77dff;">K. Kavinsky</div>
-        <div><span id="nonStrikerRuns" class="pr" style="color:#c77dff; font-size: 26px;">12</span> <span class="pb">(<span id="nonStrikerBalls">9</span>)</span></div>
-      </div>
-    </div>
 
-    <div class="synth-panel p-bowl">
-      <div class="bat-info">
-        <span class="pb" style="color:#00f5d4;">BOWLER</span>
-        <span id="bowlerName" class="pn">D. Synth</span>
+      <div class="g-block g-bowl">
+        <div class="grp">
+          <span class="hdr" style="color:#ff003c;">> HOSTILE_NODE</span>
+          <span id="bowlerName" class="p-n">Bowler</span>
+        </div>
+        <div style="text-align: right;">
+          <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+          <div class="p-b" style="color:#fff;">OVERS <span id="bowlerOvers">0.0</span></div>
+        </div>
       </div>
-      <div class="run-block">
-        <div class="bw-rn"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">34</span></div>
-        <div class="ov">OV <span id="bowlerOvers">3.5</span></div>
-      </div>
-    </div>
 
+    </div>
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
+
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
   <script>
-    let synSc = -1, synWk = -1, synSt = 0, synDat = {};
+    let pSc = -1, pWk = -1, rDat = {};
     const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
 
-    function popSynth(msg) {
-      const e = document.getElementById('synth-event');
-      e.innerText = msg; e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 2800);
+    function fireGlitch(txt) {
+      const e = document.getElementById('rgb-event');
+      e.innerText = txt; 
+      e.classList.remove('show'); void e.offsetWidth; e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 1200); // Sharp fast glitch
     }
 
     setInterval(() => {
-      const isl = document.getElementById('synth-island');
-      if(!synDat.tournamentName) return;
-      synSt = (synSt + 1) % 3;
-      if(synSt === 0) isl.innerText = synDat.tournamentName;
-      else if(synSt === 1) isl.innerText = "RUN RATE: " + (synDat.runRate||'0.0');
-      else isl.innerText = synDat.target > 0 ? "TARGET: " + synDat.target : "1ST INNINGS";
-    }, 4500);
+      const isl = document.getElementById('tournamentName');
+      if(!rDat.tournamentName) return;
+      let st = Math.floor(Date.now() / 4000) % 3;
+      if(st === 0) isl.innerText = "LINK: " + rDat.tournamentName;
+      else if(st === 1) isl.innerText = "VELOCITY // " + (rDat.runRate||'0.0');
+      else isl.innerText = rDat.target > 0 ? "TARGET_ACQUIRE: " + rDat.target : "TRANSMISSION LIVE";
+    }, 4000);
 
     function rx(d) {
-      synDat = d;
+      rDat = d;
       inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
       inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
       inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
       inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (synSc !== -1) {
-        if (nw > synWk) popSynth("WICKET!");
-        else if (ns - synSc === 6) popSynth("SIX RUNS!");
-        else if (ns - synSc === 4) popSynth("FOUR RUNS!");
+      if (pSc !== -1) {
+        if (nw > pWk) fireGlitch("FATAL_WICKET");
+        else if (ns - pSc === 6) fireGlitch("OVERLOAD: 6");
+        else if (ns - pSc === 4) fireGlitch("SURGE: 4");
       }
-      synSc = ns; synWk = nw;
+      pSc = ns; pWk = nw;
     }
 
     window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });

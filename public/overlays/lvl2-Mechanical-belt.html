@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Mecha Armor</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Jura:wght@600;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Jura', sans-serif; text-transform: uppercase; }
+
+    /* Animated Hazard Striping for Borders */
+    @keyframes hazard {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 0; }
+    }
+
+    /* Top Diamond HUD */
+    #mech-top {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #111; border: 2px solid #ff7300;
+      color: #ff7300; padding: 10px 40px;
+      font-size: 16px; font-weight: 900; letter-spacing: 4px;
+      clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0 50%);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+      z-index: 10;
+    }
+
+    /* Heavy Impact Event Popup */
+    #mech-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+      background: #ff003c; color: #fff; border: 4px solid #111;
+      padding: 10px 60px; font-family: 'Teko', sans-serif; font-size: 130px; line-height: 1;
+      clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+      box-shadow: 15px 15px 0 rgba(0,0,0,0.9);
+      opacity: 0; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #mech-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Armor Plating */
+    #mech-bottom {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: flex-end; width: 95%; max-width: 1500px;
+      filter: drop-shadow(0 20px 25px rgba(0,0,0,0.9));
+    }
+
+    /* Armor Modules */
+    .armor-plate {
+      background: #1a1c23; position: relative;
+      border: 3px solid #3b4252;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+      display: flex; align-items: center; padding: 15px 30px;
+    }
+
+    /* The glowing inner rim */
+    .armor-plate::before {
+      content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+      border: 1px solid rgba(255,255,255,0.1); pointer-events: none;
+    }
+
+    /* Left Batting Array */
+    .m-bat {
+      flex: 1; height: 90px; justify-content: space-around;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%);
+      margin-right: -25px; z-index: 1;
+    }
+
+    /* Massive Central Engine (Score) */
+    .m-score {
+      min-width: 400px; height: 115px; justify-content: space-between;
+      background: linear-gradient(135deg, #2b2d42 0%, #0b0c10 100%);
+      clip-path: polygon(30px 0, calc(100% - 30px) 0, 100% 100%, 0 100%);
+      border-bottom: 8px solid #ff7300; z-index: 5;
+    }
+    
+    /* Moving Hazard Tape on Score Box */
+    .m-score::after {
+      content: ''; position: absolute; top: 0; left: 30px; right: 30px; height: 4px;
+      background: repeating-linear-gradient(-45deg, #ff7300, #ff7300 10px, #111 10px, #111 20px);
+      animation: hazard 2s linear infinite;
+    }
+
+    /* Right Bowling Array */
+    .m-bowl {
+      min-width: 320px; height: 90px; justify-content: space-between;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 30px 100%);
+      margin-left: -25px; z-index: 1; border-bottom-color: #00e5ff;
+    }
+
+    /* Typography */
+    .t-lbl { font-family: 'Teko', sans-serif; font-size: 50px; font-weight: 700; line-height: 1; color: #fff;}
+    .s-lbl { font-family: 'Teko', sans-serif; font-size: 75px; font-weight: 700; line-height: 0.8; color: #ff7300;}
+    .s-lbl span { font-size: 40px; color: #555; }
+    .o-lbl { font-size: 16px; font-weight: 900; background: #fff; color: #111; padding: 2px 10px; border-radius: 2px; margin-left: 20px;}
+
+    .grp { display: flex; flex-direction: column; }
+    .sub { font-size: 12px; color: #7f849c; letter-spacing: 2px; margin-bottom: -5px;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 12px; }
+    .p-n { font-size: 24px; font-weight: 900; color: #e5e9f0; }
+    .p-s { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: #fff; line-height: 0.9;}
+    .p-b { font-size: 16px; color: #7f849c; font-weight: 900;}
+
+    .striker { color: #ff7300; }
+    .striker .p-s { color: #ff7300; }
+    .striker .p-n { color: #ff7300; }
+
+    .m-bowl .p-s { color: #00e5ff; }
+
+  </style>
+</head>
+<body>
+
+  <div id="mech-top"><span id="tournamentName">SYS.BOOT // LIVE</span></div>
+  <div id="mech-event">IMPACT DETECTED</div>
+
+  <div id="mech-bottom">
+    
+    <div class="armor-plate m-bat">
+      <div class="grp striker">
+        <span class="sub">PRIMARY STRIKER</span>
+        <div class="p-row">
+          <span id="strikerName" class="p-n">Striker</span>
+          <span id="strikerRuns" class="p-s">0</span>
+          <span class="p-b">(<span id="strikerBalls">0</span>)</span>
+        </div>
+      </div>
+      <div class="grp" style="opacity: 0.5;">
+        <span class="sub">SECONDARY STRIKER</span>
+        <div class="p-row">
+          <span id="nonStrikerName" class="p-n">Non-Striker</span>
+          <span id="nonStrikerRuns" class="p-s" style="color:#fff;">0</span>
+          <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="armor-plate m-score">
+      <div class="grp">
+        <span class="sub" style="color:#ff7300;">UNIT IDENTIFIER</span>
+        <div id="teamName" class="t-lbl">TEAM</div>
+      </div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="s-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="o-lbl">OV <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+
+    <div class="armor-plate m-bowl">
+      <div class="grp">
+        <span class="sub" style="color:#00e5ff;">ACTIVE ATTACK</span>
+        <span id="bowlerName" class="p-n">Bowler Name</span>
+      </div>
+      <div style="text-align:right;">
+        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+        <div class="p-b" style="color:#fff;">OVERS <span id="bowlerOvers">0.0</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.3); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, mDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireMechEvent(txt, bg, col) {
+      const e = document.getElementById('mech-event');
+      e.innerText = txt; 
+      e.style.background = bg; e.style.color = col;
+      e.classList.remove('show');
+      void e.offsetWidth; 
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 3000);
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('tournamentName');
+      if(!mDat.tournamentName) return;
+      let st = Math.floor(Date.now() / 4500) % 3;
+      if(st === 0) isl.innerText = mDat.tournamentName;
+      else if(st === 1) isl.innerText = "CRR_DATA // " + (mDat.runRate||'0.0');
+      else isl.innerText = mDat.target > 0 ? "TRG_LOCK // " + mDat.target : "SYSTEM NOMINAL";
+    }, 4500);
+
+    function rx(d) {
+      mDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1) {
+        if (nw > pWk) fireMechEvent("WICKET DETECTED", "#ff003c", "#fff");
+        else if (ns - pSc === 6) fireMechEvent("MAXIMUM YIELD", "#00e5ff", "#000");
+        else if (ns - pSc === 4) fireMechEvent("BOUNDARY BREACH", "#ff7300", "#000");
+      }
+      pSc = ns; pWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

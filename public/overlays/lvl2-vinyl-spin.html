@@ -4,192 +4,202 @@
   <meta charset="UTF-8">
   <title>ScoreX - Lvl 2 Vinyl Spin</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Space+Mono:wght@700&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Outfit', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Outfit', sans-serif; text-transform: uppercase; }
 
-    :root {
-      --dj-deck: linear-gradient(180deg, #2b2b2b 0%, #111 100%);
-      --dj-neon: #ff4500; /* Bright amplifier orange */
-      --dj-cyan: #00e5ff;
-    }
-
-    /* Amplifier Top Screen */
-    #vs-island {
-      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-      background: #0a0a0a; color: var(--dj-neon);
-      font-family: 'Share Tech Mono', monospace; font-size: 15px; letter-spacing: 2px;
-      padding: 6px 25px; border-radius: 6px; border: 1px solid #333;
-      box-shadow: inset 0 0 10px rgba(255, 69, 0, 0.2);
-    }
-
-    /* DJ Drop Popup */
-    #vs-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
-      font-family: 'Outfit', sans-serif; font-size: 100px; font-weight: 900; text-transform: uppercase;
-      background: var(--dj-neon); color: #111; padding: 10px 50px; border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(255, 69, 0, 0.5);
-      opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    #vs-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-3deg); }
-
-    /* Bottom Deck */
-    #vs-bottom {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 1100px; height: 90px;
-      display: flex; align-items: center; justify-content: flex-end;
-    }
-
-    /* The Spinning Vinyl Record */
-    .vinyl-wrapper {
-      position: absolute; left: 0; bottom: -5px; /* Sticks out above and below the bar slightly */
-      width: 130px; height: 130px; z-index: 10;
-      filter: drop-shadow(10px 10px 15px rgba(0,0,0,0.8));
-    }
-    
-    .vinyl {
-      width: 100%; height: 100%; border-radius: 50%;
-      background: repeating-radial-gradient( #111, #111 4px, #1a1a1a 5px, #1a1a1a 6px );
-      border: 2px solid #000;
-      display: flex; align-items: center; justify-content: center;
-      animation: spin 4s linear infinite;
-    }
-    
+    /* The Spinning Animation */
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    /* The Record Label (Holds the Score) */
+    /* Top Track Info */
+    #vs-top {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #111; border: 2px solid #00f0ff; border-radius: 20px;
+      padding: 6px 30px; font-family: 'Space Mono', monospace; font-size: 14px; letter-spacing: 3px; color: #00f0ff;
+      box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3); z-index: 10;
+    }
+
+    /* DJ Drop Event Popup */
+    #vs-event {
+      position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: #ff0055; color: #fff; border-radius: 50px;
+      padding: 15px 80px; font-size: 100px; font-weight: 900; line-height: 1; letter-spacing: -2px;
+      box-shadow: 0 20px 50px rgba(255, 0, 85, 0.6);
+      opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 20;
+    }
+    #vs-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* Bottom Deck Lockup */
+    #vs-bottom {
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100%; max-width: 1200px;
+      filter: drop-shadow(0 20px 30px rgba(0,0,0,0.8));
+    }
+
+    /* Mixer Panels (Left and Right) */
+    .mixer-panel {
+      background: linear-gradient(180deg, #2a2a30 0%, #151518 100%);
+      border: 2px solid #444; border-top: 4px solid #555;
+      height: 100px; display: flex; align-items: center; padding: 0 40px; position: relative;
+    }
+    .mixer-left { flex: 1; border-radius: 15px 0 0 15px; margin-right: -40px; padding-right: 60px; justify-content: space-around; z-index: 1; border-right: none;}
+    .mixer-right { min-width: 320px; border-radius: 0 15px 15px 0; margin-left: -40px; padding-left: 60px; justify-content: space-between; z-index: 1; border-left: none;}
+
+    /* The Turntable Platter */
+    .turntable-wrapper {
+      width: 200px; height: 200px; position: relative; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      background: #000; border-radius: 50%; border: 6px solid #222;
+      box-shadow: 0 0 30px #000, inset 0 0 15px rgba(255,255,255,0.2);
+    }
+
+    /* The Spinning Record Background */
+    .vinyl-disc {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%;
+      background: radial-gradient(circle at center, #050505 0%, #111 40%, #050505 80%, #222 100%);
+      animation: spin 3s linear infinite;
+    }
+    .vinyl-disc::before { /* Grooves */
+      content: ''; position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border-radius: 50%; border: 1px dashed rgba(255,255,255,0.15); box-shadow: inset 0 0 0 4px rgba(0,0,0,0.5);
+    }
+    .vinyl-disc::after { /* Shiny reflection */
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%;
+      background: conic-gradient(transparent 0deg, rgba(255,255,255,0.1) 45deg, transparent 90deg, transparent 180deg, rgba(255,255,255,0.1) 225deg, transparent 270deg);
+    }
+
+    /* The Fixed Score Hub (Sits on top of the spinning record) */
     .vinyl-label {
-      width: 65%; height: 65%; border-radius: 50%;
-      background: radial-gradient(circle, #ff4500 0%, #aa2b00 100%);
-      border: 3px solid #111;
+      position: relative; z-index: 10; width: 110px; height: 110px;
+      background: #ff0055; border-radius: 50%; border: 4px solid #111;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #fff; font-family: 'Outfit', sans-serif;
-    }
-    .label-hole {
-      width: 8px; height: 8px; background: #000; border-radius: 50%; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    }
-    .vl-sc { font-size: 28px; font-weight: 900; line-height: 1; margin-top: 8px;}
-    .vl-wk { font-size: 16px; color: #ffd1b3; font-weight: 700;}
-
-    /* The DJ Deck (Right side of the vinyl) */
-    .deck-panel {
-      width: calc(100% - 70px); height: 100%; /* Pushed right to make room for vinyl overlap */
-      background: var(--dj-deck); border-radius: 12px;
-      border: 1px solid #444; border-top: 1px solid #666;
-      box-shadow: 0 15px 25px rgba(0,0,0,0.7);
-      display: flex; padding-left: 70px; overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
     }
 
-    .vs-sec { display: flex; align-items: center; padding: 0 25px; border-right: 1px solid #222; border-left: 1px solid #444;}
-    .vs-sec:first-child { border-left: none; }
-    .vs-sec:last-child { border-right: none; }
+    /* The CSS Tonearm */
+    .tonearm {
+      position: absolute; top: -10px; right: -20px; width: 12px; height: 110px;
+      background: linear-gradient(90deg, #999, #eee, #666); border-radius: 6px;
+      transform-origin: top center; transform: rotate(35deg); z-index: 20;
+      box-shadow: 5px 5px 10px rgba(0,0,0,0.8);
+    }
+    .tonearm::before { /* Pivot base */
+      content: ''; position: absolute; top: -10px; left: -14px; width: 40px; height: 40px;
+      background: #222; border-radius: 50%; border: 2px solid #555;
+    }
+    .tonearm::after { /* Stylus needle */
+      content: ''; position: absolute; bottom: -15px; left: -5px; width: 22px; height: 35px;
+      background: #111; border-radius: 4px; border-bottom: 2px solid #ff0055;
+    }
 
-    /* Meta Deck info */
-    .d-meta { min-width: 150px; flex-direction: column; justify-content: center; align-items: flex-start; }
-    .d-tm { font-size: 24px; font-weight: 900; color: #fff; letter-spacing: 1px;}
-    .d-ov { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--dj-neon);}
+    /* Typography */
+    .tm-lbl { font-size: 18px; font-weight: 900; line-height: 1; letter-spacing: -0.5px;}
+    .sc-lbl { font-family: 'Space Mono', monospace; font-size: 32px; font-weight: 700; line-height: 1; }
+    .sc-lbl span { font-size: 16px; color: #111; }
+    .ov-lbl { font-size: 11px; font-weight: 900; background: #111; color: #ff0055; padding: 2px 8px; border-radius: 10px; margin-top: 2px;}
 
-    /* Player Display (Amplifier Style) */
-    .d-bat { flex: 1; justify-content: space-around; font-family: 'Share Tech Mono', monospace; }
-    .amp-block { display: flex; flex-direction: column; }
-    .pn { font-size: 18px; color: #aaa; }
-    .pr { font-size: 32px; color: var(--dj-cyan); text-shadow: 0 0 10px rgba(0, 229, 255, 0.4); line-height: 1;}
-    .pb { font-size: 14px; color: #555; }
-    .strike { color: var(--dj-cyan); margin-right: 6px; }
+    .grp { display: flex; flex-direction: column; justify-content: center; }
+    .hdr { font-size: 11px; color: #888; font-weight: 900; letter-spacing: 2px; margin-bottom: 2px;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 15px; }
+    .p-n { font-size: 22px; font-weight: 700; color: #fff; }
+    .p-s { font-family: 'Space Mono', monospace; font-size: 36px; font-weight: 700; color: #00f0ff; line-height: 0.9;}
+    .p-b { font-size: 14px; color: #888; font-weight: 700;}
 
-    /* Bowler Display */
-    .d-bowl { min-width: 250px; justify-content: space-between; font-family: 'Share Tech Mono', monospace;}
-    .bw-r { font-size: 28px; color: var(--dj-neon); text-shadow: 0 0 10px rgba(255, 69, 0, 0.4);}
+    .striker { border-right: 2px solid #444; padding-right: 30px;}
+    .mixer-right .p-s { color: #ff0055; }
 
   </style>
 </head>
 <body>
 
-  <div id="vs-island">TRACK: LIVE MATCH</div>
-  <div id="vs-event"></div>
+  <div id="vs-top">NOW PLAYING: <span id="tournamentName" style="color:#fff;">LIVE MIX</span></div>
+  <div id="vs-event">DROP THE BEAT</div>
 
   <div id="vs-bottom">
     
-    <div class="vinyl-wrapper">
-      <div class="vinyl">
-        <div class="vinyl-label">
-          <div class="label-hole"></div>
-          <div class="vl-sc"><span id="teamScore">0</span></div>
-          <div class="vl-wk">WK: <span id="teamWickets">0</span></div>
+    <div class="mixer-panel mixer-left">
+      <div class="grp striker">
+        <span class="hdr" style="color:#00f0ff;">CH 1: STRIKER</span>
+        <div class="p-row">
+          <span id="strikerName" class="p-n">Striker</span>
+          <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
+        </div>
+      </div>
+      <div class="grp" style="opacity: 0.6;">
+        <span class="hdr">CH 2: NON-STRIKER</span>
+        <div class="p-row">
+          <span id="nonStrikerName" class="p-n">Non-Striker</span>
+          <div><span id="nonStrikerRuns" class="p-s" style="color:#fff;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
         </div>
       </div>
     </div>
 
-    <div class="deck-panel">
+    <div class="turntable-wrapper">
+      <div class="vinyl-disc"></div>
+      <div class="tonearm"></div>
       
-      <div class="vs-sec d-meta">
-        <div id="teamName" class="d-tm">TEAM</div>
-        <div class="d-ov">OV: <span id="teamOvers">0.0</span></div>
+      <div class="vinyl-label">
+        <div id="teamName" class="tm-lbl">TEAM</div>
+        <div class="sc-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov-lbl">OV <span id="teamOvers">0.0</span></div>
       </div>
+    </div>
 
-      <div class="vs-sec d-bat">
-        <div class="amp-block">
-          <div><span class="strike">▶</span><span id="strikerName" class="pn">Player 1</span></div>
-          <div><span id="strikerRuns" class="pr">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span></div>
-        </div>
-        <div class="amp-block">
-          <div id="nonStrikerName" class="pn" style="color: #666;">Player 2</div>
-          <div><span id="nonStrikerRuns" class="pr" style="color: #888; text-shadow:none;">0</span> <span class="pb">(<span id="nonStrikerBalls">0</span>)</span></div>
-        </div>
+    <div class="mixer-panel mixer-right">
+      <div class="grp">
+        <span class="hdr" style="color:#ff0055;">MASTER OUT: BOWLER</span>
+        <span id="bowlerName" class="p-n">Bowler Name</span>
       </div>
-
-      <div class="vs-sec d-bowl">
-        <div class="amp-block">
-          <span class="pb">BOWL_CH</span>
-          <span id="bowlerName" class="pn">Bowler X</span>
-        </div>
-        <div style="text-align: right;">
-          <div class="bw-r"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
-          <div class="pb">OV: <span id="bowlerOvers">0.0</span></div>
-        </div>
+      <div style="text-align: right;">
+        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+        <div class="p-b" style="color:#fff;">OVERS <span id="bowlerOvers">0.0</span></div>
       </div>
-
     </div>
 
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
-  <script>
-    let vSc = -1, vWk = -1, vSt = 0, vDat = {};
-    const pd = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
 
-    function dropBeat(txt, bg, col) {
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, vDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireVinyl(txt, bg) {
       const e = document.getElementById('vs-event');
-      e.innerText = txt; e.style.background = bg; e.style.color = col;
+      e.innerText = txt; e.style.background = bg;
+      e.classList.remove('show');
+      void e.offsetWidth; 
       e.classList.add('show');
       setTimeout(() => e.classList.remove('show'), 2500);
     }
 
     setInterval(() => {
-      const isl = document.getElementById('vs-island');
+      const isl = document.getElementById('tournamentName');
       if(!vDat.tournamentName) return;
-      vSt = (vSt + 1) % 3;
-      if(vSt === 0) isl.innerText = "TRACK: " + vDat.tournamentName;
-      else if(vSt === 1) isl.innerText = "BPM (CRR): " + (vDat.runRate||'0.0');
-      else isl.innerText = vDat.target > 0 ? "TARGET: " + vDat.target : "PLAYING...";
-    }, 4500);
+      let st = Math.floor(Date.now() / 4000) % 3;
+      if(st === 0) isl.innerText = vDat.tournamentName;
+      else if(st === 1) isl.innerText = "BPM (CRR): " + (vDat.runRate||'0.0');
+      else isl.innerText = vDat.target > 0 ? "NEXT TRACK: " + vDat.target : "SPINNING LIVE";
+    }, 4000);
 
     function rx(d) {
       vDat = d;
-      pd('teamName', d.team1Name); pd('teamScore', d.team1Score); pd('teamWickets', d.team1Wickets); pd('teamOvers', d.team1Overs);
-      pd('strikerName', d.strikerName); pd('strikerRuns', d.strikerRuns); pd('strikerBalls', d.strikerBalls);
-      pd('nonStrikerName', d.nonStrikerName); pd('nonStrikerRuns', d.nonStrikerRuns); pd('nonStrikerBalls', d.nonStrikerBalls);
-      pd('bowlerName', d.bowlerName); pd('bowlerRuns', d.bowlerRuns); pd('bowlerWickets', d.bowlerWickets); pd('bowlerOvers', d.bowlerOvers);
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (vSc !== -1) {
-        if (nw > vWk) dropBeat("WICKET!", "#ff4500", "#111");
-        else if (ns - vSc === 6) dropBeat("HUGE DROP! 6", "#00e5ff", "#111");
-        else if (ns - vSc === 4) dropBeat("FOUR!", "#fff", "#111");
+      if (pSc !== -1) {
+        if (nw > pWk) fireVinyl("TRACK STOPPED", "#ff0055");
+        else if (ns - pSc === 6) fireVinyl("BASS DROP", "#00f0ff");
+        else if (ns - pSc === 4) fireVinyl("TREBLE KICK", "#00f0ff");
       }
-      vSc = ns; vWk = nw;
+      pSc = ns; pWk = nw;
     }
 
     window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });

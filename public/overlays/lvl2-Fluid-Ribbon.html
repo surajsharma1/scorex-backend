@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Fluid Ribbon</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,600;6..12,800;6..12,900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito Sans', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Elegant Top Pill */
+    #ribbon-top {
+      position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+      background: #ffffff; color: #1e1e40;
+      padding: 6px 30px; border-radius: 20px;
+      font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      border-bottom: 3px solid #e91e63;
+    }
+
+    /* Soft Scale Popup */
+    #ribbon-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: linear-gradient(135deg, #e91e63 0%, #ff4081 100%);
+      color: #fff; padding: 15px 70px; border-radius: 50px;
+      font-size: 100px; font-weight: 900; text-transform: uppercase; letter-spacing: -2px;
+      box-shadow: 0 20px 40px rgba(233, 30, 99, 0.4);
+      opacity: 0; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #ribbon-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* The Flowing Ribbon Wrapper */
+    #ribbon-bottom {
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+      display: flex; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+      align-items: center;
+    }
+
+    /* Ribbon Segments with extreme alternating border radii */
+    .ribbon {
+      height: 90px; display: flex; align-items: center; padding: 0 40px; position: relative;
+    }
+
+    /* Center Score (Magenta) */
+    .r-score {
+      background: linear-gradient(90deg, #e91e63, #c2185b);
+      border-radius: 40px 0 40px 0; z-index: 3;
+      min-width: 320px; justify-content: space-between;
+    }
+
+    /* Left Batsman (Navy) */
+    .r-bat {
+      background: #1e1e40;
+      border-radius: 40px 0 0 40px; z-index: 2; margin-right: -25px; padding-right: 60px;
+      flex: 1; min-width: 360px; justify-content: space-around;
+    }
+
+    /* Right Bowler (White) */
+    .r-bowl {
+      background: #ffffff; color: #1e1e40;
+      border-radius: 0 40px 40px 0; z-index: 1; margin-left: -25px; padding-left: 60px;
+      min-width: 320px; justify-content: space-between;
+    }
+
+    /* Typography */
+    .t-name { font-size: 32px; font-weight: 900; letter-spacing: -0.5px; }
+    .t-score { font-size: 55px; font-weight: 900; line-height: 0.8; }
+    .t-score span { font-size: 30px; color: #f8bbd0; }
+    .t-ov { font-size: 14px; font-weight: 800; background: #fff; color: #e91e63; padding: 3px 10px; border-radius: 15px; margin-left: 12px;}
+
+    .grp { display: flex; flex-direction: column; }
+    .lbl { font-size: 12px; font-weight: 800; color: #9fa8da; text-transform: uppercase; margin-bottom: 2px;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 10px; }
+    .p-n { font-size: 22px; font-weight: 800; }
+    .p-s { font-size: 32px; font-weight: 900; color: #fff; }
+    .p-b { font-size: 15px; font-weight: 600; color: #9fa8da; }
+
+    .striker .p-s { color: #00e5ff; } /* Cyan accent for striker */
+    
+    .r-bowl .lbl { color: #e91e63; }
+    .r-bowl .p-n { color: #1e1e40; }
+    .r-bowl .p-s { color: #e91e63; }
+    .r-bowl .p-b { color: #757575; }
+
+  </style>
+</head>
+<body>
+
+  <div id="ribbon-top"><span id="tournamentName">CHAMPIONS TROPHY</span></div>
+  <div id="ribbon-event"></div>
+
+  <div id="ribbon-bottom">
+    
+    <div class="ribbon r-bat">
+      <div class="grp striker">
+        <span class="lbl">ON STRIKE</span>
+        <div class="p-row">
+          <span id="strikerName" class="p-n">Striker</span>
+          <span id="strikerRuns" class="p-s">0</span>
+          <span class="p-b">(<span id="strikerBalls">0</span>)</span>
+        </div>
+      </div>
+      <div class="grp" style="opacity: 0.6;">
+        <span class="lbl">NON-STRIKER</span>
+        <div class="p-row">
+          <span id="nonStrikerName" class="p-n">NonStrk</span>
+          <span id="nonStrikerRuns" class="p-s">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ribbon r-score">
+      <div id="teamName" class="t-name">TEAM</div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="t-score"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="t-ov">OV <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+
+    <div class="ribbon r-bowl">
+      <div class="grp">
+        <span class="lbl">BOWLING</span>
+        <span id="bowlerName" class="p-n">Bowler Name</span>
+      </div>
+      <div style="text-align:right;">
+        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+        <div class="p-b">OVERS <span id="bowlerOvers">0.0</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.6); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.5); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let cSc = -1, cWk = -1, tSt = 0, cDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireRibbonEvent(txt, bgGrad) {
+      const e = document.getElementById('ribbon-event');
+      e.innerText = txt; 
+      e.style.background = bgGrad;
+      e.classList.remove('show');
+      void e.offsetWidth; 
+      e.classList.add('show');
+    }
+
+    setInterval(() => {
+      const isl = document.getElementById('tournamentName');
+      if(!cDat.tournamentName) return;
+      tSt = (tSt + 1) % 3;
+      if(tSt === 0) isl.innerText = cDat.tournamentName;
+      else if(tSt === 1) isl.innerText = "RUN RATE: " + (cDat.runRate||'0.0');
+      else isl.innerText = cDat.target > 0 ? "TARGET: " + cDat.target : "LIVE BROADCAST";
+    }, 4500);
+
+    function rx(d) {
+      cDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (cSc !== -1) {
+        if (nw > cWk) fireRibbonEvent("WICKET", "linear-gradient(135deg, #e91e63 0%, #ff4081 100%)"); // Magenta
+        else if (ns - cSc === 6) fireRibbonEvent("SIX RUNS", "linear-gradient(135deg, #00b4db 0%, #0083b0 100%)"); // Blue
+        else if (ns - cSc === 4) fireRibbonEvent("BOUNDARY", "linear-gradient(135deg, #fceabb 0%, #f8b500 100%)"); // Gold
+      }
+      cSc = ns; cWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>

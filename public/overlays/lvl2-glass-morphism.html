@@ -2,150 +2,180 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Glass Morphism</title>
+  <title>ScoreX - Lvl 2 Liquid Aura</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
-    body { background: transparent; overflow: hidden; color: #fff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Outfit', sans-serif; text-transform: uppercase; }
 
-    /* Frosted Glass Utilities */
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    /* Keyframe for Liquid Morphing */
+    @keyframes morph {
+      0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
     }
 
-    /* Top Floating Island */
-    #glass-island {
-      position: absolute;
-      top: 25px; left: 50%; transform: translateX(-50%);
-      padding: 8px 30px;
-      border-radius: 30px;
-      font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    /* Big Event Popup */
-    #glass-event {
-      position: absolute;
-      top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-      font-size: 100px; font-weight: 800; color: #fff;
-      padding: 20px 60px; border-radius: 20px;
-      text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    /* Top Floating Badge */
+    #aura-top {
+      position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+      background: rgba(10, 10, 20, 0.6); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50px;
+      padding: 8px 35px; font-size: 15px; font-weight: 700; letter-spacing: 3px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10;
+    }
+
+    /* Aura Event Popup */
+    #aura-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+      background: linear-gradient(45deg, #ff007a, #7a00ff); background-size: 200% 200%;
+      animation: gradientShift 3s ease infinite;
+      color: #fff; padding: 20px 80px; font-size: 90px; font-weight: 900; letter-spacing: 5px;
+      border-radius: 60% 40% 50% 50% / 50% 50% 60% 40%;
+      box-shadow: 0 0 50px rgba(255, 0, 122, 0.6);
       opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    #glass-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #aura-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
-    /* Bottom Score Bar */
-    #glass-bottom {
-      position: absolute;
-      bottom: 30px; left: 50%; transform: translateX(-50%);
-      width: 90%; max-width: 1200px; height: 90px;
-      border-radius: 16px;
-      display: flex; overflow: hidden;
+    /* Bottom Wrapper */
+    #aura-bottom {
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100%; max-width: 1200px;
     }
 
-    .g-section { display: flex; flex-direction: column; justify-content: center; padding: 0 25px; border-right: 1px solid rgba(255,255,255,0.15); }
-    .g-section:last-child { border-right: none; }
+    /* Frosted Glass Wings */
+    .aura-wing {
+      height: 85px; background: rgba(15, 15, 25, 0.6); backdrop-filter: blur(15px);
+      border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 1;
+    }
+    .w-bat { flex: 1; border-radius: 40px 0 0 40px; margin-right: -40px; padding: 0 60px 0 40px; justify-content: space-around; }
+    .w-bowl { min-width: 320px; border-radius: 0 40px 40px 0; margin-left: -40px; padding: 0 40px 0 60px; justify-content: space-between; }
 
-    /* Main Score */
-    .sec-score { min-width: 250px; background: rgba(255,255,255,0.15); }
-    .team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; color: #a8c0ff; }
-    .score-txt { font-size: 40px; font-weight: 800; line-height: 1; margin-top: -2px;}
-    .score-txt span:last-child { font-size: 24px; color: #ffd700; }
-    
-    /* Batsmen */
-    .sec-bat { flex: 1; flex-direction: row; align-items: center; justify-content: space-around; }
-    .batter { display: flex; flex-direction: column; }
-    .b-name { font-size: 20px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.4);}
-    .b-stats { font-size: 20px; font-weight: 800; color: #fff; }
-    .b-balls { font-size: 14px; font-weight: 400; color: #ccc; }
-    
-    .on-strike .b-name { color: #ffd700; }
-    .on-strike .b-name::before { content: '▶ '; font-size: 14px; }
+    /* The Liquid Core (Score) */
+    .liquid-core {
+      width: 190px; height: 190px;
+      background: linear-gradient(45deg, #ff007a, #7a00ff, #00d2ff); background-size: 300% 300%;
+      animation: morph 8s ease-in-out infinite, gradientShift 6s ease infinite;
+      box-shadow: 0 0 40px rgba(122, 0, 255, 0.5), inset 0 0 20px rgba(255,255,255,0.3);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 5; text-align: center; border: 4px solid rgba(255,255,255,0.2);
+    }
 
-    /* Bowler */
-    .sec-bowl { min-width: 250px; }
-    .lbl { font-size: 12px; color: #a8c0ff; text-transform: uppercase; font-weight: 600; margin-bottom: 2px;}
+    /* Typography */
+    .t-lbl { font-size: 24px; font-weight: 900; letter-spacing: 1px; margin-bottom: -5px; text-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+    .s-lbl { font-size: 55px; font-weight: 900; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5);}
+    .s-lbl span { font-size: 28px; color: rgba(255,255,255,0.7); text-shadow: none;}
+    .o-lbl { font-size: 15px; font-weight: 700; background: rgba(0,0,0,0.4); padding: 2px 12px; border-radius: 20px;}
+
+    .grp { display: flex; flex-direction: column; justify-content: center; }
+    .sub { font-size: 11px; color: #a8b2d1; letter-spacing: 2px; margin-bottom: 2px; font-weight: 700;}
+    
+    .p-row { display: flex; align-items: baseline; gap: 12px; }
+    .p-n { font-size: 22px; font-weight: 700; color: #fff; }
+    .p-s { font-size: 38px; font-weight: 900; color: #00d2ff; line-height: 0.9;}
+    .p-b { font-size: 15px; color: #a8b2d1; font-weight: 600;}
+
+    .striker { border-bottom: 2px solid rgba(0, 210, 255, 0.3); padding-bottom: 5px;}
+    .striker .p-s { color: #fff; }
+
+    .w-bowl .p-s { color: #ff007a; }
+
   </style>
 </head>
 <body>
 
-  <div id="glass-island" class="glass-panel">WINTER SERIES T20</div>
-  <div id="glass-event" class="glass-panel"></div>
+  <div id="aura-top"><span id="tournamentName">PREMIUM STREAM</span></div>
+  <div id="aura-event">ACTION</div>
 
-  <div id="glass-bottom" class="glass-panel">
+  <div id="aura-bottom">
     
-    <div class="g-section sec-score">
-      <div id="teamName" class="team-name">TEAM A</div>
-      <div class="score-txt"><span id="teamScore">184</span><span>/</span><span id="teamWickets">5</span> <span style="font-size: 16px; color: #ccc; font-weight: 600; margin-left: 5px;">(<span id="teamOvers">18.2</span>)</span></div>
+    <div class="aura-wing w-bat">
+      <div class="grp striker">
+        <div class="p-row">
+          <span style="color:#00d2ff; font-size:16px;">▶</span>
+          <span id="strikerName" class="p-n">Striker</span>
+          <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
+        </div>
+      </div>
+      <div class="grp" style="opacity: 0.6;">
+        <div class="p-row" style="padding-left: 20px;">
+          <span id="nonStrikerName" class="p-n">Non-Striker</span>
+          <div><span id="nonStrikerRuns" class="p-s" style="font-size: 30px;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
+        </div>
+      </div>
     </div>
 
-    <div class="g-section sec-bat">
-      <div class="batter on-strike">
-        <span id="strikerName" class="b-name">J. Bairstow</span>
-        <div><span id="strikerRuns" class="b-stats">76</span> <span class="b-balls">(<span id="strikerBalls">41</span>)</span></div>
-      </div>
-      <div class="batter">
-        <span id="nonStrikerName" class="b-name" style="color: #ddd;">L. Livingstone</span>
-        <div><span id="nonStrikerRuns" class="b-stats" style="color: #ddd;">22</span> <span class="b-balls">(<span id="nonStrikerBalls">14</span>)</span></div>
-      </div>
+    <div class="liquid-core">
+      <div id="teamName" class="t-lbl">TEAM</div>
+      <div class="s-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+      <div class="o-lbl">OV <span id="teamOvers">0.0</span></div>
     </div>
 
-    <div class="g-section sec-bowl">
-      <span class="lbl">Current Bowler</span>
-      <span id="bowlerName" class="b-name">Rashid Khan</span>
-      <div>
-        <span class="b-stats" style="color: #4cd137;"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">34</span></span>
-        <span class="b-balls" style="margin-left: 5px;">(<span id="bowlerOvers">3.2</span>)</span>
+    <div class="aura-wing w-bowl">
+      <div class="grp">
+        <span class="sub">ACTIVE BOWLER</span>
+        <span id="bowlerName" class="p-n">Bowler Name</span>
+      </div>
+      <div style="text-align: right;">
+        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+        <div class="p-b" style="color:#fff;">OVERS <span id="bowlerOvers">0.0</span></div>
       </div>
     </div>
 
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
-  <script>
-    let cScore = -1, cWkts = -1, state = 0, glData = {};
-    const set = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.innerText = val; };
 
-    function showPopup(text, color) {
-      const p = document.getElementById('glass-event');
-      p.innerText = text; p.style.color = color;
-      p.classList.add('show');
-      setTimeout(() => p.classList.remove('show'), 3000);
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, lDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireAuraEvent(txt, grad) {
+      const e = document.getElementById('aura-event');
+      e.innerText = txt; 
+      e.style.background = `linear-gradient(45deg, ${grad})`;
+      e.classList.remove('show');
+      void e.offsetWidth; 
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 3000);
     }
 
     setInterval(() => {
-      const isl = document.getElementById('glass-island');
-      if(!glData.tournamentName) return;
-      state = (state + 1) % 3;
-      if(state === 0) isl.innerText = glData.tournamentName;
-      else if(state === 1) isl.innerText = glData.target > 0 ? "TARGET: " + glData.target : "CRR: " + (glData.runRate || '0.0');
-      else isl.innerText = "BATTING: " + glData.team1Name;
-    }, 5000);
+      const isl = document.getElementById('tournamentName');
+      if(!lDat.tournamentName) return;
+      let st = Math.floor(Date.now() / 4500) % 3;
+      if(st === 0) isl.innerText = lDat.tournamentName;
+      else if(st === 1) isl.innerText = "RATE: " + (lDat.runRate||'0.0');
+      else isl.innerText = lDat.target > 0 ? "CHASING: " + lDat.target : "FLUID DYNAMICS";
+    }, 4500);
 
-    function updateGlass(d) {
-      glData = d;
-      set('teamName', d.team1Name); set('teamScore', d.team1Score); set('teamWickets', d.team1Wickets); set('teamOvers', d.team1Overs);
-      set('strikerName', d.strikerName); set('strikerRuns', d.strikerRuns); set('strikerBalls', d.strikerBalls);
-      set('nonStrikerName', d.nonStrikerName); set('nonStrikerRuns', d.nonStrikerRuns); set('nonStrikerBalls', d.nonStrikerBalls);
-      set('bowlerName', d.bowlerName); set('bowlerRuns', d.bowlerRuns); set('bowlerWickets', d.bowlerWickets); set('bowlerOvers', d.bowlerOvers);
+    function rx(d) {
+      lDat = d;
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (cScore !== -1) {
-        if (nw > cWkts) showPopup("WICKET!", "#ff4757");
-        else if (ns - cScore === 6) showPopup("SIX!", "#1e90ff");
-        else if (ns - cScore === 4) showPopup("FOUR!", "#2ed573");
+      if (pSc !== -1) {
+        if (nw > pWk) fireAuraEvent("WICKET", "#ff0000, #990000");
+        else if (ns - pSc === 6) fireAuraEvent("SIX RUNS", "#00d2ff, #3a7bd5");
+        else if (ns - pSc === 4) fireAuraEvent("BOUNDARY", "#ff9a9e, #fecfef");
       }
-      cScore = ns; cWkts = nw;
+      pSc = ns; pWk = nw;
     }
 
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') updateGlass(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') updateGlass(e.data.data); };
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
   </script>
 </body>
 </html>

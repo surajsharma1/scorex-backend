@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 2 Global Ticker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: transparent; overflow: hidden; font-family: 'Roboto', sans-serif; color: #fff; text-transform: uppercase; }
+
+    /* Top Live Bug */
+    #nw-top {
+      position: absolute; top: 20px; left: 30px;
+      background: #cc0000; color: #fff;
+      padding: 5px 15px; font-family: 'Oswald', sans-serif; font-size: 18px; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 8px; box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    }
+    .pulse-dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.3; } }
+
+    /* Event Dropdown */
+    #nw-event {
+      position: absolute; bottom: 125px; left: 15%; 
+      background: #ffcc00; color: #000;
+      font-family: 'Oswald', sans-serif; font-size: 60px; font-weight: 700;
+      padding: 0 40px; transform: translateY(100%); opacity: 0; z-index: 1;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border-radius: 8px 8px 0 0;
+    }
+    #nw-event.show { transform: translateY(0); opacity: 1; }
+
+    /* Full Bleed Bottom Wrapper */
+    #nw-wrapper {
+      position: absolute; bottom: 25px; left: 0; width: 100vw;
+      display: flex; flex-direction: column; z-index: 10;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.6);
+    }
+
+    /* Main Stats Bar */
+    .nw-main-bar {
+      height: 75px; display: flex; align-items: stretch; width: 100%;
+    }
+
+    .nw-panel { display: flex; align-items: center; padding: 0 25px; }
+    
+    .p-team { background: #0a192f; min-width: 15%; justify-content: center; border-right: 1px solid rgba(255,255,255,0.2);}
+    .p-score { background: #0a192f; min-width: 25%; justify-content: space-between; border-right: 2px solid #cc0000;}
+    .p-bat { background: #f4f4f4; color: #111; flex: 1; justify-content: space-around; border-right: 1px solid #ccc;}
+    .p-bowl { background: #e0e0e0; color: #111; min-width: 20%; justify-content: space-between; }
+
+    /* Moving Ticker Tape */
+    .nw-ticker-bar {
+      height: 25px; background: #cc0000; width: 100%; overflow: hidden; display: flex; align-items: center;
+      border-bottom: 2px solid #990000;
+    }
+    .ticker-wrap { white-space: nowrap; animation: scrollLeft 25s linear infinite; display: flex; gap: 50px; }
+    .ticker-item { font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 1px; }
+    @keyframes scrollLeft { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
+    /* Typography */
+    .tm-n { font-family: 'Oswald', sans-serif; font-size: 38px; font-weight: 700; letter-spacing: 1px;}
+    .sc-v { font-family: 'Oswald', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.8;}
+    .sc-v span { font-size: 32px; color: #8892b0; }
+    .ov-v { font-size: 16px; font-weight: 700; color: #ffcc00; margin-left: 15px;}
+
+    .ply-grp { display: flex; flex-direction: column; }
+    .ply-n { font-size: 20px; font-weight: 900; }
+    .ply-s { font-family: 'Oswald', sans-serif; font-size: 34px; line-height: 0.9; color: #0a192f;}
+    .ply-b { font-size: 14px; font-weight: 700; color: #666; }
+    
+    .on-strike { color: #cc0000; margin-right: 5px; font-size: 14px;}
+    
+    .lbl { font-size: 11px; font-weight: 900; color: #888; margin-bottom: 2px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="nw-top"><div class="pulse-dot"></div> <span id="tournamentName">LIVE COVERAGE</span></div>
+  
+  <div id="nw-event">WICKET!</div>
+
+  <div id="nw-wrapper">
+    <div class="nw-main-bar">
+      <div class="nw-panel p-team">
+        <div id="teamName" class="tm-n">TEAM</div>
+      </div>
+      <div class="nw-panel p-score">
+        <div class="sc-v"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov-v">OVERS <span id="teamOvers">0.0</span></div>
+      </div>
+      
+      <div class="nw-panel p-bat">
+        <div class="ply-grp">
+          <div><span class="on-strike">▶</span><span id="strikerName" class="ply-n">Striker</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span id="strikerRuns" class="ply-s">0</span> <span class="ply-b">(<span id="strikerBalls">0</span>)</span>
+          </div>
+        </div>
+        <div class="ply-grp" style="opacity: 0.6;">
+          <span id="nonStrikerName" class="ply-n" style="margin-left:14px;">Non-Striker</span>
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <span id="nonStrikerRuns" class="ply-s">0</span> <span class="ply-b">(<span id="nonStrikerBalls">0</span>)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nw-panel p-bowl">
+        <div class="ply-grp">
+          <span class="lbl">BOWLER</span>
+          <span id="bowlerName" class="ply-n">Bowler</span>
+        </div>
+        <div style="text-align: right;">
+          <div class="ply-s" style="color: #cc0000;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
+          <div class="ply-b" style="color:#111;">OVERS <span id="bowlerOvers">0.0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nw-ticker-bar">
+      <div class="ticker-wrap">
+        <div class="ticker-item" id="ticker-1">GLOBAL SPORTS NETWORK • LIVE CRICKET COVERAGE</div>
+        <div class="ticker-item" id="ticker-2">CURRENT RUN RATE: 0.00</div>
+        <div class="ticker-item" id="ticker-3">FIRST INNINGS</div>
+        <div class="ticker-item">STAY TUNED FOR MORE UPDATES • SCOREX BROADCAST ENGINE</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.6); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
+
+  <script>
+    let pSc = -1, pWk = -1, nwDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function fireNewsEvent(txt, bg, color) {
+      const e = document.getElementById('nw-event');
+      e.innerText = txt; 
+      e.style.background = bg; e.style.color = color;
+      e.classList.add('show');
+      setTimeout(() => e.classList.remove('show'), 3500);
+    }
+
+    function rx(d) {
+      nwDat = d;
+      inject('tournamentName', d.tournamentName || 'LIVE COVERAGE');
+      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+
+      // Update Ticker Dynamically
+      inject('ticker-1', `${d.tournamentName || 'GLOBAL SPORTS MATCH'} • EXCLUSIVE LIVE COVERAGE`);
+      inject('ticker-2', `CURRENT RUN RATE: ${d.runRate || '0.00'}`);
+      inject('ticker-3', d.target > 0 ? `TARGET CHASE: ${d.target} RUNS TO WIN` : `BATTING FIRST INNINGS`);
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1) {
+        if (nw > pWk) fireNewsEvent("BREAKING: WICKET", "#cc0000", "#fff");
+        else if (ns - pSc === 6) fireNewsEvent("HUGE SIX!", "#0a192f", "#fff");
+        else if (ns - pSc === 4) fireNewsEvent("FOUR RUNS", "#ffcc00", "#000");
+      }
+      pSc = ns; pWk = nw;
+    }
+
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+  </script>
+</body>
+</html>
