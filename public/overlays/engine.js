@@ -120,15 +120,40 @@
 
   // FALLBACK DEMO DATA
 function getDemoData() {
+    // Parse progress param for demo simulation ?progress=50%
+    const urlParams = new URLSearchParams(window.location.search);
+    const progressStr = urlParams.get('progress');
+    let progress = 0.69; // default ~69%
+    const target = 180;
+    let team1Score = Math.round(target * progress);
+    let team1Wickets = Math.round(10 * progress);
+    let strikerRuns = Math.round(68 * progress);
+    let nonStrikerRuns = Math.round(32 * progress);
+    let bowlerRuns = Math.round(45 * progress);
+    let bowlerWickets = Math.round(2 * progress);
+
+    if (progressStr && progressStr.endsWith('%')) {
+      const p = parseFloat(progressStr);
+      if (!isNaN(p) && p >= 0 && p <= 100) {
+        progress = p / 100;
+        team1Score = Math.round(target * progress);
+        team1Wickets = Math.max(0, Math.round(10 * progress));
+        strikerRuns = Math.round(68 * progress);
+        nonStrikerRuns = Math.round(32 * progress);
+        bowlerRuns = Math.round(45 * progress);
+        bowlerWickets = Math.max(0, Math.round(2 * progress));
+      }
+    }
+
     return {
       matchName: 'ScoreX Premium Showcase',
       tournamentName: 'MEMBERSHIP DEMO',
       team1Name: 'PREMIUM BATS',
-      team1Score: 124, team1Wickets: 3, team1Overs: '14.2',
-      strikerName: 'V Kohli', strikerRuns: 68, strikerBalls: 42,
-      nonStrikerName: 'R Sharma', nonStrikerRuns: 32, nonStrikerBalls: 28,
-      bowlerName: 'J Anderson', bowlerRuns: 45, bowlerWickets: 2, bowlerOvers: '3.4',
-      target: 180, runRate: '8.44', requiredRunRate: '9.23'
+      team1Score: team1Score, team1Wickets: team1Wickets, team1Overs: '14.2',
+      strikerName: 'V Kohli', strikerRuns: strikerRuns, strikerBalls: 42,
+      nonStrikerName: 'R Sharma', nonStrikerRuns: nonStrikerRuns, nonStrikerBalls: 28,
+      bowlerName: 'J Anderson', bowlerRuns: bowlerRuns, bowlerWickets: bowlerWickets, bowlerOvers: '3.4',
+      target: target, runRate: '8.44', requiredRunRate: '9.23'
     };
   }
 
