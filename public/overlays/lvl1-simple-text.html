@@ -2,133 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Minimal Transparent</title>
+  <title>ScoreX - Lvl 1 Simple Circular</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@500;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
-    body { background: transparent; overflow: hidden; color: #fff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #ffffff; }
 
-    /* Universal Text Shadow for Readability */
-    .txt-shadow { text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 4px 15px rgba(0,0,0,0.8); }
-
-    /* Top Floating Island */
-    #transp-island {
+    /* Top Pill Island */
+    #circ-island {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      color: #ffeb3b;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #38bdf8; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      padding: 8px 30px; border-radius: 40px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     }
 
-    /* Snappy Event Popup */
-    #transp-event {
+    /* Circular Event Popup */
+    #circ-event {
       position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
-      font-size: 140px; font-weight: 900; color: #fff; text-transform: uppercase;
-      opacity: 0; transition: all 0.2s cubic-bezier(0.25, 1.5, 0.5, 1);
+      width: 250px; height: 250px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.95); border: 4px solid #38bdf8;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font-size: 48px; font-weight: 800; text-transform: uppercase; color: #fff;
+      box-shadow: 0 0 40px rgba(56, 189, 248, 0.5);
+      opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    #transp-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #circ-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
-    /* Bottom Transparent Bar */
-    #transp-bottom {
-      position: absolute; bottom: 20px; left: 5%; width: 90%; height: 85px;
-      display: flex; align-items: flex-end; justify-content: space-between;
+    /* Bottom Assembly */
+    #circ-bottom {
+      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; gap: 20px;
+      width: 100%;
     }
 
-    /* Score Area */
-    .t-score-block { display: flex; align-items: baseline; gap: 15px; }
-    .t-team { font-size: 48px; font-weight: 900; color: #ffeb3b; line-height: 0.8;}
-    .t-sc { font-size: 70px; font-weight: 900; line-height: 0.75; }
-    .t-sc span { font-size: 40px; color: #ccc; }
-    .t-ov { font-size: 20px; font-weight: 700; color: #aaa;}
+    /* Floating Pill Panels */
+    .pill-panel {
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 50px;
+      padding: 10px 30px; display: flex; align-items: center; justify-content: space-around;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      min-width: 320px; height: 75px;
+    }
 
-    /* Player Area */
-    .t-bat-block { display: flex; gap: 40px; align-items: flex-end; }
-    .p-col { display: flex; flex-direction: column; align-items: center; }
-    .p-nm { font-size: 22px; font-weight: 700; }
-    .p-st { font-size: 32px; font-weight: 900; line-height: 0.9;}
-    .p-bl { font-size: 16px; color: #ccc; }
+    /* Central Score Circle */
+    .score-circle {
+      width: 150px; height: 150px; border-radius: 50%;
+      background: radial-gradient(circle at top, #1e293b, #0f172a);
+      border: 3px solid #38bdf8;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 0 20px rgba(56, 189, 248, 0.2);
+      z-index: 10; margin-bottom: 20px; /* Pushes it slightly up */
+    }
+
+    /* Typography inside modules */
+    .tm-acr { font-size: 22px; font-weight: 800; color: #38bdf8; line-height: 1; margin-bottom: 2px;}
+    .sc-main { font-size: 42px; font-weight: 800; line-height: 1; color: #fff; }
+    .sc-main span { font-size: 22px; color: #94a3b8; }
+    .ov-txt { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-top: 2px;}
+
+    .grp { display: flex; align-items: baseline; gap: 8px;}
+    .p-name { font-size: 18px; font-weight: 600; color: #f8fafc; }
+    .p-stat { font-size: 24px; font-weight: 700; color: #fff; }
+    .p-sub { font-size: 13px; font-weight: 400; color: #94a3b8; }
     
-    .strike { color: #ffeb3b; }
-    .strike .p-st { color: #ffeb3b; }
+    .striker { color: #facc15; }
+    .striker .p-stat { color: #facc15; }
 
-    /* Bowler Area */
-    .t-bowl-block { display: flex; flex-direction: column; align-items: flex-end; }
-    .b-lbl { font-size: 14px; color: #00e5ff; font-weight: 700; letter-spacing: 1px; margin-bottom: -5px;}
-    .b-row { display: flex; align-items: baseline; gap: 15px; }
+    .bowl-hl { color: #f43f5e; }
+
+    /* Vertical Divider for Pills */
+    .v-div { width: 1px; height: 40px; background: rgba(255,255,255,0.1); margin: 0 15px; }
+
   </style>
 </head>
 <body>
 
-  <div id="transp-island" class="txt-shadow">LIVE BROADCAST</div>
-  <div id="transp-event" class="txt-shadow"></div>
+  <div id="circ-island"><span id="tournamentName">LIVE MATCH</span></div>
+  <div id="circ-event"></div>
 
-  <div id="transp-bottom">
+  <div id="circ-bottom">
     
-    <div class="t-score-block txt-shadow">
-      <div id="teamName" class="t-team">TEAM</div>
-      <div class="t-sc"><span id="teamScore">224</span><span>/</span><span id="teamWickets">2</span></div>
-      <div class="t-ov">OV <span id="teamOvers">18.5</span></div>
-    </div>
-
-    <div class="t-bat-block txt-shadow">
-      <div class="p-col strike">
-        <span id="strikerName" class="p-nm">▶ Batter 1</span>
-        <div><span id="strikerRuns" class="p-st">104</span> <span class="p-bl">(<span id="strikerBalls">52</span>)</span></div>
+    <div class="pill-panel">
+      <div class="grp striker">
+        <span style="font-size:12px; margin-right:-4px;">▶</span>
+        <span id="strikerName" class="p-name" style="color:#facc15;">Striker</span>
+        <span id="strikerRuns" class="p-stat">0</span>
+        <span class="p-sub">(<span id="strikerBalls">0</span>)</span>
       </div>
-      <div class="p-col" style="opacity: 0.8;">
-        <span id="nonStrikerName" class="p-nm">Batter 2</span>
-        <div><span id="nonStrikerRuns" class="p-st">24</span> <span class="p-bl">(<span id="nonStrikerBalls">15</span>)</span></div>
+      <div class="v-div"></div>
+      <div class="grp" style="opacity: 0.7;">
+        <span id="nonStrikerName" class="p-name">NonStrk</span>
+        <span id="nonStrikerRuns" class="p-stat" style="font-size: 20px;">0</span>
       </div>
     </div>
 
-    <div class="t-bowl-block txt-shadow">
-      <span class="b-lbl">CURRENT BOWLER</span>
-      <div class="b-row">
-        <span id="bowlerName" class="p-nm">Bowler Name</span>
-        <span class="p-st" style="color: #00e5ff;"><span id="bowlerWickets">1</span>-<span id="bowlerRuns">38</span></span>
-        <span class="p-bl">Ov <span id="bowlerOvers">3.5</span></span>
+    <div class="score-circle">
+      <div id="teamName" class="tm-acr">TEAM</div>
+      <div class="sc-main"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+      <div class="ov-txt">OV <span id="teamOvers">0.0</span></div>
+    </div>
+
+    <div class="pill-panel">
+      <div style="display:flex; flex-direction:column; align-items:flex-start; line-height: 1.2;">
+        <span class="p-sub" style="color:#38bdf8; font-weight:700; text-transform:uppercase;">Bowler</span>
+        <span id="bowlerName" class="p-name">Bowler Name</span>
+      </div>
+      <div class="v-div"></div>
+      <div class="grp">
+        <span class="p-stat bowl-hl"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+        <span class="p-sub">Ov <span id="bowlerOvers">0.0</span></span>
       </div>
     </div>
 
   </div>
 
-  <script>
-    let tSc = -1, tWk = -1, tSt = 0, tDat = {};
-    const pd = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
+    https://scorex-live.vercel.app/
+  </div>
 
-    function popT(txt, col) {
-      const e = document.getElementById('transp-event');
-      e.innerText = txt; e.style.color = col;
+  <script>
+    let pSc = -1, pWk = -1, iState = 0, cDat = {};
+    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
+
+    function popCircle(txt, color) {
+      const e = document.getElementById('circ-event');
+      e.innerText = txt; 
+      e.style.borderColor = color; 
+      e.style.boxShadow = `0 0 40px ${color}80`; /* adds 50% opacity to hex */
       e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 2500);
+      setTimeout(() => e.classList.remove('show'), 2800);
     }
 
     setInterval(() => {
-      const isl = document.getElementById('transp-island');
-      if(!tDat.tournamentName) return;
-      tSt = (tSt + 1) % 3;
-      if(tSt === 0) isl.innerText = tDat.tournamentName;
-      else if(tSt === 1) isl.innerText = "RUN RATE: " + (tDat.runRate||'0.0');
-      else isl.innerText = tDat.target > 0 ? "TARGET: " + tDat.target : "FIRST INNINGS";
-    }, 4000);
+      const isl = document.getElementById('tournamentName');
+      if(!cDat.tournamentName) return;
+      iState = (iState + 1) % 3;
+      if(iState === 0) isl.innerText = cDat.tournamentName;
+      else if(iState === 1) isl.innerText = "CRR: " + (cDat.runRate||'0.0');
+      else isl.innerText = cDat.target > 0 ? "TARGET: " + cDat.target : "1ST INNINGS";
+    }, 4500);
 
-    function rx(d) {
-      tDat = d;
-      pd('teamName', d.team1Name); pd('teamScore', d.team1Score); pd('teamWickets', d.team1Wickets); pd('teamOvers', d.team1Overs);
-      pd('strikerName', "▶ " + (d.strikerName || '')); pd('strikerRuns', d.strikerRuns); pd('strikerBalls', d.strikerBalls);
-      pd('nonStrikerName', d.nonStrikerName); pd('nonStrikerRuns', d.nonStrikerRuns); pd('nonStrikerBalls', d.nonStrikerBalls);
-      pd('bowlerName', d.bowlerName); pd('bowlerRuns', d.bowlerRuns); pd('bowlerWickets', d.bowlerWickets); pd('bowlerOvers', d.bowlerOvers);
+    function processData(d) {
+      cDat = d;
+      // Truncate team name for circular fit if needed
+      let tName = d.team1Name || 'TM';
+      if(tName.length > 12) tName = tName.substring(0, 3).toUpperCase();
+      
+      inject('teamName', tName); 
+      inject('teamScore', d.team1Score); 
+      inject('teamWickets', d.team1Wickets); 
+      inject('teamOvers', d.team1Overs);
+      
+      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
+      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns);
+      
+      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (tSc !== -1) {
-        if (nw > tWk) popT("WICKET", "#ff3333");
-        else if (ns - tSc === 6) popT("SIX RUNS", "#00e5ff");
-        else if (ns - tSc === 4) popT("BOUNDARY", "#ffeb3b");
+      if (pSc !== -1) {
+        if (nw > pWk) popCircle("WICKET", "#f43f5e"); // Red
+        else if (ns - pSc === 6) popCircle("SIX", "#38bdf8"); // Blue
+        else if (ns - pSc === 4) popCircle("FOUR", "#facc15"); // Yellow
       }
-      tSc = ns; tWk = nw;
+      pSc = ns; pWk = nw;
     }
 
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
+    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); };
   </script>
 </body>
 </html>

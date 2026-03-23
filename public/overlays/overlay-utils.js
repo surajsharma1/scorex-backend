@@ -1,21 +1,18 @@
-// ========== UNIFIED DATA NORMALIZER (ENHANCED WITH VALIDATION) ==========
-// Flattens Mongoose document for HTML templates + guards against invalid array lengths/bad data
-
+// ========== UNIFIED DATA NORMALIZER (ENHANCED WITH VALIDATION & FALLBACKS) ==========
 window.normalizeScoreData = function(data) {
     if (!data) {
         console.warn('[OVERLAY UTILS] No data provided to normalizer');
         return {
             matchName: 'No Data',
-            team1Name: 'Team 1',
-            team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
+            tournamentName: 'SCOREX LIVE',
+            team1Name: 'Team 1', team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
             strikerName: '', strikerRuns: 0, strikerBalls: 0,
             nonStrikerName: '', nonStrikerRuns: 0, nonStrikerBalls: 0,
-            bowlerName: '', bowlerRuns: 0, bowlerWickets: 0, bowlerOvers: '0.0',
+            bowlerName: 'Waiting Bowler...', bowlerRuns: 0, bowlerWickets: 0, bowlerOvers: '0.0',
             target: 0, runRate: '0.00', requiredRunRate: '0.00'
         };
     }
 
-    // SAFE DEFAULTS
     let t1Score = Math.max(0, Number(data.team1Score) || 0);
     let t1Wickets = Math.max(0, Number(data.team1Wickets) || 0);
     let t1Overs = data.team1Overs || '0.0';
@@ -29,33 +26,23 @@ window.normalizeScoreData = function(data) {
     let target = Math.max(0, Number(data.target) || 0);
     let runRate = '0.00', reqRunRate = '0.00';
 
-    // 🛡️ VALIDATE INNINGS ARRAY BEFORE ACCESS
+    // GUARANTEED FALLBACKS FOR MISSING DATA
+    let safeBowlerName = data.currentBowlerName || data.bowlerName || 'Bowler';
+    const safeTournamentName = data.tournament?.name || data.tournamentName || data.name || 'SCOREX LIVE';
+
     let validInning = null;
     if (data.innings && Array.isArray(data.innings) && data.innings.length > 0) {
-        // CLAMP INDEX TO VALID RANGE
-        // EXTRA CLAMP vs RangeError - ensure valid length param
         const rawIdx = Number(data.currentInnings || 1) - 1;
-
-        const safeIdx = Math.max(0, Math.min(inningsLen - 1, Math.floor(rawIdx)));
-        const safeIdx = Math.max(0, Math.min(data.innings.length - 1, rawIdx));
-        
-        if (rawIdx !== safeIdx || isNaN(rawIdx)) {
-            console.warn('[OVERLAY UTILS] Invalid currentInnings:', data.currentInnings, 
-                        '- clamped to safe index:', safeIdx, 'for match:', data.name || data._id);
-        }
+        const safeIdx = Math.max(0, Math.min(data.innings.length - 1, isNaN(rawIdx) ? 0 : rawIdx));
         
         validInning = data.innings[safeIdx];
         
-        // VALIDATE INNING FIELDS
-        if (validInning.score != null && (isNaN(validInning.score) || validInning.score < 0)) {
-            console.warn('[OVERLAY UTILS] Invalid score in innings:', validInning.score);
-            validInning.score = 0;
-        }
+        if (validInning.score != null && (isNaN(validInning.score) || validInning.score < 0)) validInning.score = 0;
+        
         t1Score = Math.max(0, Number(validInning.score) || 0);
         t1Wickets = Math.max(0, Number(validInning.wickets) || 0);
         t1Overs = validInning.overs != null ? String(validInning.overs) : '0.0';
         
-        // STRIKER/NON-STRIKER SAFE LOOKUP
         if (validInning.batsmen && Array.isArray(validInning.batsmen)) {
             const striker = validInning.batsmen.find(b => b && b.name === data.strikerName) || {};
             sRuns = Math.max(0, Number(striker.runs) || 0);
@@ -66,52 +53,40 @@ window.normalizeScoreData = function(data) {
             nsBalls = Math.max(0, Number(nonStriker.balls) || 0);
         }
         
-        // BOWLER SAFE LOOKUP - Enhanced like batsmen
         if (validInning.bowlers && Array.isArray(validInning.bowlers)) {
             const bowler = validInning.bowlers.find(b => b && b.name === data.currentBowlerName) || { name: data.currentBowlerName || '' };
             bRuns = Math.max(0, Number(bowler.runs) || 0);
             bWickets = Math.max(0, Number(bowler.wickets) || 0);
             
-            // SAFE OVERS FORMAT
             const bowlerBalls = Math.max(0, Number(bowler.balls) || 0);
             const bowlerOversNum = Math.floor(bowlerBalls / 6);
             const ballsInOver = bowlerBalls % 6;
             bOvers = bowlerBalls > 0 ? `${bowlerOversNum}.${ballsInOver}` : '0.0';
             
-            // Ensure bowlerName always has value from currentBowlerName fallback
-            data.currentBowlerName = bowler.name || data.currentBowlerName || 'Bowler';
+            if (bowler.name) safeBowlerName = bowler.name;
         }
         
         if (validInning.targetScore) target = Math.max(0, Number(validInning.targetScore));
         if (validInning.runRate != null) runRate = Number(validInning.runRate).toFixed(2);
         if (validInning.requiredRunRate != null) reqRunRate = Number(validInning.requiredRunRate).toFixed(2);
-    } else {
-        console.warn('[OVERLAY UTILS] No valid innings data for match:', data.name || data._id);
     }
 
-    // SAFE MATCH NAME
-    const computedMatchName = data.name || 
-        `${data.team1Name || data.team1?.name || 'Team 1'} vs ${data.team2Name || data.team2?.name || 'Team 2'}` || 
-        'Live Match';
+    const computedMatchName = data.name || `${data.team1Name || 'Team 1'} vs ${data.team2Name || 'Team 2'}` || 'Live Match';
 
     return {
         matchName: computedMatchName,
-        tournamentName: data.tournament?.name || data.tournamentName || 'Live Match',
+        tournamentName: safeTournamentName,
         team1Name: data.battingTeamName || data.team1Name || data.team1?.name || 'Team 1',
         team1Score: t1Score,
         team1Wickets: t1Wickets,
         team1Overs: t1Overs,
-        team2Name: data.bowlingTeamName || data.team2Name || data.team2?.name || 'Team 2',
-        team2Score: Number(data.team2Score) || 0,
-        team2Wickets: Math.max(0, Number(data.team2Wickets) || 0),
-        team2Overs: data.team2Overs || '0.0',
         strikerName: data.strikerName || '',
         strikerRuns: sRuns,
         strikerBalls: sBalls,
         nonStrikerName: data.nonStrikerName || '',
         nonStrikerRuns: nsRuns,
         nonStrikerBalls: nsBalls,
-        bowlerName: data.currentBowlerName || data.bowlerName || '',
+        bowlerName: safeBowlerName,
         bowlerRuns: bRuns,
         bowlerWickets: bWickets,
         bowlerOvers: bOvers,
@@ -122,14 +97,3 @@ window.normalizeScoreData = function(data) {
         _raw: data
     };
 };
-
-// SAFE DOM UPDATE HELPER
-window.safeSetText = function(id, text) {
-    const el = document.getElementById(id);
-    if (el && text != null && !isNaN(Number(text)) === false || typeof text === 'string') {
-        el.textContent = String(text);
-    }
-};
-
-console.log('[OVERLAY UTILS] Enhanced normalizer loaded with array length guards');
-
