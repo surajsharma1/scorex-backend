@@ -69,12 +69,11 @@ const createOverlay = async (req, res) => {
             res.status(401).json({ message: 'Not authenticated' });
             return;
         }
-        // Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
-        // const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
-        // if (!membership.hasMembership && !membership.isAdmin) {
-        //   res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
-        //   return;
-        // }
+        const membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
+        if (!membership.hasMembership && !membership.isAdmin) {
+            res.status(403).json({ message: 'Premium membership required for overlay creation', requiresMembership: true, currentLevel: membership.level });
+            return;
+        }
         const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
         if (!name?.trim()) {
             res.status(400).json({ message: 'Overlay name is required' });
@@ -188,37 +187,33 @@ const deleteOverlay = async (req, res) => {
 exports.deleteOverlay = deleteOverlay;
 // ─── getOverlayTemplates ──────────────────────────────────────────────────────
 const getOverlayTemplates = async (req, res) => {
-    res.json([
-        { id: 'lvl1-broadcast-bar', name: 'Level 1: Broadcast Bar', url: '/overlays/lvl1-broadcast-bar.html', level: 1 },
-        { id: 'lvl1-curved-compact', name: 'Level 1: Curved Compact', url: '/overlays/lvl1-curved-compact.html', level: 1 },
-        { id: 'lvl1-dark-angular', name: 'Level 1: Dark Angular', url: '/overlays/lvl1-dark-angular.html', level: 1 },
-        { id: 'lvl1-grass-theme', name: 'Level 1: Grass Theme', url: '/overlays/lvl1-grass-theme.html', level: 1 },
-        { id: 'lvl1-high-vis', name: 'Level 1: High Visibility', url: '/overlays/lvl1-high-vis.html', level: 1 },
-        { id: 'lvl1-minimal-dark', name: 'Level 1: Minimal Dark', url: '/overlays/lvl1-minimal-dark.html', level: 1 },
-        { id: 'lvl1-modern-bar', name: 'Level 1: Modern Bar', url: '/overlays/lvl1-modern-bar.html', level: 1 },
-        { id: 'lvl1-modern-blue', name: 'Level 1: Modern Blue', url: '/overlays/lvl1-modern-blue.html', level: 1 },
-        { id: 'lvl1-paper-style', name: 'Level 1: Paper Style', url: '/overlays/lvl1-paper-style.html', level: 1 },
-        { id: 'lvl1-red-card', name: 'Level 1: Red Card', url: '/overlays/lvl1-red-card.html', level: 1 },
-        { id: 'lvl1-retro-board', name: 'Level 1: Retro Board', url: '/overlays/lvl1-retro-board.html', level: 1 },
-        { id: 'lvl1-side-panel', name: 'Level 1: Side Panel', url: '/overlays/lvl1-side-panel.html', level: 1 },
-        { id: 'lvl1-simple-text', name: 'Level 1: Simple Text', url: '/overlays/lvl1-simple-text.html', level: 1 },
-        { id: 'lvl2-broadcast-pro', name: 'Level 2: Broadcast Pro', url: '/overlays/lvl2-broadcast-pro.html', level: 2 },
-        { id: 'lvl2-fluid-ribbon', name: 'Level 2: Fluid Ribbon', url: '/overlays/lvl2-Fluid-Ribbon.html', level: 2 },
-        { id: 'lvl2-cyber-glitch', name: 'Level 2: Cyber Glitch', url: '/overlays/lvl2-cyber-glitch.html', level: 2 },
-        { id: 'lvl2-global-sports-ticker', name: 'Level 2: Global Sports Ticker', url: '/overlays/lvl2-Global-Sports-Ticker.html', level: 2 },
-        { id: 'lvl2-glass-morphism', name: 'Level 2: Glass Morphism', url: '/overlays/lvl2-glass-morphism.html', level: 2 },
-        { id: 'lvl2-gold-rush', name: 'Level 2: Gold Rush', url: '/overlays/lvl2-gold-rush.html', level: 2 },
-        { id: 'lvl2-hologram', name: 'Level 2: Hologram', url: '/overlays/lvl2-hologram.html', level: 2 },
-        { id: 'lvl2-matrix-rain', name: 'Level 2: Matrix Rain', url: '/overlays/lvl2-matrix-rain.html', level: 2 },
-        { id: 'lvl2-neon-pulse', name: 'Level 2: Neon Pulse', url: '/overlays/lvl2-neon-pulse.html', level: 2 },
-        { id: 'lvl2-particle-storm', name: 'Level 2: Particle Storm', url: '/overlays/lvl2-particle-storm.html', level: 2 },
-        { id: 'lvl2-rgb-split', name: 'Level 2: RGB Split', url: '/overlays/lvl2-rgb-split.html', level: 2 },
-        { id: 'lvl2-mechanical-belt', name: 'Level 2: Mechanical Belt', url: '/overlays/lvl2-Mechanical-belt.html', level: 2 },
-        { id: 'lvl2-tech-hud', name: 'Level 2: Tech HUD', url: '/overlays/lvl2-tech-hud.html', level: 2 },
-        { id: 'lvl2-thunder-strike', name: 'Level 2: Thunder Strike', url: '/overlays/lvl2-thunder-strike.html', level: 2 },
-        { id: 'lvl2-vinyl-spin', name: 'Level 2: Vinyl Spin', url: '/overlays/lvl2-vinyl-spin.html', level: 2 },
-        { id: 'lvl2-water-flow', name: 'Level 2: Water Flow', url: '/overlays/lvl2-water-flow.html', level: 2 },
-    ]);
+    try {
+        let membership = { level: 0, isAdmin: false };
+        if (req.user?.id) {
+            membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
+        }
+        const overlaysDir = path_1.default.join(process.cwd(), 'public/overlays');
+        const files = fs_1.default.readdirSync(overlaysDir).filter(f => f.endsWith('.html') && !f.startsWith('overlay-') && !f.includes('engine') && !f.includes('utils'));
+        const templates = files.map(file => {
+            const id = file.replace('.html', '');
+            const words = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            const level = id.startsWith('lvl2') ? 2 : 1;
+            const category = level === 1 ? 'Scoreboard' : 'Replay/Effects';
+            return {
+                id,
+                name: `Level ${level}: ${words}`,
+                file,
+                category,
+                color: level === 1 ? 'from-blue-500 to-indigo-600' : 'from-purple-500 to-pink-600',
+                level
+            };
+        }).filter(t => t.level <= membership.level || membership.isAdmin);
+        res.json(templates);
+    }
+    catch (error) {
+        console.error('getOverlayTemplates error:', error);
+        res.status(500).json({ error: 'Failed to load templates' });
+    }
 };
 exports.getOverlayTemplates = getOverlayTemplates;
 // ─── getMembershipStatus ──────────────────────────────────────────────────────

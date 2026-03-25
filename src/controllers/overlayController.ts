@@ -179,22 +179,9 @@ export const getOverlayTemplates = async (req: AuthRequest, res: Response): Prom
       membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
     }
 
-    { id: 'lvl2-broadcast-pro',  name: 'Level 2: Broadcast Pro',    url: '/overlays/lvl2-broadcast-pro.html',  level: 2 },
-    { id: 'lvl2-fluid-ribbon', name: 'Level 2: Fluid Ribbon', url: '/overlays/lvl2-Fluid-Ribbon.html', level: 2 },
-    { id: 'lvl2-cyber-glitch',   name: 'Level 2: Cyber Glitch',     url: '/overlays/lvl2-cyber-glitch.html',   level: 2 },
-    { id: 'lvl2-global-sports-ticker', name: 'Level 2: Global Sports Ticker', url: '/overlays/lvl2-Global-Sports-Ticker.html', level: 2 },
-    { id: 'lvl2-glass-morphism', name: 'Level 2: Glass Morphism',   url: '/overlays/lvl2-glass-morphism.html', level: 2 },
-    { id: 'lvl2-gold-rush',      name: 'Level 2: Gold Rush',        url: '/overlays/lvl2-gold-rush.html',      level: 2 },
-    { id: 'lvl2-hologram',       name: 'Level 2: Hologram',         url: '/overlays/lvl2-hologram.html',       level: 2 },
-    { id: 'lvl2-matrix-rain',    name: 'Level 2: Matrix Rain',      url: '/overlays/lvl2-matrix-rain.html',    level: 2 },
-    { id: 'lvl2-neon-pulse',     name: 'Level 2: Neon Pulse',       url: '/overlays/lvl2-neon-pulse.html',     level: 2 },
-    { id: 'lvl2-particle-storm', name: 'Level 2: Particle Storm',   url: '/overlays/lvl2-particle-storm.html', level: 2 },
-    { id: 'lvl2-rgb-split',      name: 'Level 2: RGB Split',        url: '/overlays/lvl2-rgb-split.html',      level: 2 },
-    { id: 'lvl2-mechanical-belt', name: 'Level 2: Mechanical Belt', url: '/overlays/lvl2-Mechanical-belt.html', level: 2 },
-    { id: 'lvl2-tech-hud',       name: 'Level 2: Tech HUD',         url: '/overlays/lvl2-tech-hud.html',       level: 2 },
-    { id: 'lvl2-thunder-strike', name: 'Level 2: Thunder Strike',   url: '/overlays/lvl2-thunder-strike.html', level: 2 },
-    { id: 'lvl2-vinyl-spin',     name: 'Level 2: Vinyl Spin',       url: '/overlays/lvl2-vinyl-spin.html',     level: 2 },
-    { id: 'lvl2-water-flow',     name: 'Level 2: Water Flow',       url: '/overlays/lvl2-water-flow.html',     level: 2 },
+
+
+
     const overlaysDir = path.join(process.cwd(), 'public/overlays');
     const files = fs.readdirSync(overlaysDir).filter(f => f.endsWith('.html') && !f.startsWith('overlay-') && !f.includes('engine') && !f.includes('utils'));
     
