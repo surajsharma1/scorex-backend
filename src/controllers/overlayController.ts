@@ -182,32 +182,37 @@ export const getOverlayTemplates = async (req: AuthRequest, res: Response): Prom
 
 
 
-    const overlaysDir = path.join(process.cwd(), 'public/overlays');
-    const files = fs.readdirSync(overlaysDir).filter(f => f.endsWith('.html') && !f.startsWith('overlay-') && !f.includes('engine') && !f.includes('utils'));
+    // Load static templates from public/templates-updated.json for consistent rich names
+    const templatesPath = path.join(process.cwd(), 'public/templates-updated.json');
+    let templates: OverlayTemplate[] = [];
     
-    interface OverlayTemplate {
-      id: string;
-      name: string;
-      file: string;
-      category: string;
-      color: string;
-      level: number;
+    try {
+      if (fs.existsSync(templatesPath)) {
+        const rawData = fs.readFileSync(templatesPath, 'utf8');
+        const jsonData = JSON.parse(rawData);
+        
+        interface StaticTemplate {
+          id: string;
+          name: string;
+          file: string;
+          category: string;
+          color: string;
+        }
+        
+        templates = jsonData.map((t: StaticTemplate) => {
+          const level = t.id.startsWith('lvl2') ? 2 : 1;
+          return {
+            ...t,
+            url: `/overlays/${t.file}`,
+            level,
+          };
+        }).filter((t: any) => t.level <= membership.level || membership.isAdmin);
+      } else {
+        console.warn('templates-updated.json not found, falling back to frontend public/');
+      }
+    } catch (err) {
+      console.error('Failed to load templates JSON:', err);
     }
-    
-    const templates: OverlayTemplate[] = files.map(file => {
-      const id = file.replace('.html', '');
-      const words = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-      const level = id.startsWith('lvl2') ? 2 : 1;
-      const category = level === 1 ? 'Scoreboard' : 'Replay/Effects';
-      return {
-        id,
-        name: `Level ${level}: ${words}`,
-        file,
-        category,
-        color: level === 1 ? 'from-blue-500 to-indigo-600' : 'from-purple-500 to-pink-600',
-        level
-      };
-    }).filter(t => t.level <= membership.level || membership.isAdmin);
 
     res.json(templates);
   } catch (error) {
