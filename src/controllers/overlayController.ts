@@ -66,12 +66,12 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
     // FIX: use req.user.id not user._id
     if (!req.user?.id) { res.status(401).json({ message: 'Not authenticated' }); return; }
 
-    // Temporarily disabled membership check for overlay creation to allow all users to see/create overlays
-    // const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
-    // if (!membership.hasMembership && !membership.isAdmin) {
-    //   res.status(403).json({ message: 'Premium membership required', requiresMembership: true, currentLevel: membership.level });
-    //   return;
-    // }
+    const membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
+    if (!membership.hasMembership && !membership.isAdmin) {
+      res.status(403).json({ message: 'Premium membership required for overlay creation', requiresMembership: true, currentLevel: membership.level });
+      return;
+    }
+
 
     const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
     if (!name?.trim())     { res.status(400).json({ message: 'Overlay name is required' }); return; }
@@ -172,9 +172,13 @@ export const deleteOverlay = async (req: AuthRequest, res: Response): Promise<vo
 };
 
 // ─── getOverlayTemplates ──────────────────────────────────────────────────────
-export const getOverlayTemplates = async (req: Request, res: Response): Promise<void> => {
-  res.json([
-{ id: 'lvl1-classic-test',  name: 'Level 1: Classic Test',     url: '/overlays/lvl1-classic-test.html',  level: 1 },\n    { id: 'lvl1-clean-cloud',    name: 'Level 1: Clean Cloud',      url: '/overlays/lvl1-clean-cloud.html',   level: 1 },\n    { id: 'lvl1-cyber-chevron',  name: 'Level 1: Cyber Chevron',    url: '/overlays/lvl1-cyber-chevron.html', level: 1 },\n    { id: 'lvl1-franchise-gold', name: 'Level 1: Franchise Gold',   url: '/overlays/lvl1-franchise-gold.html',level: 1 },\n    { id: 'lvl1-minimal-dark',   name: 'Level 1: Minimal Dark',     url: '/overlays/lvl1-minimal-dark.html',  level: 1 },\n    { id: 'lvl1-paper-style',    name: 'Level 1: Paper Style',      url: '/overlays/lvl1-paper-style.html',   level: 1 },\n    { id: 'lvl1-solid-edge',     name: 'Level 1: Solid Edge',       url: '/overlays/lvl1-solid-edge.html',    level: 1 },\n    { id: 'lvl1-yellow-impact',  name: 'Level 1: Yellow Impact',    url: '/overlays/lvl1-yellow-impact.html', level: 1 },
+export const getOverlayTemplates = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    let membership = { level: 0, isAdmin: false };
+    if (req.user?.id) {
+      membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
+    }
+
     { id: 'lvl2-broadcast-pro',  name: 'Level 2: Broadcast Pro',    url: '/overlays/lvl2-broadcast-pro.html',  level: 2 },
     { id: 'lvl2-fluid-ribbon', name: 'Level 2: Fluid Ribbon', url: '/overlays/lvl2-Fluid-Ribbon.html', level: 2 },
     { id: 'lvl2-cyber-glitch',   name: 'Level 2: Cyber Glitch',     url: '/overlays/lvl2-cyber-glitch.html',   level: 2 },
@@ -191,8 +195,40 @@ export const getOverlayTemplates = async (req: Request, res: Response): Promise<
     { id: 'lvl2-thunder-strike', name: 'Level 2: Thunder Strike',   url: '/overlays/lvl2-thunder-strike.html', level: 2 },
     { id: 'lvl2-vinyl-spin',     name: 'Level 2: Vinyl Spin',       url: '/overlays/lvl2-vinyl-spin.html',     level: 2 },
     { id: 'lvl2-water-flow',     name: 'Level 2: Water Flow',       url: '/overlays/lvl2-water-flow.html',     level: 2 },
-  ]);
+    const overlaysDir = path.join(process.cwd(), 'public/overlays');
+    const files = fs.readdirSync(overlaysDir).filter(f => f.endsWith('.html') && !f.startsWith('overlay-') && !f.includes('engine') && !f.includes('utils'));
+    
+    interface OverlayTemplate {
+      id: string;
+      name: string;
+      file: string;
+      category: string;
+      color: string;
+      level: number;
+    }
+    
+    const templates: OverlayTemplate[] = files.map(file => {
+      const id = file.replace('.html', '');
+      const words = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      const level = id.startsWith('lvl2') ? 2 : 1;
+      const category = level === 1 ? 'Scoreboard' : 'Replay/Effects';
+      return {
+        id,
+        name: `Level ${level}: ${words}`,
+        file,
+        category,
+        color: level === 1 ? 'from-blue-500 to-indigo-600' : 'from-purple-500 to-pink-600',
+        level
+      };
+    }).filter(t => t.level <= membership.level || membership.isAdmin);
+
+    res.json(templates);
+  } catch (error) {
+    console.error('getOverlayTemplates error:', error);
+    res.status(500).json({ error: 'Failed to load templates' });
+  }
 };
+
 
 // ─── getMembershipStatus ──────────────────────────────────────────────────────
 export const getMembershipStatus = async (req: AuthRequest, res: Response): Promise<void> => {
