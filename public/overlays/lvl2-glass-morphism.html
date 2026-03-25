@@ -2,180 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Liquid Aura</title>
+  <title>ScoreX - Lvl 2 Hyper-Gloss Glass</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: transparent; overflow: hidden; color: #fff; font-family: 'Outfit', sans-serif; text-transform: uppercase; }
 
-    /* Keyframe for Liquid Morphing */
-    @keyframes morph {
-      0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-      50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-      100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+    @keyframes fadeUp { 0% { transform: translateY(30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes glassShine {
+      0% { transform: translateX(-150%) skewX(-30deg); }
+      20%, 100% { transform: translateX(250%) skewX(-30deg); }
     }
 
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    /* Hyper-Glossy Glass Material */
+    .glass {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.02) 100%);
+      backdrop-filter: blur(25px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.6);
+      border-left: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4), inset 0 2px 15px rgba(255,255,255,0.2);
+      position: relative; overflow: hidden;
+    }
+    /* The moving gloss reflection */
+    .glass::before {
+      content: ''; position: absolute; top: 0; left: 0; width: 60%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: glassShine 5s infinite; pointer-events: none; z-index: 1;
     }
 
-    /* Top Floating Badge */
-    #aura-top {
-      position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
-      background: rgba(10, 10, 20, 0.6); backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50px;
-      padding: 8px 35px; font-size: 15px; font-weight: 700; letter-spacing: 3px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10;
+    #glass-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      padding: 8px 35px; border-radius: 30px; font-size: 14px; font-weight: 800; letter-spacing: 2px;
+      color: #e0f2fe; animation: fadeUp 0.8s ease-out forwards; z-index: 10;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
 
-    /* Aura Event Popup */
-    #aura-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
-      background: linear-gradient(45deg, #ff007a, #7a00ff); background-size: 200% 200%;
-      animation: gradientShift 3s ease infinite;
-      color: #fff; padding: 20px 80px; font-size: 90px; font-weight: 900; letter-spacing: 5px;
-      border-radius: 60% 40% 50% 50% / 50% 50% 60% 40%;
-      box-shadow: 0 0 50px rgba(255, 0, 122, 0.6);
-      opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    #aura-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-    /* Bottom Wrapper */
-    #aura-bottom {
-      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center; width: 100%; max-width: 1200px;
+    #toss-overlay {
+      position: absolute; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(25px) saturate(120%);
+      display: none; align-items: center; justify-content: center; z-index: 50;
+      font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
 
-    /* Frosted Glass Wings */
-    .aura-wing {
-      height: 85px; background: rgba(15, 15, 25, 0.6); backdrop-filter: blur(15px);
-      border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 1;
-    }
-    .w-bat { flex: 1; border-radius: 40px 0 0 40px; margin-right: -40px; padding: 0 60px 0 40px; justify-content: space-around; }
-    .w-bowl { min-width: 320px; border-radius: 0 40px 40px 0; margin-left: -40px; padding: 0 40px 0 60px; justify-content: space-between; }
-
-    /* The Liquid Core (Score) */
-    .liquid-core {
-      width: 190px; height: 190px;
-      background: linear-gradient(45deg, #ff007a, #7a00ff, #00d2ff); background-size: 300% 300%;
-      animation: morph 8s ease-in-out infinite, gradientShift 6s ease infinite;
-      box-shadow: 0 0 40px rgba(122, 0, 255, 0.5), inset 0 0 20px rgba(255,255,255,0.3);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 5; text-align: center; border: 4px solid rgba(255,255,255,0.2);
+    /* Expanding Container */
+    #expand-wrapper {
+      position: absolute; bottom: 30px; left: 0; width: 100%; height: 85px;
+      display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+      z-index: 5; animation: fadeUp 1s ease-out forwards;
     }
 
-    /* Typography */
-    .t-lbl { font-size: 24px; font-weight: 900; letter-spacing: 1px; margin-bottom: -5px; text-shadow: 0 2px 5px rgba(0,0,0,0.5);}
-    .s-lbl { font-size: 55px; font-weight: 900; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5);}
-    .s-lbl span { font-size: 28px; color: rgba(255,255,255,0.7); text-shadow: none;}
-    .o-lbl { font-size: 15px; font-weight: 700; background: rgba(0,0,0,0.4); padding: 2px 12px; border-radius: 20px;}
+    /* Event Reveal Panel */
+    #reveal-panel {
+      width: 75%; height: 0; background: linear-gradient(135deg, rgba(56, 189, 248, 0.8), rgba(2, 132, 199, 0.8));
+      backdrop-filter: blur(15px); border-radius: 20px 20px 0 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 45px; font-weight: 900; color: #fff; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.4); border-bottom: none;
+      box-shadow: inset 0 2px 10px rgba(255,255,255,0.5);
+      transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin-bottom: -15px; z-index: 1;
+    }
+    #reveal-panel.show { height: 75px; padding-bottom: 15px; }
 
-    .grp { display: flex; flex-direction: column; justify-content: center; }
-    .sub { font-size: 11px; color: #a8b2d1; letter-spacing: 2px; margin-bottom: 2px; font-weight: 700;}
+    /* Main Scoreboard Row */
+    .board-row { display: flex; width: 100%; height: 85px; gap: 15px; padding: 0 30px; z-index: 2; }
+    .g-panel { border-radius: 20px; display: flex; align-items: center; padding: 0 30px; }
     
-    .p-row { display: flex; align-items: baseline; gap: 12px; }
-    .p-n { font-size: 22px; font-weight: 700; color: #fff; }
-    .p-s { font-size: 38px; font-weight: 900; color: #00d2ff; line-height: 0.9;}
-    .p-b { font-size: 15px; color: #a8b2d1; font-weight: 600;}
+    .p-score { min-width: 320px; justify-content: space-between; border-left: 5px solid #38bdf8; }
+    .p-bat { flex: 1; max-width: 500px; justify-content: space-around; }
+    .p-bowl { min-width: 340px; justify-content: space-between; border-right: 5px solid #38bdf8; }
 
-    .striker { border-bottom: 2px solid rgba(0, 210, 255, 0.3); padding-bottom: 5px;}
-    .striker .p-s { color: #fff; }
+    /* Crisp text to pop against glass */
+    .txt-layer { position: relative; z-index: 2; display: flex; align-items: baseline; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    .tm { font-size: 16px; font-weight: 800; color: #bae6fd; letter-spacing: 1px; margin-bottom: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+    .sc { font-size: 46px; font-weight: 900; line-height: 1; }
+    .sc span { font-size: 24px; color: #e2e8f0; }
+    .ov { font-size: 15px; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 3px 10px; border-radius: 8px; margin-left: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);}
 
-    .w-bowl .p-s { color: #ff007a; }
-
+    .pn { font-size: 20px; font-weight: 800; color: #fff; }
+    .ps { font-size: 38px; font-weight: 900; color: #38bdf8; margin-left: 10px; line-height: 1;}
+    .pb { font-size: 14px; color: #cbd5e1; font-weight: 600; margin-left: 5px;}
+    .lbl { font-size: 12px; color: #bae6fd; font-weight: 800; margin-bottom: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+    .v-line { width: 1px; height: 40px; background: rgba(255,255,255,0.4); z-index: 2;}
   </style>
 </head>
 <body>
 
-  <div id="aura-top"><span id="tournamentName">PREMIUM STREAM</span></div>
-  <div id="aura-event">ACTION</div>
+  <div id="glass-island" class="glass">SCOREX-LIVE.COM</div>
+  <div id="toss-overlay"></div>
 
-  <div id="aura-bottom">
-    
-    <div class="aura-wing w-bat">
-      <div class="grp striker">
-        <div class="p-row">
-          <span style="color:#00d2ff; font-size:16px;">▶</span>
-          <span id="strikerName" class="p-n">Striker</span>
-          <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
+  <div id="expand-wrapper">
+    <div id="reveal-panel">DECISION PENDING</div>
+    <div class="board-row">
+      <div class="g-panel glass p-score">
+        <div style="display:flex; flex-direction:column; z-index: 2;">
+          <div id="teamName" class="tm">TEAM</div>
+          <div class="txt-layer">
+            <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+            <div class="ov">OV <span id="teamOvers">0.0</span></div>
+          </div>
         </div>
       </div>
-      <div class="grp" style="opacity: 0.6;">
-        <div class="p-row" style="padding-left: 20px;">
-          <span id="nonStrikerName" class="p-n">Non-Striker</span>
-          <div><span id="nonStrikerRuns" class="p-s" style="font-size: 30px;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
+      
+      <div class="g-panel glass p-bat">
+        <div class="txt-layer">
+          <span style="color:#38bdf8; margin-right:8px; font-size: 14px;">●</span>
+          <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+        </div>
+        <div class="v-line"></div>
+        <div class="txt-layer" style="opacity: 0.7;">
+          <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#fff;">0</span>
+        </div>
+      </div>
+
+      <div class="g-panel glass p-bowl">
+        <div style="display:flex; flex-direction:column; z-index: 2;">
+          <span class="lbl">BOWLER</span>
+          <div class="txt-layer">
+            <span class="ps" style="color:#fff; margin-left:0;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="liquid-core">
-      <div id="teamName" class="t-lbl">TEAM</div>
-      <div class="s-lbl"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
-      <div class="o-lbl">OV <span id="teamOvers">0.0</span></div>
-    </div>
-
-    <div class="aura-wing w-bowl">
-      <div class="grp">
-        <span class="sub">ACTIVE BOWLER</span>
-        <span id="bowlerName" class="p-n">Bowler Name</span>
-      </div>
-      <div style="text-align: right;">
-        <div class="p-s"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
-        <div class="p-b" style="color:#fff;">OVERS <span id="bowlerOvers">0.0</span></div>
-      </div>
-    </div>
-
-  </div>
-
-  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-    https://scorex-live.vercel.app/
   </div>
 
   <script>
-    let pSc = -1, pWk = -1, lDat = {};
-    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
-
-    function fireAuraEvent(txt, grad) {
-      const e = document.getElementById('aura-event');
-      e.innerText = txt; 
-      e.style.background = `linear-gradient(45deg, ${grad})`;
-      e.classList.remove('show');
-      void e.offsetWidth; 
-      e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 3000);
-    }
+    let pSc = -1, pWk = -1, iSt = 0, cDat = {}, revTimeout;
+    const $ = id => document.getElementById(id);
 
     setInterval(() => {
-      const isl = document.getElementById('tournamentName');
-      if(!lDat.tournamentName) return;
-      let st = Math.floor(Date.now() / 4500) % 3;
-      if(st === 0) isl.innerText = lDat.tournamentName;
-      else if(st === 1) isl.innerText = "RATE: " + (lDat.runRate||'0.0');
-      else isl.innerText = lDat.target > 0 ? "CHASING: " + lDat.target : "FLUID DYNAMICS";
+      if(!cDat.tournamentName) return;
+      iSt = (iSt + 1) % 3;
+      if(iSt === 0) $('glass-island').innerText = cDat.tournamentName;
+      else if(iSt === 1) $('glass-island').innerText = "SCOREX-LIVE.COM";
+      else $('glass-island').innerText = "CRR: " + (cDat.runRate||'0.0');
     }, 4500);
 
-    function rx(d) {
-      lDat = d;
-      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
-      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
-      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
-      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+    function triggerReveal(txt, bg, isPersistent) {
+      const rev = $('reveal-panel');
+      if(revTimeout) clearTimeout(revTimeout);
+      
+      rev.innerText = txt; 
+      rev.style.background = bg;
+      rev.classList.add('show');
+      
+      if(!isPersistent) { revTimeout = setTimeout(() => { rev.classList.remove('show'); }, 3500); }
+    }
+
+    function processData(d) {
+      cDat = d;
+      if (d.team1Score == 0 && d.team1Overs === "0.0" && d.strikerRuns == 0 && d.tossWinner) {
+        $('toss-overlay').style.display = 'flex'; $('toss-overlay').innerText = `${d.tossWinner} WON THE TOSS & ELECTED TO ${d.tossDecision}`;
+      } else { $('toss-overlay').style.display = 'none'; }
+
+      $('teamName').innerText = d.team1Name; $('teamScore').innerText = d.team1Score; $('teamWickets').innerText = d.team1Wickets; $('teamOvers').innerText = d.team1Overs;
+      $('strikerName').innerText = d.strikerName; $('strikerRuns').innerText = d.strikerRuns; $('strikerBalls').innerText = d.strikerBalls;
+      $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
+      $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
+
+      if (d.decisionPending) { triggerReveal("DECISION PENDING", "linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.8))", true); return; } 
+      else if ($('reveal-panel').classList.contains('show') && $('reveal-panel').innerText === "DECISION PENDING") { $('reveal-panel').classList.remove('show'); }
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (pSc !== -1) {
-        if (nw > pWk) fireAuraEvent("WICKET", "#ff0000, #990000");
-        else if (ns - pSc === 6) fireAuraEvent("SIX RUNS", "#00d2ff, #3a7bd5");
-        else if (ns - pSc === 4) fireAuraEvent("BOUNDARY", "#ff9a9e, #fecfef");
+      if (pSc !== -1 && !d.decisionPending) {
+        if (nw > pWk) triggerReveal("WICKET", "linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(185, 28, 28, 0.8))"); 
+        else if (ns - pSc === 6) triggerReveal("SIX RUNS", "linear-gradient(135deg, rgba(56, 189, 248, 0.8), rgba(2, 132, 199, 0.8))");
+        else if (ns - pSc === 4) triggerReveal("BOUNDARY", "linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(200, 200, 200, 0.8))");
       }
       pSc = ns; pWk = nw;
     }
-
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
   </script>
 </body>
 </html>

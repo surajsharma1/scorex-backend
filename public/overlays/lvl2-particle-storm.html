@@ -2,148 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Particle Storm</title>
+  <title>ScoreX - Lvl 2 Modern Test</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Jura:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@400;500;700&display=swap');
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Jura', sans-serif; }
-    body { background: transparent; overflow: hidden; color: #fff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; text-transform: uppercase; }
+    body { background: transparent; overflow: hidden; color: #1e293b; }
 
-    /* Energy Island */
-    #storm-island {
-      position: absolute; top: 15px; right: 40px;
-      background: linear-gradient(90deg, #6441a5 0%, #2a0845 100%);
-      padding: 6px 25px; border-radius: 30px;
-      font-family: 'Righteous', cursive; font-size: 16px; letter-spacing: 1px;
-      box-shadow: 0 5px 15px rgba(100, 65, 165, 0.5);
-      border: 1px solid #00f2fe;
+    @keyframes fadeUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+    #top-island {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid #e2e8f0; border-top: 3px solid #d4af37;
+      padding: 6px 35px; font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; letter-spacing: 1px; color: #0f172a;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: fadeUp 0.8s ease-out forwards; z-index: 10;
     }
 
-    /* Burst Event Popup */
-    #storm-event {
-      position: absolute; top: 40%; left: 50%;
-      background: linear-gradient(45deg, #f12711 0%, #f5af19 100%);
-      color: #111; font-family: 'Righteous', cursive; font-size: 110px;
-      padding: 10px 50px; border-radius: 50px;
-      box-shadow: 0 10px 40px rgba(241, 39, 17, 0.7);
-      transform: translate(-50%, -50%) scale(0.3); opacity: 0;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    #storm-event.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-
-    /* Bottom Floating Pills Layout */
-    #storm-bottom {
-      position: absolute; bottom: 25px; left: 0; width: 100%;
-      display: flex; justify-content: center; gap: 15px; height: 80px;
+    #toss-overlay {
+      position: absolute; inset: 0; background: rgba(255, 255, 255, 0.95);
+      display: none; align-items: center; justify-content: center; z-index: 50;
+      font-family: 'Playfair Display', serif; font-size: 35px; font-weight: 700; color: #0f172a; border: 8px solid #d4af37;
     }
 
-    .storm-pill {
-      background: linear-gradient(180deg, #1f1c2c 0%, #15131a 100%);
-      border-radius: 40px; padding: 0 30px;
-      display: flex; align-items: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
-      border: 1px solid rgba(255,255,255,0.1);
+    /* EDGE-TO-EDGE BOTTOM WRAPPER */
+    #scoreboard-wrapper {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 75px;
+      display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+      z-index: 5; animation: fadeUp 1s ease-out forwards;
     }
 
-    /* Score Block */
-    .p-score { border-left: 4px solid #00f2fe; justify-content: space-between; min-width: 250px;}
-    .team { font-family: 'Righteous', cursive; font-size: 26px; background: -webkit-linear-gradient(#00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-    .runs { font-size: 42px; font-weight: 700; line-height: 1;}
-    .runs span { font-size: 24px; color: #888; }
-    .ovr { font-size: 14px; color: #aaa; font-weight: 700;}
-
-    /* Batting Block */
-    .p-bat { flex: 0.7; justify-content: space-around; border-bottom: 4px solid #f12711; }
-    .b-wrap { display: flex; flex-direction: column; align-items: center; }
-    .nm { font-weight: 700; font-size: 20px; }
-    .rn { font-size: 26px; font-weight: 700; color: #f5af19; }
-    .bl { font-size: 14px; color: #aaa; }
-    .strike { color: #00f2fe; font-size: 12px; margin-right: 5px;}
-
-    /* Bowling Block */
-    .p-bowl { border-right: 4px solid #6441a5; min-width: 260px; justify-content: space-between; }
-    .bw-rn { font-size: 32px; font-weight: 700; color: #fff;}
+    /* Solid Blocks - No gaps, perfectly connected */
+    .mt-panel { display: flex; align-items: center; padding: 0 40px; height: 100%; border-top: 4px solid #d4af37; }
     
+    .p-score { background: #0f172a; color: #fff; min-width: 360px; justify-content: space-between; z-index: 3;}
+    .p-bowl { background: #f8fafc; min-width: 380px; justify-content: space-between; z-index: 1; border-left: 1px solid #cbd5e1;}
+
+    /* Center Batsman Panel - 3D Flip Container */
+    .p-bat { flex: 1; position: relative; perspective: 1500px; z-index: 2; padding: 0; border: none; background: transparent; }
+    
+    .flipper {
+      width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1); transform-style: preserve-3d;
+    }
+    .flipper.flip { transform: rotateX(180deg); }
+    
+    .front, .back {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; backface-visibility: hidden;
+      display: flex; align-items: center; padding: 0 40px;
+    }
+    
+    .front { background: #fff; border-top: 4px solid #d4af37; justify-content: space-around; }
+    .back {
+      background: #0f172a; border-top: 4px solid #d4af37;
+      transform: rotateX(180deg); justify-content: center; color: #fff;
+      font-family: 'Playfair Display', serif; font-size: 36px; letter-spacing: 2px;
+    }
+
+    .tm { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: #d4af37;}
+    .sc { font-family: 'Playfair Display', serif; font-size: 44px; font-weight: 700; line-height: 1; }
+    .sc span { font-size: 24px; color: #94a3b8; }
+    .ov { font-size: 14px; font-weight: 700; color: #fff; border: 1px solid #475569; padding: 3px 10px; margin-left: 15px;}
+
+    .pn { font-size: 20px; font-weight: 700; color: #0f172a; }
+    .ps { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; color: #d4af37; margin-left: 12px; line-height: 1;}
+    .pb { font-size: 14px; color: #64748b; font-weight: 500; margin-left: 6px;}
+    .lbl { font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 2px;}
+    .v-line { width: 1px; height: 40px; background: #e2e8f0; }
   </style>
 </head>
 <body>
 
-  <div id="storm-island">GALAXY CUP</div>
-  <div id="storm-event"></div>
+  <div id="top-island">SCOREX-LIVE.COM</div>
+  <div id="toss-overlay"></div>
 
-  <div id="storm-bottom">
+  <div id="scoreboard-wrapper">
+    <div class="mt-panel p-score">
+      <div style="display:flex; flex-direction:column;">
+        <div id="teamName" class="tm">TEAM</div>
+        <div style="display:flex; align-items:baseline;">
+          <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov">OV <span id="teamOvers">0.0</span></div>
+        </div>
+      </div>
+    </div>
     
-    <div class="storm-pill p-score">
-      <div id="teamName" class="team">NEBULA</div>
-      <div style="text-align: right;">
-        <div class="runs"><span id="teamScore">188</span><span>/</span><span id="teamWickets">6</span></div>
-        <div class="ovr">OV <span id="teamOvers">17.2</span></div>
+    <div class="p-bat">
+      <div class="flipper" id="center-flipper">
+        <div class="front">
+          <div style="display:flex; align-items:baseline;">
+            <span style="color:#d4af37; margin-right:8px; font-size:16px;">▶</span>
+            <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+          </div>
+          <div class="v-line"></div>
+          <div style="display:flex; align-items:baseline; opacity: 0.7;">
+            <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#0f172a;">0</span>
+          </div>
+        </div>
+        <div class="back" id="event-text">DECISION PENDING</div>
       </div>
     </div>
 
-    <div class="storm-pill p-bat">
-      <div class="b-wrap">
-        <div><span class="strike">▶</span><span id="strikerName" class="nm">Q. de Kock</span></div>
-        <div><span id="strikerRuns" class="rn">65</span> <span class="bl">(<span id="strikerBalls">38</span>)</span></div>
-      </div>
-      <div class="b-wrap" style="opacity: 0.6;">
-        <div id="nonStrikerName" class="nm">K. Mayers</div>
-        <div><span id="nonStrikerRuns" class="rn" style="color:#fff;">11</span> <span class="bl">(<span id="nonStrikerBalls">7</span>)</span></div>
+    <div class="mt-panel p-bowl">
+      <div style="display:flex; flex-direction:column;"><span class="lbl">BOWLER</span><span id="bowlerName" class="pn">Bowler Name</span></div>
+      <div style="display:flex; align-items:baseline;">
+        <span class="ps" style="color:#0f172a;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
       </div>
     </div>
-
-    <div class="storm-pill p-bowl">
-      <div class="b-wrap" style="align-items: flex-start;">
-        <span class="bl">BOWLER</span>
-        <span id="bowlerName" class="nm">N. Ellis</span>
-      </div>
-      <div style="text-align: right;">
-        <div class="bw-rn"><span id="bowlerWickets">2</span>-<span id="bowlerRuns">31</span></div>
-        <div class="ovr">(<span id="bowlerOvers">3.2</span>)</div>
-      </div>
-    </div>
-
   </div>
-<div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(253, 69, 69, 0.741); font-family: sans-serif; letter-spacing: 1px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-  https://scorex-live.vercel.app/
-</div>
-  <script>
-    let pSc = -1, pWk = -1, sSt = 0, sDat = {};
-    const put = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
 
-    function popStorm(msg) {
-      const e = document.getElementById('storm-event');
-      e.innerText = msg; e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 2600);
-    }
+  <script>
+    let pSc = -1, pWk = -1, iSt = 0, cDat = {}, flipTimeout;
+    const $ = id => document.getElementById(id);
 
     setInterval(() => {
-      const isl = document.getElementById('storm-island');
-      if(!sDat.tournamentName) return;
-      sSt = (sSt + 1) % 3;
-      if(sSt === 0) isl.innerText = sDat.tournamentName;
-      else if(sSt === 1) isl.innerText = "RUN RATE: " + (sDat.runRate||'0.0');
-      else isl.innerText = sDat.target > 0 ? "TARGET: " + sDat.target : sDat.status || "LIVE";
+      if(!cDat.tournamentName) return;
+      iSt = (iSt + 1) % 3;
+      if(iSt === 0) $('top-island').innerText = cDat.tournamentName;
+      else if(iSt === 1) $('top-island').innerText = "SCOREX-LIVE.COM";
+      else $('top-island').innerText = "RUN RATE: " + (cDat.runRate||'0.0');
     }, 4500);
 
-    function rx(d) {
-      sDat = d;
-      put('teamName', d.team1Name); put('teamScore', d.team1Score); put('teamWickets', d.team1Wickets); put('teamOvers', d.team1Overs);
-      put('strikerName', d.strikerName); put('strikerRuns', d.strikerRuns); put('strikerBalls', d.strikerBalls);
-      put('nonStrikerName', d.nonStrikerName); put('nonStrikerRuns', d.nonStrikerRuns); put('nonStrikerBalls', d.nonStrikerBalls);
-      put('bowlerName', d.bowlerName); put('bowlerRuns', d.bowlerRuns); put('bowlerWickets', d.bowlerWickets); put('bowlerOvers', d.bowlerOvers);
+    function triggerFlip(txt, bg, color, isPersistent) {
+      const flipper = $('center-flipper');
+      const text = $('event-text');
+      if(flipTimeout) clearTimeout(flipTimeout);
+      
+      text.innerText = txt; 
+      text.style.background = bg; text.style.color = color;
+      
+      flipper.classList.add('flip');
+      if(!isPersistent) { flipTimeout = setTimeout(() => { flipper.classList.remove('flip'); }, 3500); }
+    }
+
+    function processData(d) {
+      cDat = d;
+      if (d.team1Score == 0 && d.team1Overs === "0.0" && d.strikerRuns == 0 && d.tossWinner) {
+        $('toss-overlay').style.display = 'flex'; $('toss-overlay').innerText = `${d.tossWinner} WON TOSS & CHOSE TO ${d.tossDecision}`;
+      } else { $('toss-overlay').style.display = 'none'; }
+
+      $('teamName').innerText = d.team1Name; $('teamScore').innerText = d.team1Score; $('teamWickets').innerText = d.team1Wickets; $('teamOvers').innerText = d.team1Overs;
+      $('strikerName').innerText = d.strikerName; $('strikerRuns').innerText = d.strikerRuns; $('strikerBalls').innerText = d.strikerBalls;
+      $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
+      $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
+
+      if (d.decisionPending) { triggerFlip("DECISION PENDING", "#d4af37", "#0f172a", true); return; } 
+      else if ($('center-flipper').classList.contains('flip') && $('event-text').innerText === "DECISION PENDING") { $('center-flipper').classList.remove('flip'); }
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (pSc !== -1) {
-        if (nw > pWk) popStorm("WICKET!");
-        else if (ns - pSc === 6) popStorm("SIX RUNS!");
-        else if (ns - pSc === 4) popStorm("BOUNDARY!");
+      if (pSc !== -1 && !d.decisionPending) {
+        if (nw > pWk) triggerFlip("WICKET", "#991b1b", "#fff"); 
+        else if (ns - pSc === 6) triggerFlip("SIX RUNS", "#0f172a", "#fff");
+        else if (ns - pSc === 4) triggerFlip("BOUNDARY", "#e2e8f0", "#0f172a");
       }
       pSc = ns; pWk = nw;
     }
-
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
   </script>
 </body>
 </html>

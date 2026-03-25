@@ -2,182 +2,157 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Tactical Blueprint</title>
+  <title>ScoreX - Lvl 2 Terminal Glitch</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: transparent; overflow: hidden; color: #00f3ff; font-family: 'Share Tech Mono', monospace; text-transform: uppercase; }
+    body { background: transparent; overflow: hidden; color: #0f0; font-family: 'Share Tech Mono', monospace; text-transform: uppercase; }
 
-    /* Tactical Top Tag */
-    #bp-top {
+    @keyframes dropIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+    
+    @keyframes textGlitch {
+      0% { transform: translate(0) }
+      20% { transform: translate(-2px, 2px) }
+      40% { transform: translate(-2px, -2px) }
+      60% { transform: translate(2px, 2px) }
+      80% { transform: translate(2px, -2px) }
+      100% { transform: translate(0) }
+    }
+
+    /* Terminal Island */
+    #term-island {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      border: 1px solid #00f3ff; background: rgba(0, 24, 40, 0.7);
-      padding: 5px 20px; font-size: 14px; letter-spacing: 4px;
-      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      background: rgba(0, 15, 0, 0.9); border: 1px solid #0f0;
+      padding: 6px 30px; font-size: 15px; letter-spacing: 2px;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3); animation: dropIn 0.8s ease-out forwards;
     }
-    #bp-top::before, #bp-top::after {
-      content: ''; position: absolute; width: 10px; height: 10px; border: 2px solid #00f3ff;
-    }
-    #bp-top::before { top: -4px; left: -4px; border-right: none; border-bottom: none; }
-    #bp-top::after { bottom: -4px; right: -4px; border-left: none; border-top: none; }
+    #term-island::before { content: ">_ "; }
 
-    /* Alert Overlay */
-    #bp-event {
-      position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
-      font-family: 'Rajdhani', sans-serif; font-size: 110px; font-weight: 700;
-      color: transparent; -webkit-text-stroke: 2px #ff0055;
-      text-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
-      letter-spacing: 15px; opacity: 0; transition: all 0.2s ease;
-    }
-    #bp-event.show { opacity: 1; letter-spacing: 5px; }
-
-    /* Blueprint Grid Container */
-    #bp-bottom {
-      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 15px; align-items: stretch; height: 100px;
+    #toss-overlay {
+      position: absolute; inset: 0; background: rgba(0, 5, 0, 0.95);
+      display: none; align-items: center; justify-content: center; z-index: 50;
+      font-size: 35px; color: #0f0; border: 2px dashed #0f0;
     }
 
-    /* Wireframe Panels */
-    .bp-panel {
-      position: relative; background: rgba(0, 20, 35, 0.6);
-      border: 1px solid rgba(0, 243, 255, 0.4);
-      padding: 10px 25px; display: flex; align-items: center;
-      /* The Blueprint Grid Background */
-      background-image: 
-        linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
-      background-size: 15px 15px;
+    #scoreboard-wrapper {
+      position: absolute; bottom: 25px; left: 0; width: 100%; height: 80px;
+      display: flex; justify-content: center; align-items: stretch; gap: 8px;
+      z-index: 5; animation: dropIn 1s ease-out forwards;
     }
 
-    /* Corner Targeting Brackets */
-    .bp-panel::before, .bp-panel::after {
-      content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid #00f3ff;
+    .t-panel { 
+      background: rgba(0, 10, 0, 0.95); border: 1px solid #0f0;
+      display: flex; align-items: center; padding: 0 25px; position: relative;
     }
-    .bp-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
-    .bp-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+    .p-score { min-width: 320px; justify-content: space-between; border-left: 5px solid #0f0; }
+    .p-bat { flex: 1; max-width: 500px; justify-content: space-around; overflow: hidden; }
+    .p-bowl { min-width: 340px; justify-content: space-between; border-right: 5px solid #0f0; }
 
-    /* Center Panel Scanline Animation */
-    .bp-center { min-width: 300px; justify-content: space-between; overflow: hidden; border-color: #00f3ff;}
-    .bp-center .scanline {
-      position: absolute; top: 0; left: 0; width: 100%; height: 2px;
-      background: #00f3ff; box-shadow: 0 0 10px #00f3ff;
-      animation: scan 3s linear infinite;
+    /* The Glitch Event Box (Overlays the middle panel) */
+    #glitch-event {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #0f0; color: #000; display: flex; align-items: center; justify-content: center;
+      font-size: 45px; font-weight: 700; letter-spacing: 4px; z-index: 10;
+      opacity: 0; pointer-events: none; transition: opacity 0.1s;
     }
-    @keyframes scan { 0% { top: -10%; } 100% { top: 110%; } }
+    #glitch-event.active { opacity: 1; animation: textGlitch 0.2s infinite; }
 
-    /* Typography */
-    .bp-bat { flex: 1; min-width: 380px; justify-content: space-around; }
-    .bp-bowl { min-width: 280px; justify-content: space-between; }
+    .tm { font-size: 18px; color: #0a0; line-height: 1; }
+    .sc { font-size: 50px; color: #0f0; line-height: 0.9; }
+    .sc span { font-size: 28px; color: #080; }
+    .ov { font-size: 16px; color: #000; background: #0f0; padding: 2px 8px; margin-left: 15px;}
 
-    .t-lbl { font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 700; line-height: 1; color: #fff;}
-    .sc-val { font-family: 'Rajdhani', sans-serif; font-size: 60px; font-weight: 700; line-height: 0.8;}
-    .sc-val span { font-size: 30px; color: #0099aa; }
-    .ov-val { font-size: 14px; background: #00f3ff; color: #001423; padding: 2px 6px; font-weight: 700;}
-
-    .grp { display: flex; flex-direction: column; }
-    .hdr { font-size: 12px; color: #0099aa; letter-spacing: 1px; margin-bottom: 2px;}
-    .p-row { display: flex; align-items: baseline; justify-content: space-between; gap: 15px;}
-    .p-n { font-size: 20px; color: #fff; font-family: 'Rajdhani', sans-serif; font-weight: 700;}
-    .p-s { font-size: 32px; font-weight: 700; color: #00f3ff; font-family: 'Rajdhani', sans-serif;}
-    .p-b { font-size: 14px; color: #0099aa; }
-
-    .striker { border-bottom: 1px dashed #00f3ff; padding-bottom: 5px; margin-bottom: 5px;}
-    .active-tag { font-size: 10px; background: #00f3ff; color: #000; padding: 0 4px; margin-right: 5px; vertical-align: middle;}
-
+    .pn { font-size: 20px; color: #fff; }
+    .ps { font-size: 40px; color: #0f0; margin-left: 10px; line-height: 0.9;}
+    .pb { font-size: 14px; color: #0a0; margin-left: 5px;}
+    .lbl { font-size: 12px; color: #0a0; margin-bottom: 2px;}
+    .v-line { width: 1px; height: 100%; background: #0f0; border-right: 1px dashed #0f0; }
   </style>
 </head>
 <body>
 
-  <div id="bp-top"><span id="tournamentName">SYS_INIT // STANDBY</span></div>
-  <div id="bp-event"></div>
+  <div id="term-island">SCOREX-LIVE.COM</div>
+  <div id="toss-overlay"></div>
 
-  <div id="bp-bottom">
+  <div id="scoreboard-wrapper">
+    <div class="t-panel p-score">
+      <div style="display:flex; flex-direction:column;">
+        <div id="teamName" class="tm">TEAM</div>
+        <div style="display:flex; align-items:baseline;">
+          <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov">OV <span id="teamOvers">0.0</span></div>
+        </div>
+      </div>
+    </div>
     
-    <div class="bp-panel bp-bat">
-      <div class="grp">
-        <div class="p-row striker">
-          <div><span class="active-tag">ACT</span><span id="strikerName" class="p-n">Striker</span></div>
-          <div><span id="strikerRuns" class="p-s">0</span> <span class="p-b">(<span id="strikerBalls">0</span>)</span></div>
-        </div>
-        <div class="p-row" style="opacity: 0.6;">
-          <div><span style="display:inline-block; width: 25px;"></span><span id="nonStrikerName" class="p-n">Non-Striker</span></div>
-          <div><span id="nonStrikerRuns" class="p-s" style="color:#fff;">0</span> <span class="p-b">(<span id="nonStrikerBalls">0</span>)</span></div>
-        </div>
+    <div class="t-panel p-bat">
+      <div id="glitch-event">WARN: DECISION PENDING</div>
+      <div style="display:flex; align-items:baseline;">
+        <span style="color:#0f0; margin-right:8px; font-size: 14px;">></span>
+        <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div class="v-line"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.7;">
+        <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#aaa;">0</span>
       </div>
     </div>
 
-    <div class="bp-panel bp-center">
-      <div class="scanline"></div>
-      <div class="grp">
-        <div class="hdr">TEAM IDENTIFIER</div>
-        <div id="teamName" class="t-lbl">TEAM</div>
-      </div>
-      <div style="text-align: right;">
-        <div class="sc-val"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
-        <div class="ov-val">OVERS: <span id="teamOvers">0.0</span></div>
+    <div class="t-panel p-bowl">
+      <div style="display:flex; flex-direction:column;"><span class="lbl">SYS.BOWLER</span><span id="bowlerName" class="pn">Bowler Name</span></div>
+      <div style="display:flex; align-items:baseline;">
+        <span class="ps" style="color:#fff;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
       </div>
     </div>
-
-    <div class="bp-panel bp-bowl">
-      <div class="grp">
-        <div class="hdr">BOWLING PROTOCOL</div>
-        <span id="bowlerName" class="p-n">Bowler Name</span>
-      </div>
-      <div style="text-align: right;">
-        <div class="p-s" style="color: #ff0055;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></div>
-        <div class="p-b" style="color:#fff;">OVERS: <span id="bowlerOvers">0.0</span></div>
-      </div>
-    </div>
-
-  </div>
-
-  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(0, 243, 255, 0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-    https://scorex-live.vercel.app/
   </div>
 
   <script>
-    let pSc = -1, pWk = -1, tSt = 0, bpDat = {};
-    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
-
-    function fireBlueprintEvent(txt, color) {
-      const e = document.getElementById('bp-event');
-      e.innerText = txt; 
-      e.style.webkitTextStroke = `2px ${color}`;
-      e.style.textShadow = `0 0 20px ${color}80`;
-      e.classList.remove('show');
-      void e.offsetWidth; 
-      e.classList.add('show');
-      setTimeout(() => e.classList.remove('show'), 2800);
-    }
+    let pSc = -1, pWk = -1, iSt = 0, cDat = {}, glitchTimeout;
+    const $ = id => document.getElementById(id);
 
     setInterval(() => {
-      const isl = document.getElementById('tournamentName');
-      if(!bpDat.tournamentName) return;
-      tSt = (tSt + 1) % 3;
-      if(tSt === 0) isl.innerText = `[ ${bpDat.tournamentName} ]`;
-      else if(tSt === 1) isl.innerText = `CRR_METRIC // ${bpDat.runRate||'0.0'}`;
-      else isl.innerText = bpDat.target > 0 ? `TRG_LOCK // ${bpDat.target}` : `MODE // LIVE`;
+      if(!cDat.tournamentName) return;
+      iSt = (iSt + 1) % 3;
+      if(iSt === 0) $('term-island').innerText = cDat.tournamentName;
+      else if(iSt === 1) $('term-island').innerText = "SCOREX-LIVE.COM";
+      else $('term-island').innerText = "SYS.CRR: " + (cDat.runRate||'0.0');
     }, 4500);
 
-    function rx(d) {
-      bpDat = d;
-      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
-      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
-      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
-      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+    function triggerGlitch(txt, bg, color, isPersistent) {
+      const gl = $('glitch-event');
+      if(glitchTimeout) clearTimeout(glitchTimeout);
+      
+      gl.innerText = `[ ${txt} ]`; 
+      gl.style.background = bg;
+      gl.style.color = color;
+      
+      gl.classList.add('active');
+      if(!isPersistent) { glitchTimeout = setTimeout(() => { gl.classList.remove('active'); }, 3000); }
+    }
+
+    function processData(d) {
+      cDat = d;
+      if (d.team1Score == 0 && d.team1Overs === "0.0" && d.strikerRuns == 0 && d.tossWinner) {
+        $('toss-overlay').style.display = 'flex'; $('toss-overlay').innerText = `> ${d.tossWinner} WON TOSS : EXEC ${d.tossDecision}`;
+      } else { $('toss-overlay').style.display = 'none'; }
+
+      $('teamName').innerText = d.team1Name; $('teamScore').innerText = d.team1Score; $('teamWickets').innerText = d.team1Wickets; $('teamOvers').innerText = d.team1Overs;
+      $('strikerName').innerText = d.strikerName; $('strikerRuns').innerText = d.strikerRuns; $('strikerBalls').innerText = d.strikerBalls;
+      $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
+      $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
+
+      if (d.decisionPending) { triggerGlitch("DECISION PENDING", "#ffcc00", "#000", true); return; } 
+      else if ($('glitch-event').classList.contains('active') && $('glitch-event').innerText.includes("DECISION")) { $('glitch-event').classList.remove('active'); }
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (pSc !== -1) {
-        if (nw > pWk) fireBlueprintEvent("WICKET_DETECTED", "#ff0055");
-        else if (ns - pSc === 6) fireBlueprintEvent("MAXIMUM_IMPACT", "#00f3ff");
-        else if (ns - pSc === 4) fireBlueprintEvent("BOUNDARY_CLEARED", "#ffdd00");
+      if (pSc !== -1 && !d.decisionPending) {
+        if (nw > pWk) triggerGlitch("ERR: WICKET", "#f00", "#fff"); 
+        else if (ns - pSc === 6) triggerGlitch("EXEC: SIX", "#0ff", "#000");
+        else if (ns - pSc === 4) triggerGlitch("EXEC: FOUR", "#0f0", "#000");
       }
       pSc = ns; pWk = nw;
     }
-
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
   </script>
 </body>
 </html>
