@@ -2,169 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Folded Console</title>
+  <title>ScoreX - Lvl 2 Dynamic Slide (Crimson Metal)</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Oswald:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Montserrat:ital,wght@0,800;1,900&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Oswald', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Montserrat', sans-serif; text-transform: uppercase; }
 
-    /* Floating Top Tab */
-    #fold-top {
+    @keyframes dropIn {
+      0% { transform: translateY(50px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* The Metallic Light Reflection */
+    @keyframes shine {
+      0% { transform: translateX(-100%) skewX(-15deg); }
+      20%, 100% { transform: translateX(200%) skewX(-15deg); }
+    }
+
+    /* Crimson Metallic Top Island */
+    #top-island {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: #ff4713; color: #fff;
-      padding: 5px 30px; font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      box-shadow: 0 10px 20px rgba(255, 71, 19, 0.4);
-      border-radius: 4px; border-bottom: 3px solid #b32a00;
+      background: linear-gradient(to bottom, #2d2d2d, #111111);
+      border-top: 2px solid #555; border-bottom: 2px solid #000;
+      border-left: 4px solid #e11d48; border-right: 4px solid #e11d48;
+      padding: 6px 30px; font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: 2px; color: #e2e8f0;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 0 10px rgba(225, 29, 72, 0.2); z-index: 10;
+      animation: dropIn 0.8s ease-out forwards;
+      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+      position: relative; overflow: hidden;
+    }
+    #top-island::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+      animation: shine 5s infinite; pointer-events: none;
     }
 
-    /* Stamping Event Popup */
-    #fold-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(3);
-      font-family: 'Teko', sans-serif; font-size: 180px; font-weight: 700; color: #fff; line-height: 1;
-      text-shadow: 0 15px 30px rgba(0,0,0,0.8);
-      opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    #fold-event.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-    /* The 3D Console Wrapper */
-    #console-wrapper {
-      position: absolute; bottom: 30px; left: 0; width: 100%;
-      display: flex; justify-content: center; align-items: flex-end;
-      perspective: 1200px; /* Crucial for 3D effect */
+    #toss-overlay {
+      position: absolute; inset: 0; background: rgba(17, 17, 17, 0.95);
+      display: none; align-items: center; justify-content: center; z-index: 50;
+      font-family: 'Montserrat', sans-serif; font-size: 35px; font-weight: 900; font-style: italic; color: #e11d48;
     }
 
-    /* Common Panel Style */
-    .c-panel {
-      background: linear-gradient(180deg, #1c2128 0%, #0d1117 100%);
-      border: 2px solid #30363d;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 2px 0 rgba(255,255,255,0.1);
-      padding: 15px 30px;
+    #event-display {
+      position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%) scale(0.5);
+      font-family: 'Teko', sans-serif; font-size: 90px; color: #fff; line-height: 1;
+      text-shadow: 0 10px 20px rgba(0,0,0,0.9); opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1;
+    }
+    #event-display.show { transform: translateX(-50%) scale(1); opacity: 1; }
+
+    #scoreboard-wrapper {
+      position: absolute; bottom: 25px; left: 0; width: 100%; 
+      height: 75px; 
+      display: flex; justify-content: center; align-items: stretch;
+      transition: transform 0.5s ease-in-out; z-index: 5;
+      animation: dropIn 1s ease-out forwards;
     }
 
-    /* Left Wing - Angled Inward */
-    .p-left {
-      width: 350px; height: 90px;
-      transform: rotateY(25deg) translateZ(-30px); transform-origin: right center;
-      border-right: none; border-radius: 8px 0 0 8px;
-      display: flex; flex-direction: column; justify-content: space-around;
+    .s-panel { 
+      background: linear-gradient(135deg, #2d2d2d 0%, #111111 100%); 
+      border-top: 2px solid #555; border-bottom: 3px solid #000;
+      padding: 0 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); 
+      height: 100%; display: flex; align-items: center; position: relative; overflow: hidden;
     }
-
-    /* Center Console - Pops Out */
-    .p-center {
-      width: 320px; height: 120px;
-      transform: translateZ(40px); z-index: 10;
-      border-bottom: 6px solid #ff4713; border-radius: 8px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: linear-gradient(180deg, #24292e 0%, #111418 100%);
+    .s-panel::after {
+      content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+      animation: shine 4s infinite; pointer-events: none;
     }
-
-    /* Right Wing - Angled Inward */
-    .p-right {
-      width: 350px; height: 90px;
-      transform: rotateY(-25deg) translateZ(-30px); transform-origin: left center;
-      border-left: none; border-radius: 0 8px 8px 0;
-      display: flex; flex-direction: column; justify-content: space-around;
-    }
+    
+    .p-score { border-left: 5px solid #e11d48; min-width: 300px; justify-content: space-between; clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%); z-index: 3;}
+    .p-bat { flex: 1; max-width: 500px; justify-content: space-around; margin-left: -15px; padding-left: 40px; clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%); z-index: 2;}
+    .p-bowl { min-width: 320px; justify-content: space-between; margin-left: -15px; padding-left: 40px; clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%); z-index: 1;}
 
     /* Typography */
-    .tm-n { font-size: 24px; font-weight: 700; color: #8b949e; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase;}
-    .sc-m { font-family: 'Teko', sans-serif; font-size: 70px; line-height: 0.8; font-weight: 700; color: #fff;}
-    .sc-m span { font-size: 35px; color: #ff4713; }
-    .ov-m { font-size: 16px; font-weight: 700; color: #fff; background: #ff4713; padding: 2px 10px; border-radius: 4px; position: absolute; top: -12px; right: 10px;}
+    .tm { font-size: 20px; font-weight: 900; font-style: italic; color: #94a3b8; line-height: 1; }
+    .sc { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.7; color: #fff;}
+    .sc span { font-size: 32px; color: #94a3b8; }
+    .ov { font-family: 'Teko', sans-serif; font-size: 22px; color: #e11d48; margin-left: 15px; letter-spacing: 1px;}
 
-    .row { display: flex; justify-content: space-between; align-items: baseline; }
-    .pl-n { font-size: 20px; font-weight: 700; color: #c9d1d9; }
-    .pl-s { font-family: 'Teko', sans-serif; font-size: 36px; font-weight: 700; color: #58a6ff; line-height: 0.9;}
-    .pl-b { font-size: 14px; color: #8b949e; }
-    
-    .striker { color: #fff; }
-    .striker .pl-s { color: #fff; }
-    
-    .lbl { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: -5px;}
-
+    .pn { font-size: 18px; font-weight: 900; font-style: italic; color: #fff; }
+    .ps { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: #e11d48; margin-left: 10px; line-height: 0.7;}
+    .pb { font-size: 14px; color: #94a3b8; font-weight: 800; margin-left: 5px;}
+    .lbl { font-size: 11px; color: #94a3b8; font-weight: 900; letter-spacing: 1px;}
   </style>
 </head>
 <body>
 
-  <div id="fold-top"><span id="tournamentName">INTERNATIONAL BROADCAST</span></div>
-  <div id="fold-event"></div>
+  <div id="top-island"><span id="island-text">SCOREX-LIVE.COM</span></div>
+  <div id="toss-overlay"></div>
+  <div id="event-display"></div>
 
-  <div id="console-wrapper">
-    
-    <div class="c-panel p-left">
-      <div class="row striker">
-        <span id="strikerName" class="pl-n">▶ Striker</span>
-        <div><span id="strikerRuns" class="pl-s">0</span> <span class="pl-b">(<span id="strikerBalls">0</span>)</span></div>
-      </div>
-      <div class="row" style="opacity: 0.6;">
-        <span id="nonStrikerName" class="pl-n" style="margin-left: 18px;">Non-Striker</span>
-        <div><span id="nonStrikerRuns" class="pl-s" style="font-size: 26px;">0</span> <span class="pl-b">(<span id="nonStrikerBalls">0</span>)</span></div>
-      </div>
-    </div>
-
-    <div class="c-panel p-center">
-      <div class="ov-m">OV <span id="teamOvers">0.0</span></div>
-      <div id="teamName" class="tm-n">TEAM</div>
-      <div class="sc-m"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
-    </div>
-
-    <div class="c-panel p-right">
-      <span class="lbl">CURRENT BOWLER</span>
-      <div class="row" style="margin-top: 5px;">
-        <span id="bowlerName" class="pl-n" style="color: #fff;">Bowler Name</span>
-        <span class="pl-s" style="color: #ff4713;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
-      </div>
-      <div style="text-align: right; font-size: 14px; color: #8b949e; font-weight: 700;">
-        OVERS <span id="bowlerOvers" style="color:#c9d1d9;">0.0</span>
+  <div id="scoreboard-wrapper">
+    <div class="s-panel p-score">
+      <div style="display:flex; flex-direction:column; z-index: 2;">
+        <div id="teamName" class="tm">TEAM</div>
+        <div style="display:flex; align-items:baseline;">
+          <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov">OV <span id="teamOvers">0.0</span></div>
+        </div>
       </div>
     </div>
-
-  </div>
-
-  <div style="position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,0.4); font-family: sans-serif; letter-spacing: 2px; z-index: 10000; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">
-    https://scorex-live.vercel.app/
+    <div class="s-panel p-bat">
+      <div style="display:flex; align-items:baseline; z-index: 2;">
+        <span style="color:#e11d48; margin-right:8px; font-size: 14px;">▶</span>
+        <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div style="width: 2px; height: 35px; background: rgba(255,255,255,0.2); transform: skewX(-15deg); z-index: 2;"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.6; z-index: 2;">
+        <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#fff;">0</span>
+      </div>
+    </div>
+    <div class="s-panel p-bowl">
+      <div style="display:flex; flex-direction:column; z-index: 2;"><span class="lbl">BOWLER</span><span id="bowlerName" class="pn">Bowler</span></div>
+      <div style="display:flex; align-items:baseline; z-index: 2;">
+        <span class="ps" style="color:#fff;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
+      </div>
+    </div>
   </div>
 
   <script>
-    let cSc = -1, cWk = -1, cDat = {};
-    const inject = (id, val) => { const e = document.getElementById(id); if(e && val != null) e.innerText = val; };
-
-    function fireFoldEvent(txt, color) {
-      const e = document.getElementById('fold-event');
-      e.innerText = txt; e.style.color = color;
-      e.classList.remove('show');
-      void e.offsetWidth; 
-      e.classList.add('show');
-    }
+    let pSc = -1, pWk = -1, iSt = 0, cDat = {}, slideTimeout;
+    const $ = id => document.getElementById(id);
 
     setInterval(() => {
-      const isl = document.getElementById('tournamentName');
       if(!cDat.tournamentName) return;
-      let st = Math.floor(Date.now() / 4000) % 3;
-      if(st === 0) isl.innerText = cDat.tournamentName;
-      else if(st === 1) isl.innerText = "CRR: " + (cDat.runRate||'0.0');
-      else isl.innerText = cDat.target > 0 ? "TARGET: " + cDat.target : "LIVE BROADCAST";
-    }, 4000);
+      iSt = (iSt + 1) % 3;
+      if(iSt === 0) $('island-text').innerText = cDat.tournamentName;
+      else if(iSt === 1) $('island-text').innerText = "SCOREX-LIVE.COM";
+      else $('island-text').innerText = "CRR: " + (cDat.runRate||'0.0');
+    }, 4500);
 
-    function rx(d) {
-      cDat = d;
-      inject('teamName', d.team1Name); inject('teamScore', d.team1Score); inject('teamWickets', d.team1Wickets); inject('teamOvers', d.team1Overs);
-      inject('strikerName', d.strikerName); inject('strikerRuns', d.strikerRuns); inject('strikerBalls', d.strikerBalls);
-      inject('nonStrikerName', d.nonStrikerName); inject('nonStrikerRuns', d.nonStrikerRuns); inject('nonStrikerBalls', d.nonStrikerBalls);
-      inject('bowlerName', d.bowlerName); inject('bowlerRuns', d.bowlerRuns); inject('bowlerWickets', d.bowlerWickets); inject('bowlerOvers', d.bowlerOvers);
+    function triggerSlideEvent(txt, color, isPersistent) {
+      const wrapper = $('scoreboard-wrapper');
+      const evt = $('event-display');
 
-      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
-      if (cSc !== -1) {
-        if (nw > cWk) fireFoldEvent("WICKET", "#ff4713");
-        else if (ns - cSc === 6) fireFoldEvent("SIX", "#58a6ff");
-        else if (ns - cSc === 4) fireFoldEvent("FOUR", "#fff");
+      if(slideTimeout) clearTimeout(slideTimeout);
+
+      wrapper.style.transform = 'translateX(-150vw)';
+      evt.innerText = txt; evt.style.color = color;
+      evt.classList.add('show');
+
+      if(!isPersistent) {
+        slideTimeout = setTimeout(() => {
+          evt.classList.remove('show');
+          wrapper.style.transition = 'none';
+          wrapper.style.transform = 'translateX(150vw)';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              wrapper.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+              wrapper.style.transform = 'translateX(0)';
+            });
+          });
+        }, 3500);
       }
-      cSc = ns; cWk = nw;
     }
 
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); });
-    if ('BroadcastChannel' in window) new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') rx(e.data.data); };
+    function clearPersistentEvent() {
+      const wrapper = $('scoreboard-wrapper');
+      const evt = $('event-display');
+      evt.classList.remove('show');
+      wrapper.style.transition = 'none';
+      wrapper.style.transform = 'translateX(150vw)';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          wrapper.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          wrapper.style.transform = 'translateX(0)';
+        });
+      });
+    }
+
+    function processData(d) {
+      cDat = d;
+      if (d.team1Score == 0 && d.team1Overs === "0.0" && d.strikerRuns == 0 && d.tossWinner) {
+        $('toss-overlay').style.display = 'flex'; $('toss-overlay').innerText = `${d.tossWinner} WON THE TOSS & ELECTED TO ${d.tossDecision}`;
+      } else { $('toss-overlay').style.display = 'none'; }
+
+      $('teamName').innerText = d.team1Name; $('teamScore').innerText = d.team1Score; $('teamWickets').innerText = d.team1Wickets; $('teamOvers').innerText = d.team1Overs;
+      $('strikerName').innerText = d.strikerName; $('strikerRuns').innerText = d.strikerRuns; $('strikerBalls').innerText = d.strikerBalls;
+      $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
+      $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
+
+      if (d.decisionPending) { triggerSlideEvent("DECISION PENDING", "#e11d48", true); return; } 
+      else if ($('event-display').classList.contains('show') && $('event-display').innerText === "DECISION PENDING") { clearPersistentEvent(); }
+
+      let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
+      if (pSc !== -1 && !d.decisionPending) {
+        if (nw > pWk) triggerSlideEvent("WICKET!", "#ef4444"); 
+        else if (ns - pSc === 6) triggerSlideEvent("MAXIMUM SIX!", "#38bdf8");
+        else if (ns - pSc === 4) triggerSlideEvent("BOUNDARY!", "#e2e8f0");
+      }
+      pSc = ns; pWk = nw;
+    }
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
   </script>
 </body>
 </html>

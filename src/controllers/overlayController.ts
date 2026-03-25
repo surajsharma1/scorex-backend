@@ -174,19 +174,7 @@ export const deleteOverlay = async (req: AuthRequest, res: Response): Promise<vo
 // ─── getOverlayTemplates ──────────────────────────────────────────────────────
 export const getOverlayTemplates = async (req: Request, res: Response): Promise<void> => {
   res.json([
-    { id: 'lvl1-broadcast-bar',  name: 'Level 1: Broadcast Bar',    url: '/overlays/lvl1-broadcast-bar.html',  level: 1 },
-    { id: 'lvl1-curved-compact', name: 'Level 1: Curved Compact',   url: '/overlays/lvl1-curved-compact.html', level: 1 },
-    { id: 'lvl1-dark-angular',   name: 'Level 1: Dark Angular',     url: '/overlays/lvl1-dark-angular.html',   level: 1 },
-    { id: 'lvl1-grass-theme',    name: 'Level 1: Grass Theme',      url: '/overlays/lvl1-grass-theme.html',    level: 1 },
-    { id: 'lvl1-high-vis',       name: 'Level 1: High Visibility',  url: '/overlays/lvl1-high-vis.html',       level: 1 },
-    { id: 'lvl1-minimal-dark',   name: 'Level 1: Minimal Dark',     url: '/overlays/lvl1-minimal-dark.html',   level: 1 },
-    { id: 'lvl1-modern-bar',     name: 'Level 1: Modern Bar',       url: '/overlays/lvl1-modern-bar.html',     level: 1 },
-    { id: 'lvl1-modern-blue',    name: 'Level 1: Modern Blue',      url: '/overlays/lvl1-modern-blue.html',    level: 1 },
-    { id: 'lvl1-paper-style',    name: 'Level 1: Paper Style',      url: '/overlays/lvl1-paper-style.html',    level: 1 },
-    { id: 'lvl1-red-card',       name: 'Level 1: Red Card',         url: '/overlays/lvl1-red-card.html',       level: 1 },
-    { id: 'lvl1-retro-board',    name: 'Level 1: Retro Board',      url: '/overlays/lvl1-retro-board.html',    level: 1 },
-    { id: 'lvl1-side-panel',     name: 'Level 1: Side Panel',       url: '/overlays/lvl1-side-panel.html',     level: 1 },
-    { id: 'lvl1-simple-text',    name: 'Level 1: Simple Text',      url: '/overlays/lvl1-simple-text.html',    level: 1 },
+{ id: 'lvl1-classic-test',  name: 'Level 1: Classic Test',     url: '/overlays/lvl1-classic-test.html',  level: 1 },\n    { id: 'lvl1-clean-cloud',    name: 'Level 1: Clean Cloud',      url: '/overlays/lvl1-clean-cloud.html',   level: 1 },\n    { id: 'lvl1-cyber-chevron',  name: 'Level 1: Cyber Chevron',    url: '/overlays/lvl1-cyber-chevron.html', level: 1 },\n    { id: 'lvl1-franchise-gold', name: 'Level 1: Franchise Gold',   url: '/overlays/lvl1-franchise-gold.html',level: 1 },\n    { id: 'lvl1-minimal-dark',   name: 'Level 1: Minimal Dark',     url: '/overlays/lvl1-minimal-dark.html',  level: 1 },\n    { id: 'lvl1-paper-style',    name: 'Level 1: Paper Style',      url: '/overlays/lvl1-paper-style.html',   level: 1 },\n    { id: 'lvl1-solid-edge',     name: 'Level 1: Solid Edge',       url: '/overlays/lvl1-solid-edge.html',    level: 1 },\n    { id: 'lvl1-yellow-impact',  name: 'Level 1: Yellow Impact',    url: '/overlays/lvl1-yellow-impact.html', level: 1 },
     { id: 'lvl2-broadcast-pro',  name: 'Level 2: Broadcast Pro',    url: '/overlays/lvl2-broadcast-pro.html',  level: 2 },
     { id: 'lvl2-fluid-ribbon', name: 'Level 2: Fluid Ribbon', url: '/overlays/lvl2-Fluid-Ribbon.html', level: 2 },
     { id: 'lvl2-cyber-glitch',   name: 'Level 2: Cyber Glitch',     url: '/overlays/lvl2-cyber-glitch.html',   level: 2 },
