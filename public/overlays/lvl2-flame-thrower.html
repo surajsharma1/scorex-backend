@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Metallic Flip (Emerald)</title>
+  <title>ScoreX - Lvl 2 Tech Capsule Flip</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Montserrat:ital,wght@0,800;1,900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@500;700;900&display=swap');
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Montserrat', sans-serif; text-transform: uppercase; }
+    body { background: transparent; overflow: hidden; color: #fff; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
 
     @keyframes dropIn {
       0% { transform: translateY(50px); opacity: 0; }
@@ -15,42 +15,46 @@
     }
     
     @keyframes shine {
-      0% { transform: translateX(-100%) skewX(-15deg); }
-      20%, 100% { transform: translateX(200%) skewX(-15deg); }
+      0% { transform: translateX(-150%) skewX(-25deg); }
+      20%, 100% { transform: translateX(250%) skewX(-25deg); }
     }
 
-    /* Emerald Titanium Island */
+    /* Floating Capsule Island */
     #flip-island {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(to bottom, #1e293b, #0f172a);
-      border-top: 2px solid #475569; border-bottom: 2px solid #000;
-      padding: 6px 40px; font-size: 14px; font-weight: 900; font-style: italic;
-      color: #10b981; letter-spacing: 2px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      background: linear-gradient(to bottom, #1e293b, #020617);
+      border: 1px solid #00f5ff;
+      border-radius: 30px;
+      padding: 6px 40px; font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+      color: #00f5ff; letter-spacing: 3px; 
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.2);
       animation: dropIn 0.8s ease-out forwards;
-      clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
       position: relative; overflow: hidden;
     }
     #flip-island::after {
       content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
-      background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
       animation: shine 5s infinite; pointer-events: none;
     }
 
     #toss-plate {
       position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95);
       display: none; align-items: center; justify-content: center; z-index: 50;
-      font-family: 'Montserrat', sans-serif; font-size: 35px; font-weight: 900; font-style: italic; color: #10b981;
+      font-family: 'Orbitron', sans-serif; font-size: 30px; font-weight: 900; color: #00f5ff;
+      text-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
     }
 
+    /* THE CAPSULE BOTTOM WRAPPER */
     #flip-bottom {
       position: absolute; bottom: 25px; left: 0; width: 100%; 
-      height: 75px; /* STRICT HEIGHT FOR FLIP */
-      display: flex; gap: 8px; padding: 0 40px;
+      height: 80px; /* RIGID HEIGHT FOR 3D FLIP */
+      display: flex; gap: 12px; padding: 0 40px;
       animation: dropIn 1s ease-out forwards;
     }
 
+    /* FLIP CONTAINER - Score Block */
     .flip-container {
-      position: relative; width: 350px; height: 75px; perspective: 1200px;
+      position: relative; width: 360px; height: 100%; perspective: 1200px;
     }
     .flipper {
       width: 100%; height: 100%; position: absolute; top: 0; left: 0;
@@ -59,60 +63,65 @@
     }
     .flipper.flip { transform: rotateX(180deg); }
     
+    /* COMMON METALLIC STYLE FOR ALL BLOCKS */
     .front, .back, .m-panel {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; backface-visibility: hidden;
-      background: linear-gradient(135deg, #1e293b 0%, #020617 100%); 
-      border-top: 2px solid #475569; border-bottom: 3px solid #000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      background: linear-gradient(135deg, #2b3240 0%, #0f172a 100%); 
+      border: 1px solid #334155; border-bottom: 3px solid #000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 2px 0px rgba(255,255,255,0.15);
       display: flex; justify-content: space-between; align-items: center; padding: 0 25px;
       overflow: hidden;
     }
+    
+    /* THE SHINE EFFECT */
     .front::after, .back::after, .m-panel::after {
       content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
       background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
       animation: shine 4s infinite; pointer-events: none; z-index: 1;
     }
     
-    .front { border-left: 5px solid #10b981; clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%); }
+    /* SHAPE DISTINCTIONS (Pill Ends vs Block Center) */
+    .front { border-radius: 40px 10px 10px 40px; border-left: 4px solid #00f5ff; }
     .back {
       transform: rotateX(180deg); 
-      background: linear-gradient(to bottom, #10b981, #047857); border-left: 5px solid #fff;
-      justify-content: center; color: #fff; font-family: 'Teko', sans-serif; font-size: 55px; line-height: 1;
-      clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      background: linear-gradient(to bottom, #00f5ff, #008288); border-left: 4px solid #fff;
+      border-radius: 40px 10px 10px 40px;
+      justify-content: center; color: #000; font-family: 'Orbitron', sans-serif; font-size: 35px; font-weight: 900;
     }
-
+    
     .m-panel { position: relative; height: 100%; }
-    .p-bat { flex: 1; justify-content: space-around; clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%); margin-left: -15px;}
-    .p-bowl { min-width: 320px; justify-content: space-between; clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%); margin-left: -15px;}
+    .p-bat { flex: 1; justify-content: space-around; border-radius: 10px; }
+    .p-bowl { min-width: 320px; justify-content: space-between; border-radius: 10px 40px 40px 10px; border-right: 4px solid #00f5ff; }
 
-    /* Wrapper for text to stay above shine */
     .txt-layer { position: relative; z-index: 2; width: 100%; display: flex; align-items: center; justify-content: space-between;}
 
     /* Typography */
-    .tm { font-size: 20px; font-weight: 900; font-style: italic; color: #94a3b8; line-height: 1;}
-    .sc { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; color: #fff; line-height: 0.7; }
-    .sc span { font-size: 32px; color: #94a3b8; }
-    .ov { font-family: 'Teko', sans-serif; font-size: 22px; color: #10b981; margin-left: 15px; letter-spacing: 1px;}
+    .tm { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: #94a3b8; letter-spacing: 1px;}
+    .sc { font-size: 50px; font-weight: 700; color: #fff; line-height: 0.8; }
+    .sc span { font-size: 28px; color: #94a3b8; }
+    .ov { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: #00f5ff; background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 10px; margin-left: 15px;}
 
-    .pn { font-size: 18px; font-weight: 900; font-style: italic; color: #fff; }
-    .ps { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: #10b981; margin-left: 10px; line-height: 0.7;}
-    .pb { font-size: 14px; color: #94a3b8; font-weight: 800;}
-    .lbl { font-size: 11px; color: #94a3b8; font-weight: 900; margin-bottom: 2px; letter-spacing: 1px;}
-    .v-line { width: 2px; height: 35px; background: rgba(255,255,255,0.2); transform: skewX(-15deg); }
+    .pn { font-size: 22px; font-weight: 700; color: #e2e8f0; }
+    .ps { font-size: 40px; font-weight: 700; color: #00f5ff; margin-left: 10px; line-height: 0.8;}
+    .pb { font-size: 16px; color: #94a3b8; font-weight: 600;}
+    .lbl { font-size: 11px; color: #00f5ff; font-weight: 700; margin-bottom: 2px; letter-spacing: 1px;}
+    
+    .v-line { width: 1px; height: 40px; background: rgba(255,255,255,0.15); }
   </style>
 </head>
 <body>
 
-  <div id="flip-island"><span id="island-text">SCOREX-LIVE.VERCEL.APP</span></div>
+  <div id="flip-island"><span id="island-text">SCOREX-LIVE.COM</span></div>
   <div id="toss-plate"></div>
 
   <div id="flip-bottom">
+    
     <div class="flip-container">
       <div class="flipper" id="score-flipper">
         <div class="front">
           <div class="txt-layer" style="flex-direction: column; align-items: flex-start;">
             <div id="teamName" class="tm">TEAM</div>
-            <div style="display:flex; align-items:baseline;">
+            <div style="display:flex; align-items:baseline; margin-top: 5px;">
               <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
               <div class="ov">OV <span id="teamOvers">0.0</span></div>
             </div>
@@ -125,8 +134,8 @@
     <div class="m-panel p-bat">
       <div class="txt-layer" style="justify-content: space-around;">
         <div style="display:flex; align-items:baseline;">
-          <span style="color:#10b981; margin-right:8px; font-size:14px;">▶</span>
-          <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb" style="margin-left: 5px;">(<span id="strikerBalls">0</span>)</span>
+          <span style="color:#00f5ff; margin-right:8px; font-size:12px;">▶</span>
+          <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb" style="margin-left: 8px;">(<span id="strikerBalls">0</span>)</span>
         </div>
         <div class="v-line"></div>
         <div style="display:flex; align-items:baseline; opacity: 0.6;">
@@ -143,6 +152,7 @@
         </div>
       </div>
     </div>
+
   </div>
 
   <script>
@@ -165,9 +175,19 @@
       if(flipTimeout) clearTimeout(flipTimeout);
       text.innerText = txt; 
       
-      if(txt === "WICKET!") back.style.background = "linear-gradient(to bottom, #ef4444, #7f1d1d)";
-      else if(txt === "DECISION PENDING") back.style.background = "linear-gradient(to bottom, #10b981, #047857)";
-      else back.style.background = "linear-gradient(to bottom, #38bdf8, #0369a1)";
+      // Dynamic back face colors
+      if(txt === "WICKET!") {
+        back.style.background = "linear-gradient(to bottom, #ef4444, #7f1d1d)";
+        back.style.color = "#fff";
+      }
+      else if(txt === "DECISION PENDING") {
+        back.style.background = "linear-gradient(to bottom, #fbbf24, #b45309)";
+        back.style.color = "#000";
+      }
+      else {
+        back.style.background = "linear-gradient(to bottom, #00f5ff, #008288)";
+        back.style.color = "#000";
+      }
       
       flipper.classList.add('flip');
       if (!isPersistent) { flipTimeout = setTimeout(() => { flipper.classList.remove('flip'); }, 3500); }
@@ -190,7 +210,7 @@
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (pSc !== -1 && !d.decisionPending) {
         if (nw > pWk) triggerFlip("WICKET!"); 
-        else if (ns - pSc === 6) triggerFlip("SIX!"); 
+        else if (ns - pSc === 6) triggerFlip("MAXIMUM!"); 
         else if (ns - pSc === 4) triggerFlip("BOUNDARY!"); 
       }
       pSc = ns; pWk = nw;

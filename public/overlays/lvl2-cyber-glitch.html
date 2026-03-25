@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 2 Dynamic Slide (Crimson Metal)</title>
+  <title>ScoreX - Lvl 2 Dynamic Slide (Sapphire Chrome)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Montserrat:ital,wght@0,800;1,900&display=swap');
 
@@ -14,34 +14,33 @@
       100% { transform: translateY(0); opacity: 1; }
     }
     
-    /* The Metallic Light Reflection */
     @keyframes shine {
       0% { transform: translateX(-100%) skewX(-15deg); }
       20%, 100% { transform: translateX(200%) skewX(-15deg); }
     }
 
-    /* Crimson Metallic Top Island */
+    /* Sapphire Chrome Top Island */
     #top-island {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(to bottom, #2d2d2d, #111111);
-      border-top: 2px solid #555; border-bottom: 2px solid #000;
-      border-left: 4px solid #e11d48; border-right: 4px solid #e11d48;
-      padding: 6px 30px; font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: 2px; color: #e2e8f0;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 0 10px rgba(225, 29, 72, 0.2); z-index: 10;
+      background: linear-gradient(to bottom, #1e3a8a, #0f172a);
+      border-top: 2px solid #94a3b8; border-bottom: 2px solid #000;
+      border-left: 4px solid #38bdf8; border-right: 4px solid #38bdf8;
+      padding: 6px 30px; font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: 2px; color: #e0f2fe;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.3); z-index: 10;
       animation: dropIn 0.8s ease-out forwards;
       clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
       position: relative; overflow: hidden;
     }
     #top-island::after {
       content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
-      background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
       animation: shine 5s infinite; pointer-events: none;
     }
 
     #toss-overlay {
-      position: absolute; inset: 0; background: rgba(17, 17, 17, 0.95);
+      position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95);
       display: none; align-items: center; justify-content: center; z-index: 50;
-      font-family: 'Montserrat', sans-serif; font-size: 35px; font-weight: 900; font-style: italic; color: #e11d48;
+      font-family: 'Montserrat', sans-serif; font-size: 35px; font-weight: 900; font-style: italic; color: #38bdf8;
     }
 
     #event-display {
@@ -60,37 +59,38 @@
       animation: dropIn 1s ease-out forwards;
     }
 
+    /* BLUE METALLIC PANELS */
     .s-panel { 
-      background: linear-gradient(135deg, #2d2d2d 0%, #111111 100%); 
-      border-top: 2px solid #555; border-bottom: 3px solid #000;
-      padding: 0 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); 
+      background: linear-gradient(135deg, #1d4ed8 0%, #081220 100%); 
+      border-top: 2px solid #cbd5e1; border-bottom: 3px solid #000;
+      padding: 0 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.2); 
       height: 100%; display: flex; align-items: center; position: relative; overflow: hidden;
     }
     .s-panel::after {
       content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%;
-      background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent);
       animation: shine 4s infinite; pointer-events: none;
     }
     
-    .p-score { border-left: 5px solid #e11d48; min-width: 300px; justify-content: space-between; clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%); z-index: 3;}
+    .p-score { border-left: 5px solid #38bdf8; min-width: 300px; justify-content: space-between; clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%); z-index: 3;}
     .p-bat { flex: 1; max-width: 500px; justify-content: space-around; margin-left: -15px; padding-left: 40px; clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%); z-index: 2;}
     .p-bowl { min-width: 320px; justify-content: space-between; margin-left: -15px; padding-left: 40px; clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%); z-index: 1;}
 
     /* Typography */
-    .tm { font-size: 20px; font-weight: 900; font-style: italic; color: #94a3b8; line-height: 1; }
+    .tm { font-size: 20px; font-weight: 900; font-style: italic; color: #bae6fd; line-height: 1; }
     .sc { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.7; color: #fff;}
     .sc span { font-size: 32px; color: #94a3b8; }
-    .ov { font-family: 'Teko', sans-serif; font-size: 22px; color: #e11d48; margin-left: 15px; letter-spacing: 1px;}
+    .ov { font-family: 'Teko', sans-serif; font-size: 22px; color: #38bdf8; margin-left: 15px; letter-spacing: 1px;}
 
     .pn { font-size: 18px; font-weight: 900; font-style: italic; color: #fff; }
-    .ps { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: #e11d48; margin-left: 10px; line-height: 0.7;}
-    .pb { font-size: 14px; color: #94a3b8; font-weight: 800; margin-left: 5px;}
-    .lbl { font-size: 11px; color: #94a3b8; font-weight: 900; letter-spacing: 1px;}
+    .ps { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: #38bdf8; margin-left: 10px; line-height: 0.7;}
+    .pb { font-size: 14px; color: #cbd5e1; font-weight: 800; margin-left: 5px;}
+    .lbl { font-size: 11px; color: #bae6fd; font-weight: 900; letter-spacing: 1px;}
   </style>
 </head>
 <body>
 
-  <div id="top-island"><span id="island-text">SCOREX-LIVE.VERCEL.APP</span></div>
+  <div id="top-island"><span id="island-text">SCOREX-LIVE.COM</span></div>
   <div id="toss-overlay"></div>
   <div id="event-display"></div>
 
@@ -106,11 +106,11 @@
     </div>
     <div class="s-panel p-bat">
       <div style="display:flex; align-items:baseline; z-index: 2;">
-        <span style="color:#e11d48; margin-right:8px; font-size: 14px;">▶</span>
+        <span style="color:#38bdf8; margin-right:8px; font-size: 14px;">▶</span>
         <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
       </div>
-      <div style="width: 2px; height: 35px; background: rgba(255,255,255,0.2); transform: skewX(-15deg); z-index: 2;"></div>
-      <div style="display:flex; align-items:baseline; opacity: 0.6; z-index: 2;">
+      <div style="width: 2px; height: 35px; background: rgba(255,255,255,0.4); transform: skewX(-15deg); z-index: 2;"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.7; z-index: 2;">
         <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#fff;">0</span>
       </div>
     </div>
@@ -140,9 +140,7 @@
 
       if(slideTimeout) clearTimeout(slideTimeout);
 
-      // FIX: Remove the CSS dropIn animation lock so inline transforms work!
       wrapper.style.animation = 'none';
-
       wrapper.style.transition = 'transform 0.5s ease-in';
       wrapper.style.transform = 'translateX(-150vw)';
       
@@ -168,9 +166,7 @@
       const wrapper = $('scoreboard-wrapper');
       const evt = $('event-display');
       
-      // FIX: Ensure animation lock is removed here as well
       wrapper.style.animation = 'none';
-      
       evt.classList.remove('show');
       wrapper.style.transition = 'none';
       wrapper.style.transform = 'translateX(150vw)';
@@ -193,14 +189,14 @@
       $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
       $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
 
-      if (d.decisionPending) { triggerSlideEvent("DECISION PENDING", "#e11d48", true); return; } 
+      if (d.decisionPending) { triggerSlideEvent("DECISION PENDING", "#fbbf24", true); return; } 
       else if ($('event-display').classList.contains('show') && $('event-display').innerText === "DECISION PENDING") { clearPersistentEvent(); }
 
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (pSc !== -1 && !d.decisionPending) {
         if (nw > pWk) triggerSlideEvent("WICKET!", "#ef4444"); 
-        else if (ns - pSc === 6) triggerSlideEvent("SIX!", "#38bdf8");
-        else if (ns - pSc === 4) triggerSlideEvent("FOUR!", "#e2e8f0");
+        else if (ns - pSc === 6) triggerSlideEvent("MAXIMUM SIX!", "#38bdf8");
+        else if (ns - pSc === 4) triggerSlideEvent("BOUNDARY!", "#f8fafc");
       }
       pSc = ns; pWk = nw;
     }
