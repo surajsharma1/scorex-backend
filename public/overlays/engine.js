@@ -120,40 +120,50 @@
 
   // FALLBACK DEMO DATA
 function getDemoData() {
-    // Parse progress param for demo simulation ?progress=50%
+    // Parse URL params for demo simulation
     const urlParams = new URLSearchParams(window.location.search);
     const progressStr = urlParams.get('progress');
-    let progress = 0.69; // default ~69%
+    const runsStr = urlParams.get('runs') || '0';
+    const wicketsStr = urlParams.get('wickets') || '0';
+    const sixesStr = urlParams.get('sixes') || '0';
+    
+    let progress = 0.69;
+    let demoRuns = parseInt(runsStr) || 0;
+    let demoWickets = parseInt(wicketsStr) || 0;
+    let demoSixes = parseInt(sixesStr) || 0;
+    
     const target = 180;
-    let team1Score = Math.round(target * progress);
-    let team1Wickets = Math.round(10 * progress);
-    let strikerRuns = Math.round(68 * progress);
-    let nonStrikerRuns = Math.round(32 * progress);
-    let bowlerRuns = Math.round(45 * progress);
-    let bowlerWickets = Math.round(2 * progress);
+    let team1Score = Math.round(target * progress) + demoRuns;
+    let team1Wickets = Math.max(0, Math.round(10 * progress) + demoWickets);
+    let strikerRuns = Math.round(68 * progress) + Math.floor(demoRuns / 2);
+    let nonStrikerRuns = Math.round(32 * progress) + Math.floor(demoRuns / 2);
+    let bowlerRuns = Math.round(45 * progress) + demoRuns;
+    let bowlerWickets = Math.max(0, Math.round(2 * progress) + demoWickets);
+    let strikerBalls = 42 + demoRuns;
+    let bowlerOvers = '14.2';
 
     if (progressStr && progressStr.endsWith('%')) {
       const p = parseFloat(progressStr);
       if (!isNaN(p) && p >= 0 && p <= 100) {
         progress = p / 100;
-        team1Score = Math.round(target * progress);
-        team1Wickets = Math.max(0, Math.round(10 * progress));
-        strikerRuns = Math.round(68 * progress);
-        nonStrikerRuns = Math.round(32 * progress);
-        bowlerRuns = Math.round(45 * progress);
-        bowlerWickets = Math.max(0, Math.round(2 * progress));
+        team1Score = Math.round(target * progress) + demoRuns;
+        team1Wickets = Math.max(0, Math.round(10 * progress) + demoWickets);
+        strikerRuns = Math.round(68 * progress) + Math.floor(demoRuns / 2);
+        nonStrikerRuns = Math.round(32 * progress) + Math.floor(demoRuns / 2);
+        bowlerRuns = Math.round(45 * progress) + demoRuns;
+        bowlerWickets = Math.max(0, Math.round(2 * progress) + demoWickets);
       }
     }
 
     return {
       matchName: 'ScoreX Premium Showcase',
-      tournamentName: 'MEMBERSHIP DEMO',
+      tournamentName: `DEMO: ${demoRuns}R ${demoSixes}Sx ${demoWickets}W`,
       team1Name: 'PREMIUM BATS',
-      team1Score: team1Score, team1Wickets: team1Wickets, team1Overs: '14.2',
-      strikerName: 'V Kohli', strikerRuns: strikerRuns, strikerBalls: 42,
+      team1Score: team1Score, team1Wickets: team1Wickets, team1Overs: bowlerOvers,
+      strikerName: 'V Kohli', strikerRuns: strikerRuns, strikerBalls: strikerBalls,
       nonStrikerName: 'R Sharma', nonStrikerRuns: nonStrikerRuns, nonStrikerBalls: 28,
-      bowlerName: 'J Anderson', bowlerRuns: bowlerRuns, bowlerWickets: bowlerWickets, bowlerOvers: '3.4',
-      target: target, runRate: '8.44', requiredRunRate: '9.23'
+      bowlerName: 'J Anderson', bowlerRuns: bowlerRuns, bowlerWickets: bowlerWickets, bowlerOvers: bowlerOvers,
+      target: target, runRate: ((team1Score / 14.2 || 0).toFixed(2)), requiredRunRate: '9.23'
     };
   }
 
