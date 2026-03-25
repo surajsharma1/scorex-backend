@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.githubCallback = exports.googleCallback = exports.resetPassword = exports.forgotPassword = exports.logout = exports.getMe = exports.login = exports.register = void 0;
+exports.githubCallback = exports.googleCallback = exports.resetPassword = exports.forgotPassword = exports.logout = exports.changePassword = exports.getMe = exports.login = exports.register = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
 const signToken = (id) => jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -48,6 +48,34 @@ const getMe = async (req, res) => {
     }
 };
 exports.getMe = getMe;
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Current and new password are required' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+        }
+        const user = await User_1.default.findById(req.user._id).select('+password');
+        if (!user)
+            return res.status(404).json({ success: false, message: 'User not found' });
+        // OAuth users may not have a password set
+        if (!user.password) {
+            return res.status(400).json({ success: false, message: 'Cannot change password for OAuth accounts' });
+        }
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch)
+            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+        user.password = newPassword;
+        await user.save();
+        res.json({ success: true, message: 'Password changed successfully' });
+    }
+    catch {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+exports.changePassword = changePassword;
 const logout = (_req, res) => res.json({ success: true, message: 'Logged out' });
 exports.logout = logout;
 const forgotPassword = async (_req, res) => res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
@@ -69,4 +97,4 @@ const githubCallback = (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${token}`);
 };
 exports.githubCallback = githubCallback;
-exports.default = { register: exports.register, login: exports.login, getMe: exports.getMe, logout: exports.logout, forgotPassword: exports.forgotPassword, resetPassword: exports.resetPassword, googleCallback: exports.googleCallback, githubCallback: exports.githubCallback };
+exports.default = { register: exports.register, login: exports.login, getMe: exports.getMe, changePassword: exports.changePassword, logout: exports.logout, forgotPassword: exports.forgotPassword, resetPassword: exports.resetPassword, googleCallback: exports.googleCallback, githubCallback: exports.githubCallback };

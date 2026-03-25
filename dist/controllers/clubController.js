@@ -303,8 +303,7 @@ const approveJoinRequest = async (req, res, next) => {
                 message: 'No join request from this user'
             });
         }
-        club.approveJoinRequest(new mongoose_1.default.Types.ObjectId(userId));
-        await club.save();
+        await club.approveJoinRequest(new mongoose_1.default.Types.ObjectId(userId));
         // Notify new member
         const newMember = await User_1.default.findById(userId);
         await (0, notificationUtils_1.createNotification)({
@@ -352,8 +351,8 @@ const addViceLeader = async (req, res, next) => {
             });
         }
         club.viceLeaders.push(new mongoose_1.default.Types.ObjectId(userId));
-        await club.populate('viceLeaders', 'username email fullName profilePicture');
         await club.save();
+        await club.populate('viceLeaders', 'username email fullName profilePicture');
         res.json({
             success: true,
             message: 'Vice leader added'

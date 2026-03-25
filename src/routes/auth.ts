@@ -11,4 +11,5 @@ router.post('/reset-password/:token', ac.resetPassword);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), ac.googleCallback);
 router.get('/me', protect, ac.getMe);
+router.put('/change-password', protect, ac.changePassword);
 export default router;

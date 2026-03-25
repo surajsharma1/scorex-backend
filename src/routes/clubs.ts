@@ -16,24 +16,26 @@ import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
+// IMPORTANT: /my must come BEFORE /:id so Express doesn't treat "my" as an id
+router.get('/my', protect, getMyClubs);
+
 // Public routes
 router.get('/', getClubs);
-router.get('/:clubId', getClub);
+router.get('/:id', getClub);
 
 // Protected routes
-router.get('/my', protect, getMyClubs);
 router.post('/', protect, createClub);
-router.put('/:clubId', protect, updateClub);
-router.delete('/:clubId', protect, deleteClub);
-router.post('/:clubId/join', protect, joinClub);
-router.post('/:clubId/leave', protect, leaveClub);
-router.post('/:clubId/approve/:userId', protect, approveJoinRequest);
-router.post('/:clubId/vice-leader/:userId', protect, addViceLeader);
-router.delete('/:clubId/members/:userId', protect, removeMember);
+router.put('/:id', protect, updateClub);
+router.delete('/:id', protect, deleteClub);
+router.post('/:id/join', protect, joinClub);
+router.post('/:id/leave', protect, leaveClub);
+router.post('/:id/approve/:userId', protect, approveJoinRequest);
+router.post('/:id/vice-leader/:userId', protect, addViceLeader);
+router.delete('/:id/members/:userId', protect, removeMember);
 
 // Image upload routes
 import { uploadLogo, uploadBanner } from '../controllers/clubImageController';
-router.post('/:clubId/upload-logo', protect, uploadLogo);
-router.post('/:clubId/upload-banner', protect, uploadBanner);
+router.post('/:id/upload-logo', protect, uploadLogo);
+router.post('/:id/upload-banner', protect, uploadBanner);
 
 export default router;

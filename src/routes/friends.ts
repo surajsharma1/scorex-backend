@@ -7,7 +7,7 @@ import {
   getFriendRequests,
   removeFriend,
   searchUsers,
-  getOnlineFriends
+  getOnlineFriends,
 } from '../controllers/friendController';
 import { protect } from '../middleware/auth';
 
@@ -16,29 +16,28 @@ const router = express.Router();
 // All friend routes require authentication
 router.use(protect as any);
 
-// Send friend request
-router.post('/:userId/request', sendFriendRequest as any);
-
-// Accept friend request
-router.put('/request/:requestId/accept', acceptFriendRequest as any);
-
-// Accept friend request (frontend POST variant)
-router.post('/requests/:id/accept', acceptFriendRequest as any);
-
-// Reject friend request (frontend expects /request/:id/reject)
-router.delete('/request/:id/reject', rejectFriendRequest as any);
-
-// Get user's friends
-router.get('/', getFriends as any);
-
-// Search users
+// Search users (must be before /:friendId to avoid collision)
 router.get('/search', searchUsers as any);
 
 // Get online friends
 router.get('/online', getOnlineFriends as any);
 
-// Get pending friend requests
+// Get pending friend requests (incoming + outgoing)
 router.get('/requests', getFriendRequests as any);
+
+// Get user's accepted friends list
+router.get('/', getFriends as any);
+
+// Send friend request
+router.post('/:userId/request', sendFriendRequest as any);
+
+// Accept friend request — support both PUT and POST (frontend uses PUT)
+router.put('/request/:id/accept', acceptFriendRequest as any);
+router.post('/requests/:id/accept', acceptFriendRequest as any);
+
+// Reject friend request — support both DELETE and POST
+router.delete('/request/:id/reject', rejectFriendRequest as any);
+router.post('/requests/:id/reject', rejectFriendRequest as any);
 
 // Remove friend
 router.delete('/:friendId', removeFriend as any);

@@ -35,6 +35,29 @@ export const getMe = async (req: AuthRequest, res: Response) => {
   } catch { res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
+export const changePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+    }
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    // OAuth users may not have a password set
+    if (!user.password) {
+      return res.status(400).json({ success: false, message: 'Cannot change password for OAuth accounts' });
+    }
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
 export const logout = (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'Logged out' });
 export const forgotPassword = async (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
 export const resetPassword = async (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'Password reset successfully' });
@@ -52,4 +75,4 @@ export const githubCallback = (req: any, res: Response) => {
   res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${token}`);
 };
 
-export default { register, login, getMe, logout, forgotPassword, resetPassword, googleCallback, githubCallback };
+export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback };
