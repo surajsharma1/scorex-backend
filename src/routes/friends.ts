@@ -5,7 +5,9 @@ import {
   rejectFriendRequest,
   getFriends,
   getFriendRequests,
-  removeFriend
+  removeFriend,
+  searchUsers,
+  getOnlineFriends
 } from '../controllers/friendController';
 import { protect } from '../middleware/auth';
 
@@ -23,11 +25,17 @@ router.put('/request/:requestId/accept', acceptFriendRequest as any);
 // Accept friend request (frontend POST variant)
 router.post('/requests/:id/accept', acceptFriendRequest as any);
 
-// Reject friend request
-router.delete('/request/:requestId/reject', rejectFriendRequest as any);
+// Reject friend request (frontend expects /request/:id/reject)
+router.delete('/request/:id/reject', rejectFriendRequest as any);
 
 // Get user's friends
 router.get('/', getFriends as any);
+
+// Search users
+router.get('/search', searchUsers as any);
+
+// Get online friends
+router.get('/online', getOnlineFriends as any);
 
 // Get pending friend requests
 router.get('/requests', getFriendRequests as any);

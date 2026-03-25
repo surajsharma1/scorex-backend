@@ -58,7 +58,7 @@ const clubs = await Club.find(query)
 // @access  Public
 export const getClub = async (req: Request, res: Response, next: NextFunction) => {
   try {
-const club = await Club.findOne({ _id: req.params.id, isActive: true })
+const club = await Club.findOne({ _id: req.params.clubId, isActive: true })
       .populate('owner', 'username email fullName profilePicture')
       .populate('viceLeaders', 'username email fullName profilePicture')
       .populate('members', 'username email fullName profilePicture')
@@ -134,7 +134,7 @@ export const createClub = async (req: AuthRequest, res: Response, next: NextFunc
 // @access  Private (Owner/Vice-Leader)
 export const updateClub = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const club = await Club.findById(req.params.id);
+    const club = await Club.findById(req.params.clubId);
     
     if (!club) {
       return res.json({
@@ -180,7 +180,7 @@ export const updateClub = async (req: AuthRequest, res: Response, next: NextFunc
 // @access  Private (Owner only)
 export const deleteClub = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const club = await Club.findById(req.params.id);
+    const club = await Club.findById(req.params.clubId);
     
     if (!club) {
       return res.json({
@@ -308,7 +308,7 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
   try {
     const { userId } = req.params;
     
-    const club = await Club.findById(req.params.id);
+    const club = await Club.findById(req.params.clubId);
     
     if (!club) {
       return res.status(404).json({
@@ -334,7 +334,7 @@ export const approveJoinRequest = async (req: AuthRequest, res: Response, next: 
       });
     }
     
-club.approveJoinRequest(new mongoose.Types.ObjectId(userId));
+await club.approveJoinRequest(new mongoose.Types.ObjectId(userId));
     await club.save();
     
     // Notify new member
@@ -366,7 +366,7 @@ export const addViceLeader = async (req: AuthRequest, res: Response, next: NextF
   try {
     const { userId } = req.params;
     
-    const club = await Club.findById(req.params.id);
+    const club = await Club.findById(req.params.clubId);
     
     if (!club) {
       return res.status(404).json({
@@ -410,7 +410,7 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
   try {
     const { userId } = req.params;
     
-    const club = await Club.findById(req.params.id);
+    const club = await Club.findById(req.params.clubId);
     
     if (!club) {
       return res.status(404).json({
