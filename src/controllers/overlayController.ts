@@ -179,8 +179,16 @@ export const getOverlayTemplates = async (req: AuthRequest, res: Response): Prom
       membership = await checkUserMembership(new mongoose.Types.ObjectId(req.user.id));
     }
 
-
-
+    // Define interface matching frontend types/overlay.ts
+    interface OverlayTemplate {
+      id: string;
+      name: string;
+      file?: string;
+      url?: string;
+      category: string;
+      color: string;
+      level: number;
+    }
 
     // Load static templates from public/templates-updated.json for consistent rich names
     const templatesPath = path.join(process.cwd(), 'public/templates-updated.json');
@@ -199,16 +207,16 @@ export const getOverlayTemplates = async (req: AuthRequest, res: Response): Prom
           color: string;
         }
         
-        templates = jsonData.map((t: StaticTemplate) => {
+        templates = jsonData.map((t: StaticTemplate): OverlayTemplate => {
           const level = t.id.startsWith('lvl2') ? 2 : 1;
           return {
             ...t,
             url: `/overlays/${t.file}`,
             level,
           };
-        }).filter((t: any) => t.level <= membership.level || membership.isAdmin);
+        }).filter((t: OverlayTemplate) => t.level <= membership.level || membership.isAdmin);
       } else {
-        console.warn('templates-updated.json not found, falling back to frontend public/');
+        console.warn('templates-updated.json not found at', templatesPath);
       }
     } catch (err) {
       console.error('Failed to load templates JSON:', err);

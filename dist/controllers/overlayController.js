@@ -192,22 +192,29 @@ const getOverlayTemplates = async (req, res) => {
         if (req.user?.id) {
             membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
         }
-        const overlaysDir = path_1.default.join(process.cwd(), 'public/overlays');
-        const files = fs_1.default.readdirSync(overlaysDir).filter(f => f.endsWith('.html') && !f.startsWith('overlay-') && !f.includes('engine') && !f.includes('utils'));
-        const templates = files.map(file => {
-            const id = file.replace('.html', '');
-            const words = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            const level = id.startsWith('lvl2') ? 2 : 1;
-            const category = level === 1 ? 'Scoreboard' : 'Replay/Effects';
-            return {
-                id,
-                name: `Level ${level}: ${words}`,
-                file,
-                category,
-                color: level === 1 ? 'from-blue-500 to-indigo-600' : 'from-purple-500 to-pink-600',
-                level
-            };
-        }).filter(t => t.level <= membership.level || membership.isAdmin);
+        // Load static templates from public/templates-updated.json for consistent rich names
+        const templatesPath = path_1.default.join(process.cwd(), 'public/templates-updated.json');
+        let templates = [];
+        try {
+            if (fs_1.default.existsSync(templatesPath)) {
+                const rawData = fs_1.default.readFileSync(templatesPath, 'utf8');
+                const jsonData = JSON.parse(rawData);
+                templates = jsonData.map((t) => {
+                    const level = t.id.startsWith('lvl2') ? 2 : 1;
+                    return {
+                        ...t,
+                        url: `/overlays/${t.file}`,
+                        level,
+                    };
+                }).filter((t) => t.level <= membership.level || membership.isAdmin);
+            }
+            else {
+                console.warn('templates-updated.json not found at', templatesPath);
+            }
+        }
+        catch (err) {
+            console.error('Failed to load templates JSON:', err);
+        }
         res.json(templates);
     }
     catch (error) {
