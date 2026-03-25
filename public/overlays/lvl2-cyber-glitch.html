@@ -90,7 +90,7 @@
 </head>
 <body>
 
-  <div id="top-island"><span id="island-text">SCOREX-LIVE.COM</span></div>
+  <div id="top-island"><span id="island-text">SCOREX-LIVE.VERCEL.APP</span></div>
   <div id="toss-overlay"></div>
   <div id="event-display"></div>
 
@@ -140,7 +140,12 @@
 
       if(slideTimeout) clearTimeout(slideTimeout);
 
+      // FIX: Remove the CSS dropIn animation lock so inline transforms work!
+      wrapper.style.animation = 'none';
+
+      wrapper.style.transition = 'transform 0.5s ease-in';
       wrapper.style.transform = 'translateX(-150vw)';
+      
       evt.innerText = txt; evt.style.color = color;
       evt.classList.add('show');
 
@@ -151,7 +156,7 @@
           wrapper.style.transform = 'translateX(150vw)';
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              wrapper.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+              wrapper.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
               wrapper.style.transform = 'translateX(0)';
             });
           });
@@ -162,12 +167,16 @@
     function clearPersistentEvent() {
       const wrapper = $('scoreboard-wrapper');
       const evt = $('event-display');
+      
+      // FIX: Ensure animation lock is removed here as well
+      wrapper.style.animation = 'none';
+      
       evt.classList.remove('show');
       wrapper.style.transition = 'none';
       wrapper.style.transform = 'translateX(150vw)';
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          wrapper.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          wrapper.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
           wrapper.style.transform = 'translateX(0)';
         });
       });
@@ -190,8 +199,8 @@
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (pSc !== -1 && !d.decisionPending) {
         if (nw > pWk) triggerSlideEvent("WICKET!", "#ef4444"); 
-        else if (ns - pSc === 6) triggerSlideEvent("MAXIMUM SIX!", "#38bdf8");
-        else if (ns - pSc === 4) triggerSlideEvent("BOUNDARY!", "#e2e8f0");
+        else if (ns - pSc === 6) triggerSlideEvent("SIX!", "#38bdf8");
+        else if (ns - pSc === 4) triggerSlideEvent("FOUR!", "#e2e8f0");
       }
       pSc = ns; pWk = nw;
     }

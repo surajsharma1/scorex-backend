@@ -103,7 +103,7 @@
 </head>
 <body>
 
-  <div id="metal-top"><span id="island-text">SCOREX-LIVE.COM</span></div>
+  <div id="metal-top"><span id="island-text">SCOREX-LIVE.VERCEL.APP</span></div>
   <div id="toss-overlay"></div>
 
   <div id="metal-bottom">
@@ -144,7 +144,7 @@
     </div>
 
     <div class="shield-wing event-tab" id="event-tab">
-      <span id="event-text">EVENT PENDING</span>
+      <span id="event-text">DECISION PENDING</span>
     </div>
 
   </div>
@@ -208,8 +208,8 @@
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (cSc !== -1 && !d.decisionPending) {
         if (nw > cWk) triggerSideTab("WICKET!", "#ef4444"); 
-        else if (ns - cSc === 6) triggerSideTab("MAXIMUM!", "#3b82f6"); 
-        else if (ns - cSc === 4) triggerSideTab("BOUNDARY!", "#fff"); 
+        else if (ns - cSc === 6) triggerSideTab("SIX!", "#3b82f6"); 
+        else if (ns - cSc === 4) triggerSideTab("FOUR!", "#fff"); 
       }
       cSc = ns; cWk = nw;
     }

@@ -103,7 +103,7 @@
 </head>
 <body>
 
-  <div id="flip-island"><span id="island-text">SCOREX-LIVE.COM</span></div>
+  <div id="flip-island"><span id="island-text">SCOREX-LIVE.VERCEL.APP</span></div>
   <div id="toss-plate"></div>
 
   <div id="flip-bottom">
@@ -190,7 +190,7 @@
       let ns = parseInt(d.team1Score)||0, nw = parseInt(d.team1Wickets)||0;
       if (pSc !== -1 && !d.decisionPending) {
         if (nw > pWk) triggerFlip("WICKET!"); 
-        else if (ns - pSc === 6) triggerFlip("MAXIMUM!"); 
+        else if (ns - pSc === 6) triggerFlip("SIX!"); 
         else if (ns - pSc === 4) triggerFlip("BOUNDARY!"); 
       }
       pSc = ns; pWk = nw;
