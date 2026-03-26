@@ -310,32 +310,85 @@ const serveOverlay = async (req, res) => {
             res.status(404).send(`Template not found: ${templateFile}`);
             return;
         }
-        console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
-        let matchId = req.query.matchId || req.query.match ||
-            overlay.match?._id?.toString() || overlay.match?.toString() || null;
-        let tournamentId = req.query.tournamentId ||
-            overlay.tournament?._id?.toString() || overlay.tournament?.toString() || null;
-        // 🆕 NEW: Tournament Context - Auto-pick live match if no specific matchId
-        if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
-            console.log('[serveOverlay] No matchId, finding live match for tournament:', tournamentId);
-            const now = new Date();
-            const liveMatch = await Match_1.default.findOne({
-                tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
-                status: { $in: ['live', 'ongoing'] },
-                date: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Recent matches
-            }).sort({ date: 1 }).select('_id').lean();
-            if (liveMatch) {
-                matchId = liveMatch._id.toString();
-                console.log('[serveOverlay] ✅ Auto-selected live match:', matchId);
-            }
-            else {
-                console.warn('[serveOverlay] No live match found for tournament:', tournamentId);
+        let matchId = null;
+        let tournamentId = null;
+        const isPreviewMode = req.query.preview === 'true' || req.query.demo === 'true';
+        console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query, 'Preview:', isPreviewMode);
+        if (!isPreviewMode) {
+            // Live overlay: compute matchId etc.
+            matchId = req.query.matchId || req.query.match ||
+                overlay.match?._id?.toString() || overlay.match?.toString() || null;
+            tournamentId = req.query.tournamentId ||
+                overlay.tournament?._id?.toString() || overlay.tournament?.toString() || null;
+            // 🆕 NEW: Tournament Context - Auto-pick live match if no specific matchId
+            if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
+                console.log('[serveOverlay] No matchId, finding live match for tournament:', tournamentId);
+                const now = new Date();
+                const liveMatch = await Match_1.default.findOne({
+                    tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
+                    status: { $in: ['live', 'ongoing'] },
+                    date: { $gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Recent matches
+                }).sort({ date: 1 }).select('_id').lean();
+                if (liveMatch) {
+                    matchId = liveMatch._id.toString();
+                    console.log('[serveOverlay] ✅ Auto-selected live match:', matchId);
+                }
+                else {
+                    console.warn('[serveOverlay] No live match found for tournament:', tournamentId);
+                }
             }
         }
+        if (isPreviewMode) {
+            // Preview: Static HTML + demo data dispatch, NO engine/polling
+            const progress = req.query.progress?.match(/(\\d+)%/)?.[1] || '69';
+            const demoData = {
+                matchName: 'ScoreX Premium Showcase',
+                tournamentName: 'PREVIEW MODE',
+                team1Name: 'PREMIUM BATS',
+                team1Score: Math.round(180 * (parseInt(progress) / 100)),
+                team1Wickets: Math.round(10 * (parseInt(progress) / 100)),
+                team1Overs: '14.2',
+                strikerName: 'V Kohli',
+                strikerRuns: Math.round(68 * (parseInt(progress) / 100)),
+                strikerBalls: 42,
+                nonStrikerName: 'R Sharma',
+                nonStrikerRuns: Math.round(32 * (parseInt(progress) / 100)),
+                nonStrikerBalls: 28,
+                bowlerName: 'J Anderson',
+                bowlerRuns: Math.round(45 * (parseInt(progress) / 100)),
+                bowlerWickets: Math.round(2 * (parseInt(progress) / 100)),
+                bowlerOvers: '3.4',
+                target: 180,
+                runRate: '8.44',
+                requiredRunRate: '9.23'
+            };
+            let html = fs_1.default.readFileSync(templatePath, 'utf8');
+            html = html.replace('</head>', `
+        <script src="/overlays/overlay-utils.js"></script>
+        <script>
+          // PREVIEW DEMO DATA
+          window.dispatchEvent(new CustomEvent('scorex:update', { 
+            detail: ${JSON.stringify(demoData)} 
+          }));
+        </script>
+      </head>`);
+            res.setHeader('Content-Type', 'text/html');
+            res.setHeader('X-Frame-Options', 'ALLOWALL');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            res.send(html);
+            return;
+        }
+        // Live overlay: compute matchId etc. (already set above or overridden here if needed)
+        matchId = req.query.matchId || req.query.match ||
+            overlay.match?._id?.toString() || overlay.match?.toString() || null;
+        tournamentId = req.query.tournamentId ||
+            overlay.tournament?._id?.toString() || overlay.tournament?.toString() || null;
         console.log('[serveOverlay] Final - matchId:', matchId, 'tournamentId:', tournamentId);
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
-        // FIX: Inject Socket.io, utils, OVERLAY_CONFIG, and engine.js into EVERY template
+        // Inject Socket.io, utils, OVERLAY_CONFIG, engine.js for LIVE overlays only
         html = html.replace('</head>', `
       <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
       <script src="/overlays/overlay-utils.js"></script>
@@ -344,8 +397,8 @@ const serveOverlay = async (req, res) => {
           matchId: ${JSON.stringify(matchId)},
           tournamentId: ${JSON.stringify(tournamentId)},
           apiBaseUrl: ${JSON.stringify(apiBaseUrl)},
-          overlayId: ${JSON.stringify(overlay._id)},
-          config: ${JSON.stringify(overlay.config || {})},
+          overlayId: ${JSON.stringify(overlay?._id || null)},
+          config: ${JSON.stringify(overlay?.config || {})},
         };
       </script>
       <script src="/overlays/engine.js"></script>

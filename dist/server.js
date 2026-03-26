@@ -33,7 +33,11 @@ const stats_1 = __importDefault(require("./routes/stats"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
-    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'
+    process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
 ];
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use((0, cors_1.default)({
