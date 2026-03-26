@@ -169,6 +169,14 @@ function getDemoData() {
 
   // BOOT
   function init() {
+    // Skip live updates for preview mode to prevent freezing
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('preview') === 'true') {
+      console.log('[Scorex Engine] Preview mode - static demo only');
+      safeUpdateState(getDemoData());
+      return;
+    }
+
     console.log('[Scorex Engine] Starting (guarded)...', { matchId });
     
     safeFetchMatchData();
