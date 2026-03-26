@@ -6,11 +6,13 @@
 (function () {
   'use strict';
 
-  // PREVIEW MODE DETECTION - Skip live connections
+  // PREVIEW/DEMO MODE DETECTION - Skip live connections
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('preview') === 'true') {
-    console.log('[Scorex Engine] PREVIEW MODE - Static demo only');
+  const config = window.OVERLAY_CONFIG || {};
+  if (urlParams.get('preview') === 'true' || urlParams.get('demo') === 'true' || !config.matchId) {
+    console.log('[Scorex Engine] PREVIEW/DEMO MODE - Static demo only (no matchId)');
     const demoData = getDemoData();
+
     if (typeof window.ScorexOverlay?.onUpdate === 'function') window.ScorexOverlay.onUpdate(demoData);
     window.dispatchEvent(new CustomEvent('scorex:update', { detail: demoData }));
     return; // EXIT EARLY
@@ -192,12 +194,13 @@ function getDemoData() {
     safeFetchMatchData();
     safeConnectSocket();
     
-    // POLLING FALLBACK
+    // POLLING FALLBACK (slower for previews/no-matchId)
     let noDataCount = 0;
     const poll = setInterval(() => {
       safeFetchMatchData();
-      if (++noDataCount > 6) console.error('[Scorex Engine] No data 30s - check backend');
-    }, 5000);
+      if (++noDataCount > 6) console.error('[Scorex Engine] No data 60s - check backend');
+    }, 10000);
+
     
     window.addEventListener('scorex:update', () => {
       clearInterval(poll);

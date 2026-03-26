@@ -315,10 +315,13 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query);
+    const isPreviewMode = req.query.preview === 'true' || req.query.demo === 'true';
     
-    let matchId = (req.query.matchId as string) || (req.query.match as string) || 
-                  (overlay.match as any)?._id?.toString() || (overlay.match as any)?.toString() || null;
+    console.log('[serveOverlay] Public ID:', req.params.id, 'Query:', req.query, 'Preview:', isPreviewMode);
+    
+    let matchId: string | null = null;
+    let tournamentId: string | null = null;
+
     let tournamentId = (req.query.tournamentId as string) || 
                        (overlay.tournament as any)?._id?.toString() || (overlay.tournament as any)?.toString() || null;
     
@@ -340,13 +343,64 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       }
     }
     
+    if (isPreviewMode) {
+      // Preview: Static HTML + demo data dispatch, NO engine/polling
+      const progress = (req.query.progress as string)?.match(/(\\d+)%/)?.[1] || '69';
+      const demoData = {
+        matchName: 'ScoreX Premium Showcase',
+        tournamentName: 'PREVIEW MODE',
+        team1Name: 'PREMIUM BATS',
+        team1Score: Math.round(180 * (parseInt(progress) / 100)),
+        team1Wickets: Math.round(10 * (parseInt(progress) / 100)),
+        team1Overs: '14.2',
+        strikerName: 'V Kohli',
+        strikerRuns: Math.round(68 * (parseInt(progress) / 100)),
+        strikerBalls: 42,
+        nonStrikerName: 'R Sharma',
+        nonStrikerRuns: Math.round(32 * (parseInt(progress) / 100)),
+        nonStrikerBalls: 28,
+        bowlerName: 'J Anderson',
+        bowlerRuns: Math.round(45 * (parseInt(progress) / 100)),
+        bowlerWickets: Math.round(2 * (parseInt(progress) / 100)),
+        bowlerOvers: '3.4',
+        target: 180,
+        runRate: '8.44',
+        requiredRunRate: '9.23'
+      };
+
+      let html = fs.readFileSync(templatePath, 'utf8');
+      html = html.replace('</head>', `
+        <script src="/overlays/overlay-utils.js"></script>
+        <script>
+          // PREVIEW DEMO DATA
+          window.dispatchEvent(new CustomEvent('scorex:update', { 
+            detail: ${JSON.stringify(demoData)} 
+          }));
+        </script>
+      </head>`);
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-Frame-Options', 'ALLOWALL');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.send(html);
+      return;
+    }
+
+    // Live overlay: compute matchId etc.
+    let matchId = (req.query.matchId as string) || (req.query.match as string) || 
+                  (overlay.match as any)?._id?.toString() || (overlay.match as any)?.toString() || null;
+    let tournamentId = (req.query.tournamentId as string) || 
+                       (overlay.tournament as any)?._id?.toString() || (overlay.tournament as any)?.toString() || null;
+    
     console.log('[serveOverlay] Final - matchId:', matchId, 'tournamentId:', tournamentId);
     
     const apiBaseUrl = getBaseUrl();
 
     let html = fs.readFileSync(templatePath, 'utf8');
     
-    // FIX: Inject Socket.io, utils, OVERLAY_CONFIG, and engine.js into EVERY template
+    // Inject Socket.io, utils, OVERLAY_CONFIG, engine.js for LIVE overlays only
     html = html.replace('</head>', `
       <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
       <script src="/overlays/overlay-utils.js"></script>
@@ -355,14 +409,15 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
           matchId: ${JSON.stringify(matchId)},
           tournamentId: ${JSON.stringify(tournamentId)},
           apiBaseUrl: ${JSON.stringify(apiBaseUrl)},
-          overlayId: ${JSON.stringify(overlay._id)},
-          config: ${JSON.stringify(overlay.config || {})},
+          overlayId: ${JSON.stringify(overlay?._id || null)},
+          config: ${JSON.stringify(overlay?.config || {})},
         };
       </script>
       <script src="/overlays/engine.js"></script>
     </head>`);
 
-res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html');
+
     res.setHeader('X-Frame-Options', 'ALLOWALL');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
