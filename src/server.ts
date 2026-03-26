@@ -31,7 +31,11 @@ const app = express();
 const httpServer = createServer(app);
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'
+  process.env.FRONTEND_URL || 'https://scorex-live.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173', 
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173'
 ];
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
