@@ -6,6 +6,16 @@
 (function () {
   'use strict';
 
+  // PREVIEW MODE DETECTION - Skip live connections
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('preview') === 'true') {
+    console.log('[Scorex Engine] PREVIEW MODE - Static demo only');
+    const demoData = getDemoData();
+    if (typeof window.ScorexOverlay?.onUpdate === 'function') window.ScorexOverlay.onUpdate(demoData);
+    window.dispatchEvent(new CustomEvent('scorex:update', { detail: demoData }));
+    return; // EXIT EARLY
+  }
+
   const config = window.OVERLAY_CONFIG || {};
   const matchId = config.matchId;
   const apiBaseUrl = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
