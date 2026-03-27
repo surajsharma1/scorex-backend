@@ -4,8 +4,17 @@
   <meta charset="UTF-8">
   <title>ScoreX - Lvl 1 Clean Cloud</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+    /* Nunito font weights via system fonts - CSP safe */
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nunito', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      font-weight: 400;
+    }
+    * { font-weight: inherit; }
+    .tm, .sc, .pn, .ps, .ov, .lbl { font-weight: 800; }
+    .sc, .ps { font-weight: 900; }
     body { background: transparent; overflow: hidden; color: #1e293b; }
     
     #static-island {
