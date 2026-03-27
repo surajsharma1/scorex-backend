@@ -8,8 +8,7 @@
 
   // PREVIEW/DEMO MODE DETECTION - Skip live connections
   const urlParams = new URLSearchParams(window.location.search);
-  const config = window.OVERLAY_CONFIG || {};
-  if (urlParams.get('preview') === 'true' || urlParams.get('demo') === 'true' || !config.matchId) {
+  if (urlParams.get('preview') === 'true' || urlParams.get('demo') === 'true' || !window.OVERLAY_CONFIG?.matchId) {
     console.log('[Scorex Engine] PREVIEW/DEMO MODE - Static demo only (no matchId)');
     const demoData = getDemoData();
 
