@@ -191,7 +191,7 @@ export const getOverlayTemplates = async (req: AuthRequest, res: Response): Prom
     }
 
     // Load static templates from public/templates-updated.json for consistent rich names
-    const templatesPath = path.join(process.cwd(), 'public/templates-updated.json');
+const templatesPath = path.join(process.cwd(), 'public/templates.json');
     let templates: OverlayTemplate[] = [];
     
     try {

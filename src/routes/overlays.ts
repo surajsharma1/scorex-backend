@@ -17,8 +17,8 @@ const router = express.Router();
 // Public route for serving the overlay HTML (OBS/Browser Source)
 router.get('/public/:id', serveOverlay);
 
-// Public route for templates (no auth needed to view available templates)
-router.get('/templates', getOverlayTemplates);
+// Protected route so we can check membership level for templates
+router.get('/templates', protect as any, getOverlayTemplates);
 
 // Public route for membership status
 router.get('/membership-status', protect as any, getMembershipStatus);

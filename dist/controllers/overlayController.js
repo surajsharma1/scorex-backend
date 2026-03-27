@@ -193,7 +193,7 @@ const getOverlayTemplates = async (req, res) => {
             membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
         }
         // Load static templates from public/templates-updated.json for consistent rich names
-        const templatesPath = path_1.default.join(process.cwd(), 'public/templates-updated.json');
+        const templatesPath = path_1.default.join(process.cwd(), 'public/templates.json');
         let templates = [];
         try {
             if (fs_1.default.existsSync(templatesPath)) {
