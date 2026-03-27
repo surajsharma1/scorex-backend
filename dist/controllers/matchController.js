@@ -147,10 +147,10 @@ exports.deleteMatch = deleteMatch;
 const startMatch = async (req, res, next) => {
     try {
         const { tossWinnerId, tossWinnerName, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler } = req.body;
-        if (!tossWinnerId || !tossDecision || !battingTeamId || !striker || !nonStriker || !bowler) {
+        if (!tossWinnerId || !tossWinnerName || !tossDecision || !battingTeamId || !battingTeamName || !bowlingTeamId || !bowlingTeamName || !striker || !nonStriker || !bowler) {
             return res.status(400).json({
                 success: false,
-                message: 'Required: tossWinnerId, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler'
+                message: 'Required: tossWinnerId, tossWinnerName, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler'
             });
         }
         const match = await Match_1.default.findById(req.params.id);

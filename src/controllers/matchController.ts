@@ -142,10 +142,10 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       striker, nonStriker, bowler
     } = req.body;
 
-    if (!tossWinnerId || !tossDecision || !battingTeamId || !striker || !nonStriker || !bowler) {
+    if (!tossWinnerId || !tossWinnerName || !tossDecision || !battingTeamId || !battingTeamName || !bowlingTeamId || !bowlingTeamName || !striker || !nonStriker || !bowler) {
       return res.status(400).json({
         success: false,
-        message: 'Required: tossWinnerId, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler'
+        message: 'Required: tossWinnerId, tossWinnerName, tossDecision, battingTeamId, battingTeamName, bowlingTeamId, bowlingTeamName, striker, nonStriker, bowler'
       });
     }
 

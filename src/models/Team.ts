@@ -25,6 +25,7 @@ interface ITeam extends Document {
   captain?: mongoose.Types.ObjectId;
   stats: ITeamStats;
   tournamentStats?: ITeamStats;
+  matches?: mongoose.Types.ObjectId[];
 
   // Methods
   addPlayer(playerId: mongoose.Types.ObjectId): Promise<void>;
@@ -46,10 +47,11 @@ const TeamSchema = new Schema<ITeam>({
     totalRuns: { type: Number, default: 0 },
     totalWickets: { type: Number, default: 0 }
   },
-  tournamentStats: {
-    matchesPlayed: { type: Number, default: 0 },
-    matchesWon: { type: Number, default: 0 }
-  }
+    tournamentStats: {
+      matchesPlayed: { type: Number, default: 0 },
+      matchesWon: { type: Number, default: 0 }
+    },
+    matches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Match' }]
 }, { timestamps: true });
 
 // Indexes

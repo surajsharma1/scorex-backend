@@ -51,7 +51,8 @@ const TeamSchema = new mongoose_1.Schema({
     tournamentStats: {
         matchesPlayed: { type: Number, default: 0 },
         matchesWon: { type: Number, default: 0 }
-    }
+    },
+    matches: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Match' }]
 }, { timestamps: true });
 // Indexes
 TeamSchema.index({ tournamentId: 1 });
