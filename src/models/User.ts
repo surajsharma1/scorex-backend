@@ -32,14 +32,17 @@ export interface IUser extends Document {
     notes?: string;
     paymentId?: string;
   }>;
-  paymentHistory: Array<{
+    paymentHistory: Array<{
     amount: number;
     currency: string;
-    level: string;
-    duration: string;
-    paymentIntentId: string;
+    plan: string;
+    duration?: string;
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
+    paymentIntentId?: string;
     status: string;
     date: Date;
+    notes?: string;
   }>;
   avatar?: string;
   verified: boolean;
@@ -86,15 +89,7 @@ const UserSchema = new Schema<IUser>({
     notes: String,
     paymentId: String
   }],
-  paymentHistory: [{
-    amount: Number,
-    currency: { type: String, default: 'USD' },
-    level: String,
-    duration: String,
-    paymentIntentId: String,
-    status: String,
-    date: { type: Date, default: Date.now }
-  }],
+  paymentHistory: [{amount: Number,   currency: { type: String, default: 'INR' },    plan: String,    duration: String,    razorpay_order_id: String,    razorpay_payment_id: String,    status: String ,    date: { type: Date, default: Date.now },    notes: String  }],
   avatar: { type: String, default: '/default-avatar.png' },
   verified: { type: Boolean, default: false },
   lastLogin: { type: Date, default: Date.now },

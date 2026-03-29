@@ -74,15 +74,7 @@ const UserSchema = new mongoose_1.Schema({
             notes: String,
             paymentId: String
         }],
-    paymentHistory: [{
-            amount: Number,
-            currency: { type: String, default: 'USD' },
-            level: String,
-            duration: String,
-            paymentIntentId: String,
-            status: String,
-            date: { type: Date, default: Date.now }
-        }],
+    paymentHistory: [{ amount: Number, currency: { type: String, default: 'INR' }, plan: String, duration: String, razorpay_order_id: String, razorpay_payment_id: String, status: String, date: { type: Date, default: Date.now }, notes: String }],
     avatar: { type: String, default: '/default-avatar.png' },
     verified: { type: Boolean, default: false },
     lastLogin: { type: Date, default: Date.now },

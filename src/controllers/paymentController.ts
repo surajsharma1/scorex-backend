@@ -10,6 +10,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
+import Razorpay from 'razorpay';
+import * as crypto from 'crypto';
 
 interface AuthRequest extends Request { user?: any; }
 
@@ -24,7 +26,7 @@ const DEV_CARD = { number: '88714741390926000', expiry: '0926', cvv: '000' };
 
 async function processPayment(cardNumber: string, expiry: string, cvv: string, amount: number): Promise<boolean> {
   if (cardNumber && cardNumber.length >= 13 && expiry && cvv) {
-    console.log(`[Payment] Processing $${amount}`);
+    console.log(`[Payment] Processing ₹${amount}`);
     return true;
   }
   return false;
@@ -72,7 +74,7 @@ export const purchaseMembership = async (req: AuthRequest, res: Response, next: 
     user.membershipTimeline = user.membershipTimeline || [];
     user.membershipTimeline.push({ level: plan.level, status: statusChange, startedAt: now, endedAt: newExpiry, notes: isDevCard ? 'Dev card used' : `${plan.name} purchased` });
     user.paymentHistory = user.paymentHistory || [];
-    user.paymentHistory.push({ amount: plan.price, currency: 'USD', level: plan.name, duration: `${plan.duration} days`, paymentIntentId: (isDevCard ? 'dev_' : 'pi_') + Date.now(), status: 'completed', date: now });
+    user.paymentHistory.push({ amount: plan.price, currency: 'USD', plan: plan.name, duration: `${plan.duration} days`, paymentIntentId: (isDevCard ? 'dev_' : 'pi_') + Date.now(), status: 'completed', date: now });
     await user.save();
 
     res.json({ success: true, message: 'Membership purchased successfully', data: { level: user.membershipLevel, status: 'active', startedAt: user.membershipStartedAt, expiresAt: user.membershipExpiresAt } });
@@ -85,12 +87,10 @@ export const extendMembership = async (req: AuthRequest, res: Response, next: Ne
     const user = await User.findById(req.user?.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // FIX: original was `membershipLevel === 1 ? 'basic' : 'premium'`
-    // — when level is 0 (no membership), this returned 'premium' plan instead of rejecting
     if (user.membershipLevel === 0) {
       return res.status(400).json({ success: false, message: 'No active membership to extend. Please purchase a membership first.' });
     }
-    const planKey = LEVEL_TO_PLAN[user.membershipLevel]; // 1→'basic', 2→'premium'
+    const planKey = LEVEL_TO_PLAN[user.membershipLevel];
     const currentPlan = MEMBERSHIP_PLANS[planKey];
 
     const price = currentPlan.price * months;
@@ -132,4 +132,138 @@ export const getPaymentHistory = async (req: AuthRequest, res: Response, next: N
   } catch (error) { next(error); }
 };
 
-export default { getPlans, getMembership, purchaseMembership, extendMembership, cancelMembership, getPaymentHistory };
+// Razorpay Integration
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
+
+export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
+  try {
+    const { amount, plan } = req.body;
+    if (!amount || !plan) return res.status(400).json({ success: false, message: 'Amount and plan required' });
+
+    const receipt = `scorex_${req.user?.id}_${Date.now()}`;
+
+    const orderOptions = {
+      amount: Math.round(amount * 100), // paise
+      currency: 'INR' as const,
+      receipt,
+      notes: {
+        plan,
+        userId: req.user?.id,
+      }
+    };
+
+    const order = await razorpay.orders.create(orderOptions);
+
+    // Temp store in user
+    const user = await User.findById(req.user?.id);
+    if (user) {
+      user.paymentHistory = user.paymentHistory || [];
+      user.paymentHistory.push({
+        razorpay_order_id: order.id,
+        amount: Number(amount),
+        currency: 'INR',
+        plan,
+        status: 'created',
+        date: new Date(),
+      });
+      await user.save();
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error: any) {
+    console.error('[Razorpay Order]', error);
+    res.status(500).json({ success: false, message: error.description || 'Failed to create order' });
+  }
+};
+
+export const verifyRazorpayPayment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+
+    // Signature verification
+    const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!);
+    shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const signature = shasum.digest('hex');
+
+    if (signature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: 'Invalid signature' });
+    }
+
+    // Fetch payment & order
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+    if (payment.status !== 'captured') {
+      return res.status(400).json({ success: false, message: 'Payment not captured' });
+    }
+
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    const amount = Number(order.amount) / 100;
+    const notesPlan = order.notes.plan || plan;
+
+    // Update user
+    const user = await User.findById(req.user?.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const now = new Date();
+    const level = notesPlan.includes('lv2') || notesPlan === 'Enterprise' || notesPlan === 'premium' ? 2 : 1;
+    const durationDays = notesPlan.includes('1-month') || notesPlan.includes('month') ? 30 : notesPlan.includes('1-week') || notesPlan.includes('week') ? 7 : 1;
+
+    let expiry = new Date(now);
+    if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) > now) {
+      expiry = new Date(user.membershipExpiresAt);
+    }
+    expiry.setDate(expiry.getDate() + durationDays);
+
+    user.membershipLevel = level;
+    user.membershipExpiresAt = expiry;
+    user.membershipStartedAt = now;
+
+    // History
+    const pendingIndex = user.paymentHistory?.findIndex((h: any) => h.razorpay_order_id === razorpay_order_id);
+    if (pendingIndex > -1) {
+      user.paymentHistory[pendingIndex] = {
+        ...user.paymentHistory[pendingIndex],
+        status: 'completed',
+        razorpay_payment_id,
+      };
+    } else {
+      user.paymentHistory = user.paymentHistory || [];
+      user.paymentHistory.push({
+        amount,
+        currency: 'INR',
+        razorpay_order_id,
+        razorpay_payment_id,
+        status: 'completed',
+        plan: notesPlan,
+        duration: `${durationDays} days`,
+        date: now,
+      });
+    }
+
+    user.membershipTimeline = user.membershipTimeline || [];
+    user.membershipTimeline.push({
+      level,
+      status: 'upgraded',
+      startedAt: now,
+      endedAt: expiry,
+      notes: `${notesPlan} via Razorpay`,
+    });
+
+    await user.save();
+
+    // Refresh token if needed
+    const token = req.headers.authorization?.split(' ')[1];
+
+    res.json({ success: true, message: 'Payment verified and membership updated!', data: { level, expiresAt: expiry }, token });
+  } catch (error: any) {
+    console.error('[Razorpay Verify]', error);
+    res.status(500).json({ success: false, message: error.description || 'Verification failed' });
+  }
+};
+
+export default { 
+  getPlans, getMembership, purchaseMembership, extendMembership, cancelMembership, getPaymentHistory, 
+  createRazorpayOrder, verifyRazorpayPayment 
+};

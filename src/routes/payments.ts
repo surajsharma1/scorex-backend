@@ -1,17 +1,19 @@
 import express from 'express';
 import { protect } from '../middleware/auth';
-import { getPlans, getMembership, purchaseMembership, extendMembership, cancelMembership, getPaymentHistory } from '../controllers/paymentController';
+import paymentController from '../controllers/paymentController';
 
 const router = express.Router();
 
 // Public routes
-router.get('/plans', getPlans);
+router.get('/plans', paymentController.getPlans);
 
 // Protected routes
-router.get('/membership', protect as any, getMembership);
-router.post('/subscribe', protect, purchaseMembership);
-router.post('/extend', protect as any, extendMembership);
-router.post('/cancel', protect as any, cancelMembership);
-router.get('/history', protect as any, getPaymentHistory);
+router.get('/membership', protect as any, paymentController.getMembership);
+router.post('/subscribe', protect, paymentController.purchaseMembership);
+router.post('/extend', protect as any, paymentController.extendMembership);
+router.post('/cancel', protect as any, paymentController.cancelMembership);
+router.post('/razorpay-order', protect, paymentController.createRazorpayOrder);
+router.post('/verify-razorpay-payment', protect, paymentController.verifyRazorpayPayment);
+router.get('/history', protect as any, paymentController.getPaymentHistory);
 
 export default router;
