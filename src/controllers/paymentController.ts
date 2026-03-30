@@ -159,7 +159,8 @@ export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    const receipt = `scorex_${req.user?.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const receipt = `order_${(req.user?.id || 'anon').slice(-8)}_${Date.now().toString(36).slice(-6)}${Math.floor(Math.random() * 10000).toString().padStart(4,'0')}`;
+    console.log(`[Razorpay] Receipt generated: ${receipt} (length: ${receipt.length})`);
 
     const orderOptions = {
       amount: Math.round(amount * 100), // paise

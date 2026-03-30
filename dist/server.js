@@ -76,7 +76,7 @@ const allowedOrigins = [
 app.use((0, cors_1.default)({
     origin: function (origin, callback) {
         // Allow all origins for static assets (overlays/*.js/css) + listed origins
-        if (!origin || allowedOrigins.includes(origin) || origin?.includes('scorex-live.vercel.app')) {
+        if (!origin || allowedOrigins.includes(origin) || origin?.includes('scorex-live.vercel.app') || origin?.endsWith('.vercel.app') || origin?.includes('suraj-sharmas-projects')) {
             callback(null, true);
         }
         else {
