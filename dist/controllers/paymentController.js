@@ -229,12 +229,13 @@ const createRazorpayOrder = async (req, res) => {
         res.json({ success: true, data: order });
     }
     catch (error) {
+        const { amount: logAmount, plan: logPlan } = req.body;
         console.error('[Razorpay Order]', error, {
             message: error.message,
             stack: error.stack,
             userId: req.user?.id,
-            amount,
-            plan
+            amount: logAmount,
+            plan: logPlan
         });
         res.status(500).json({
             success: false,
@@ -325,7 +326,8 @@ const verifyRazorpayPayment = async (req, res) => {
         res.json({ success: true, message: 'Payment verified and membership updated!', data: { level, expiresAt: expiry }, token });
     }
     catch (error) {
-        console.error('[Razorpay Verify]', error, { razorpay_payment_id });
+        const { razorpay_payment_id: logPaymentId } = req.body;
+        console.error('[Razorpay Verify]', error, { razorpay_payment_id: logPaymentId });
         res.status(500).json({
             success: false,
             message: error.description || error.message || 'Verification failed',
