@@ -10,7 +10,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from './models/User';
 import './models';  // Register all models
-import connectDB from './config/database';
+import connectDB, { getDbStatus } from './config/database';
 import { MemoryStore } from 'express-session';
 
 // Routes
@@ -71,14 +71,19 @@ app.use('/uploads', express.static('public/uploads'));
 
 // ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
-try {
-  sessionStore = MongoStore.create({ 
-    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI || (() => { throw new Error('MONGODB_URI env var required for deployment'); })()
-  });
-  console.log('Session store: MongoDB (connect-mongo)');
-} catch (error) {
-  console.warn('MongoStore failed, using MemoryStore fallback:', error.message);
+if (process.env.RENDER || !process.env.MONGODB_URI) {
+  console.log('🧠 Using MemoryStore (Render/No DB)');
   sessionStore = new MemoryStore();
+} else {
+  try {
+    sessionStore = MongoStore.create({ 
+      mongoUrl: process.env.MONGODB_URI!
+    });
+    console.log('🗄️ Using MongoStore');
+  } catch (e) {
+    console.warn('❌ MongoStore failed → MemoryStore:', e);
+    sessionStore = new MemoryStore();
+  }
 }
 
 app.use(session({
@@ -228,11 +233,37 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 // ─── Start Server ──────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 5000;
 
-connectDB().then(() => {
-  console.log('Full startup complete - DB ready');
-  httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}).catch(err => {
-  console.error('Startup failed:', err.message);
+// Enhanced health check
+app.get('/api/health/db', (req, res) => {
+  const dbStatus = getDbStatus();
+  res.json({ 
+    status: dbStatus.status,
+    readyState: mongoose.connection.readyState,
+    modelsCount: Object.keys(mongoose.models).length 
+  });
+});
+
+// ─── Graceful Startup ──────────────────────────────────────────────────────────
+const startup = async () => {
+  // Session store with Render fallback (already set above)
+  
+  // Try DB connection (non-blocking)
+const dbResult = await connectDB();
+  if ('success' in dbResult && dbResult.success) {
+    console.log('✅ Full startup complete - DB ready');
+  } else {
+    console.warn('⚠️ Server starting WITHOUT DB - static assets/API read-only');
+  }
+
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Health: http://localhost:${PORT}/api/health`);
+    console.log(`📊 DB Health: http://localhost:${PORT}/api/health/db`);
+  });
+};
+
+startup().catch(err => {
+  console.error('💥 Fatal startup error:', err);
   process.exit(1);
 });
 
