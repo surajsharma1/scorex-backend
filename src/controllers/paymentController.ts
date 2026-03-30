@@ -140,6 +140,8 @@ export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
   try {
     const { amount, plan } = req.body;
 
+    console.log('[Razorpay Debug] Request:', { userId: req.user?.id, amount, plan });
+
     // Enhanced validation
     if (typeof amount !== 'number' || amount <= 0) {
       return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
@@ -149,6 +151,7 @@ export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
     }
 
     // Validate Razorpay env vars
+    console.log('[Razorpay Debug] Env vars:', { hasKeyId: !!process.env.RAZORPAY_KEY_ID, hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET });
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       console.error('[Razorpay] Missing env vars: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET');
       return res.status(500).json({ success: false, message: 'Payment service not configured. Contact support.' });
