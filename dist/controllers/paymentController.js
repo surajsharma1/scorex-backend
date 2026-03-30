@@ -181,16 +181,27 @@ const getPaymentHistory = async (req, res, next) => {
 };
 exports.getPaymentHistory = getPaymentHistory;
 // Razorpay Integration
-const razorpay = new razorpay_1.default({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Razorpay instance moved inside functions for lazy loading and env validation
 const createRazorpayOrder = async (req, res) => {
     try {
         const { amount, plan } = req.body;
-        if (!amount || !plan)
-            return res.status(400).json({ success: false, message: 'Amount and plan required' });
-        const receipt = `scorex_${req.user?.id}_${Date.now()}`;
+        // Enhanced validation
+        if (typeof amount !== 'number' || amount <= 0) {
+            return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
+        }
+        if (typeof plan !== 'string' || !plan.trim()) {
+            return res.status(400).json({ success: false, message: 'Plan must be a non-empty string' });
+        }
+        // Validate Razorpay env vars
+        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            console.error('[Razorpay] Missing env vars: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET');
+            return res.status(500).json({ success: false, message: 'Payment service not configured. Contact support.' });
+        }
+        const razorpay = new razorpay_1.default({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+        const receipt = `scorex_${req.user?.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const orderOptions = {
             amount: Math.round(amount * 100), // paise
             currency: 'INR',
@@ -218,14 +229,36 @@ const createRazorpayOrder = async (req, res) => {
         res.json({ success: true, data: order });
     }
     catch (error) {
-        console.error('[Razorpay Order]', error);
-        res.status(500).json({ success: false, message: error.description || 'Failed to create order' });
+        console.error('[Razorpay Order]', error, {
+            message: error.message,
+            stack: error.stack,
+            userId: req.user?.id,
+            amount,
+            plan
+        });
+        res.status(500).json({
+            success: false,
+            message: error.description || error.message || 'Failed to create order',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 exports.createRazorpayOrder = createRazorpayOrder;
 const verifyRazorpayPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(400).json({ success: false, message: 'Missing Razorpay verification data' });
+        }
+        // Validate Razorpay env vars
+        if (!process.env.RAZORPAY_KEY_SECRET) {
+            console.error('[Razorpay Verify] Missing RAZORPAY_KEY_SECRET');
+            return res.status(500).json({ success: false, message: 'Payment service not configured.' });
+        }
+        const razorpay = new razorpay_1.default({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
         // Signature verification
         const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
         shasum.update(`${razorpay_order_id}|${razorpay_payment_id}`);
@@ -292,8 +325,12 @@ const verifyRazorpayPayment = async (req, res) => {
         res.json({ success: true, message: 'Payment verified and membership updated!', data: { level, expiresAt: expiry }, token });
     }
     catch (error) {
-        console.error('[Razorpay Verify]', error);
-        res.status(500).json({ success: false, message: error.description || 'Verification failed' });
+        console.error('[Razorpay Verify]', error, { razorpay_payment_id });
+        res.status(500).json({
+            success: false,
+            message: error.description || error.message || 'Verification failed',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 exports.verifyRazorpayPayment = verifyRazorpayPayment;
