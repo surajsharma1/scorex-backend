@@ -27,13 +27,13 @@ export const protectScorer = async (req: AuthRequest, res: Response, next: NextF
       return next();
     }
 
-    // Check 2: Tournament organizer (populated ObjectId only, no deep populate needed)
+    // Check 2: Tournament organizer - FIXED ✅
     if (match.tournamentId) {
-      // Tournament organizer check requires separate query or match creator fallback
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only designated scorer or match creator can score. Contact tournament organizer.'
-      });
+    const tournament = await Tournament.findById(match.tournamentId).select('organizer');
+      if (tournament && tournament.organizer && tournament.organizer.equals(req.user._id)) {
+        (req as any).scorerMatch = match;
+        return next();
+      }
     }
 
     // Check 3: User is club/tournament admin (future club integration)

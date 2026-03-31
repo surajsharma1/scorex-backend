@@ -54,18 +54,15 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-// Fix preview static scripts CORS - allow all for public/overlays/*
+// Serve static overlays with CORS
 app.use('/overlays', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   next();
 }, express.static('public/overlays'));
 
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-
-app.use('/overlays', express.static('public/overlays'));
 
 app.use('/uploads', express.static('public/uploads'));
 

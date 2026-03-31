@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.protectScorer = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
+const Tournament_1 = __importDefault(require("../models/Tournament"));
 const Match_1 = __importDefault(require("../models/Match"));
 const protectScorer = async (req, res, next) => {
     try {
@@ -24,13 +25,13 @@ const protectScorer = async (req, res, next) => {
             req.scorerMatch = match;
             return next();
         }
-        // Check 2: Tournament organizer (populated ObjectId only, no deep populate needed)
+        // Check 2: Tournament organizer - FIXED ✅
         if (match.tournamentId) {
-            // Tournament organizer check requires separate query or match creator fallback
-            return res.status(403).json({
-                success: false,
-                message: 'Only designated scorer or match creator can score. Contact tournament organizer.'
-            });
+            const tournament = await Tournament_1.default.findById(match.tournamentId).select('organizer');
+            if (tournament && tournament.organizer && tournament.organizer.equals(req.user._id)) {
+                req.scorerMatch = match;
+                return next();
+            }
         }
         // Check 3: User is club/tournament admin (future club integration)
         // TODO: Add club membership check if match linked to club

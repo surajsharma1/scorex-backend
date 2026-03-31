@@ -88,7 +88,7 @@ app.use((0, cors_1.default)({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Set-Cookie']
 }));
-// Fix preview static scripts CORS - allow all for public/overlays/*
+// Serve static overlays with CORS
 app.use('/overlays', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET');
@@ -96,7 +96,6 @@ app.use('/overlays', (req, res, next) => {
 }, express_1.default.static('public/overlays'));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-app.use('/overlays', express_1.default.static('public/overlays'));
 app.use('/uploads', express_1.default.static('public/uploads'));
 // ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
