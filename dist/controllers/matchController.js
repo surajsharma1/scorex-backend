@@ -7,6 +7,7 @@ exports.getLiveMatches = exports.updateMatchStatus = exports.endMatch = exports.
 const Match_1 = __importDefault(require("../models/Match"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const Player_1 = __importDefault(require("../models/Player"));
 // ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
 const teamPopulateOptions = [
     {
@@ -215,6 +216,7 @@ const selectPlayers = async (req, res, next) => {
 };
 exports.selectPlayers = selectPlayers;
 // ─── POST /matches/:id/score ──────────────────────────────────────────────────
+// ─── POST /matches/:id/score ──────────────────────────────────────────────────
 const addBall = async (req, res, next) => {
     try {
         const match = await Match_1.default.findById(req.params.id);
@@ -231,13 +233,61 @@ const addBall = async (req, res, next) => {
             });
         }
         const result = await match.addBall(req.body);
-        await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+        await match.populate(teamPopulateOptions); // Ensure players are included for UI updates
+        // ==========================================
+        // 🧠 THE BRAIN: OVERLAY TRIGGER LOGIC
+        // ==========================================
+        let activeTrigger = null;
+        if (result.isWicket && result.outBatsmanName) {
+            // Fetch career stats for the out player
+            const outPlayer = await Player_1.default.findOne({ name: result.outBatsmanName });
+            activeTrigger = {
+                type: 'WICKET_FALLEN',
+                duration: 15, // Display for 15 seconds
+                payload: {
+                    playerName: result.outBatsmanName,
+                    careerStats: outPlayer ? outPlayer.battingStats : null
+                }
+            };
+        }
+        else if (result.isSix) {
+            activeTrigger = {
+                type: 'BOUNDARY_SIX',
+                duration: 8,
+                payload: {
+                    playerName: match.strikerName,
+                    matchRuns: result.strikerMatchRuns,
+                    matchBalls: result.strikerMatchBalls
+                }
+            };
+        }
+        else if (result.isFour) {
+            activeTrigger = {
+                type: 'BOUNDARY_FOUR',
+                duration: 6,
+                payload: {
+                    playerName: match.strikerName,
+                    matchRuns: result.strikerMatchRuns,
+                    matchBalls: result.strikerMatchBalls
+                }
+            };
+        }
+        else if (result.overChanged && result.completedOverNumber) {
+            // Dynamic Logic: Show Batsman card on Even overs, Bowler card on Odd overs
+            if (result.completedOverNumber % 2 === 0) {
+                activeTrigger = { type: 'BATSMAN_CARD', duration: 12, payload: {} };
+            }
+            else {
+                activeTrigger = { type: 'BOWLER_CARD', duration: 12, payload: {} };
+            }
+        }
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('scoreUpdate', {
                 match: match.toObject(),
                 result,
-                overSummary: match.getOverSummary()
+                overSummary: match.getOverSummary(),
+                activeTrigger // <--- New payload attached here
             });
         }
         // Handle innings end

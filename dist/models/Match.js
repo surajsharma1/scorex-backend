@@ -118,7 +118,16 @@ MatchSchema.methods.addBall = async function (data) {
         this._updateSummary(innings);
         this.markModified('innings');
         await this.save();
-        return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired };
+        // Find the exact runs the striker has right now
+        const currentStriker = innings.batsmen.find((b) => b.name === this.strikerName);
+        return {
+            score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6),
+            runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate,
+            targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`,
+            overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired,
+            isFour: false, isSix: false, isWicket: !!data.retired, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
+            completedOverNumber: undefined, strikerMatchRuns: 0, strikerMatchBalls: 0
+        };
     }
     const runs = data.runs || 0;
     const isWide = data.wide || false;
@@ -292,7 +301,29 @@ MatchSchema.methods.addBall = async function (data) {
     }
     this.markModified('innings');
     await this.save();
-    return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded };
+    const currentStriker = innings.batsmen.find((b) => b.name === this.strikerName);
+    return {
+        score: innings.score,
+        wickets: innings.wickets,
+        overs: formatOvers(innings.overs, innings.balls % 6),
+        runRate: innings.runRate,
+        requiredRuns: innings.requiredRuns,
+        requiredRunRate: innings.requiredRunRate,
+        targetScore: innings.targetScore,
+        ballDescription: ballDesc,
+        overChanged,
+        inningsEnded,
+        matchEnded,
+        needPlayerSelection: needPlayerSelection && !matchEnded,
+        // --- NEW TRIGGER DATA ---
+        isFour: runs === 4 && isLegalDelivery,
+        isSix: runs === 6 && isLegalDelivery,
+        isWicket: isWicket,
+        outBatsmanName: isWicket ? (data.outBatsmanName || striker.name) : undefined,
+        completedOverNumber: overChanged ? innings.overs : undefined,
+        strikerMatchRuns: currentStriker ? currentStriker.runs : 0,
+        strikerMatchBalls: currentStriker ? currentStriker.balls : 0
+    };
 };
 MatchSchema.methods._updateSummary = function (innings) {
     if (this.currentInnings === 1) {

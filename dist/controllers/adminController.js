@@ -34,6 +34,11 @@ const getMembershipPrices = async (req, res, next) => {
             success: true,
             prices
         });
+        // Cache public prices for 1 hour
+        res.set({
+            'Cache-Control': 'public, max-age=3600, immutable',
+            'Vary': 'Accept-Encoding'
+        });
     }
     catch (error) {
         next(error);

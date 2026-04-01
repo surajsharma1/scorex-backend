@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Match, { MatchStatus, OutType, TossDecision } from '../models/Match';
 import Team from '../models/Team';
 import Tournament from '../models/Tournament';
+import Player from '../models/Player';
 
 interface AuthRequest extends Request { user?: any; }
 
@@ -207,6 +208,7 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
 };
 
 // ─── POST /matches/:id/score ──────────────────────────────────────────────────
+// ─── POST /matches/:id/score ──────────────────────────────────────────────────
 export const addBall = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
@@ -223,15 +225,64 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 
     const result = await match.addBall(req.body);
+    await match.populate(teamPopulateOptions); // Ensure players are included for UI updates
 
-    await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+    // ==========================================
+    // 🧠 THE BRAIN: OVERLAY TRIGGER LOGIC
+    // ==========================================
+    let activeTrigger = null;
+
+    if (result.isWicket && result.outBatsmanName) {
+      // Fetch career stats for the out player
+      const outPlayer = await Player.findOne({ name: result.outBatsmanName });
+      
+      activeTrigger = {
+        type: 'WICKET_FALLEN',
+        duration: 15, // Display for 15 seconds
+        payload: {
+          playerName: result.outBatsmanName,
+          careerStats: outPlayer ? outPlayer.battingStats : null
+        }
+      };
+    } 
+    else if (result.isSix) {
+      activeTrigger = { 
+        type: 'BOUNDARY_SIX', 
+        duration: 8, 
+        payload: { 
+          playerName: match.strikerName,
+          matchRuns: result.strikerMatchRuns,
+          matchBalls: result.strikerMatchBalls 
+        } 
+      };
+    } 
+    else if (result.isFour) {
+      activeTrigger = { 
+        type: 'BOUNDARY_FOUR', 
+        duration: 6, 
+        payload: { 
+          playerName: match.strikerName,
+          matchRuns: result.strikerMatchRuns,
+          matchBalls: result.strikerMatchBalls 
+        } 
+      };
+    } 
+    else if (result.overChanged && result.completedOverNumber) {
+      // Dynamic Logic: Show Batsman card on Even overs, Bowler card on Odd overs
+      if (result.completedOverNumber % 2 === 0) {
+        activeTrigger = { type: 'BATSMAN_CARD', duration: 12, payload: {} };
+      } else {
+        activeTrigger = { type: 'BOWLER_CARD', duration: 12, payload: {} };
+      }
+    }
 
     const io = req.app.get('io');
     if (io) {
       io.to(`match:${match._id}`).emit('scoreUpdate', {
         match: match.toObject(),
         result,
-        overSummary: match.getOverSummary()
+        overSummary: match.getOverSummary(),
+        activeTrigger // <--- New payload attached here
       });
     }
 

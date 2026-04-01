@@ -38,7 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
-const auth_2 = require("../middleware/auth");
+// import { isAdmin } from '../middleware/auth';
 const adminController = __importStar(require("../controllers/adminController"));
 const userController = __importStar(require("../controllers/userController"));
 const tournamentController = __importStar(require("../controllers/tournamentController"));
@@ -48,23 +48,23 @@ const promises_1 = __importDefault(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
-router.get('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.getMembershipPrices);
-router.post('/membership-prices', auth_1.protect, auth_2.isAdmin, adminController.updateMembershipPrices);
-router.get('/users', auth_1.protect, auth_2.isAdmin, userController.getUsers);
-router.patch('/users/:id/role', auth_1.protect, auth_2.isAdmin, userController.updateRole);
-router.get('/export/users', auth_1.protect, auth_2.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
+router.get('/membership-prices', adminController.getMembershipPrices);
+router.post('/membership-prices', auth_1.protect, auth_1.isAdmin, adminController.updateMembershipPrices);
+router.get('/users', auth_1.protect, auth_1.isAdmin, userController.getUsers);
+router.patch('/users/:id/role', auth_1.protect, auth_1.isAdmin, userController.updateRole);
+router.get('/export/users', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
 // User management
-router.post('/users/:id/ban', auth_1.protect, auth_2.isAdmin, userController.banUser);
-router.post('/users/:id/unban', auth_1.protect, auth_2.isAdmin, userController.unbanUser);
+router.post('/users/:id/ban', auth_1.protect, auth_1.isAdmin, userController.banUser);
+router.post('/users/:id/unban', auth_1.protect, auth_1.isAdmin, userController.unbanUser);
 // Membership assign
-router.patch('/users/:id/membership', auth_1.protect, auth_2.isAdmin, userController.updateMembership);
+router.patch('/users/:id/membership', auth_1.protect, auth_1.isAdmin, userController.updateMembership);
 // Tournament/Match admin delete
-router.delete('/tournaments/:id', auth_1.protect, auth_2.isAdmin, tournamentController.deleteTournament);
-router.delete('/matches/:id', auth_1.protect, auth_2.isAdmin, matchController.deleteMatch);
+router.delete('/tournaments/:id', auth_1.protect, auth_1.isAdmin, tournamentController.deleteTournament);
+router.delete('/matches/:id', auth_1.protect, auth_1.isAdmin, matchController.deleteMatch);
 // Payments CSV export
-router.get('/export/payments', auth_1.protect, auth_2.isAdmin, (req, res) => dataExport_1.DataExportService.exportPayments(res, 'csv'));
+router.get('/export/payments', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportPayments(res, 'csv'));
 // Logs
-router.get('/logs', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+router.get('/logs', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     try {
         const logsPath = path_1.default.join(process.cwd(), 'logs');
         const logFiles = await promises_1.default.readdir(logsPath);
@@ -75,7 +75,7 @@ router.get('/logs', auth_1.protect, auth_2.isAdmin, async (req, res) => {
     }
 });
 // Log download
-router.get('/logs/:filename', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+router.get('/logs/:filename', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     try {
         const filename = req.params.filename;
         const logsPath = path_1.default.join(process.cwd(), 'logs', filename);
@@ -97,7 +97,7 @@ router.get('/logs/:filename', auth_1.protect, auth_2.isAdmin, async (req, res) =
     }
 });
 // Payments report
-router.get('/payments', auth_1.protect, auth_2.isAdmin, async (req, res) => {
+router.get('/payments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     try {
         const payments = await User_1.default.aggregate([
             { $unwind: '$paymentHistory' },

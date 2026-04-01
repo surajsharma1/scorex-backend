@@ -146,10 +146,18 @@ io.on('connection', (socket) => {
     socket.leave(`tournament:${tournamentId}`);
   });
 
+  socket.on('manualOverlayTrigger', (payload: { matchId: string, trigger: any }) => {
+    console.log('🎬 Manual Trigger received:', payload.trigger.type);
+    io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
+      activeTrigger: payload.trigger 
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
   });
 });
+
 
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
 let hasGoogleStrategy = false;

@@ -1,6 +1,6 @@
 import express from 'express';
-import { protect } from '../middleware/auth';
-import { isAdmin } from '../middleware/auth';
+import { isAdmin, protect } from '../middleware/auth';
+// import { isAdmin } from '../middleware/auth';
 import * as adminController from '../controllers/adminController';
 import * as userController from '../controllers/userController';
 import * as tournamentController from '../controllers/tournamentController';
@@ -12,7 +12,7 @@ import User from '../models/User';
 
 const router = express.Router();
 
-router.get('/membership-prices', protect, isAdmin, adminController.getMembershipPrices);
+router.get('/membership-prices', adminController.getMembershipPrices);
 router.post('/membership-prices', protect, isAdmin, adminController.updateMembershipPrices);
 
 router.get('/users', protect, isAdmin, userController.getUsers);

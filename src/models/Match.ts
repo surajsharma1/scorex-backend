@@ -23,7 +23,28 @@ export interface IMatch extends Document {
 export interface AddBallData { runs?: number; wide?: boolean; noBall?: boolean; bye?: number; legBye?: number; wicket?: boolean; outType?: string; outBatsmanName?: string; outFielder?: string; retired?: boolean; penalty?: number; }
 export interface StartMatchData { tossWinnerId: string; tossWinnerName: string; tossDecision: TossDecision; battingTeamId: string; battingTeamName: string; bowlingTeamId: string; bowlingTeamName: string; striker: string; nonStriker: string; bowler: string; }
 export interface SelectPlayersData { striker?: string; nonStriker?: string; bowler?: string; }
-export interface ScoreUpdateResult { score: number; wickets: number; overs: string; runRate: number; requiredRuns?: number; requiredRunRate?: number; targetScore?: number; ballDescription: string; overChanged: boolean; inningsEnded: boolean; matchEnded: boolean; needPlayerSelection: boolean; }
+export interface ScoreUpdateResult { 
+  score: number; 
+  wickets: number; 
+  overs: string; 
+  runRate: number; 
+  requiredRuns?: number; 
+  requiredRunRate?: number; 
+  targetScore?: number; 
+  ballDescription: string; 
+  overChanged: boolean; 
+  inningsEnded: boolean; 
+  matchEnded: boolean; 
+  needPlayerSelection: boolean;
+  // --- NEW FIELDS FOR OVERLAY TRIGGERS ---
+  isFour: boolean;
+  isSix: boolean;
+  isWicket: boolean;
+  outBatsmanName?: string;
+  completedOverNumber?: number;
+  strikerMatchRuns?: number;
+  strikerMatchBalls?: number;
+}
 
 // ============================================
 // SCHEMA
@@ -63,7 +84,17 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     }
     if (data.penalty) { innings.score += data.penalty; innings.extras.total += data.penalty; }
     this._updateSummary(innings); this.markModified('innings'); await this.save();
-    return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired };
+    // Find the exact runs the striker has right now
+  const currentStriker = innings.batsmen.find((b: IBatsman) => b.name === this.strikerName);
+
+  return { 
+    score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
+    runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
+    targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, 
+    overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired,
+    isFour: false, isSix: false, isWicket: !!data.retired, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
+    completedOverNumber: undefined, strikerMatchRuns: 0, strikerMatchBalls: 0
+  };
   }
 
   const runs = data.runs || 0; const isWide = data.wide || false; const isNoBall = data.noBall || false; const byeRuns = data.bye || 0; const legByeRuns = data.legBye || 0; const isWicket = data.wicket || false;
@@ -159,7 +190,29 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
 
   this.markModified('innings');
   await this.save();
-  return { score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, targetScore: innings.targetScore, ballDescription: ballDesc, overChanged, inningsEnded, matchEnded, needPlayerSelection: needPlayerSelection && !matchEnded };
+  const currentStriker = innings.batsmen.find((b: IBatsman) => b.name === this.strikerName);
+  return { 
+    score: innings.score, 
+    wickets: innings.wickets, 
+    overs: formatOvers(innings.overs, innings.balls % 6), 
+    runRate: innings.runRate, 
+    requiredRuns: innings.requiredRuns, 
+    requiredRunRate: innings.requiredRunRate, 
+    targetScore: innings.targetScore, 
+    ballDescription: ballDesc, 
+    overChanged, 
+    inningsEnded, 
+    matchEnded, 
+    needPlayerSelection: needPlayerSelection && !matchEnded,
+    // --- NEW TRIGGER DATA ---
+    isFour: runs === 4 && isLegalDelivery,
+    isSix: runs === 6 && isLegalDelivery,
+    isWicket: isWicket,
+    outBatsmanName: isWicket ? (data.outBatsmanName || striker.name) : undefined,
+    completedOverNumber: overChanged ? innings.overs : undefined,
+    strikerMatchRuns: currentStriker ? currentStriker.runs : 0,
+    strikerMatchBalls: currentStriker ? currentStriker.balls : 0
+  };
 };
 
 MatchSchema.methods._updateSummary = function(innings: IInnings) {
