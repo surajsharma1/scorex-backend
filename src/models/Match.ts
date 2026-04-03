@@ -44,6 +44,8 @@ export interface ScoreUpdateResult {
   completedOverNumber?: number;
   strikerMatchRuns?: number;
   strikerMatchBalls?: number;
+  totalFours: number;
+  totalSixes: number;
 }
 
 // ============================================
@@ -191,6 +193,10 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   this.markModified('innings');
   await this.save();
   const currentStriker = innings.batsmen.find((b: IBatsman) => b.name === this.strikerName);
+
+  const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
+  const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
+
   return { 
     score: innings.score, 
     wickets: innings.wickets, 
@@ -211,8 +217,11 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     outBatsmanName: isWicket ? (data.outBatsmanName || striker.name) : undefined,
     completedOverNumber: overChanged ? innings.overs : undefined,
     strikerMatchRuns: currentStriker ? currentStriker.runs : 0,
-    strikerMatchBalls: currentStriker ? currentStriker.balls : 0
+    strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
+    totalFours,
+    totalSixes
   };
+
 };
 
 MatchSchema.methods._updateSummary = function(innings: IInnings) {

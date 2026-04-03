@@ -5,8 +5,8 @@ import './Team';
 import './Tournament';
 import './Match';
 import './Bracket';
-import './Club';
-import './Friend';
+
+
 import './Message';
 import './Notification';
 import './Overlay';

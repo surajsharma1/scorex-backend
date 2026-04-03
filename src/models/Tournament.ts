@@ -27,7 +27,8 @@ const TournamentSchema = new Schema<ITournament>({
   endDate: Date,
   venue: { type: String, required: true },
   prizePool: { type: Number, default: 0 },
-  rules: { type: String },
+rules: { type: String },
+  sponsors: [{ type: String }],
   pointsTable: [Schema.Types.Mixed],
   bracket: [Schema.Types.Mixed]
 }, { timestamps: true });
@@ -169,7 +170,8 @@ export interface ITournament extends Document {
   endDate: Date;
   venue: string;
   prizePool: number;
-  rules: string;
+rules: string;
+  sponsors?: string[];
   pointsTable?: any[];
   bracket?: any[];
 
