@@ -26,48 +26,56 @@ const createNotification = async (options) => {
 exports.createNotification = createNotification;
 const notifyClubMembers = async (clubId, title, message, excludeUserId) => {
     try {
-        const club = await Club_1.default.findById(clubId).populate('members', '_id');
-        if (!club || !club.members)
+        const club = await Club_1.default.findById(clubId).populate('members', 'id username');
+        if (!club || !club.members || club.members.length === 0)
             return;
         const memberIds = club.members
-            .map((m) => m._id.toString())
-            .filter(id => id !== excludeUserId);
+            .filter((member) => member.id.toString() !== excludeUserId)
+            .map((member) => member.id.toString());
         for (const userId of memberIds) {
             await (0, exports.createNotification)({
                 userId,
                 type: 'club',
                 title,
                 message,
-                link: `/clubs/${clubId}`,
             });
         }
     }
     catch (error) {
-        console.error('❌ Bulk club notification failed:', error);
+        console.error('❌ notifyClubMembers failed:', error);
     }
 };
 exports.notifyClubMembers = notifyClubMembers;
 const notifyClubOwnerAndViceLeaders = async (clubId, title, message) => {
     try {
         const club = await Club_1.default.findById(clubId)
-            .populate('owner', '_id')
-            .populate('viceLeaders', '_id');
+            .populate('owner', 'id username')
+            .populate('viceLeaders', 'id username');
         if (!club)
             return;
-        const adminIds = [club.owner._id];
-        adminIds.push(...club.viceLeaders.map((vl) => vl._id));
-        for (const userId of adminIds) {
+        // Notify owner
+        if (club.owner) {
             await (0, exports.createNotification)({
-                userId: userId.toString(),
+                userId: club.owner.id.toString(),
                 type: 'club',
                 title,
                 message,
-                link: `/clubs/${clubId}/manage`,
             });
+        }
+        // Notify vice leaders
+        if (club.viceLeaders && club.viceLeaders.length > 0) {
+            for (const viceLeader of club.viceLeaders) {
+                await (0, exports.createNotification)({
+                    userId: viceLeader.id.toString(),
+                    type: 'club',
+                    title,
+                    message,
+                });
+            }
         }
     }
     catch (error) {
-        console.error('❌ Club admin notification failed:', error);
+        console.error('❌ notifyClubOwnerAndViceLeaders failed:', error);
     }
 };
 exports.notifyClubOwnerAndViceLeaders = notifyClubOwnerAndViceLeaders;

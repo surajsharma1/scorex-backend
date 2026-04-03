@@ -60,6 +60,7 @@ const TournamentSchema = new mongoose_1.Schema({
     venue: { type: String, required: true },
     prizePool: { type: Number, default: 0 },
     rules: { type: String },
+    sponsors: [{ type: String }],
     pointsTable: [mongoose_1.Schema.Types.Mixed],
     bracket: [mongoose_1.Schema.Types.Mixed]
 }, { timestamps: true });

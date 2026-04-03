@@ -56,8 +56,6 @@ const tournaments_1 = __importDefault(require("./routes/tournaments"));
 const matches_1 = __importDefault(require("./routes/matches"));
 const teams_1 = __importDefault(require("./routes/teams"));
 const overlays_1 = __importDefault(require("./routes/overlays"));
-const clubs_1 = __importDefault(require("./routes/clubs"));
-const friends_1 = __importDefault(require("./routes/friends"));
 const messages_1 = __importDefault(require("./routes/messages"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const users_1 = __importDefault(require("./routes/users"));
@@ -168,6 +166,12 @@ io.on('connection', (socket) => {
     socket.on('leaveTournament', (tournamentId) => {
         socket.leave(`tournament:${tournamentId}`);
     });
+    socket.on('manualOverlayTrigger', (payload) => {
+        console.log('🎬 Manual Trigger received:', payload.trigger.type);
+        io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
+            activeTrigger: payload.trigger
+        });
+    });
     socket.on('disconnect', () => {
         console.log('Socket disconnected:', socket.id);
     });
@@ -222,8 +226,6 @@ app.use('/api/v1/tournaments', tournaments_1.default);
 app.use('/api/v1/matches', matches_1.default);
 app.use('/api/v1/teams', teams_1.default);
 app.use('/api/v1/overlays', overlays_1.default);
-app.use('/api/v1/clubs', clubs_1.default);
-app.use('/api/v1/friends', friends_1.default);
 app.use('/api/v1/messages', messages_1.default);
 app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);

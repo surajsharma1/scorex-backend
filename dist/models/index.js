@@ -7,8 +7,6 @@ require("./Team");
 require("./Tournament");
 require("./Match");
 require("./Bracket");
-require("./Club");
-require("./Friend");
 require("./Message");
 require("./Notification");
 require("./Overlay");

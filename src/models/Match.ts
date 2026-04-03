@@ -89,13 +89,18 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     // Find the exact runs the striker has right now
   const currentStriker = innings.batsmen.find((b: IBatsman) => b.name === this.strikerName);
 
+  const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
+  const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
+
   return { 
     score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
     runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
     targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, 
     overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired,
     isFour: false, isSix: false, isWicket: !!data.retired, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
-    completedOverNumber: undefined, strikerMatchRuns: 0, strikerMatchBalls: 0
+    completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
+    totalFours,
+    totalSixes
   };
   }
 
