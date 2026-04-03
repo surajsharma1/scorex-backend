@@ -403,7 +403,7 @@
         const t = e.data.payload;
         const sb = $('dashboard-wrapper');
         
-        if (t.type === 'VS_SCREEN') {
+        if (t.type === 'SHOW_VS_SCREEN') {
           sb.className = 'state-vs';
           $('svt-text').innerHTML = `${t.data?.team1 || 'TEAM 1'} <span style="color:var(--text-sub); margin:0 20px; font-style:italic;">VS</span> ${t.data?.team2 || 'TEAM 2'}`;
         }
@@ -491,7 +491,7 @@
           
           $('me-header').innerText = "MATCH SUMMARY";
           const renderBat = (batsmen) => $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td style="color:var(--hex-purple); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
-          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--hex-pink); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:#fff;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--hex-pink); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:#fff;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
           
           const t1 = t.data?.team1; const t2 = t.data?.team2;
           let current = 1;
@@ -507,7 +507,7 @@
 
         if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
           const renderBat = (batsmen) => $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td style="color:var(--hex-purple); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
-          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--hex-pink); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:#fff;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--hex-pink); font-family:'Oswald'; font-size:24px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:#fff;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
           
           if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
             if(t.data?.batsmen) renderBat(t.data.batsmen);
