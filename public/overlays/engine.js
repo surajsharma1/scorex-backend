@@ -21,9 +21,14 @@
     tossDuration: globalCfg.tossDuration || 8,
     squadDuration: globalCfg.squadDuration || 12,
     introDuration: globalCfg.introDuration || 12,
-    autoStatsOvers: globalCfg.autoStatsOvers !== undefined ? globalCfg.autoStatsOvers : 5, 
-    autoStatsType: globalCfg.autoStatsType || 'BOTH_CARDS',
-    autoStatsDuration: globalCfg.autoStatsDuration || 10
+    
+    // NEW: Advanced Auto-Stats Configuration
+    enableAutoBatting: globalCfg.enableAutoBatting ?? true,
+    autoBattingOvers: globalCfg.autoBattingOvers || 2,
+    enableAutoBowling: globalCfg.enableAutoBowling ?? true,
+    autoBowlingOvers: globalCfg.autoBowlingOvers || 3,
+    simultaneousStats: globalCfg.simultaneousStats ?? true,
+    autoStatsDuration: Math.min(12, globalCfg.autoStatsDuration || 10) // Hard cap at 12 seconds
   };
 
   let matchData = null;
@@ -55,26 +60,21 @@
       // --- 1. BOOT SEQUENCE AUTOMATIONS ---
       if (currentState === 'BOOTING') {
         if (!tossDone) {
-          // Rule 1: No toss yet -> VS Screen forever
           currentState = 'VS_SCREEN';
           dispatchTrigger({ type: 'SHOW_VS_SCREEN' });
         } 
         else if (tossDone && isMatchNew && !hasPlayers) {
-          // Rule 2: Toss done, game not started -> Toss -> Squads -> Live Wait
           currentState = 'TOSS_SCREEN';
           dispatchTrigger({ type: 'SHOW_TOSS' });
-          
           setTimeout(() => {
             currentState = 'SQUAD_SCREEN';
             dispatchTrigger({ type: 'SHOW_SQUADS' });
-            
             setTimeout(() => {
               currentState = 'LIVE';
               dispatchTrigger({ type: 'RESTORE' });
             }, overlaySettings.squadDuration * 1000);
           }, overlaySettings.tossDuration * 1000);
         } else {
-          // Already in progress, just show live score
           currentState = 'LIVE';
         }
       }
@@ -90,27 +90,62 @@
         }, overlaySettings.introDuration * 1000);
       }
 
-      // --- 3. AUTO-STATS AT END OF OVERS ---
-      if (currentState === 'LIVE' && overlaySettings.autoStatsOvers > 0 && !animationLock) {
+      // --- 3. AUTO-STATS AT END OF OVERS (DYNAMIC OVERS LOGIC) ---
+      if (currentState === 'LIVE' && !animationLock) {
         const currentOversFloat = parseFloat(flatData.team1Overs);
         const isOverComplete = Number.isInteger(currentOversFloat) && currentOversFloat > 0;
         
-        // If the over is complete, is a multiple of our interval, and we haven't triggered it yet
-        if (isOverComplete && (currentOversFloat % overlaySettings.autoStatsOvers === 0) && currentOversFloat !== lastAutoStatOver) {
-          lastAutoStatOver = currentOversFloat;
-          animationLock = true;
+        // Ensure we only trigger once per over
+        if (isOverComplete && currentOversFloat !== lastAutoStatOver) {
           
-          dispatchTrigger({ type: overlaySettings.autoStatsType });
-          
-          setTimeout(() => {
-            animationLock = false;
-            dispatchTrigger({ type: 'RESTORE' });
-          }, overlaySettings.autoStatsDuration * 1000);
+          const triggerBatting = overlaySettings.enableAutoBatting && (currentOversFloat % overlaySettings.autoBattingOvers === 0);
+          const triggerBowling = overlaySettings.enableAutoBowling && (currentOversFloat % overlaySettings.autoBowlingOvers === 0);
+
+          if (triggerBatting || triggerBowling) {
+            lastAutoStatOver = currentOversFloat;
+            animationLock = true;
+            const durationMs = overlaySettings.autoStatsDuration * 1000;
+
+            if (triggerBatting && triggerBowling) {
+              // Both cards need to show on this over
+              if (overlaySettings.simultaneousStats) {
+                // Show together
+                dispatchTrigger({ type: 'BOTH_CARDS' });
+                setTimeout(() => {
+                  animationLock = false;
+                  dispatchTrigger({ type: 'RESTORE' });
+                }, durationMs);
+              } else {
+                // Show Sequentially (Batting first, then Bowling)
+                dispatchTrigger({ type: 'BATTING_CARD' });
+                setTimeout(() => {
+                  dispatchTrigger({ type: 'BOWLING_CARD' });
+                  setTimeout(() => {
+                    animationLock = false;
+                    dispatchTrigger({ type: 'RESTORE' });
+                  }, durationMs);
+                }, durationMs);
+              }
+            } else if (triggerBatting) {
+              // Only Batting
+              dispatchTrigger({ type: 'BATTING_CARD' });
+              setTimeout(() => {
+                animationLock = false;
+                dispatchTrigger({ type: 'RESTORE' });
+              }, durationMs);
+            } else if (triggerBowling) {
+              // Only Bowling
+              dispatchTrigger({ type: 'BOWLING_CARD' });
+              setTimeout(() => {
+                animationLock = false;
+                dispatchTrigger({ type: 'RESTORE' });
+              }, durationMs);
+            }
+          }
         }
       }
 
       // --- 4. BACKEND/MANUAL TRIGGERS ---
-      // If a manual trigger comes in (e.g. OUT, FOUR, 3rd Umpire), it bypasses the locks
       if (currentState === 'LIVE' && trigger) {
         dispatchTrigger(trigger);
       }
@@ -152,3 +187,4 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
