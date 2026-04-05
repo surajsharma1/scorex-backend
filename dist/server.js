@@ -86,12 +86,7 @@ app.use((0, cors_1.default)({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Set-Cookie']
 }));
-// Serve static overlays with CORS
-app.use('/overlays', (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    next();
-}, express_1.default.static('public/overlays'));
+/* Static overlays moved after API routes to allow /api/v1/overlays/public/:id */
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/uploads', express_1.default.static('public/uploads'));
@@ -242,6 +237,12 @@ app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
 app.use('/api/v1/stats', stats_1.default);
+// Serve static overlays with CORS (MOVED: after API routes so /api/v1/overlays/public/:id works)
+app.use('/overlays', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    next();
+}, express_1.default.static('public/overlays'));
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
 // Simplified Google OAuth health check - always OK if strategy loaded (for CORS)
