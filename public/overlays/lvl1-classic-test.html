@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Classic Test</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@500;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #111; }
+    
+    #static-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #fff; border-bottom: 3px solid #800000;
+      color: #800000; font-size: 13px; font-weight: 700; letter-spacing: 2px;
+      padding: 6px 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    /* Straight blocks with 8px gaps */
+    #bottom-bar {
+      position: absolute; bottom: 15px; left: 0; width: 100%; height: 65px;
+      display: flex; gap: 8px; padding: 0 10px;
+    }
+    
+    .panel { background: #fff; display: flex; align-items: center; padding: 0 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.15); border-top: 2px solid #800000; }
+    .p-score { min-width: 320px; justify-content: space-between; border-left: 6px solid #800000; }
+    .p-bat { flex: 1; justify-content: space-around; }
+    .p-bowl { min-width: 320px; justify-content: space-between; border-right: 6px solid #800000; }
+
+    .tm { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: #800000; }
+    .sc { font-size: 38px; font-weight: 700; line-height: 1; }
+    .sc span { font-size: 22px; color: #666; }
+    .ov { font-size: 14px; font-weight: 700; color: #800000; }
+    
+    .pn { font-size: 18px; font-weight: 700; }
+    .ps { font-size: 28px; font-weight: 700; color: #800000; margin-left: 8px;}
+    .pb { font-size: 13px; color: #666; }
+    .lbl { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 2px;}
+  </style>
+</head>
+<body>
+  <div id="static-island">SCOREX-LIVE.VERCEL.APP</div>
+  <div id="bottom-bar">
+    <div class="panel p-score">
+      <div id="teamName" class="tm">TEAM</div>
+      <div style="display:flex; align-items:baseline; gap: 15px;">
+        <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov">OV <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+    <div class="panel p-bat">
+      <div style="display:flex; align-items:baseline;">
+        <span style="color:#800000; margin-right:5px; font-size: 12px;">▶</span>
+        <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div style="width: 2px; height: 30px; background: #eee;"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.7;">
+        <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#111;">0</span>
+      </div>
+    </div>
+    <div class="panel p-bowl">
+      <div style="display:flex; flex-direction:column;"><span class="lbl">Bowler</span><span id="bowlerName" class="pn">Bowler Name</span></div>
+      <div style="display:flex; align-items:baseline;">
+        <span class="ps" style="color:#111;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:8px;">OV <span id="bowlerOvers">0.0</span></span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') { const d = e.data.data; ['teamName','teamScore','teamWickets','teamOvers','strikerName','strikerRuns','strikerBalls','nonStrikerName','nonStrikerRuns','bowlerName','bowlerRuns','bowlerWickets','bowlerOvers'].forEach(k => { if($(k)) $(k).innerText = d[k]; }); }});
+  </script>
+</body>
+</html>

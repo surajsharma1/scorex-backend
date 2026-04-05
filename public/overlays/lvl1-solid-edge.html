@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Solid Edge</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Static Top Island */
+    #static-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #0f172a; border: 2px solid #22c55e;
+      color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+      padding: 6px 25px; border-radius: 2px;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.8);
+    }
+
+    /* Full Width Connected Bottom Bar */
+    #solid-bottom {
+      position: absolute; bottom: 20px; left: 0; width: 100%; height: 75px;
+      display: flex; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+    }
+
+    /* Interlocking Angular Modules */
+    .mod { display: flex; align-items: center; padding: 0 40px; }
+
+    .mod-score {
+      background: #22c55e; color: #0f172a; min-width: 300px; justify-content: space-between;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+      z-index: 3;
+    }
+
+    .mod-bat {
+      background: #0f172a; flex: 1; justify-content: space-around;
+      clip-path: polygon(20px 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+      margin-left: -20px; padding-left: 50px; z-index: 2;
+    }
+
+    .mod-bowl {
+      background: #1e293b; min-width: 320px; justify-content: space-between;
+      clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+      margin-left: -20px; padding-left: 50px; z-index: 1;
+    }
+
+    /* Clean Typography */
+    .tm { font-size: 26px; font-weight: 900; letter-spacing: -0.5px;}
+    .sc { font-size: 42px; font-weight: 900; line-height: 1; }
+    .sc span { font-size: 24px; color: #064e3b; }
+    .ov { font-size: 13px; font-weight: 700; margin-left: 10px; color: #064e3b; }
+
+    .pn { font-size: 18px; font-weight: 700; }
+    .ps { font-size: 28px; font-weight: 900; color: #22c55e; margin-left: 10px;}
+    .pb { font-size: 13px; color: #94a3b8; margin-left: 5px;}
+    
+    .lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px;}
+    .v-div { width: 2px; height: 30px; background: #334155; }
+  </style>
+</head>
+<body>
+
+  <div id="static-island">SCOREX-LIVE.VERCEL.APP</div>
+
+  <div id="solid-bottom">
+    
+    <div class="mod mod-score">
+      <div id="teamName" class="tm">TEAM</div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov">OV <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+
+    <div class="mod mod-bat">
+      <div style="display:flex; align-items:baseline;">
+        <span style="color:#22c55e; font-size:12px; margin-right:8px;">▶</span>
+        <span id="strikerName" class="pn">Striker</span>
+        <span id="strikerRuns" class="ps">0</span>
+        <span class="pb">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div class="v-div"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.6;">
+        <span id="nonStrikerName" class="pn">Non-Striker</span>
+        <span id="nonStrikerRuns" class="ps" style="color:#fff;">0</span>
+      </div>
+    </div>
+
+    <div class="mod mod-bowl">
+      <div style="display:flex; flex-direction:column;">
+        <span class="lbl">BOWLER</span>
+        <span id="bowlerName" class="pn">Bowler Name</span>
+      </div>
+      <div style="display:flex; align-items:baseline;">
+        <span class="ps" style="color:#fff;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+        <span class="pb">OV <span id="bowlerOvers">0.0</span></span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function processData(d) {
+      $('teamName').innerText = d.team1Name; $('teamScore').innerText = d.team1Score; $('teamWickets').innerText = d.team1Wickets; $('teamOvers').innerText = d.team1Overs;
+      $('strikerName').innerText = d.strikerName; $('strikerRuns').innerText = d.strikerRuns; $('strikerBalls').innerText = d.strikerBalls;
+      $('nonStrikerName').innerText = d.nonStrikerName; $('nonStrikerRuns').innerText = d.nonStrikerRuns;
+      $('bowlerName').innerText = d.bowlerName; $('bowlerRuns').innerText = d.bowlerRuns; $('bowlerWickets').innerText = d.bowlerWickets; $('bowlerOvers').innerText = d.bowlerOvers;
+    }
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') processData(e.data.data); });
+  </script>
+</body>
+</html>

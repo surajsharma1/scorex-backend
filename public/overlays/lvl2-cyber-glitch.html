@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Global Sports Ticker (Light Pills)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;900&family=Teko:wght@500;600;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; text-transform: uppercase; }
+    html, body { width: 100vw; height: 100vh; background: transparent; overflow: hidden; color: #0f172a; }
+
+    /* Visibility Logic */
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(40px) scale(0.95); }
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(0) scale(1); z-index: 200;}
+    .tab-hide { display: none !important; }
+    .tab-show { display: block !important; }
+
+    :root {
+      --pill-bg: #ffffff;
+      --pill-border: #f1f5f9;
+      --pill-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.03);
+      
+      --acc-blue: #2563eb;
+      --acc-red: #ef4444;
+      --acc-gold: #f59e0b;
+      --acc-cyan: #06b6d4;
+      
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+    }
+
+    /* Generic Pill Style */
+    .pill {
+      background: var(--pill-bg);
+      border: 2px solid var(--pill-border);
+      border-radius: 40px;
+      box-shadow: var(--pill-shadow);
+      display: flex; flex-direction: column; justify-content: center;
+    }
+
+    /* =========================================
+       1. SPONSOR CAROUSEL (Top Floating Pill)
+       ========================================= */
+    #sponsor-bar {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      width: auto; min-width: 60vw; max-width: 90vw; height: 45px;
+      z-index: 10; display: flex; align-items: center; overflow: hidden;
+      padding: 0 10px 0 0;
+    }
+    .sponsor-label { 
+      background: var(--acc-blue); color: #fff; font-size: 15px; font-weight: 900; 
+      padding: 0 30px; height: 100%; display: flex; align-items: center; z-index: 2; 
+      border-radius: 40px; box-shadow: 5px 0 15px rgba(0,0,0,0.1); letter-spacing: 1px;
+    }
+    .sponsor-track-container { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; padding-left: 30px; }
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; font-size: 15px; font-weight: 900; color: var(--text-sub); gap: 50px; padding-left: 100vw; }
+    .sponsor-item { display: inline-flex; align-items: center; gap: 10px; }
+    .sponsor-item::before { content: '•'; color: var(--acc-gold); font-size: 20px; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    /* =========================================
+       2. EVENT ANIMATIONS
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; overflow: hidden;}
+    
+    /* FOUR */
+    #anim-four { position: absolute; bottom: 150px; left: -600px; transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; padding: 15px 50px; display: flex; align-items: center; gap: 20px; border-left: none; border-radius: 0 40px 40px 0;}
+    #anim-four.fire { left: 0; opacity: 1; }
+    #anim-four .ev-val { font-family: 'Teko'; font-size: 110px; color: var(--acc-blue); line-height: 1; font-weight: 900; }
+
+    /* SIX: Shockwave Explosion */
+    #anim-six { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); opacity: 0; display: flex; align-items: center; justify-content: center; }
+    #anim-six.fire { opacity: 1; animation: popSix 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .six-txt { font-family: 'Teko'; font-size: 280px; font-weight: 900; color: var(--acc-blue); line-height: 0.8; text-shadow: 0 20px 50px rgba(37, 99, 235, 0.4); position: relative; z-index: 2;}
+    .six-ring { position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; border: 15px solid var(--acc-gold); border-radius: 50%; transform: translate(-50%, -50%); z-index: 1; opacity: 0;}
+    #anim-six.fire .six-ring { animation: shockwave 1s ease-out forwards; }
+    @keyframes popSix { 0% { transform: translate(-50%, -50%) scale(0.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+    @keyframes shockwave { 0% { width: 200px; height: 200px; opacity: 1; } 100% { width: 1000px; height: 1000px; opacity: 0; border-width: 2px;} }
+
+    /* WICKET: Impact Slam */
+    #anim-wicket { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(3); opacity: 0; display: flex; align-items: center; justify-content: center; }
+    #anim-wicket.fire { opacity: 1; animation: slamWicket 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .wicket-content { background: var(--acc-red); color: #fff; padding: 20px 80px; border-radius: 40px; font-family: 'Teko'; font-size: 160px; font-weight: 900; line-height: 1; letter-spacing: 10px; box-shadow: 0 20px 50px rgba(239, 68, 68, 0.5), 0 0 100px rgba(239, 68, 68, 0.4); position: relative; z-index: 2;}
+    .wicket-ring { position: absolute; inset: -20px; border-radius: 60px; border: 4px solid var(--acc-red); z-index: 1; opacity: 0; }
+    #anim-wicket.fire .wicket-ring { animation: expandWicketRing 1s ease-out forwards; animation-delay: 0.2s; }
+    @keyframes slamWicket { 0% { transform: translate(-50%, -50%) scale(3); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    @keyframes expandWicketRing { 0% { transform: scale(1); opacity: 1; border-width: 10px; } 100% { transform: scale(1.5); opacity: 0; border-width: 1px; } }
+
+    /* MILESTONE */
+    #anim-milestone { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(50px); opacity: 0; transition: all 0.4s ease; z-index: 45; padding: 15px 50px; border-bottom: 8px solid var(--acc-gold);}
+    #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .ms-content { font-family: 'Teko'; font-size: 70px; font-weight: 900; color: var(--text-main); }
+
+    /* DECISION PENDING */
+    #anim-decision { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); padding: 20px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; border: 4px solid var(--acc-gold); }
+    #anim-decision.fire { opacity: 1; animation: pulseDP 1.5s infinite alternate; }
+    #anim-decision .d-title { font-size: 18px; color: var(--text-sub); letter-spacing: 8px; margin-bottom: 5px; font-weight: 900;}
+    #anim-decision .d-text { font-family: 'Teko'; font-size: 70px; font-weight: 900; color: var(--text-main); line-height: 1;}
+    @keyframes pulseDP { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); } 100% { box-shadow: 0 0 0 30px rgba(245, 158, 11, 0); } }
+
+    /* =========================================
+       3. 5-PILL DETACHED SCOREBOARD
+       ========================================= */
+    #scoreboard-container { 
+      position: absolute; bottom: 30px; left: 0; width: 100vw; height: 110px; z-index: 50; 
+      display: flex; justify-content: center; align-items: stretch; gap: 20px; padding: 0 2vw;
+    }
+
+    #target-bar { 
+      position: absolute; bottom: 160px; right: 2vw; padding: 12px 40px; display: none; z-index: 49; 
+      border-right: 6px solid var(--acc-red); 
+    }
+    #target-bar .tb-content { color: var(--text-main); font-weight: 900; font-size: 18px; display: flex; gap: 30px; align-items: center;}
+    #equation-text { color: var(--acc-red); font-family: 'Teko'; font-size: 26px; letter-spacing: 1px; line-height: 1;}
+
+    /* View States */
+    .sb-view { position: absolute; inset: 0; display: flex; justify-content: center; gap: 20px; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 0 2vw;}
+    .state-vs #panel-live { opacity: 0; transform: translateY(50px); pointer-events: none; }
+    .state-vs #panel-vs { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .state-live #panel-vs { opacity: 0; transform: translateY(50px); pointer-events: none; }
+    .state-live #panel-live { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    /* VS Screen */
+    #panel-vs .vs-pill { padding: 0 80px; align-items: center; border: 4px solid var(--acc-blue); }
+    #svt-text { color: var(--text-main); font-family: 'Teko'; font-size: 80px; font-weight: 900; letter-spacing: 5px; line-height: 1; margin-top: 10px;}
+
+    /* Live Data Pills */
+    .pill-team { width: 14%; align-items: center; text-align: center; font-family: 'Teko'; font-size: 70px; font-weight: 900; line-height: 1; }
+    #bat-team { color: var(--acc-blue); border: 2px solid var(--acc-blue); }
+    #bowl-team { color: var(--acc-red); border: 2px solid var(--acc-red); }
+
+    .pill-score { width: 22%; align-items: center; padding: 10px; border: 2px solid var(--pill-border); background: #f8fafc;}
+    .runs-wkts { font-family: 'Teko'; font-size: 85px; line-height: 0.8; font-weight: 900; color: var(--text-main); display: flex; align-items: baseline;}
+    .runs-wkts .slash { color: var(--acc-gold); font-size: 70px; margin: 0 8px; }
+    .overs-text { font-size: 18px; font-weight: 900; color: var(--text-sub); margin-top: 5px;}
+    .overs-text span { color: var(--acc-blue); font-size: 22px; margin-left: 8px; font-family: 'Teko'; line-height: 1;}
+
+    .pill-data { width: 25%; padding: 0 35px; }
+    .p-row { display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 800; margin-bottom: 2px; white-space: nowrap;}
+    .p-name { color: var(--text-sub); display: flex; align-items: center; flex: 1; min-width: 0; } 
+    .p-name.active { color: var(--text-main); font-weight: 900;}
+    .name-txt { display: inline-block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .p-stats { color: var(--text-main); font-family: 'Teko'; font-size: 38px; line-height: 0.8; margin-left: 15px; font-weight: 900;}
+    .p-sub { font-size: 16px; color: var(--text-sub); font-weight: 700;}
+
+    .this-over-row { display: flex; gap: 8px; align-items: center; margin-top: 6px;}
+    .this-over-lbl { font-size: 13px; font-weight: 900; color: var(--text-sub); margin-right: 5px; }
+    .ball-dot { width: 26px; height: 26px; border-radius: 50%; background: #f1f5f9; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-family: 'Teko'; font-size: 16px; line-height: 1; font-weight: 900; color: var(--text-main);}
+    .ball-w { background: var(--acc-red); border-color: var(--acc-red); color: #fff;} 
+    .ball-b { background: var(--acc-blue); border-color: var(--acc-blue); color: #fff;} 
+    .ball-6 { background: var(--acc-gold); border-color: var(--acc-gold); color: #fff;}
+
+    /* =========================================
+       4. 3-CARD INTRO
+       ========================================= */
+    #intro-cards-wrapper { 
+      position: absolute; bottom: 155px; left: 50%; transform: translateX(-50%) translateY(50px); 
+      display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; 
+    }
+    #intro-cards-wrapper.active-intro { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+    
+    .intro-card { padding: 20px 30px; width: 330px; border-top: 6px solid transparent;}
+    .intro-lbl { font-size: 14px; color: var(--text-sub); font-weight: 900; letter-spacing: 2px;}
+    .intro-val { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+
+    /* =========================================
+       5. SIDE PROFILES & SWITCH CARDS 
+       ========================================= */
+    #side-card-wrapper { 
+      position: absolute; bottom: 160px; left: 2vw; width: 500px; transform: translateX(-100px); 
+      opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 90; 
+    }
+    #side-card-wrapper.active-side { transform: translateX(0); opacity: 1; visibility: visible; }
+
+    .profile-card { display: none; padding: 0; border-left: 8px solid var(--acc-blue); overflow: hidden;}
+    .profile-card.active { display: block; }
+    .ppc-title { background: #f8fafc; font-family: 'Teko'; font-size: 50px; font-weight: 900; color: var(--text-main); line-height: 1; padding: 20px 35px; border-bottom: 1px solid var(--pill-border); }
+    .ppc-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 800; padding: 15px 35px; border-bottom: 1px solid var(--pill-border); }
+    .ppc-row:last-child { border-bottom: none; }
+    .ppc-lbl { color: var(--text-sub); } .ppc-val { color: var(--acc-blue); font-family: 'Teko'; font-size: 34px; line-height: 0.8; font-weight: 900;}
+
+    .switch-card { display: none; flex-direction: column; gap: 15px; width: 100%; }
+    .switch-card.active { display: flex; }
+    .switch-block { padding: 20px 35px; display: flex; align-items: center; justify-content: space-between; border-left: 8px solid transparent;}
+    .sw-badge { color: #fff; font-weight: 900; font-size: 15px; padding: 4px 15px; border-radius: 12px; letter-spacing: 2px; display: inline-block; margin-bottom: 5px;}
+    .sw-name { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+    .sw-score { font-size: 28px; font-weight: 900; color: var(--text-sub); font-family: 'Teko'; margin-left: 15px;}
+
+    /* =========================================
+       6. SIDE-SLIDING OVER SUMMARIES
+       ========================================= */
+    .side-summary-container { position: absolute; bottom: 155px; top: 70px; width: 100vw; pointer-events: none; z-index: 45; display: flex; justify-content: space-between; padding: 0 2vw; overflow: hidden;}
+    
+    .side-panel { width: 46%; border: 2px solid var(--pill-border); border-top: 8px solid var(--acc-cyan); display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; pointer-events: auto; opacity: 0; visibility: hidden; background: var(--pill-bg); border-radius: 30px; overflow: hidden; box-shadow: var(--pill-shadow);}
+    
+    #sum-bat-col { transform: translateX(-120%); }
+    #sum-bat-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
+    
+    #sum-bowl-col { transform: translateX(120%); }
+    #sum-bowl-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
+
+    .panel-header { font-family: 'Teko'; font-weight: 900; font-size: 55px; color: var(--text-main); padding: 20px 35px; background: #f8fafc; border-bottom: 2px solid var(--pill-border); line-height: 1;}
+    .data-table { width: 100%; border-collapse: collapse; font-size: 22px; font-weight: 800; text-align: left; }
+    .data-table th { color: var(--text-sub); border-bottom: 2px solid var(--pill-border); padding: 15px 35px; font-size: 18px; background: #fff;}
+    .data-table td { padding: 15px 35px; border-bottom: 1px solid var(--pill-border); color: var(--text-main); white-space: nowrap; font-family: 'Teko'; font-size: 26px; font-weight: 600;}
+    .data-table tr:nth-child(even) { background: #f8fafc; }
+    .hl-text { color: var(--acc-blue) !important; font-weight: 900 !important; font-family: 'Outfit' !important; font-size: 22px !important;}
+
+    /* =========================================
+       7. FULL SCREEN GRAPHICS
+       ========================================= */
+    #fullscreen-layer { position: absolute; inset: 0; background: rgba(241, 245, 249, 0.95); z-index: 200; display: flex; align-items: center; justify-content: center; }
+    
+    .fs-card { width: 95%; max-width: 1600px; padding: 40px; }
+    .fs-header { font-family: 'Teko'; font-size: 90px; font-weight: 900; color: var(--text-main); text-align: center; margin-bottom: 40px; line-height: 1; letter-spacing: 2px; border-bottom: 4px solid var(--pill-border); padding-bottom: 10px;}
+    
+    /* ANIMATED TARGET BREAK */
+    #target-tab { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+    .target-anim-wrapper { position: relative; width: 450px; height: 450px; display: flex; align-items: center; justify-content: center; margin: 20px auto; border-radius: 50%; }
+    .ta-ring-1 { position: absolute; inset: 0; border-radius: 50%; border: 8px dashed var(--acc-blue); animation: spinCircle 12s linear infinite; }
+    .ta-ring-2 { position: absolute; inset: 15px; border-radius: 50%; border: 6px solid transparent; border-top-color: var(--acc-red); border-bottom-color: var(--acc-gold); animation: spinCircle 6s reverse linear infinite; }
+    .ta-core { position: absolute; inset: 35px; background: var(--pill-bg); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--pill-shadow); border: 4px solid var(--pill-border); z-index: 2; animation: pulseTargetGlow 2s ease-in-out infinite alternate; }
+    
+    #target-score { font-family: 'Teko'; font-size: 180px; color: var(--text-main); line-height: 0.8; font-weight: 900;}
+    .ta-lbl { font-size: 24px; font-weight: 900; color: var(--text-sub); margin-top: 10px;}
+    
+    @keyframes spinCircle { 100% { transform: rotate(360deg); } }
+    @keyframes pulseTargetGlow { 0% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.2); border-color: var(--pill-border); } 100% { box-shadow: 0 0 50px rgba(37, 99, 235, 0.6); border-color: var(--acc-blue); } }
+
+    .teams-split-container { display: flex; gap: 40px; }
+    .team-col-fs { flex: 1; padding: 0; overflow: hidden; border: 2px solid var(--pill-border);} 
+    .team-header-1 { background: #eff6ff; color: var(--acc-blue); padding: 25px; text-align: center; font-family: 'Teko'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-blue);}
+    .team-header-2 { background: #fef2f2; color: var(--acc-red); padding: 25px; text-align: center; font-family: 'Teko'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-red);}
+    
+    .squad-list { padding: 10px 0; background: #fff;}
+    .squad-item { padding: 15px 40px; font-size: 24px; font-weight: 800; color: var(--text-main); border-bottom: 1px solid var(--pill-border); display: flex; justify-content: space-between;}
+    .squad-item:nth-child(even) { background: #f8fafc; }
+
+  </style>
+</head>
+<body>
+
+  <div id="sponsor-bar">
+    <div class="sponsor-label">BROADCAST PARTNERS</div>
+    <div class="sponsor-track-container pill" style="border-radius: 40px;"><div class="sponsor-track" id="sponsor-track"></div></div>
+  </div>
+
+  <div class="event-layer">
+    <div id="anim-four" class="pill"><div class="ev-val">FOUR</div></div>
+    
+    <div id="anim-six">
+      <div class="six-ring"></div>
+      <div class="six-txt">SIX!</div>
+    </div>
+    
+    <div id="anim-wicket">
+      <div class="wicket-ring"></div>
+      <div class="wicket-content">OUT!</div>
+    </div>
+
+    <div id="anim-milestone" class="pill"><div class="ms-content" id="ms-text">V. KOHLI - 50</div></div>
+    <div id="anim-decision" class="pill"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
+  </div>
+
+  <div id="target-bar" class="pill">
+    <div class="tb-content">
+      <span style="color:var(--text-sub);">2ND INNINGS</span>
+      <span id="equation-text">NEED 0 FROM 0</span>
+    </div>
+  </div>
+
+  <div id="intro-cards-wrapper">
+    <div class="intro-card pill" style="border-top-color: var(--acc-blue);">
+      <div class="intro-lbl">STRIKER</div><div class="intro-val" id="intro-striker">BATSMAN</div>
+    </div>
+    <div class="intro-card pill" style="border-top-color: #94a3b8; opacity:0.8;">
+      <div class="intro-lbl">NON-STRIKER</div><div class="intro-val" id="intro-nonstriker">BATSMAN</div>
+    </div>
+    <div class="intro-card pill" style="border-top-color: var(--acc-red);">
+      <div class="intro-lbl">BOWLER</div><div class="intro-val" id="intro-bowler">BOWLER</div>
+    </div>
+  </div>
+
+  <div id="side-card-wrapper">
+    <div id="profile-card" class="profile-card pill">
+      <div class="ppc-title" id="ppc-title-text">PLAYER NAME</div>
+      <div id="ppc-data"></div>
+    </div>
+    
+    <div id="switch-card" class="switch-card">
+      <div class="switch-block pill switch-out" id="sw-out-block" style="border-left: 8px solid var(--acc-red);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start;"><span class="sw-badge" style="background: var(--acc-red);" id="sw-out-badge">OUT</span><span class="sw-name" id="sw-out-name">PLAYER 1</span></div>
+        <div class="sw-score" id="sw-out-score">0 (0)</div>
+      </div>
+      <div class="switch-block pill switch-in" style="border-left: 8px solid var(--acc-blue);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start;"><span class="sw-badge" style="background: var(--acc-blue);">IN</span><span class="sw-name" id="sw-in-name">PLAYER 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-summary-container">
+    <div class="side-panel" id="sum-bat-col">
+      <div class="panel-header">BATTING SUMMARY</div>
+      <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="sum-bat-body"></tbody></table>
+    </div>
+    <div class="side-panel" id="sum-bowl-col">
+      <div class="panel-header">BOWLING SUMMARY</div>
+      <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="sum-bowl-body"></tbody></table>
+    </div>
+  </div>
+
+  <div id="scoreboard-container" class="state-vs">
+    <div class="sb-view" id="panel-vs">
+       <div class="pill vs-pill"><span id="svt-text">TEAM 1 <span style="color:var(--acc-red); margin:0 20px;">VS</span> TEAM 2</span></div>
+    </div>
+
+    <div class="sb-view" id="panel-live">
+      
+      <div class="pill pill-team" id="bat-team" style="color: var(--acc-blue); border-color: var(--acc-blue);">IND</div>
+      
+      <div class="pill pill-data">
+          <div class="p-row">
+            <span class="p-name active"><span style="color:var(--acc-gold); margin-right:10px;">▶</span><span id="striker" class="name-txt">Striker</span></span> 
+            <span class="p-stats"><span id="s-runs">0</span> <span class="p-sub">(<span id="s-balls">0</span>)</span></span>
+          </div>
+          <div class="p-row" style="opacity: 0.6;">
+            <span class="p-name"><span id="nonstriker" class="name-txt">Non-Striker</span></span> 
+            <span class="p-stats"><span id="ns-runs">0</span> <span class="p-sub">(<span id="ns-balls">0</span>)</span></span>
+          </div>
+      </div>
+
+      <div class="pill pill-score">
+          <div class="runs-wkts"><span id="score">0</span><span class="slash">/</span><span id="wickets">0</span></div>
+          <div class="overs-text">OVERS<span><span id="overs">0.0</span></span></div>
+      </div>
+
+      <div class="pill pill-data">
+          <div class="p-row">
+            <span class="p-name active" style="color:var(--text-main);">BOWL: <span id="bowler" class="name-txt" style="margin-left: 8px;">Bowler</span></span>
+            <span class="p-stats" style="color:var(--acc-red);"><span id="b-wkts">0</span>-<span id="b-runs">0</span> <span class="p-sub" style="margin-left:10px;">OV <span id="b-ov">0.0</span></span></span>
+          </div>
+          <div class="this-over-row"><span class="this-over-lbl">THIS OVER:</span><div id="this-over-balls" style="display:flex; gap:6px;"></div></div>
+      </div>
+
+      <div class="pill pill-team" id="bowl-team" style="color: var(--acc-red); border-color: var(--acc-red);">AUS</div>
+      
+    </div>
+  </div>
+
+  <div id="fullscreen-layer" class="layer-hide">
+    
+    <div id="target-tab" class="fs-card tab-hide">
+      <div class="fs-header" style="border:none;">INNINGS BREAK</div>
+      <div class="target-anim-wrapper">
+        <div class="ta-ring-1"></div>
+        <div class="ta-ring-2"></div>
+        <div class="ta-core">
+          <div id="target-score">201</div>
+          <div class="ta-lbl">TARGET</div>
+        </div>
+      </div>
+      <div style="font-size: 35px; color: var(--text-main); font-weight: 900; margin-top: 20px;">CHASING: <span id="target-team" style="color:var(--acc-blue);">TEAM 2</span></div>
+    </div>
+
+    <div id="squads-tab" class="fs-card tab-hide">
+      <div class="fs-header">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs pill" style="border-radius: 30px;">
+          <div class="team-header-1" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs pill" style="border-radius: 30px;">
+          <div class="team-header-2" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="match-end-tab" class="fs-card tab-hide">
+      <div class="fs-header" id="me-header">MATCH SUMMARY</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs pill" style="border-radius: 30px;">
+          <div class="team-header-1">BATTING</div>
+          <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="me-bat-body"></tbody></table>
+        </div>
+        <div class="team-col-fs pill" style="border-radius: 30px;">
+          <div class="team-header-2">BOWLING</div>
+          <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="me-bowl-body"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let eventTimer, endMatchInterval, sideCardTimer, introTimer;
+    let decisionPendingState = false;
+    const config = window.OVERLAY_CONFIG?.config || { switchInterval: 8 };
+
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'UPDATE_SCORE') {
+        const d = e.data.data;
+        
+        $('bat-team').innerText = d.team1Name || 'T1'; $('bowl-team').innerText = d.team2Name || 'T2';
+        $('score').innerText = d.team1Score; $('wickets').innerText = d.team1Wickets; $('overs').innerText = d.team1Overs;
+        $('striker').innerText = d.strikerName; $('s-runs').innerText = d.strikerRuns; $('s-balls').innerText = d.strikerBalls;
+        $('nonstriker').innerText = d.nonStrikerName; $('ns-runs').innerText = d.nonStrikerRuns; $('ns-balls').innerText = d.nonStrikerBalls;
+        $('bowler').innerText = d.bowlerName; $('b-runs').innerText = d.bowlerRuns; $('b-wkts').innerText = d.bowlerWickets; $('b-ov').innerText = d.bowlerOvers;
+        
+        $('intro-striker').innerText = d.strikerName || 'TBA'; $('intro-nonstriker').innerText = d.nonStrikerName || 'TBA'; $('intro-bowler').innerText = d.bowlerName || 'TBA';
+        
+        if (d.sponsors && d.sponsors.length > 0) {
+          $('sponsor-track').innerHTML = d.sponsors.map(s => `<span class="sponsor-item">${s}</span>`).join('');
+        } else {
+          $('sponsor-track').innerHTML = `<span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">GLOBAL SPORTS TICKER</span>`;
+        }
+
+        if (d.requiredRuns > 0 && d.target > 0) {
+          $('target-bar').style.display = 'flex'; $('equation-text').innerText = `NEED ${d.requiredRuns} FROM ${d.remainingBalls || '--'}`;
+        } else $('target-bar').style.display = 'none';
+
+        if (d.thisOver && Array.isArray(d.thisOver)) {
+          $('this-over-balls').innerHTML = d.thisOver.map(ball => {
+            let clz = 'ball-dot';
+            if (ball === 'W') clz += ' ball-w'; else if (ball === '4') clz += ' ball-b'; else if (ball === '6') clz += ' ball-6';
+            return `<div class="${clz}">${ball}</div>`;
+          }).join('');
+        }
+
+        const sb = $('scoreboard-container');
+        if (!d.strikerName && d.team1Overs === "0.0" && !sb.classList.contains('state-vs') && !$('svt-text').innerText.includes('WON')) {
+           sb.className = 'state-vs';
+           $('svt-text').innerHTML = `${d.team1Name || 'TEAM 1'} <span style="color:var(--acc-red); margin:0 20px;">VS</span> ${d.team2Name || 'TEAM 2'}`;
+        } else if (d.strikerName && sb.className === 'state-vs') {
+           sb.className = 'state-live';
+        }
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        const sb = $('scoreboard-container');
+        
+        if (t.type === 'VS_SCREEN') {
+          sb.className = 'state-vs';
+          $('svt-text').innerHTML = `${t.data?.team1 || 'TEAM 1'} <span style="color:var(--acc-red); margin:0 20px;">VS</span> ${t.data?.team2 || 'TEAM 2'}`;
+        }
+
+        if (t.type === 'SHOW_TOSS') {
+          sb.className = 'state-vs';
+          $('svt-text').innerText = t.data?.text || "TOSS DECIDED";
+        }
+
+        if (t.type === 'START_INNINGS_INTRO') {
+          sb.className = 'state-live';
+          clearTimeout(introTimer); $('intro-cards-wrapper').classList.add('active-intro');
+          introTimer = setTimeout(() => { $('intro-cards-wrapper').classList.remove('active-intro'); }, 5000);
+        }
+
+        // BURST ANIMATIONS
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', '50_RUNS', '100_RUNS'].includes(t.type)) {
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); 
+          $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); 
+          $('anim-decision').classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('anim-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-four').classList.remove('fire'), 4000);
+          } else if (t.type === 'SIX') {
+            $('anim-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-six').classList.remove('fire'), 2000);
+          } else if (t.type === 'WICKET') {
+            $('anim-wicket').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-wicket').classList.remove('fire'), 4000);
+          } else if (t.type.includes('RUNS')) {
+            $('ms-text').innerText = `${t.data?.playerName || 'PLAYER'} - ${t.type.split('_')[0]}`;
+            $('anim-milestone').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-milestone').classList.remove('fire'), 5000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('anim-decision').classList.add('fire');
+            else $('anim-decision').classList.remove('fire');
+          }
+        }
+
+        if (['BATSMAN_PROFILE', 'BOWLER_PROFILE', 'CAREER_STATS', 'WICKET_SWITCH', 'BATSMAN_CHANGE', 'NEW_BOWLER'].includes(t.type)) {
+          clearTimeout(sideCardTimer);
+          const wrapper = $('side-card-wrapper');
+          const pc = $('profile-card'); const sc = $('switch-card');
+          
+          pc.classList.remove('active'); sc.classList.remove('active');
+
+          if (t.type === 'WICKET_SWITCH' || t.type === 'BATSMAN_CHANGE') {
+            sc.classList.add('active');
+            const isChange = t.type === 'BATSMAN_CHANGE';
+            $('sw-out-badge').innerText = isChange ? 'RET' : 'OUT';
+            $('sw-out-badge').style.background = isChange ? 'var(--acc-gold)' : 'var(--acc-red)';
+            $('sw-out-block').style.borderLeftColor = isChange ? 'var(--acc-gold)' : 'var(--acc-red)';
+            $('sw-out-name').innerText = t.data?.outName || 'PLAYER OUT';
+            $('sw-out-score').innerText = t.data?.outScore || '0 (0)';
+            $('sw-in-name').innerText = t.data?.inName || 'PLAYER IN';
+          } else {
+            pc.classList.add('active');
+            $('ppc-title-text').innerText = t.data?.title || "PLAYER DATA";
+            if (t.data?.stats) {
+              $('ppc-data').innerHTML = t.data.stats.map(s => `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val">${s.value}</span></div>`).join('');
+            }
+            pc.style.borderLeftColor = (t.type === 'CAREER_STATS' || t.type === 'NEW_BOWLER') ? 'var(--acc-red)' : 'var(--acc-blue)';
+          }
+
+          wrapper.classList.add('active-side');
+          sideCardTimer = setTimeout(() => wrapper.classList.remove('active-side'), 12000);
+        }
+
+        if (t.type === 'SHOW_SQUADS') {
+          $('fullscreen-layer').className = 'layer-show'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('squads-tab').className = 'fs-card tab-show';
+          $('sq-t1-name').innerText = t.data?.team1Name || 'TEAM 1'; $('sq-t2-name').innerText = t.data?.team2Name || 'TEAM 2';
+          $('sq-t1-list').innerHTML = (t.data?.team1Players||[]).map(p => `<div class="squad-item"><span>${p.name}</span><span style="color:var(--acc-blue); font-family:'Teko';">${p.role||''}</span></div>`).join('');
+          $('sq-t2-list').innerHTML = (t.data?.team2Players||[]).map(p => `<div class="squad-item"><span>${p.name}</span><span style="color:var(--acc-red); font-family:'Teko';">${p.role||''}</span></div>`).join('');
+          sb.style.transform = 'translateY(200px)';
+        }
+
+        if (t.type === 'INNINGS_BREAK') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-show';
+          $('target-team').innerText = t.data?.chasingTeam || 'TEAM 2'; $('target-score').innerText = t.data?.target || 0;
+          sb.style.transform = 'translateY(200px)';
+        }
+
+        if (t.type === 'MATCH_END') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-show';
+          clearInterval(endMatchInterval);
+          
+          $('me-header').innerText = "MATCH SUMMARY";
+          const renderBat = (batsmen) => $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--acc-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          const t1 = t.data?.team1; const t2 = t.data?.team2;
+          let current = 1;
+          const updateUI = (data) => { $('me-header').innerText = `${data.name} INNINGS SUMMARY`; renderBat(data.batsmen); renderBowl(data.bowlers); };
+          if(t1) updateUI(t1);
+          if (t1 && t2) {
+            endMatchInterval = setInterval(() => {
+              $('match-end-tab').style.opacity = '0';
+              setTimeout(() => { current = current === 1 ? 2 : 1; updateUI(current === 1 ? t1 : t2); $('match-end-tab').style.opacity = '1'; }, 500);
+            }, config.switchInterval * 1000);
+          }
+        }
+
+        // SIDE-SLIDING OVER SUMMARIES
+        if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
+          const renderBat = (batsmen) => $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--acc-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.batsmen) renderBat(t.data.batsmen);
+            $('sum-bat-col').classList.add('slide-in');
+          }
+          if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.bowlers) renderBowl(t.data.bowlers);
+            $('sum-bowl-col').classList.add('slide-in');
+          }
+        }
+
+        if (t.type === 'RESTORE') {
+          $('fullscreen-layer').className = 'layer-hide'; 
+          $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide';
+          $('sum-bat-col').classList.remove('slide-in'); $('sum-bowl-col').classList.remove('slide-in');
+          sb.style.transform = 'translateY(0)'; sb.className = 'state-live';
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); $('anim-decision').classList.remove('fire');
+          $('side-card-wrapper').classList.remove('active-side'); $('intro-cards-wrapper').classList.remove('active-intro');
+          clearInterval(endMatchInterval);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

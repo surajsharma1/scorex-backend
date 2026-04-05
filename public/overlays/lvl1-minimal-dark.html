@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Minimal Dark Edge</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: transparent; overflow: hidden; color: #fff; }
+
+    /* Static Top Island */
+    #md-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #111; color: #fff;
+      padding: 6px 24px; border-radius: 4px;
+      font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+      border: 1px solid #333;
+    }
+
+    /* Edge-to-Edge Bottom Bar with Parallel Gaps */
+    #md-bottom {
+      position: absolute; bottom: 15px; left: 0; width: 100%; height: 75px;
+      display: flex; gap: 8px; /* This gap creates the transparent angled cut between panels */
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+    }
+
+    /* Base Panel Style matching original Minimal Dark */
+    .md-panel {
+      background: #18181b; 
+      display: flex; align-items: center; padding: 0 40px;
+    }
+
+    /* Score Card - Connects flush to left screen edge, slants left on the right side */
+    .p-score {
+      min-width: 320px; justify-content: space-between;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+      border-left: 4px solid #00d2d3; /* Original Cyan Accent */
+    }
+
+    /* Batsman Card - Center panel, slants left on both sides to run parallel with neighbors */
+    .p-bat {
+      flex: 1; justify-content: space-around;
+      clip-path: polygon(20px 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+    }
+
+    /* Bowler Card - Connects flush to right screen edge, slants left on the left side */
+    .p-bowl {
+      min-width: 340px; justify-content: space-between;
+      clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+      border-right: 4px solid #00d2d3; /* Original Cyan Accent */
+    }
+
+    /* Typography perfectly matched to original Minimal Dark */
+    .tm { font-size: 14px; color: #aaa; font-weight: 600; text-transform: uppercase; margin-bottom: 2px;}
+    .sc { font-size: 38px; font-weight: 900; color: #fff; line-height: 1; }
+    .sc span { color: #00d2d3; font-size: 26px; }
+    .ov { font-size: 15px; color: #777; font-weight: 500; margin-left: 15px; }
+
+    .b-name { font-size: 18px; font-weight: 700; color: #fff; }
+    .b-stat { font-size: 26px; font-weight: 900; color: #fff; margin-left: 8px; line-height: 1;}
+    .b-ball { font-size: 14px; font-weight: 500; color: #777; margin-left: 4px;}
+    .strike { color: #00d2d3; font-size: 12px; margin-right: 6px; }
+
+    .v-divider { width: 1px; height: 35px; background: #333; }
+  </style>
+</head>
+<body>
+
+  <div id="md-island">SCOREX-LIVE.VERCEL.APP</div>
+
+  <div id="md-bottom">
+    
+    <div class="md-panel p-score">
+      <div style="display: flex; flex-direction: column;">
+        <div id="teamName" class="tm">BATTING TEAM</div>
+        <div style="display: flex; align-items: baseline;">
+          <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov">OV <span id="teamOvers">0.0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="md-panel p-bat">
+      <div style="display: flex; align-items: baseline;">
+        <span class="strike">●</span>
+        <span id="strikerName" class="b-name">Striker</span>
+        <span id="strikerRuns" class="b-stat">0</span>
+        <span class="b-ball">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      
+      <div class="v-divider"></div>
+
+      <div style="display: flex; align-items: baseline; opacity: 0.6;">
+        <span id="nonStrikerName" class="b-name" style="color:#aaa;">Non-Striker</span>
+        <span id="nonStrikerRuns" class="b-stat" style="color:#aaa;">0</span>
+      </div>
+    </div>
+
+    <div class="md-panel p-bowl">
+      <div style="display: flex; flex-direction: column;">
+        <div class="tm">CURRENT BOWLER</div>
+        <div style="display: flex; align-items: baseline;">
+          <span id="bowlerName" class="b-name">Bowler</span>
+          <span class="b-stat" style="color:#ff6b6b; margin-left: 15px;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
+          <span class="b-ball" style="margin-left: 8px;">OV <span id="bowlerOvers">0.0</span></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Pure data population - No animations, no popups.
+    const updateDOM = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.innerText = val; };
+
+    function ingestScore(d) {
+      updateDOM('teamName', d.team1Name); 
+      updateDOM('teamScore', d.team1Score); 
+      updateDOM('teamWickets', d.team1Wickets); 
+      updateDOM('teamOvers', d.team1Overs);
+      
+      updateDOM('strikerName', d.strikerName); 
+      updateDOM('strikerRuns', d.strikerRuns); 
+      updateDOM('strikerBalls', d.strikerBalls);
+      
+      updateDOM('nonStrikerName', d.nonStrikerName); 
+      updateDOM('nonStrikerRuns', d.nonStrikerRuns); 
+      
+      updateDOM('bowlerName', d.bowlerName); 
+      updateDOM('bowlerRuns', d.bowlerRuns); 
+      updateDOM('bowlerWickets', d.bowlerWickets); 
+      updateDOM('bowlerOvers', d.bowlerOvers);
+    }
+
+    // Standard Listeners
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') ingestScore(e.data.data); });
+    if ('BroadcastChannel' in window) {
+      new BroadcastChannel('scorex_overlay_channel').onmessage = e => { if(e.data?.type === 'UPDATE_SCORE') ingestScore(e.data.data); };
+    }
+  </script>
+</body>
+</html>

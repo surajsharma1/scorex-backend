@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - 3D Golden Bullion Theme (OBS Repaired)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&family=Bebas+Neue&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
+    
+    html, body { 
+      width: 100vw; height: 100vh; background: transparent; overflow: hidden; 
+      color: #ffffff; font-family: 'Montserrat', sans-serif;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); border-radius: 10px;}
+    ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+
+    /* Visibility Core */
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); transform: scale(0.95) translateY(20px); pointer-events: none;}
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); transform: scale(1) translateY(0); z-index: 200; pointer-events: auto;}
+    .tab-hide { display: none !important; }
+    .tab-show { display: block !important; }
+
+    :root {
+      /* 3D GOLD & OBSIDIAN THEME */
+      --gold-light: #f9d976;
+      --gold-main: #d4af37;
+      --gold-dark: #997a15;
+      --gold-shadow: #4a3600;
+      
+      --obs-light: #3a3a3a;
+      --obs-main: #1a1a1a;
+      --obs-dark: #050505;
+
+      --text-sub: #a3a3a3;
+      --font-num: 'Bebas Neue', sans-serif;
+    }
+
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* =========================================
+       THE 3D MATERIAL ENGINE
+       ========================================= */
+    /* Thick Obsidian Slab */
+    .obsidian-3d {
+      background: radial-gradient(circle at 50% 0%, var(--obs-light), var(--obs-main) 60%, var(--obs-dark));
+      border-radius: 20px;
+      border-top: 2px solid #555;
+      border-bottom: 6px solid #000;
+      border-left: 2px solid #222;
+      border-right: 2px solid #222;
+      box-shadow: 
+        inset 0 4px 15px rgba(255,255,255,0.1), 
+        inset 0 -10px 20px rgba(0,0,0,0.9), 
+        0 25px 40px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    /* Solid Gold Medallion/Block */
+    .gold-3d {
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-main) 40%, var(--gold-dark) 100%);
+      border-radius: 20px;
+      border-top: 3px solid #fff;
+      border-bottom: 6px solid var(--gold-shadow);
+      box-shadow: 
+        inset 0 8px 20px rgba(255,255,255,0.7), 
+        inset 0 -15px 30px rgba(0,0,0,0.6), 
+        0 25px 40px rgba(0,0,0,0.9);
+      color: #000;
+      position: relative;
+    }
+
+    /* Metallic Shine Sweep Animation */
+    .metal-shine { overflow: hidden; }
+    .metal-shine::after {
+      content: ''; position: absolute; top: -50%; left: -150%; width: 50%; height: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+      transform: rotate(30deg); animation: metallicSweep 5s infinite cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none; z-index: 10; mix-blend-mode: overlay;
+    }
+    @keyframes metallicSweep { 0% { left: -150%; } 100% { left: 200%; } }
+
+    /* Physical Extruded 3D Text */
+    .text-3d-gold {
+      color: var(--gold-light);
+      text-shadow: 
+        0 1px 0 var(--gold-main), 0 2px 0 var(--gold-main),
+        0 3px 0 var(--gold-dark), 0 4px 0 var(--gold-dark),
+        0 5px 0 var(--gold-shadow), 0 6px 0 var(--gold-shadow),
+        0 7px 0 #221a00, 0 8px 0 #221a00,
+        0 20px 30px rgba(0,0,0,0.8);
+    }
+    .text-3d-white {
+      color: #fff;
+      text-shadow: 
+        0 1px 0 #ccc, 0 2px 0 #bbb,
+        0 3px 0 #999, 0 4px 0 #888,
+        0 5px 0 #666, 0 6px 0 #555,
+        0 7px 0 #444, 0 8px 0 #333,
+        0 20px 30px rgba(0,0,0,0.8);
+    }
+
+    /* =========================================
+       1. BOTTOM-ANCHORED HUD (Sponsors & Target)
+       OBS FIX: Placed safely above scoreboard
+       ========================================= */
+    #sponsor-bar {
+      position: absolute; bottom: 170px; left: 40px; 
+      width: 450px; height: 45px; display: flex; align-items: center; border-radius: 25px; z-index: 40;
+    }
+    .sponsor-label { 
+      font-size: 15px; font-weight: 900; letter-spacing: 2px;
+      padding: 0 25px; height: 100%; display: flex; align-items: center; border-radius: 20px 0 0 20px;
+    }
+    .sponsor-track-container { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; padding-left: 20px;}
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; font-size: 14px; font-weight: 700; color: var(--text-sub); gap: 40px; padding-left: 100%; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    #target-bar { 
+      position: absolute; bottom: 170px; right: 40px;
+      height: 45px; padding: 0 35px; display: none; gap: 20px; align-items: center; border-radius: 25px; z-index: 40;
+    }
+    .t-lbl { font-size: 15px; font-weight: 800; color: var(--text-sub); letter-spacing: 1px;}
+    #equation-text { color: var(--gold-light) !important; font-family: var(--font-num); font-size: 28px !important; line-height: 1; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+
+    /* =========================================
+       2. EVENT ANIMATIONS (Center Screen)
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 150; display: flex; align-items: center; justify-content: center;}
+
+    .burst-anim { position: absolute; transform: scale(0.5); opacity: 0; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; align-items: center; justify-content: center;}
+    .burst-anim.fire { transform: scale(1); opacity: 1; }
+
+    .four-txt { font-size: 250px; font-family: var(--font-num); letter-spacing: 10px;}
+    .six-txt { font-size: 300px; font-family: var(--font-num); letter-spacing: 15px;}
+    .wicket-txt { font-size: 250px; font-family: var(--font-num); color: #ef4444; letter-spacing: 20px; text-shadow: 0 1px 0 #cc0000, 0 2px 0 #aa0000, 0 3px 0 #880000, 0 4px 0 #660000, 0 5px 0 #440000, 0 6px 0 #220000, 0 20px 30px rgba(0,0,0,0.8);}
+
+    /* Pushed higher to clear the sponsor bars */
+    #anim-milestone { position: absolute; bottom: 250px; left: 50%; transform: translateX(-50%) translateY(30px); opacity: 0; transition: all 0.6s ease; z-index: 45; padding: 20px 80px;}
+    #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .ms-content { font-family: var(--font-num); font-size: 80px; color: var(--gold-light); letter-spacing: 2px; line-height: 0.9; text-shadow: 0 5px 10px rgba(0,0,0,0.8);}
+
+    #anim-decision { position: absolute; bottom: 250px; left: 50%; transform: translateX(-50%); padding: 30px 100px; opacity: 0; transition: opacity 0.3s; text-align: center; }
+    #anim-decision.fire { opacity: 1; animation: breathe 1.5s infinite alternate ease-in-out; }
+    #anim-decision .d-title { font-size: 18px; color: var(--text-sub); letter-spacing: 10px; margin-bottom: 5px; font-weight: 800;}
+    #anim-decision .d-text { font-family: var(--font-num); font-size: 100px; color: var(--gold-main); line-height: 1; letter-spacing: 5px; text-shadow: 0 5px 15px rgba(0,0,0,0.8);}
+    @keyframes breathe { 0% { transform: translateX(-50%) scale(0.95); } 100% { transform: translateX(-50%) scale(1.05); } }
+
+    /* =========================================
+       3. 3D GOLDEN SCOREBOARD DASHBOARD
+       ========================================= */
+    #scoreboard-container {
+      position: absolute; bottom: 40px; left: 0; width: 100vw; display: flex; justify-content: center; z-index: 50;
+    }
+
+    .sb-view { display: flex; justify-content: center; transition: all 0.7s cubic-bezier(0.25, 1, 0.5, 1); position: absolute; bottom: 0; align-items: flex-end;}
+    .state-vs #panel-live { opacity: 0; transform: translateY(80px); pointer-events: none; }
+    .state-vs #panel-vs { opacity: 1; transform: translateY(0); pointer-events: auto; position: relative;}
+    .state-live #panel-vs { opacity: 0; transform: translateY(80px); pointer-events: none; }
+    .state-live #panel-live { opacity: 1; transform: translateY(0); pointer-events: auto; position: relative;}
+
+    /* VS Screen */
+    #panel-vs .vs-block { padding: 30px 120px; display: flex; align-items: center; border-radius: 30px;}
+    #svt-text { color: #fff; font-family: var(--font-num); font-size: 100px; letter-spacing: 8px; line-height: 0.9; text-shadow: 0 5px 15px rgba(0,0,0,0.8);}
+
+    /* Live Panel Architecture */
+    .c-bar { display: flex; align-items: center; height: 120px; width: 40vw; max-width: 600px; padding: 0 40px;}
+    .c-bar-left { margin-right: -40px; border-radius: 30px 0 0 30px; padding-right: 60px;}
+    .c-bar-right { margin-left: -40px; border-radius: 0 30px 30px 0; padding-left: 60px;}
+    
+    .c-team { font-family: var(--font-num); font-size: 70px; line-height: 0.9; letter-spacing: 2px; text-shadow: 0 5px 10px rgba(0,0,0,0.8);}
+    #bat-team { color: var(--gold-light); }
+    #bowl-team { color: #fff; }
+    
+    .data-matrix { flex: 1; display: flex; flex-direction: column; justify-content: center;}
+    .matrix-left { padding-left: 30px; }
+    .matrix-right { padding-right: 30px; }
+
+    /* The Massive 3D Gold Center Core */
+    .c-score { 
+      width: 180px; height: 180px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      z-index: 10; margin-bottom: -15px; 
+    }
+
+    /* Score Interior */
+    .runs-wkts { font-family: var(--font-num); font-size: 85px; line-height: 0.8; color: #000; display: flex; align-items: baseline; margin-top: 15px; text-shadow: 0 2px 5px rgba(255,255,255,0.8);}
+    .runs-wkts .slash { color: #000; font-size: 55px; margin: 0 2px; }
+    .overs-text { font-size: 15px; font-weight: 800; color: #333; display: flex; flex-direction: column; align-items: center; letter-spacing: 2px;}
+    .overs-text span { color: #000; font-size: 30px; font-family: var(--font-num); line-height: 1; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(255,255,255,0.5);}
+
+    /* Data Rows */
+    .p-row { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2px;}
+    .p-name { color: var(--text-sub); font-size: 18px; font-weight: 700;} 
+    .p-name.active { color: #fff; font-weight: 900;}
+    .p-stats { color: #fff; font-family: var(--font-num); font-size: 45px; line-height: 0.8; padding-top: 5px; letter-spacing: 1px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);}
+    .p-sub { font-size: 16px; color: var(--text-sub); font-weight: 600; display: inline-block; min-width: 45px; text-align: right;}
+
+    .this-over-row { display: flex; gap: 15px; align-items: center; margin-top: 6px; width: 100%; justify-content: flex-end;}
+    .this-over-lbl { font-size: 14px; font-weight: 800; color: var(--text-sub); letter-spacing: 1px;}
+    .ball-container { display: flex; gap: 8px; overflow: hidden; flex: 1; justify-content: flex-start;}
+    
+    /* 3D Ball Dots */
+    .ball-dot { 
+      width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      font-family: var(--font-num); font-size: 18px; line-height: 1; color: #fff; padding-top: 2px;
+      background: radial-gradient(circle at 30% 30%, #555, #111);
+      box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 0 4px 8px rgba(0,0,0,0.8);
+    }
+    .ball-w { background: radial-gradient(circle at 30% 30%, #ff4444, #990000); } 
+    .ball-b { background: radial-gradient(circle at 30% 30%, #4488ff, #003399); } 
+    .ball-6 { background: radial-gradient(circle at 30% 30%, var(--gold-light), var(--gold-dark)); color: #000; box-shadow: inset 0 2px 5px rgba(255,255,255,0.8), 0 4px 8px rgba(0,0,0,0.8);}
+
+    /* =========================================
+       4. AUX SCREENS (Pushed to bottom:250px)
+       ========================================= */
+    #intro-cards-wrapper { position: absolute; bottom: 250px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s ease; z-index: 60;}
+    #intro-cards-wrapper.active-intro { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-20px); }
+    .intro-card { padding: 25px 45px; text-align: center; border-radius: 15px;}
+    .intro-lbl { font-size: 14px; color: var(--text-sub); font-weight: 800; letter-spacing: 3px;}
+    .intro-val { font-family: var(--font-num); font-size: 55px; color: var(--gold-light); line-height: 0.9; margin-top: 5px; letter-spacing: 1px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);}
+
+    #side-card-wrapper { position: absolute; bottom: 250px; left: 40px; width: 450px; opacity: 0; visibility: hidden; transition: all 0.6s ease; z-index: 90; transform: translateX(-50px);}
+    #side-card-wrapper.active-side { transform: translateX(0); opacity: 1; visibility: visible; }
+    .profile-card { display: none; padding: 0; overflow: hidden;}
+    .profile-card.active { display: block; }
+    .ppc-title { font-family: var(--font-num); font-size: 60px; color: #fff; line-height: 0.9; padding: 30px 40px; border-bottom: 2px solid #333; background: rgba(0,0,0,0.5); letter-spacing: 2px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);}
+    .ppc-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 700; padding: 18px 40px; border-bottom: 1px solid #222; }
+    .ppc-lbl { color: var(--text-sub); letter-spacing: 1px;} .ppc-val { color: var(--gold-light); font-family: var(--font-num); font-size: 38px; line-height: 0.8; letter-spacing: 1px; text-shadow: 0 2px 5px rgba(0,0,0,0.8);}
+
+    .switch-card { display: none; flex-direction: column; gap: 15px; width: 100%; }
+    .switch-card.active { display: flex; }
+    .switch-block { padding: 25px 40px; display: flex; align-items: center; justify-content: space-between;}
+    .sw-badge { color: #000; font-weight: 900; font-size: 14px; padding: 6px 20px; border-radius: 8px; display: inline-block; margin-bottom: 8px; letter-spacing: 1px;}
+    .sw-name { font-family: var(--font-num); font-size: 45px; color: #fff; line-height: 0.9; max-width: 250px; letter-spacing: 1px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);}
+    .sw-score { font-size: 30px; font-weight: 700; color: var(--text-sub); font-family: var(--font-num);}
+
+    .side-summary-container { position: absolute; bottom: 250px; left: 0; width: 100vw; pointer-events: none; z-index: 45; display: flex; justify-content: space-between; padding: 0 40px; overflow: hidden;}
+    .side-panel { width: 42vw; max-width: 650px; display: flex; flex-direction: column; transition: all 0.6s ease; pointer-events: auto; opacity: 0; visibility: hidden; overflow: hidden; max-height: 55vh;}
+    #sum-bat-col { transform: translateX(-50px); }
+    #sum-bat-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
+    #sum-bowl-col { transform: translateX(50px); }
+    #sum-bowl-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
+    .panel-header { font-family: var(--font-num); font-size: 60px; color: var(--gold-light); padding: 25px 40px; background: rgba(0,0,0,0.6); border-bottom: 2px solid #444; line-height: 0.9; letter-spacing: 2px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);}
+    .data-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 20px; text-align: left;}
+    .data-table th { color: var(--text-sub); padding: 18px 40px; font-size: 16px; border-bottom: 2px solid #333; font-weight: 800; letter-spacing: 1px; position: sticky; top:0; z-index: 5; background: var(--obs-main);}
+    .data-table td { padding: 18px 40px; border-bottom: 1px solid #222; color: #fff; font-family: var(--font-num); font-size: 32px; line-height: 0.8; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+    .data-table th:first-child, .data-table td:first-child { width: 40%; font-family: 'Montserrat'; font-size: 18px; font-weight: 700; letter-spacing: 0;} 
+    .data-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .table-scroll { overflow-y: auto; flex: 1; min-height: 0;}
+
+    /* =========================================
+       5. 3D FULLSCREEN PANELS
+       ========================================= */
+    #fullscreen-layer { position: absolute; inset: 0; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 200; display: flex; align-items: center; justify-content: center;}
+    .fs-card { width: 95%; max-width: 1600px; padding: 50px; display: flex; flex-direction: column; max-height: 90vh; border-radius: 30px;}
+    .fs-header { font-family: var(--font-num); font-size: 100px; color: var(--gold-light); text-align: center; margin-bottom: 40px; line-height: 0.9; letter-spacing: 6px; text-shadow: 0 10px 20px rgba(0,0,0,0.8);}
+    
+    #target-tab { align-items: center; justify-content: center; background: transparent; box-shadow: none; border: none;}
+    .target-box { padding: 80px 160px; display: flex; flex-direction: column; align-items: center; border-radius: 40px;}
+    #target-score { font-family: var(--font-num); font-size: 300px; line-height: 0.8; letter-spacing: 5px;}
+
+    .teams-split-container { display: flex; gap: 40px; width: 100%; flex: 1; min-height: 0;}
+    .team-col-fs { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; border-radius: 20px; } 
+    .team-header-1 { background: rgba(255,255,255,0.05); color: #fff; padding: 30px; text-align: center; font-family: var(--font-num); font-size: 70px; line-height: 0.9; letter-spacing: 2px; text-shadow: 0 5px 10px rgba(0,0,0,0.8); border-bottom: 2px solid #444;}
+    .team-header-2 { background: rgba(212, 175, 55, 0.1); color: var(--gold-light); padding: 30px; text-align: center; font-family: var(--font-num); font-size: 70px; line-height: 0.9; letter-spacing: 2px; text-shadow: 0 5px 10px rgba(0,0,0,0.8); border-bottom: 2px solid var(--gold-shadow);}
+    .squad-list { padding: 10px 0; flex: 1; overflow-y: auto;}
+    .squad-item { padding: 20px 40px; font-size: 24px; font-weight: 700; color: #fff; border-bottom: 1px solid #222; display: flex; justify-content: space-between; text-shadow: 0 2px 5px rgba(0,0,0,0.8);}
+    .squad-item:nth-child(even) { background: rgba(255,255,255,0.02); }
+  </style>
+</head>
+<body>
+
+  <div id="sponsor-bar" class="obsidian-3d metal-shine">
+    <div class="sponsor-label gold-3d metal-shine" style="border-radius: 18px 0 0 18px; box-shadow: none; border-top:none; border-bottom:none;">BROADCAST</div>
+    <div class="sponsor-track-container"><div class="sponsor-track" id="sponsor-track">
+       <span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">3D GOLDEN BULLION</span>
+    </div></div>
+  </div>
+
+  <div id="target-bar" class="obsidian-3d metal-shine">
+    <span class="t-lbl">2ND INNINGS</span>
+    <span id="equation-text">NEED 45 FROM 24</span>
+  </div>
+
+  <div class="event-layer">
+    <div id="anim-four" class="burst-anim"><div class="four-txt text-3d-white">FOUR</div></div>
+    <div id="anim-six" class="burst-anim"><div class="six-txt text-3d-gold">SIX</div></div>
+    <div id="anim-wicket" class="burst-anim"><div class="wicket-txt text-3d-white" style="color:#ef4444;">OUT</div></div>
+    <div id="anim-milestone" class="obsidian-3d metal-shine"><div class="ms-content text-3d-gold" id="ms-text">V. KOHLI - 50</div></div>
+    <div id="anim-decision" class="obsidian-3d metal-shine"><div class="d-title">3RD UMPIRE</div><div class="d-text text-3d-gold">DECISION PENDING</div></div>
+  </div>
+
+  <div id="intro-cards-wrapper">
+    <div class="intro-card obsidian-3d metal-shine">
+      <div class="intro-lbl">STRIKER</div><div class="intro-val text-3d-gold truncate" id="intro-striker">V. KOHLI</div>
+    </div>
+    <div class="intro-card obsidian-3d metal-shine" style="opacity:0.9;">
+      <div class="intro-lbl">NON-STRIKER</div><div class="intro-val text-3d-white truncate" id="intro-nonstriker">F. DU PLESSIS</div>
+    </div>
+    <div class="intro-card obsidian-3d metal-shine">
+      <div class="intro-lbl">BOWLER</div><div class="intro-val text-3d-gold truncate" id="intro-bowler">R. JADEJA</div>
+    </div>
+  </div>
+
+  <div id="side-card-wrapper">
+    <div id="profile-card" class="profile-card obsidian-3d metal-shine">
+      <div class="ppc-title truncate text-3d-white" id="ppc-title-text">V. KOHLI</div>
+      <div id="ppc-data">
+         <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val text-3d-gold">65 (40)</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">STRIKE RATE</span><span class="ppc-val text-3d-gold">162.5</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">BOUNDARIES</span><span class="ppc-val text-3d-gold">5x4, 3x6</span></div>
+      </div>
+    </div>
+    <div id="switch-card" class="switch-card">
+      <div class="switch-block obsidian-3d metal-shine switch-out" id="sw-out-block">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 65%;">
+           <span class="sw-badge" style="background: #ef4444; color:#fff;" id="sw-out-badge">OUT</span>
+           <span class="sw-name text-3d-white truncate" id="sw-out-name">F. DU PLESSIS</span>
+        </div>
+        <div class="sw-score text-3d-gold truncate" id="sw-out-score">42 (28)</div>
+      </div>
+      <div class="switch-block obsidian-3d metal-shine switch-in">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 100%;">
+           <span class="sw-badge" style="background: var(--gold-main); color:#000;">IN</span>
+           <span class="sw-name text-3d-gold truncate" id="sw-in-name">G. MAXWELL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-summary-container">
+    <div class="side-panel obsidian-3d metal-shine" id="sum-bat-col">
+      <div class="panel-header text-3d-gold truncate">BATTING SUMMARY</div>
+      <div class="table-scroll">
+        <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="sum-bat-body"></tbody></table>
+      </div>
+    </div>
+    <div class="side-panel obsidian-3d metal-shine" id="sum-bowl-col">
+      <div class="panel-header text-3d-gold truncate">BOWLING SUMMARY</div>
+      <div class="table-scroll">
+        <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="sum-bowl-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-wrapper" class="state-live">
+    <div class="sb-view" id="panel-vs">
+       <div class="obsidian-3d metal-shine vs-block"><span id="svt-text" class="text-3d-white">TEAM 1 <span style="color:var(--gold-main); margin:0 30px; font-family:'Montserrat'; font-size:40px; font-weight:700; vertical-align:middle; text-shadow:none;">VS</span> TEAM 2</span></div>
+    </div>
+
+    <div class="sb-view" id="panel-live">
+      
+      <div class="obsidian-3d metal-shine c-bar c-bar-left">
+          <div class="c-team text-3d-gold truncate" id="bat-team">RCB</div>
+          <div class="data-matrix matrix-left">
+            <div class="p-row">
+              <span class="p-name active"><span id="striker" class="name-txt">V. Kohli</span></span> 
+              <span class="p-stats"><span id="s-runs">65</span> <span class="p-sub">(<span id="s-balls">40</span>)</span></span>
+            </div>
+            <div class="p-row" style="opacity: 0.5;">
+              <span class="p-name"><span id="nonstriker" class="name-txt">F. du Plessis</span></span> 
+              <span class="p-stats"><span id="ns-runs">42</span> <span class="p-sub">(<span id="ns-balls">28</span>)</span></span>
+            </div>
+          </div>
+      </div>
+
+      <div class="gold-3d metal-shine c-score">
+          <div class="runs-wkts"><span id="score">164</span><span class="slash">/</span><span id="wickets">3</span></div>
+          <div class="overs-text">OVERS<span><span id="overs">14.2</span></span></div>
+      </div>
+
+      <div class="obsidian-3d metal-shine c-bar c-bar-right">
+          <div class="data-matrix matrix-right">
+            <div class="p-row">
+              <span class="p-name active">BOWL: <span id="bowler" class="name-txt" style="margin-left: 8px; color:#fff;">R. Jadeja</span></span>
+              <span class="p-stats" style="color:#fff;"><span id="b-wkts">1</span><span style="color:var(--text-sub); font-size:30px; margin:0 5px; text-shadow:none;">-</span><span id="b-runs">24</span></span>
+            </div>
+            <div class="this-over-row">
+              <span class="this-over-lbl">OVER:</span>
+              <div class="ball-container" id="this-over-balls">
+                <div class="ball-dot">1</div><div class="ball-dot ball-b">4</div><div class="ball-dot ball-w">W</div><div class="ball-dot ball-6">6</div>
+              </div>
+            </div>
+          </div>
+          <div class="c-team text-3d-white truncate" id="bowl-team">CSK</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fullscreen-layer" class="layer-hide">
+    <div id="target-tab" class="fs-card tab-hide" style="background:transparent; border:none; box-shadow:none;">
+      <div class="fs-header text-3d-gold">INNINGS BREAK</div>
+      <div class="target-box obsidian-3d metal-shine">
+        <div id="target-score" class="text-3d-gold">201</div>
+        <div style="font-size: 35px; color: var(--text-sub); font-weight: 800; margin-top: 20px; letter-spacing: 2px;">TARGET FOR <span id="target-team" style="color:#fff;">TEAM 2</span></div>
+      </div>
+    </div>
+
+    <div id="squads-tab" class="fs-card tab-hide obsidian-3d metal-shine" style="padding:50px;">
+      <div class="fs-header text-3d-gold">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs" style="background: rgba(0,0,0,0.4); border: 2px solid #333;">
+          <div class="team-header-1 text-3d-white truncate" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs" style="background: rgba(0,0,0,0.4); border: 2px solid #333;">
+          <div class="team-header-2 text-3d-gold truncate" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="match-end-tab" class="fs-card tab-hide obsidian-3d metal-shine" style="padding:50px;">
+      <div class="fs-header text-3d-gold" id="me-header">MATCH SUMMARY</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs" style="background: rgba(0,0,0,0.4); border: 2px solid #333;">
+          <div class="team-header-1 text-3d-white">BATTING</div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="me-bat-body"></tbody></table></div>
+        </div>
+        <div class="team-col-fs" style="background: rgba(0,0,0,0.4); border: 2px solid #333;">
+          <div class="team-header-2 text-3d-gold">BOWLING</div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="me-bowl-body"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let eventTimer, endMatchInterval, sideCardTimer, introTimer;
+    let decisionPendingState = false;
+    const config = window.OVERLAY_CONFIG?.config || { switchInterval: 8 };
+
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'UPDATE_SCORE') {
+        const d = e.data.data;
+        
+        $('bat-team').innerText = d.team1Name || 'T1'; $('bowl-team').innerText = d.team2Name || 'T2';
+        $('score').innerText = d.team1Score; $('wickets').innerText = d.team1Wickets; $('overs').innerText = d.team1Overs;
+        $('striker').innerText = d.strikerName; $('s-runs').innerText = d.strikerRuns; $('s-balls').innerText = d.strikerBalls;
+        $('nonstriker').innerText = d.nonStrikerName; $('ns-runs').innerText = d.nonStrikerRuns; $('ns-balls').innerText = d.nonStrikerBalls;
+        $('bowler').innerText = d.bowlerName; $('b-runs').innerText = d.bowlerRuns; $('b-wkts').innerText = d.bowlerWickets;
+        
+        $('intro-striker').innerText = d.strikerName || 'TBA'; $('intro-nonstriker').innerText = d.nonStrikerName || 'TBA'; $('intro-bowler').innerText = d.bowlerName || 'TBA';
+        
+        if (d.sponsors && d.sponsors.length > 0) {
+          $('sponsor-track').innerHTML = d.sponsors.map(s => `<span class="sponsor-item">${s}</span>`).join('');
+        } else {
+          $('sponsor-track').innerHTML = `<span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">3D GOLDEN BULLION</span>`;
+        }
+
+        if (d.requiredRuns > 0 && d.target > 0) {
+          $('target-bar').style.display = 'flex'; $('equation-text').innerText = `NEED ${d.requiredRuns} FROM ${d.remainingBalls || '--'}`;
+        } else $('target-bar').style.display = 'none';
+
+        if (d.thisOver && Array.isArray(d.thisOver)) {
+          $('this-over-balls').innerHTML = d.thisOver.map(ball => {
+            let clz = 'ball-dot';
+            if (ball === 'W') clz += ' ball-w'; else if (ball === '4') clz += ' ball-b'; else if (ball === '6') clz += ' ball-6';
+            return `<div class="${clz}">${ball}</div>`;
+          }).join('');
+        }
+
+        const sb = $('dashboard-wrapper');
+        if (!d.strikerName && d.team1Overs === "0.0" && !$('svt-text').innerText.includes('WON')) {
+           sb.className = 'state-vs';
+           $('svt-text').innerHTML = `${d.team1Name || 'TEAM 1'} <span style="color:var(--gold-main); margin:0 30px; font-family:'Montserrat'; font-size:40px; font-weight:700; vertical-align:middle; text-shadow:none;">VS</span> ${d.team2Name || 'TEAM 2'}`;
+        } else if (d.strikerName) {
+           sb.className = 'state-live';
+        }
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        const sb = $('dashboard-wrapper');
+        
+        if (t.type === 'VS_SCREEN') {
+          sb.className = 'state-vs';
+          $('svt-text').innerHTML = `${t.data?.team1 || 'TEAM 1'} <span style="color:var(--gold-main); margin:0 30px; font-family:'Montserrat'; font-size:40px; font-weight:700; vertical-align:middle; text-shadow:none;">VS</span> ${t.data?.team2 || 'TEAM 2'}`;
+        }
+
+        if (t.type === 'SHOW_TOSS') {
+          sb.className = 'state-vs';
+          $('svt-text').innerText = t.data?.text || "TOSS DECIDED";
+        }
+
+        if (t.type === 'START_INNINGS_INTRO') {
+          sb.className = 'state-live';
+          clearTimeout(introTimer); $('intro-cards-wrapper').classList.add('active-intro');
+          introTimer = setTimeout(() => { $('intro-cards-wrapper').classList.remove('active-intro'); }, 5000);
+        }
+
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', '50_RUNS', '100_RUNS'].includes(t.type)) {
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); 
+          $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); 
+          $('anim-decision').classList.remove('fire');
+          
+          // Force reflow for reliable OBS animation
+          void $('anim-four').offsetWidth; void $('anim-six').offsetWidth; void $('anim-wicket').offsetWidth;
+          
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('anim-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-four').classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX') {
+            $('anim-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-six').classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET') {
+            $('anim-wicket').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-wicket').classList.remove('fire'), 4000);
+          } else if (t.type.includes('RUNS')) {
+            $('ms-text').innerText = `${t.data?.playerName || 'PLAYER'} - ${t.type.split('_')[0]}`;
+            $('anim-milestone').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-milestone').classList.remove('fire'), 5000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('anim-decision').classList.add('fire');
+            else $('anim-decision').classList.remove('fire');
+          }
+        }
+
+        if (['BATSMAN_PROFILE', 'BOWLER_PROFILE', 'CAREER_STATS', 'WICKET_SWITCH', 'BATSMAN_CHANGE', 'NEW_BOWLER'].includes(t.type)) {
+          clearTimeout(sideCardTimer);
+          const wrapper = $('side-card-wrapper');
+          const pc = $('profile-card'); const sc = $('switch-card');
+          
+          pc.classList.remove('active'); sc.classList.remove('active');
+
+          if (t.type === 'WICKET_SWITCH' || t.type === 'BATSMAN_CHANGE') {
+            sc.classList.add('active');
+            const isChange = t.type === 'BATSMAN_CHANGE';
+            $('sw-out-badge').innerText = isChange ? 'RET' : 'OUT';
+            $('sw-out-badge').style.background = isChange ? 'var(--gold-main)' : '#ef4444';
+            $('sw-out-name').innerText = t.data?.outName || 'PLAYER OUT';
+            $('sw-out-score').innerText = t.data?.outScore || '0 (0)';
+            $('sw-in-name').innerText = t.data?.inName || 'PLAYER IN';
+          } else {
+            pc.classList.add('active');
+            $('ppc-title-text').innerText = t.data?.title || "PLAYER DATA";
+            if (t.data?.stats) {
+              $('ppc-data').innerHTML = t.data.stats.map(s => `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:var(--gold-light); font-family:'Bebas Neue'; font-size:42px; line-height:0.8; letter-spacing:1px; text-shadow: 0 2px 5px rgba(0,0,0,0.8);">${s.value}</span></div>`).join('');
+            }
+          }
+
+          wrapper.classList.add('active-side');
+          sideCardTimer = setTimeout(() => wrapper.classList.remove('active-side'), 12000);
+        }
+
+        if (t.type === 'SHOW_SQUADS') {
+          $('fullscreen-layer').className = 'layer-show'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('squads-tab').className = 'fs-card tab-show';
+          $('sq-t1-name').innerText = t.data?.team1Name || 'TEAM 1'; $('sq-t2-name').innerText = t.data?.team2Name || 'TEAM 2';
+          $('sq-t1-list').innerHTML = (t.data?.team1Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="font-family:'Bebas Neue'; font-size:30px; letter-spacing:1px; color:var(--text-sub);">${p.role||''}</span></div>`).join('');
+          $('sq-t2-list').innerHTML = (t.data?.team2Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="font-family:'Bebas Neue'; font-size:30px; letter-spacing:1px; color:var(--text-sub);">${p.role||''}</span></div>`).join('');
+        }
+
+        if (t.type === 'INNINGS_BREAK') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-show';
+          $('target-team').innerText = t.data?.chasingTeam || 'TEAM 2'; $('target-score').innerText = t.data?.target || 0;
+        }
+
+        if (t.type === 'MATCH_END') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-show';
+          clearInterval(endMatchInterval);
+          
+          $('me-header').innerText = "MATCH SUMMARY";
+          const renderBat = (batsmen) => $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="truncate" style="font-family:'Montserrat'; font-size:22px; font-weight:700;">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="truncate" style="font-family:'Montserrat'; font-size:22px; font-weight:700;">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--gold-light);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          const t1 = t.data?.team1; const t2 = t.data?.team2;
+          let current = 1;
+          const updateUI = (data) => { $('me-header').innerText = `${data.name} SUMMARY`; renderBat(data.batsmen); renderBowl(data.bowlers); };
+          if(t1) updateUI(t1);
+          if (t1 && t2) {
+            endMatchInterval = setInterval(() => {
+              $('match-end-tab').style.opacity = '0';
+              setTimeout(() => { current = current === 1 ? 2 : 1; updateUI(current === 1 ? t1 : t2); $('match-end-tab').style.opacity = '1'; }, 500);
+            }, config.switchInterval * 1000);
+          }
+        }
+
+        if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
+          const renderBat = (batsmen) => $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="truncate" style="font-family:'Montserrat'; font-size:20px; font-weight:700;">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="truncate" style="font-family:'Montserrat'; font-size:20px; font-weight:700;">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--gold-light);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.batsmen) renderBat(t.data.batsmen);
+            const col = $('sum-bat-col'); col.classList.remove('slide-in'); void col.offsetWidth; col.classList.add('slide-in');
+          }
+          if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.bowlers) renderBowl(t.data.bowlers);
+            const col = $('sum-bowl-col'); col.classList.remove('slide-in'); void col.offsetWidth; col.classList.add('slide-in');
+          }
+        }
+
+        if (t.type === 'RESTORE') {
+          $('fullscreen-layer').className = 'layer-hide'; 
+          $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide';
+          $('sum-bat-col').classList.remove('slide-in'); $('sum-bowl-col').classList.remove('slide-in');
+          
+          sb.className = 'state-live';
+          
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); $('anim-decision').classList.remove('fire');
+          $('side-card-wrapper').classList.remove('active-side'); $('intro-cards-wrapper').classList.remove('active-intro');
+          clearInterval(endMatchInterval);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Holographic Cyber-Core (Fluid 3D Edition)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;0,900;1,700&family=Rajdhani:wght@500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
+    
+    /* FLUID 3D CANVAS
+      No strict 16:9 ratio. Uses pure viewport width/height to anchor elements cleanly.
+    */
+    html, body { 
+      width: 100vw; height: 100vh; background: transparent; overflow: hidden; 
+      color: #fff; font-family: 'Rajdhani', sans-serif;
+      perspective: 1500px; /* Deep 3D Camera Lens */
+      transform-style: preserve-3d;
+    }
+
+    /* Premium Crystalline Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.6); }
+    ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 3px; }
+
+    /* 3D Visibility Logic */
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateZ(-200px) scale(0.8); pointer-events: none;}
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateZ(0) scale(1); pointer-events: auto; z-index: 200;}
+    .tab-hide { display: none !important; }
+    .tab-show { display: block !important; }
+
+    :root {
+      --core-dark: rgba(11, 15, 25, 0.95);
+      --core-panel: rgba(20, 28, 45, 0.95);
+      --neon-cyan: #00f3ff;
+      --neon-blue: #0066ff;
+      --neon-red: #ff003c;
+      --neon-gold: #fcee0a;
+      
+      /* Thick 3D Block Shadows */
+      --extrude-cyan: 1px 1px 0 #0066ff, 2px 2px 0 #0055dd, 3px 3px 0 #0044bb, 4px 4px 0 #003399, 10px 10px 20px rgba(0,0,0,0.8);
+      --extrude-red: 1px 1px 0 #cc0030, 2px 2px 0 #aa0028, 3px 3px 0 #880020, 4px 4px 0 #660018, 10px 10px 20px rgba(0,0,0,0.8);
+      --extrude-dark: 1px 1px 0 #1a2333, 2px 2px 0 #151c29, 3px 3px 0 #0f141d, 4px 4px 0 #0a0e14, 15px 15px 30px rgba(0,0,0,0.9);
+    }
+
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Physical 3D Plate Generator */
+    .plate-3d {
+      background: var(--core-panel);
+      border: 2px solid rgba(255,255,255,0.2);
+      box-shadow: var(--extrude-dark);
+      transform-style: preserve-3d;
+    }
+
+    /* =========================================
+       1. FLOATING TOP HUD (Anchored Top)
+       ========================================= */
+    #top-hud {
+      position: absolute; top: 30px; left: 50%; transform: translateX(-50%) translateZ(50px);
+      width: 80vw; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10;
+      transform-style: preserve-3d;
+    }
+    
+    .hud-box { padding: 8px 25px; display: flex; align-items: center; border-radius: 8px; }
+    
+    #sponsor-bar { background: var(--core-dark); border-bottom: 4px solid var(--neon-cyan); box-shadow: var(--extrude-dark); width: 50vw; overflow: hidden; display: flex;}
+    .sponsor-label { background: var(--neon-blue); color: #fff; font-size: 16px; font-weight: 900; padding: 8px 15px; margin: -8px 15px -8px -25px; text-shadow: 2px 2px 0 #000; letter-spacing: 1px;}
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 20s linear infinite; font-size: 16px; font-weight: 700; color: #a0aec0; gap: 60px; padding-left: 50vw; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    #target-bar { background: var(--core-dark); border-bottom: 4px solid var(--neon-red); box-shadow: var(--extrude-dark); display: none; gap: 30px;}
+    #target-bar span { font-size: 18px; font-weight: 700; color: #fff; }
+    #equation-text { color: var(--neon-gold) !important; font-family: 'Chakra Petch'; font-size: 26px !important; font-weight: 900;}
+
+    /* =========================================
+       2. 3D IMPACT ANIMATIONS
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 150; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center;}
+    
+    /* 3D Extruded Text CSS Math */
+    .text-3d {
+      font-family: 'Chakra Petch'; font-weight: 900; line-height: 0.8; text-transform: uppercase;
+      text-shadow: 
+        2px 2px 0px #ccc, 4px 4px 0px #bbb, 6px 6px 0px #aaa, 
+        8px 8px 0px #999, 10px 10px 0px #888, 12px 12px 20px rgba(0,0,0,0.8);
+    }
+
+    #anim-four { position: absolute; transform: translateZ(-600px) rotateX(45deg); opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+    #anim-four.fire { transform: translateZ(200px) rotateX(0deg); opacity: 1; }
+    .four-txt { font-size: 180px; color: var(--neon-cyan); text-shadow: 2px 2px 0px #0066ff, 4px 4px 0px #0055dd, 6px 6px 0px #0044bb, 8px 8px 0px #003399, 20px 20px 30px rgba(0,243,255,0.6); }
+
+    #anim-six { position: absolute; transform: translateZ(-800px) scale(0.1); opacity: 0; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+    #anim-six.fire { transform: translateZ(300px) scale(1); opacity: 1; }
+    .six-txt { font-size: 250px; color: var(--neon-gold); text-shadow: 2px 2px 0px #d97706, 4px 4px 0px #b45306, 6px 6px 0px #92400e, 8px 8px 0px #78350f, 20px 20px 40px rgba(252, 238, 10, 0.5); }
+
+    #anim-wicket { position: absolute; transform: translateZ(500px) scale(3); opacity: 0; transition: all 0.4s cubic-bezier(0.5, 0, 0.1, 1); }
+    #anim-wicket.fire { transform: translateZ(100px) scale(1); opacity: 1; }
+    .wicket-txt { font-size: 220px; color: var(--neon-red); letter-spacing: 15px; text-shadow: 2px 2px 0px #cc0030, 4px 4px 0px #aa0028, 6px 6px 0px #880020, 8px 8px 0px #660018, 20px 20px 40px rgba(255, 0, 60, 0.6); }
+
+    /* MILESTONE */
+    #anim-milestone { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%) translateZ(-150px) rotateX(-90deg); opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: bottom center; z-index: 45; padding: 15px 50px; border-bottom: 6px solid var(--neon-gold);}
+    #anim-milestone.fire { transform: translateX(-50%) translateZ(100px) rotateX(0deg); opacity: 1; }
+    .ms-content { font-family: 'Chakra Petch'; font-size: 60px; font-weight: 900; color: #fff; white-space: nowrap; text-shadow: 2px 2px 0 #000;}
+
+    /* DECISION PENDING */
+    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%) translateZ(100px); padding: 25px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; border-radius: 12px; border: 3px solid var(--neon-gold);}
+    #anim-decision.fire { opacity: 1; animation: popDecide 1.5s infinite alternate; }
+    #anim-decision .d-title { font-size: 18px; color: #a0aec0; letter-spacing: 6px; margin-bottom: 8px; font-weight: 900;}
+    #anim-decision .d-text { font-family: 'Chakra Petch'; font-size: 70px; font-weight: 900; color: var(--neon-gold); line-height: 1; white-space: nowrap; text-shadow: 2px 2px 0px #000;}
+    @keyframes popDecide { 0% { transform: translateX(-50%) translateZ(100px) scale(0.95); box-shadow: 0 0 20px rgba(252, 238, 10, 0.2);} 100% { transform: translateX(-50%) translateZ(150px) scale(1.05); box-shadow: 0 0 50px rgba(252, 238, 10, 0.6); } }
+
+    /* =========================================
+       3. THE 3D HOLOGRAPHIC SCORE CORE
+       ========================================= */
+    /* Safely Anchored to Bottom via px/vw */
+    #score-core-wrapper {
+      position: absolute; bottom: 25px; left: 50%; width: 94vw; height: 110px;
+      transform: translateX(-50%) perspective(1500px) rotateX(5deg); 
+      transform-style: preserve-3d; z-index: 50; display: flex; justify-content: center;
+    }
+
+    .sb-view { display: flex; justify-content: center; align-items: flex-end; width: 100%; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; position: absolute; bottom: 0;}
+    
+    .state-vs #panel-live { opacity: 0; transform: translateY(100px) translateZ(-200px) rotateX(-20deg); pointer-events: none; }
+    .state-vs #panel-vs { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0deg); pointer-events: auto; position: relative;}
+    .state-live #panel-vs { opacity: 0; transform: translateY(100px) translateZ(-200px) rotateX(-20deg); pointer-events: none; }
+    .state-live #panel-live { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0deg); pointer-events: auto; position: relative;}
+
+    /* VS Screen */
+    #panel-vs .vs-block { padding: 25px 80px; display: flex; align-items: center; border-radius: 12px; border-top: 4px solid var(--neon-cyan);}
+    #svt-text { color: #fff; font-family: 'Chakra Petch'; font-size: 80px; font-weight: 900; letter-spacing: 5px; line-height: 1; text-shadow: 2px 2px 0 #000;}
+
+    /* Live Data Layout - 3D Hinge Architecture */
+    .c-wing { flex: 0 0 36%; display: flex; align-items: stretch; background: var(--core-dark); border: 1px solid rgba(255,255,255,0.1); border-top: 3px solid rgba(255,255,255,0.5); box-shadow: var(--extrude-dark); height: 95px;}
+    
+    /* Left Wing folds backward slightly */
+    .wing-left { transform: rotateY(15deg) translateZ(-15px); border-radius: 12px 0 0 12px; border-left: 4px solid var(--neon-cyan); justify-content: flex-end;}
+    /* Right Wing folds backward slightly */
+    .wing-right { transform: rotateY(-15deg) translateZ(-15px); border-radius: 0 12px 12px 0; border-right: 4px solid var(--neon-red); justify-content: flex-start;}
+
+    /* Center Reactor Core (Pops Forward) */
+    .c-reactor { flex: 0 0 24%; display: flex; align-items: center; justify-content: center; background: var(--core-panel); height: 125px; transform: translateZ(60px); border-radius: 12px; border: 2px solid var(--neon-cyan); box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,243,255,0.2); z-index: 10;}
+
+    /* Internal Wing Layouts */
+    .team-badge { width: 120px; display: flex; align-items: center; justify-content: center; font-family: 'Chakra Petch'; font-size: 45px; font-weight: 900; line-height: 1; color: #fff; background: rgba(255,255,255,0.05);}
+    .data-matrix { flex: 1; padding: 0 25px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+
+    /* Score Styling */
+    .runs-wkts { font-family: 'Chakra Petch'; font-size: 90px; line-height: 0.8; font-weight: 900; color: #fff; display: flex; align-items: baseline; text-shadow: 2px 2px 0 #000;}
+    .runs-wkts .slash { color: var(--neon-cyan); font-size: 70px; margin: 0 6px; }
+    .overs-text { font-size: 16px; font-weight: 900; color: #94a3b8; margin-left: 20px; display: flex; flex-direction: column; align-items: flex-end;}
+    .overs-text span { color: var(--neon-gold); font-size: 26px; font-family: 'Chakra Petch'; line-height: 1;}
+
+    /* Data Rows */
+    .p-row { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 800; margin-bottom: 3px; width: 100%; white-space: nowrap;}
+    .p-name { color: #94a3b8; display: flex; align-items: center; flex: 1; min-width: 0; padding-right: 15px;} 
+    .p-name.active { color: #fff; font-weight: 900;}
+    .p-stats { color: #fff; font-family: 'Chakra Petch'; font-size: 34px; line-height: 0.8; font-weight: 900; flex-shrink: 0;}
+    .p-sub { font-size: 15px; color: #94a3b8; font-weight: 700; font-family: 'Rajdhani'; display: inline-block; min-width: 45px; text-align: right;}
+
+    .this-over-row { display: flex; gap: 8px; align-items: center; margin-top: 5px; width: 100%;}
+    .this-over-lbl { font-size: 13px; font-weight: 900; color: #94a3b8; margin-right: 5px; flex-shrink: 0;}
+    .ball-container { display: flex; gap: 6px; overflow: hidden; flex: 1; justify-content: flex-end; }
+    .ball-dot { width: 24px; height: 24px; background: var(--core-dark); border-radius: 4px; border: 1px solid #475569; display: flex; align-items: center; justify-content: center; font-family: 'Chakra Petch'; font-size: 14px; line-height: 1; font-weight: 900; color: #fff; flex-shrink: 0;}
+    .ball-w { background: var(--neon-red); border-color: var(--neon-red); box-shadow: 0 0 6px var(--neon-red);} 
+    .ball-b { background: var(--neon-blue); border-color: var(--neon-blue); } 
+    .ball-6 { background: var(--neon-gold); border-color: var(--neon-gold); color: #000; box-shadow: 0 0 6px var(--neon-gold);}
+
+    /* =========================================
+       4. 3-CARD INTRO (Anchored Safe Height)
+       ========================================= */
+    #intro-cards-wrapper { 
+      position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%) translateZ(-50px) rotateX(-90deg); 
+      display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; transform-origin: bottom center; transform-style: preserve-3d;
+    }
+    #intro-cards-wrapper.active-intro { transform: translateX(-50%) translateZ(40px) rotateX(0deg); opacity: 1; visibility: visible; }
+    
+    .intro-card { padding: 20px 30px; width: 320px; border-bottom: 5px solid transparent; border-radius: 8px;}
+    .intro-lbl { font-size: 14px; color: #94a3b8; font-weight: 900; letter-spacing: 2px;}
+    .intro-val { font-family: 'Chakra Petch'; font-size: 45px; font-weight: 900; color: #fff; line-height: 1; margin-top: 5px; text-shadow: 2px 2px 0 #000;}
+
+    /* =========================================
+       5. 3D SIDE PROFILES
+       ========================================= */
+    #side-card-wrapper { 
+      position: absolute; bottom: 160px; left: 3vw; width: 420px; transform: translateX(-200px) rotateY(-45deg); 
+      opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 90; transform-style: preserve-3d;
+    }
+    #side-card-wrapper.active-side { transform: translateX(0) rotateY(15deg) translateZ(40px); opacity: 1; visibility: visible; }
+
+    .profile-card { display: none; padding: 0; overflow: hidden; border-left: 8px solid var(--neon-cyan); border-radius: 12px;}
+    .profile-card.active { display: block; }
+    .ppc-title { font-family: 'Chakra Petch'; font-size: 45px; font-weight: 900; color: #fff; line-height: 1; padding: 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); text-shadow: 2px 2px 0 #000;}
+    .ppc-row { display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; padding: 15px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .ppc-row:last-child { border-bottom: none; }
+    .ppc-lbl { color: #94a3b8; } .ppc-val { color: var(--neon-cyan); font-family: 'Chakra Petch'; font-size: 32px; line-height: 0.8; font-weight: 900;}
+
+    .switch-card { display: none; flex-direction: column; gap: 15px; width: 100%; transform-style: preserve-3d;}
+    .switch-card.active { display: flex; }
+    .switch-block { padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; border-left: 8px solid transparent; border-radius: 12px;}
+    .sw-badge { color: #fff; font-weight: 900; font-size: 14px; padding: 4px 15px; border-radius: 6px; letter-spacing: 2px; display: inline-block; margin-bottom: 6px; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.4), 2px 2px 0 rgba(0,0,0,0.5);}
+    .sw-name { font-family: 'Chakra Petch'; font-size: 40px; font-weight: 900; color: #fff; line-height: 1; max-width: 220px; text-shadow: 2px 2px 0 #000;}
+    .sw-score { font-size: 26px; font-weight: 900; color: #94a3b8; font-family: 'Chakra Petch'; margin-left: 15px;}
+
+    /* =========================================
+       6. CURVED VR MONITORS (Side Summaries)
+       ========================================= */
+    .side-summary-container { position: absolute; bottom: 160px; top: 100px; width: 100vw; pointer-events: none; z-index: 45; display: flex; justify-content: space-between; padding: 0 3vw; perspective: 1500px; transform-style: preserve-3d;}
+    
+    .side-panel { width: 42vw; display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; pointer-events: auto; opacity: 0; visibility: hidden; border-top: 6px solid transparent; border-radius: 12px; overflow: hidden; max-height: 100%;}
+    
+    /* 3D Hinge Curves */
+    #sum-bat-col { transform: translateX(-100%) rotateY(-60deg); transform-origin: left center; border-top-color: var(--neon-cyan);}
+    #sum-bat-col.slide-in { transform: translateX(0) rotateY(15deg) translateZ(50px); opacity: 1; visibility: visible;}
+    
+    #sum-bowl-col { transform: translateX(100%) rotateY(60deg); transform-origin: right center; border-top-color: var(--neon-red);}
+    #sum-bowl-col.slide-in { transform: translateX(0) rotateY(-15deg) translateZ(50px); opacity: 1; visibility: visible;}
+
+    .panel-header { font-family: 'Chakra Petch'; font-weight: 900; font-size: 50px; color: #fff; padding: 20px 30px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.2); line-height: 1; text-shadow: 2px 2px 0 #000; flex-shrink: 0;}
+    
+    .table-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+
+    .data-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 20px; font-weight: 800; text-align: left; background: var(--core-panel);}
+    .data-table th { color: #94a3b8; padding: 15px 30px; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: var(--core-panel); z-index: 5;}
+    .data-table td { padding: 15px 30px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; white-space: nowrap; font-family: 'Chakra Petch'; font-size: 26px; font-weight: 500; overflow: hidden; text-overflow: ellipsis;}
+    .data-table th:first-child, .data-table td:first-child { width: 42%; font-family: 'Rajdhani'; font-weight: 800; font-size: 20px;} 
+    .data-table tr:nth-child(even) td { background: rgba(0,0,0,0.2); }
+    
+    #sum-bat-col .hl-text { color: var(--neon-cyan) !important; font-weight: 900 !important; }
+    #sum-bowl-col .hl-text { color: var(--neon-red) !important; font-weight: 900 !important; }
+
+    /* =========================================
+       7. 3D FULL SCREEN PEDESTALS
+       ========================================= */
+    #fullscreen-layer { position: absolute; inset: 0; background: rgba(5, 8, 15, 0.95); z-index: 200; display: flex; align-items: center; justify-content: center; perspective: 1500px; transform-style: preserve-3d;}
+    
+    .fs-card { width: 90%; max-width: 1600px; height: 85vh; display: flex; flex-direction: column; transform-style: preserve-3d;}
+    .fs-header { font-family: 'Chakra Petch'; font-size: 80px; font-weight: 900; color: #fff; text-align: center; margin-bottom: 30px; line-height: 1; letter-spacing: 3px; text-shadow: 5px 5px 10px rgba(0,0,0,0.8); transform: translateZ(50px); flex-shrink: 0;}
+    
+    #target-tab { justify-content: center; }
+    .target-box { padding: 50px 100px; display: flex; flex-direction: column; align-items: center; border-bottom: 15px solid var(--neon-gold); transform: translateZ(30px) rotateX(10deg); border-radius: 12px;}
+    #target-score { font-family: 'Chakra Petch'; font-size: 220px; color: #fff; line-height: 0.8; font-weight: 900; text-shadow: 4px 4px 0 #000, 0 0 40px rgba(252, 238, 10, 0.5);}
+
+    .teams-split-container { display: flex; gap: 40px; width: 100%; transform: translateZ(20px); flex: 1; min-height: 0;}
+    .team-col-fs { flex: 1; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; min-height: 0;} 
+    
+    .team-header-1 { background: var(--neon-cyan); color: #000; padding: 25px; text-align: center; font-family: 'Chakra Petch'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid #000; flex-shrink: 0;}
+    .team-header-2 { background: var(--neon-red); color: #fff; padding: 25px; text-align: center; font-family: 'Chakra Petch'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid #000; flex-shrink: 0;}
+    
+    .squad-list { padding: 15px 0; flex: 1; overflow-y: auto; min-height: 0; background: var(--core-panel);}
+    .squad-item { padding: 15px 40px; font-size: 24px; font-weight: 800; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;}
+    .squad-item:nth-child(even) { background: rgba(0,0,0,0.3); }
+    .squad-item span:last-child { font-family: 'Chakra Petch'; color: var(--neon-gold); font-weight: 700; font-size: 26px;}
+
+  </style>
+</head>
+<body>
+
+  <div id="top-hud">
+    <div id="sponsor-bar" class="plate-3d hud-box">
+      <div class="sponsor-label">BROADCAST PARTNERS</div>
+      <div class="sponsor-track-container"><div class="sponsor-track" id="sponsor-track">
+         <span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">HOLOGRAPHIC CYBER-CORE</span>
+      </div></div>
+    </div>
+
+    <div id="target-bar" class="plate-3d hud-box" style="display: flex;">
+      <span>2ND INNINGS</span>
+      <span id="equation-text">NEED 45 FROM 24</span>
+    </div>
+  </div>
+
+  <div class="event-layer">
+    <div id="anim-four"><div class="four-txt text-3d">FOUR!</div></div>
+    <div id="anim-six"><div class="six-txt text-3d">SIX!</div></div>
+    <div id="anim-wicket"><div class="wicket-txt text-3d">OUT!</div></div>
+    
+    <div id="anim-milestone" class="plate-3d"><div class="ms-content" id="ms-text">V. KOHLI - 50</div></div>
+    <div id="anim-decision" class="plate-3d" style="border: 3px solid var(--neon-gold);"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
+  </div>
+
+  <div id="intro-cards-wrapper">
+    <div class="intro-card plate-3d" style="border-bottom-color: var(--neon-cyan);">
+      <div class="intro-lbl">STRIKER</div><div class="intro-val truncate" id="intro-striker">V. KOHLI</div>
+    </div>
+    <div class="intro-card plate-3d" style="border-bottom-color: #94a3b8; opacity:0.9;">
+      <div class="intro-lbl">NON-STRIKER</div><div class="intro-val truncate" id="intro-nonstriker">F. DU PLESSIS</div>
+    </div>
+    <div class="intro-card plate-3d" style="border-bottom-color: var(--neon-red);">
+      <div class="intro-lbl">BOWLER</div><div class="intro-val truncate" id="intro-bowler">R. JADEJA</div>
+    </div>
+  </div>
+
+  <div id="side-card-wrapper">
+    <div id="profile-card" class="profile-card plate-3d">
+      <div class="ppc-title truncate" id="ppc-title-text">V. KOHLI</div>
+      <div id="ppc-data">
+         <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val">65 (40)</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">STRIKE RATE</span><span class="ppc-val">162.5</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">BOUNDARIES</span><span class="ppc-val">5x4, 3x6</span></div>
+      </div>
+    </div>
+    
+    <div id="switch-card" class="switch-card">
+      <div class="switch-block plate-3d switch-out" id="sw-out-block" style="border-left-color: var(--neon-red);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 65%;">
+           <span class="sw-badge" style="background: var(--neon-red);" id="sw-out-badge">OUT</span>
+           <span class="sw-name truncate" id="sw-out-name">F. DU PLESSIS</span>
+        </div>
+        <div class="sw-score truncate" id="sw-out-score" style="max-width: 30%;">42 (28)</div>
+      </div>
+      <div class="switch-block plate-3d switch-in" style="border-left-color: var(--neon-cyan);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 100%;">
+           <span class="sw-badge" style="background: var(--neon-cyan); color:#000;">IN</span>
+           <span class="sw-name truncate" id="sw-in-name">G. MAXWELL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-summary-container">
+    <div class="side-panel plate-3d" id="sum-bat-col">
+      <div class="panel-header truncate">BATTING SUMMARY</div>
+      <div class="table-scroll">
+        <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="sum-bat-body"></tbody></table>
+      </div>
+    </div>
+    <div class="side-panel plate-3d" id="sum-bowl-col">
+      <div class="panel-header truncate">BOWLING SUMMARY</div>
+      <div class="table-scroll">
+        <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="sum-bowl-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div id="score-core-wrapper" class="state-live">
+    
+    <div class="sb-view" id="panel-vs">
+       <div class="plate-3d vs-block"><span id="svt-text">TEAM 1 <span style="color:#94a3b8; margin:0 30px; font-style:italic;">VS</span> TEAM 2</span></div>
+    </div>
+
+    <div class="sb-view" id="panel-live">
+      
+      <div class="c-wing wing-left">
+         <div class="data-matrix">
+            <div class="p-row">
+              <span class="p-name active"><span style="color:var(--neon-gold); margin-right:10px;">▶</span><span id="striker" class="name-txt">V. Kohli</span></span> 
+              <span class="p-stats"><span id="s-runs">65</span> <span class="p-sub">(<span id="s-balls">40</span>)</span></span>
+            </div>
+            <div class="p-row" style="opacity: 0.6;">
+              <span class="p-name"><span id="nonstriker" class="name-txt">F. du Plessis</span></span> 
+              <span class="p-stats"><span id="ns-runs">42</span> <span class="p-sub">(<span id="ns-balls">28</span>)</span></span>
+            </div>
+         </div>
+         <div class="team-badge truncate" id="bat-team">RCB</div>
+      </div>
+
+      <div class="c-reactor">
+          <div class="runs-wkts"><span id="score">164</span><span class="slash">/</span><span id="wickets">3</span></div>
+          <div class="overs-text">OVERS<span><span id="overs">14.2</span></span></div>
+      </div>
+
+      <div class="c-wing wing-right">
+         <div class="team-badge truncate" id="bowl-team">CSK</div>
+         <div class="data-matrix">
+            <div class="p-row">
+              <span class="p-name active" style="color:#fff;">BOWL: <span id="bowler" class="name-txt" style="margin-left: 8px;">R. Jadeja</span></span>
+              <span class="p-stats" style="color:var(--neon-red);"><span id="b-wkts">1</span>-<span id="b-runs">24</span></span>
+            </div>
+            <div class="this-over-row">
+              <span class="this-over-lbl">THIS OVER:</span>
+              <div class="ball-container" id="this-over-balls">
+                <div class="ball-dot">1</div><div class="ball-dot ball-b">4</div><div class="ball-dot ball-w">W</div><div class="ball-dot ball-6">6</div>
+              </div>
+            </div>
+         </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="fullscreen-layer" class="layer-hide">
+    
+    <div id="target-tab" class="fs-card tab-hide">
+      <div class="fs-header" style="border:none;">INNINGS BREAK</div>
+      <div class="target-box plate-3d">
+        <div id="target-score">201</div>
+        <div style="font-size: 40px; color: #94a3b8; font-weight: 900; margin-top: 15px; letter-spacing: 3px;">TARGET FOR <span id="target-team" style="color:var(--neon-cyan);">TEAM 2</span></div>
+      </div>
+    </div>
+
+    <div id="squads-tab" class="fs-card tab-hide">
+      <div class="fs-header">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs plate-3d">
+          <div class="team-header-1 truncate" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs plate-3d">
+          <div class="team-header-2 truncate" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="match-end-tab" class="fs-card tab-hide">
+      <div class="fs-header" id="me-header">MATCH SUMMARY</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs plate-3d">
+          <div class="team-header-1">BATTING</div>
+          <div class="table-scroll">
+            <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="me-bat-body"></tbody></table>
+          </div>
+        </div>
+        <div class="team-col-fs plate-3d">
+          <div class="team-header-2">BOWLING</div>
+          <div class="table-scroll">
+            <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="me-bowl-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let eventTimer, endMatchInterval, sideCardTimer, introTimer;
+    let decisionPendingState = false;
+    const config = window.OVERLAY_CONFIG?.config || { switchInterval: 8 };
+
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'UPDATE_SCORE') {
+        const d = e.data.data;
+        
+        $('bat-team').innerText = d.team1Name || 'T1'; $('bowl-team').innerText = d.team2Name || 'T2';
+        $('score').innerText = d.team1Score; $('wickets').innerText = d.team1Wickets; $('overs').innerText = d.team1Overs;
+        $('striker').innerText = d.strikerName; $('s-runs').innerText = d.strikerRuns; $('s-balls').innerText = d.strikerBalls;
+        $('nonstriker').innerText = d.nonStrikerName; $('ns-runs').innerText = d.nonStrikerRuns; $('ns-balls').innerText = d.nonStrikerBalls;
+        $('bowler').innerText = d.bowlerName; $('b-runs').innerText = d.bowlerRuns; $('b-wkts').innerText = d.bowlerWickets;
+        $('b-ov').innerText = d.bowlerOvers || '0.0';
+        
+        $('intro-striker').innerText = d.strikerName || 'TBA'; $('intro-nonstriker').innerText = d.nonStrikerName || 'TBA'; $('intro-bowler').innerText = d.bowlerName || 'TBA';
+        
+        if (d.sponsors && d.sponsors.length > 0) {
+          $('sponsor-track').innerHTML = d.sponsors.map(s => `<span class="sponsor-item">${s}</span>`).join('');
+        } else {
+          $('sponsor-track').innerHTML = `<span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">CYBER-CORE ENGINE</span>`;
+        }
+
+        if (d.requiredRuns > 0 && d.target > 0) {
+          $('target-bar').style.display = 'flex'; $('equation-text').innerText = `NEED ${d.requiredRuns} FROM ${d.remainingBalls || '--'}`;
+        } else $('target-bar').style.display = 'none';
+
+        if (d.thisOver && Array.isArray(d.thisOver)) {
+          $('this-over-balls').innerHTML = d.thisOver.map(ball => {
+            let clz = 'ball-dot';
+            if (ball === 'W') clz += ' ball-w'; else if (ball === '4') clz += ' ball-b'; else if (ball === '6') clz += ' ball-6';
+            return `<div class="${clz}">${ball}</div>`;
+          }).join('');
+        }
+
+        const sb = $('score-core-wrapper');
+        if (!d.strikerName && d.team1Overs === "0.0" && !$('svt-text').innerText.includes('WON')) {
+           sb.className = 'state-vs';
+           $('svt-text').innerHTML = `${d.team1Name || 'TEAM 1'} <span style="color:#94a3b8; margin:0 30px; font-style:italic;">VS</span> ${d.team2Name || 'TEAM 2'}`;
+        } else if (d.strikerName) {
+           sb.className = 'state-live';
+        }
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        const sb = $('score-core-wrapper');
+        
+        if (t.type === 'VS_SCREEN') {
+          sb.className = 'state-vs';
+          $('svt-text').innerHTML = `${t.data?.team1 || 'TEAM 1'} <span style="color:#94a3b8; margin:0 30px; font-style:italic;">VS</span> ${t.data?.team2 || 'TEAM 2'}`;
+        }
+
+        if (t.type === 'SHOW_TOSS') {
+          sb.className = 'state-vs';
+          $('svt-text').innerText = t.data?.text || "TOSS DECIDED";
+        }
+
+        if (t.type === 'START_INNINGS_INTRO') {
+          sb.className = 'state-live';
+          clearTimeout(introTimer); $('intro-cards-wrapper').classList.add('active-intro');
+          introTimer = setTimeout(() => { $('intro-cards-wrapper').classList.remove('active-intro'); }, 5000);
+        }
+
+        // 3D BURST ANIMATIONS
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', '50_RUNS', '100_RUNS'].includes(t.type)) {
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); 
+          $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); 
+          $('anim-decision').classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('anim-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-four').classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX') {
+            $('anim-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-six').classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET') {
+            $('anim-wicket').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-wicket').classList.remove('fire'), 3000);
+          } else if (t.type.includes('RUNS')) {
+            $('ms-text').innerText = `${t.data?.playerName || 'PLAYER'} - ${t.type.split('_')[0]}`;
+            $('anim-milestone').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-milestone').classList.remove('fire'), 5000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('anim-decision').classList.add('fire');
+            else $('anim-decision').classList.remove('fire');
+          }
+        }
+
+        if (['BATSMAN_PROFILE', 'BOWLER_PROFILE', 'CAREER_STATS', 'WICKET_SWITCH', 'BATSMAN_CHANGE', 'NEW_BOWLER'].includes(t.type)) {
+          clearTimeout(sideCardTimer);
+          const wrapper = $('side-card-wrapper');
+          const pc = $('profile-card'); const sc = $('switch-card');
+          
+          pc.classList.remove('active'); sc.classList.remove('active');
+
+          if (t.type === 'WICKET_SWITCH' || t.type === 'BATSMAN_CHANGE') {
+            sc.classList.add('active');
+            const isChange = t.type === 'BATSMAN_CHANGE';
+            $('sw-out-badge').innerText = isChange ? 'RET' : 'OUT';
+            $('sw-out-badge').style.background = isChange ? 'var(--neon-gold)' : 'var(--neon-red)';
+            $('sw-out-block').style.borderLeftColor = isChange ? 'var(--neon-gold)' : 'var(--neon-red)';
+            $('sw-out-name').innerText = t.data?.outName || 'PLAYER OUT';
+            $('sw-out-score').innerText = t.data?.outScore || '0 (0)';
+            $('sw-in-name').innerText = t.data?.inName || 'PLAYER IN';
+          } else {
+            pc.classList.add('active');
+            $('ppc-title-text').innerText = t.data?.title || "PLAYER DATA";
+            if (t.data?.stats) {
+              $('ppc-data').innerHTML = t.data.stats.map(s => `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val">${s.value}</span></div>`).join('');
+            }
+            pc.style.borderLeftColor = (t.type === 'CAREER_STATS' || t.type === 'NEW_BOWLER') ? 'var(--neon-red)' : 'var(--neon-cyan)';
+          }
+
+          wrapper.classList.add('active-side');
+          sideCardTimer = setTimeout(() => wrapper.classList.remove('active-side'), 12000);
+        }
+
+        if (t.type === 'SHOW_SQUADS') {
+          $('fullscreen-layer').className = 'layer-show'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('squads-tab').className = 'fs-card tab-show';
+          $('sq-t1-name').innerText = t.data?.team1Name || 'TEAM 1'; $('sq-t2-name').innerText = t.data?.team2Name || 'TEAM 2';
+          $('sq-t1-list').innerHTML = (t.data?.team1Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="color:var(--neon-gold); font-family:'Chakra Petch';">${p.role||''}</span></div>`).join('');
+          $('sq-t2-list').innerHTML = (t.data?.team2Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="color:var(--neon-gold); font-family:'Chakra Petch';">${p.role||''}</span></div>`).join('');
+          sb.style.transform = 'translateX(-50%) perspective(1500px) rotateX(15deg) translateZ(-300px) translateY(150px)';
+        }
+
+        if (t.type === 'INNINGS_BREAK') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-show';
+          $('target-team').innerText = t.data?.chasingTeam || 'TEAM 2'; $('target-score').innerText = t.data?.target || 0;
+          sb.style.transform = 'translateX(-50%) perspective(1500px) rotateX(15deg) translateZ(-300px) translateY(150px)';
+        }
+
+        if (t.type === 'MATCH_END') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-show';
+          clearInterval(endMatchInterval);
+          
+          $('me-header').innerText = "MATCH SUMMARY";
+          const renderBat = (batsmen) => $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--neon-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          const t1 = t.data?.team1; const t2 = t.data?.team2;
+          let current = 1;
+          const updateUI = (data) => { $('me-header').innerText = `${data.name} INNINGS SUMMARY`; renderBat(data.batsmen); renderBowl(data.bowlers); };
+          if(t1) updateUI(t1);
+          if (t1 && t2) {
+            endMatchInterval = setInterval(() => {
+              $('match-end-tab').style.opacity = '0';
+              setTimeout(() => { current = current === 1 ? 2 : 1; updateUI(current === 1 ? t1 : t2); $('match-end-tab').style.opacity = '1'; }, 500);
+            }, config.switchInterval * 1000);
+          }
+          sb.style.transform = 'translateX(-50%) perspective(1500px) rotateX(15deg) translateZ(-300px) translateY(150px)';
+        }
+
+        if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
+          const renderBat = (batsmen) => $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--neon-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.batsmen) renderBat(t.data.batsmen);
+            $('sum-bat-col').classList.add('slide-in');
+          }
+          if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.bowlers) renderBowl(t.data.bowlers);
+            $('sum-bowl-col').classList.add('slide-in');
+          }
+        }
+
+        if (t.type === 'RESTORE') {
+          $('fullscreen-layer').className = 'layer-hide'; 
+          $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide';
+          $('sum-bat-col').classList.remove('slide-in'); $('sum-bowl-col').classList.remove('slide-in');
+          
+          sb.className = 'state-live';
+          sb.style.transform = 'translateX(-50%) perspective(1500px) rotateX(5deg)';
+          
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); $('anim-decision').classList.remove('fire');
+          $('side-card-wrapper').classList.remove('active-side'); $('intro-cards-wrapper').classList.remove('active-intro');
+          clearInterval(endMatchInterval);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

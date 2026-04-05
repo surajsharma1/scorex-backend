@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - IPL 3D Block Command Center</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&family=Kanit:wght@500;700;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; text-transform: uppercase; }
+    
+    /* The Core 3D Perspective Canvas */
+    html, body { 
+      width: 100vw; height: 100vh; background: transparent; overflow: hidden; color: #ffffff; 
+      perspective: 1500px; /* Crucial for 3D popping effects */
+      transform-style: preserve-3d;
+    }
+
+    /* Visibility Logic */
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateZ(-200px) scale(0.9); pointer-events: none;}
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateZ(0) scale(1); z-index: 200; pointer-events: auto;}
+    .tab-hide { display: none !important; }
+    .tab-show { display: block !important; }
+
+    :root {
+      /* IPL 3D THEME (Dark Navy & Gold) */
+      --t-base: #020617;      /* Deep background navy */
+      --t-surface: #0f172a;   /* Slightly lighter surface navy */
+      
+      /* Vibrant Core Colors */
+      --t-blue: #0ea5e9;      /* IPL Cyan/Blue */
+      --t-blue-deep: #0284c7;
+      --t-blue-shadow: #075985;
+      
+      --t-red: #ef4444;       /* Crimson Pink (Bowling) */
+      --t-red-deep: #dc2626;
+      --t-red-shadow: #991b1b;
+      
+      --t-gold: #eab308;      /* IPL Gold */
+      --t-gold-shadow: #854d0e;
+      
+      --text-main: #ffffff;
+      --text-sub: #cbd5e1;
+
+      /* Massive 3D Extrusion Shadows (Dark Mode Adjusted) */
+      --shadow-3d-base: 
+        inset 2px 2px 4px rgba(255,255,255,0.15), 
+        inset -3px -3px 6px rgba(0,0,0,0.6),
+        3px 3px 0 #1e293b, 
+        6px 6px 0 #020617, 
+        15px 15px 30px rgba(0,0,0,0.8);
+        
+      --shadow-3d-blue: 
+        inset 2px 2px 4px rgba(255,255,255,0.3), 
+        inset -3px -3px 6px rgba(0,0,0,0.4),
+        3px 3px 0 var(--t-blue-deep), 
+        6px 6px 0 var(--t-blue-shadow), 
+        15px 15px 30px rgba(14, 165, 233, 0.4);
+
+      --shadow-3d-red: 
+        inset 2px 2px 4px rgba(255,255,255,0.3), 
+        inset -3px -3px 6px rgba(0,0,0,0.4),
+        3px 3px 0 var(--t-red-deep), 
+        6px 6px 0 var(--t-red-shadow), 
+        15px 15px 30px rgba(244, 63, 94, 0.4);
+    }
+
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* The fundamental 3D Block Class */
+    .block-3d {
+      background: var(--t-surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow-3d-base);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .block-3d-blue { background: var(--t-blue); color: #fff; box-shadow: var(--shadow-3d-blue); border-color: #7dd3fc;}
+    .block-3d-red { background: var(--t-red); color: #fff; box-shadow: var(--shadow-3d-red); border-color: #fda4af;}
+
+    /* =========================================
+       1. SPONSOR CAROUSEL (Floating Top Display)
+       ========================================= */
+    #sponsor-bar {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateZ(40px);
+      width: 60vw; height: 45px; z-index: 10; display: flex; align-items: center; 
+      padding: 0 20px 0 0;
+    }
+    .sponsor-label { 
+      background: var(--t-gold); color: #000; font-size: 16px; font-weight: 900; 
+      padding: 0 30px; height: 100%; display: flex; align-items: center; z-index: 2; 
+      border-radius: 12px; box-shadow: 2px 2px 0 var(--t-gold-shadow), 4px 4px 0 #422006, 10px 10px 20px rgba(0,0,0,0.4);
+      transform: translateZ(20px); letter-spacing: 2px; margin-right: -15px;
+    }
+    .sponsor-track-container { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; padding-left: 30px; border-radius: 12px;}
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; font-size: 16px; font-weight: 900; color: var(--text-sub); gap: 50px; padding-left: 100vw; }
+    .sponsor-item { display: inline-flex; align-items: center; gap: 10px; font-family: 'Chakra Petch';}
+    .sponsor-item::before { content: '⬢'; color: var(--t-blue); font-size: 14px; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    /* =========================================
+       2. MASSIVE 3D EVENT TEXT
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 150; transform-style: preserve-3d; display: flex; align-items: center; justify-content: center;}
+    
+    /* 3D Extruded Text Generator */
+    .text-3d-extrude {
+      font-family: 'Kanit'; font-weight: 900; line-height: 0.8;
+      text-shadow: 
+        1px 1px 0px #ccc, 2px 2px 0px #ccc, 3px 3px 0px #bbb, 4px 4px 0px #bbb, 
+        5px 5px 0px #aaa, 6px 6px 0px #aaa, 7px 7px 0px #999, 8px 8px 0px #999,
+        9px 9px 0px #888, 10px 10px 30px rgba(0,0,0,0.6);
+    }
+
+    #anim-four { position: absolute; transform: translateZ(500px) translateY(100vh); opacity: 0; transition: all 0.5s cubic-bezier(0.5, 0, 0.1, 1.5); }
+    #anim-four.fire { transform: translateZ(100px) translateY(0); opacity: 1; }
+    .four-txt { font-size: 200px; color: var(--t-blue); }
+
+    #anim-six { position: absolute; transform: translateZ(-500px) scale(0.1); opacity: 0; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+    #anim-six.fire { transform: translateZ(150px) scale(1); opacity: 1; }
+    .six-txt { font-size: 280px; color: var(--t-gold); }
+
+    #anim-wicket { position: absolute; transform: rotateX(-90deg) translateZ(200px); opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.5); transform-origin: center top;}
+    #anim-wicket.fire { transform: rotateX(0deg) translateZ(200px); opacity: 1; }
+    .wicket-txt { font-size: 220px; color: var(--t-red); letter-spacing: 10px; }
+
+    #anim-milestone { position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%) translateZ(-100px) rotateX(90deg); opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: bottom center; z-index: 45; padding: 15px 50px;}
+    #anim-milestone.fire { transform: translateX(-50%) translateZ(50px) rotateX(0deg); opacity: 1; }
+    .ms-content { font-family: 'Chakra Petch'; font-size: 70px; font-weight: 700; color: var(--text-main); white-space: nowrap; text-shadow: 2px 2px 0 #000;}
+
+    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%) translateZ(100px); padding: 20px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; border-radius: 20px;}
+    #anim-decision.fire { opacity: 1; animation: popDecide 1.5s infinite alternate; }
+    #anim-decision .d-title { font-size: 22px; color: var(--text-sub); letter-spacing: 8px; margin-bottom: 5px; font-weight: 900;}
+    #anim-decision .d-text { font-family: 'Kanit'; font-size: 80px; font-weight: 900; color: var(--t-gold); line-height: 1; white-space: nowrap;}
+    @keyframes popDecide { 0% { transform: translateX(-50%) translateZ(50px) scale(0.95); } 100% { transform: translateX(-50%) translateZ(150px) scale(1.05); box-shadow: 0 20px 50px rgba(245, 158, 11, 0.4); } }
+
+    /* =========================================
+       3. THE 3D DASHBOARD SCOREBOARD
+       ========================================= */
+    #dashboard-wrapper {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%) perspective(1500px) rotateX(8deg); 
+      transform-style: preserve-3d; z-index: 50; width: 94vw; display: flex; justify-content: center;
+    }
+
+    #target-bar { 
+      position: absolute; bottom: 150px; right: 3vw; padding: 15px 40px; display: none; z-index: 49; 
+      transform: translateZ(20px); border-radius: 12px;
+    }
+    #target-bar .tb-content { color: var(--text-main); font-weight: 900; font-size: 18px; display: flex; gap: 30px; align-items: center;}
+    #equation-text { color: var(--t-red); font-family: 'Chakra Petch'; font-size: 26px; letter-spacing: 1px; line-height: 1;}
+
+    /* View States */
+    .sb-view { display: flex; justify-content: center; gap: 15px; width: 100%; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; position: absolute; bottom: 0;}
+    .state-vs #panel-live { opacity: 0; transform: translateY(100px) translateZ(-100px) rotateX(-20deg); pointer-events: none; }
+    .state-vs #panel-vs { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0deg); pointer-events: auto; position: relative;}
+    .state-live #panel-vs { opacity: 0; transform: translateY(100px) translateZ(-100px) rotateX(-20deg); pointer-events: none; }
+    .state-live #panel-live { opacity: 1; transform: translateY(0) translateZ(0) rotateX(0deg); pointer-events: auto; position: relative;}
+
+    /* VS Screen */
+    #panel-vs .vs-block { padding: 20px 80px; display: flex; align-items: center;}
+    #svt-text { color: var(--text-main); font-family: 'Kanit'; font-size: 90px; font-weight: 900; letter-spacing: 5px; line-height: 1; text-shadow: 2px 2px 0 #000;}
+
+    /* Live Data Layout (Strict Flex Grid) */
+    .c-team { flex: 0 0 12%; display: flex; align-items: center; justify-content: center; font-size: 75px; font-weight: 900; line-height: 1;}
+    .c-data { flex: 0 0 26%; padding: 15px 30px; display: flex; flex-direction: column; justify-content: center; }
+    .c-score { flex: 0 0 22%; display: flex; align-items: center; justify-content: center; transform: translateZ(30px); /* Center block pops up higher */ z-index: 10;}
+
+    /* Score Block Interior */
+    .runs-wkts { font-family: 'Chakra Petch'; font-size: 95px; line-height: 0.8; font-weight: 700; color: var(--text-main); display: flex; align-items: baseline;}
+    .runs-wkts .slash { color: var(--t-gold); font-size: 75px; margin: 0 5px; }
+    .overs-text { font-size: 18px; font-weight: 900; color: var(--text-sub); margin-left: 20px; display: flex; flex-direction: column; align-items: flex-end;}
+    .overs-text span { color: var(--text-main); font-size: 28px; font-family: 'Chakra Petch'; line-height: 1;}
+
+    /* Data Rows */
+    .p-row { display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 800; margin-bottom: 2px; width: 100%; white-space: nowrap;}
+    .p-name { color: var(--text-sub); display: flex; align-items: center; flex: 1; min-width: 0; padding-right: 10px;} 
+    .p-name.active { color: var(--text-main); font-weight: 900;}
+    .p-stats { color: var(--text-main); font-family: 'Chakra Petch'; font-size: 40px; line-height: 0.8; font-weight: 700; flex-shrink: 0;}
+    .p-sub { font-size: 16px; color: var(--text-sub); font-weight: 700; font-family: 'Outfit'; display: inline-block; min-width: 45px; text-align: right;}
+
+    .this-over-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; width: 100%;}
+    .this-over-lbl { font-size: 14px; font-weight: 900; color: var(--text-sub); margin-right: 5px; flex-shrink: 0;}
+    .ball-container { display: flex; gap: 6px; overflow: hidden; flex: 1; justify-content: flex-end; }
+    .ball-dot { width: 28px; height: 28px; background: var(--t-base); border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-family: 'Chakra Petch'; font-size: 16px; line-height: 1; font-weight: 700; color: var(--text-main); flex-shrink: 0; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.1), 1px 1px 0 rgba(0,0,0,0.5);}
+    .ball-w { background: var(--t-red); border-color: var(--t-red); color: #fff; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.5), 1px 1px 0 var(--t-red-shadow);} 
+    .ball-b { background: var(--t-blue); border-color: var(--t-blue); color: #fff; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.5), 1px 1px 0 var(--t-blue-shadow);} 
+    .ball-6 { background: var(--t-gold); border-color: var(--t-gold); color: #fff; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.5), 1px 1px 0 var(--t-gold-shadow);}
+
+    /* =========================================
+       4. 3-CARD INTRO (Pop-up Blocks)
+       ========================================= */
+    #intro-cards-wrapper { 
+      position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%) translateZ(-50px) rotateX(-90deg); 
+      display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; transform-origin: bottom center; transform-style: preserve-3d;
+    }
+    #intro-cards-wrapper.active-intro { transform: translateX(-50%) translateZ(40px) rotateX(0deg); opacity: 1; visibility: visible; }
+    
+    .intro-card { padding: 20px 30px; width: 320px; border-bottom: 6px solid transparent;}
+    .intro-lbl { font-size: 14px; color: var(--text-sub); font-weight: 900; letter-spacing: 2px;}
+    .intro-val { font-family: 'Chakra Petch'; font-size: 45px; font-weight: 700; color: var(--text-main); line-height: 1; margin-top: 5px;}
+
+    /* =========================================
+       5. 3D SIDE PROFILES
+       ========================================= */
+    #side-card-wrapper { 
+      position: absolute; bottom: 170px; left: 3vw; width: 450px; transform: translateX(-200px) rotateY(-45deg); 
+      opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 90; transform-style: preserve-3d;
+    }
+    #side-card-wrapper.active-side { transform: translateX(0) rotateY(10deg) translateZ(40px); opacity: 1; visibility: visible; }
+
+    .profile-card { display: none; padding: 0; overflow: hidden; border-left: 8px solid var(--t-blue);}
+    .profile-card.active { display: block; }
+    .ppc-title { font-family: 'Chakra Petch'; font-size: 50px; font-weight: 700; color: var(--text-main); line-height: 1; padding: 20px 30px; border-bottom: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);}
+    .ppc-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 800; padding: 15px 30px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ppc-row:last-child { border-bottom: none; }
+    .ppc-lbl { color: var(--text-sub); } .ppc-val { color: var(--t-blue); font-family: 'Chakra Petch'; font-size: 34px; line-height: 0.8; font-weight: 700;}
+
+    .switch-card { display: none; flex-direction: column; gap: 15px; width: 100%; transform-style: preserve-3d;}
+    .switch-card.active { display: flex; }
+    .switch-block { padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; border-left: 8px solid transparent;}
+    .sw-badge { color: #fff; font-weight: 900; font-size: 15px; padding: 4px 15px; border-radius: 8px; letter-spacing: 2px; display: inline-block; margin-bottom: 5px; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.4), 1px 1px 0 rgba(0,0,0,0.5);}
+    .sw-name { font-family: 'Chakra Petch'; font-size: 45px; font-weight: 700; color: var(--text-main); line-height: 1; max-width: 250px;}
+    .sw-score { font-size: 28px; font-weight: 900; color: var(--text-sub); font-family: 'Chakra Petch'; margin-left: 15px;}
+
+    /* =========================================
+       6. THE CURVED COMMAND CENTER SUMMARIES
+       ========================================= */
+    .side-summary-container { position: absolute; bottom: 160px; top: 80px; width: 100vw; pointer-events: none; z-index: 45; display: flex; justify-content: space-between; padding: 0 2vw; overflow: hidden; perspective: 1500px; transform-style: preserve-3d;}
+    
+    .side-panel { width: 44vw; display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; pointer-events: auto; opacity: 0; visibility: hidden; border-top: 8px solid transparent; overflow: hidden;}
+    
+    /* 3D Hinge Effect from Left/Right Edges */
+    #sum-bat-col { transform: translateX(-100%) rotateY(-45deg); transform-origin: left center; border-top-color: var(--t-blue);}
+    #sum-bat-col.slide-in { transform: translateX(0) rotateY(15deg) translateZ(30px); opacity: 1; visibility: visible;}
+    
+    #sum-bowl-col { transform: translateX(100%) rotateY(45deg); transform-origin: right center; border-top-color: var(--t-red);}
+    #sum-bowl-col.slide-in { transform: translateX(0) rotateY(-15deg) translateZ(30px); opacity: 1; visibility: visible;}
+
+    .panel-header { font-family: 'Chakra Petch'; font-weight: 700; font-size: 55px; color: var(--text-main); padding: 20px 40px; background: rgba(0,0,0,0.4); border-bottom: 2px solid rgba(255,255,255,0.1); line-height: 1;}
+    
+    .data-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 22px; font-weight: 800; text-align: left; background: var(--t-surface);}
+    .data-table th { color: var(--text-sub); padding: 15px 40px; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1);}
+    .data-table td { padding: 15px 40px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); white-space: nowrap; font-family: 'Chakra Petch'; font-size: 26px; font-weight: 500; overflow: hidden; text-overflow: ellipsis;}
+    .data-table th:first-child, .data-table td:first-child { width: 42%;} 
+    .data-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    
+    #sum-bat-col .hl-text { color: var(--t-blue) !important; font-weight: 900 !important; font-family: 'Kanit' !important; font-size: 24px !important;}
+    #sum-bowl-col .hl-text { color: var(--t-red) !important; font-weight: 900 !important; font-family: 'Kanit' !important; font-size: 24px !important;}
+
+    /* =========================================
+       7. 3D FULL SCREEN PEDESTALS
+       ========================================= */
+    #fullscreen-layer { position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95); z-index: 200; display: flex; align-items: center; justify-content: center; perspective: 1500px;}
+    
+    .fs-card { width: 95%; max-width: 1700px; padding: 40px; transform-style: preserve-3d;}
+    .fs-header { font-family: 'Chakra Petch'; font-size: 90px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 50px; line-height: 1; letter-spacing: 2px; text-shadow: 0 10px 20px rgba(0,0,0,0.5); transform: translateZ(50px);}
+    
+    #target-tab { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+    .target-box { padding: 60px 120px; display: flex; flex-direction: column; align-items: center; border-bottom: 15px solid var(--t-gold); transform: translateZ(30px) rotateX(10deg);}
+    #target-score { font-family: 'Chakra Petch'; font-size: 250px; color: var(--text-main); line-height: 0.8; font-weight: 700; text-shadow: 2px 2px 0 #000;}
+
+    .teams-split-container { display: flex; gap: 40px; width: 100%; transform: translateZ(20px);}
+    .team-col-fs { flex: 1; padding: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--t-surface);} 
+    
+    .team-header-1 { background: var(--t-blue); color: #fff; padding: 25px; text-align: center; font-family: 'Chakra Petch'; font-size: 60px; line-height: 1; font-weight: 700; border-bottom: 4px solid var(--t-blue-shadow);}
+    .team-header-2 { background: var(--t-red); color: #fff; padding: 25px; text-align: center; font-family: 'Chakra Petch'; font-size: 60px; line-height: 1; font-weight: 700; border-bottom: 4px solid var(--t-red-shadow);}
+    
+    .squad-list { padding: 10px 0; background: var(--t-base); flex: 1; overflow-y: auto;}
+    .squad-item { padding: 15px 40px; font-size: 24px; font-weight: 800; color: var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between;}
+    .squad-item:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+  </style>
+</head>
+<body>
+
+  <div id="sponsor-bar" class="block-3d">
+    <div class="sponsor-label">BROADCAST PARTNERS</div>
+    <div class="sponsor-track-container"><div class="sponsor-track" id="sponsor-track">
+       <span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">IPL 3D THEME</span>
+    </div></div>
+  </div>
+
+  <div id="target-bar" class="block-3d" style="display: block; border-right: 8px solid var(--t-red);">
+    <div class="tb-content">
+      <span style="color:var(--text-sub);">2ND INNINGS</span>
+      <span id="equation-text">NEED 45 FROM 24</span>
+    </div>
+  </div>
+
+  <div class="event-layer">
+    <div id="anim-four"><div class="four-txt text-3d-extrude">FOUR!</div></div>
+    <div id="anim-six"><div class="six-txt text-3d-extrude">SIX!</div></div>
+    <div id="anim-wicket"><div class="wicket-txt text-3d-extrude">OUT!</div></div>
+    
+    <div id="anim-milestone" class="block-3d"><div class="ms-content" id="ms-text">V. KOHLI - 50</div></div>
+    <div id="anim-decision" class="block-3d" style="border: 4px solid var(--t-gold);"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
+  </div>
+
+  <div id="intro-cards-wrapper">
+    <div class="intro-card block-3d" style="border-bottom-color: var(--t-blue);">
+      <div class="intro-lbl">STRIKER</div><div class="intro-val truncate" id="intro-striker">V. KOHLI</div>
+    </div>
+    <div class="intro-card block-3d" style="border-bottom-color: #94a3b8; opacity:0.9;">
+      <div class="intro-lbl">NON-STRIKER</div><div class="intro-val truncate" id="intro-nonstriker">F. DU PLESSIS</div>
+    </div>
+    <div class="intro-card block-3d" style="border-bottom-color: var(--t-red);">
+      <div class="intro-lbl">BOWLER</div><div class="intro-val truncate" id="intro-bowler">R. JADEJA</div>
+    </div>
+  </div>
+
+  <div id="side-card-wrapper">
+    <div id="profile-card" class="profile-card block-3d">
+      <div class="ppc-title truncate" id="ppc-title-text">V. KOHLI</div>
+      <div id="ppc-data">
+         <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val">65 (40)</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">STRIKE RATE</span><span class="ppc-val">162.5</span></div>
+         <div class="ppc-row"><span class="ppc-lbl">BOUNDARIES</span><span class="ppc-val">5x4, 3x6</span></div>
+      </div>
+    </div>
+    
+    <div id="switch-card" class="switch-card">
+      <div class="switch-block block-3d switch-out" id="sw-out-block" style="border-left-color: var(--t-red);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 65%;">
+           <span class="sw-badge" style="background: var(--t-red);" id="sw-out-badge">OUT</span>
+           <span class="sw-name truncate" id="sw-out-name">F. DU PLESSIS</span>
+        </div>
+        <div class="sw-score truncate" id="sw-out-score" style="max-width: 30%;">42 (28)</div>
+      </div>
+      <div class="switch-block block-3d switch-in" style="border-left-color: var(--t-blue);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 100%;">
+           <span class="sw-badge" style="background: var(--t-blue);">IN</span>
+           <span class="sw-name truncate" id="sw-in-name">G. MAXWELL</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-summary-container">
+    <div class="side-panel block-3d" id="sum-bat-col">
+      <div class="panel-header truncate">BATTING SUMMARY</div>
+      <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="sum-bat-body"></tbody></table>
+    </div>
+    <div class="side-panel block-3d" id="sum-bowl-col">
+      <div class="panel-header truncate">BOWLING SUMMARY</div>
+      <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="sum-bowl-body"></tbody></table>
+    </div>
+  </div>
+
+  <div id="dashboard-wrapper" class="state-live">
+    
+    <div class="sb-view" id="panel-vs">
+       <div class="block-3d vs-block"><span id="svt-text">TEAM 1 <span style="color:var(--text-sub); margin:0 20px; font-style:italic;">VS</span> TEAM 2</span></div>
+    </div>
+
+    <div class="sb-view" id="panel-live">
+      
+      <div class="block-3d-blue c-team truncate" id="bat-team">RCB</div>
+      
+      <div class="block-3d c-data">
+          <div class="p-row">
+            <span class="p-name active"><span style="color:var(--t-gold); margin-right:10px;">▶</span><span id="striker" class="name-txt">V. Kohli</span></span> 
+            <span class="p-stats"><span id="s-runs">65</span> <span class="p-sub">(<span id="s-balls">40</span>)</span></span>
+          </div>
+          <div class="p-row" style="opacity: 0.6;">
+            <span class="p-name"><span id="nonstriker" class="name-txt">F. du Plessis</span></span> 
+            <span class="p-stats"><span id="ns-runs">42</span> <span class="p-sub">(<span id="ns-balls">28</span>)</span></span>
+          </div>
+      </div>
+
+      <div class="block-3d c-score">
+          <div class="runs-wkts"><span id="score">164</span><span class="slash">/</span><span id="wickets">3</span></div>
+          <div class="overs-text">OVERS<span><span id="overs">14.2</span></span></div>
+      </div>
+
+      <div class="block-3d c-data">
+          <div class="p-row">
+            <span class="p-name active" style="color:var(--text-main);">BOWL: <span id="bowler" class="name-txt" style="margin-left: 8px;">R. Jadeja</span></span>
+            <span class="p-stats" style="color:var(--t-red);"><span id="b-wkts">1</span>-<span id="b-runs">24</span></span>
+          </div>
+          <div class="this-over-row">
+            <span class="this-over-lbl">THIS OVER:</span>
+            <div class="ball-container" id="this-over-balls">
+              <div class="ball-dot">1</div><div class="ball-dot ball-b">4</div><div class="ball-dot ball-w">W</div><div class="ball-dot ball-6">6</div>
+            </div>
+          </div>
+      </div>
+
+      <div class="block-3d-red c-team truncate" id="bowl-team">CSK</div>
+      
+    </div>
+  </div>
+
+  <div id="fullscreen-layer" class="layer-hide">
+    
+    <div id="target-tab" class="fs-card tab-hide">
+      <div class="fs-header" style="border:none;">INNINGS BREAK</div>
+      <div class="target-box block-3d">
+        <div id="target-score">201</div>
+        <div style="font-size: 35px; color: var(--text-sub); font-weight: 900; margin-top: 10px;">TARGET FOR <span id="target-team" style="color:var(--t-blue);">TEAM 2</span></div>
+      </div>
+    </div>
+
+    <div id="squads-tab" class="fs-card tab-hide">
+      <div class="fs-header">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs block-3d">
+          <div class="team-header-1 truncate" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs block-3d">
+          <div class="team-header-2 truncate" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="match-end-tab" class="fs-card tab-hide">
+      <div class="fs-header" id="me-header">MATCH SUMMARY</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs block-3d">
+          <div class="team-header-1">BATTING</div>
+          <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="me-bat-body"></tbody></table>
+        </div>
+        <div class="team-col-fs block-3d">
+          <div class="team-header-2">BOWLING</div>
+          <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="me-bowl-body"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let eventTimer, endMatchInterval, sideCardTimer, introTimer;
+    let decisionPendingState = false;
+    const config = window.OVERLAY_CONFIG?.config || { switchInterval: 8 };
+
+    window.addEventListener('message', e => {
+      if (e.data?.type === 'UPDATE_SCORE') {
+        const d = e.data.data;
+        
+        $('bat-team').innerText = d.team1Name || 'T1'; $('bowl-team').innerText = d.team2Name || 'T2';
+        $('score').innerText = d.team1Score; $('wickets').innerText = d.team1Wickets; $('overs').innerText = d.team1Overs;
+        $('striker').innerText = d.strikerName; $('s-runs').innerText = d.strikerRuns; $('s-balls').innerText = d.strikerBalls;
+        $('nonstriker').innerText = d.nonStrikerName; $('ns-runs').innerText = d.nonStrikerRuns; $('ns-balls').innerText = d.nonStrikerBalls;
+        $('bowler').innerText = d.bowlerName; $('b-runs').innerText = d.bowlerRuns; $('b-wkts').innerText = d.bowlerWickets;
+        
+        $('intro-striker').innerText = d.strikerName || 'TBA'; $('intro-nonstriker').innerText = d.nonStrikerName || 'TBA'; $('intro-bowler').innerText = d.bowlerName || 'TBA';
+        
+        if (d.sponsors && d.sponsors.length > 0) {
+          $('sponsor-track').innerHTML = d.sponsors.map(s => `<span class="sponsor-item">${s}</span>`).join('');
+        } else {
+          $('sponsor-track').innerHTML = `<span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">IPL 3D THEME</span>`;
+        }
+
+        if (d.requiredRuns > 0 && d.target > 0) {
+          $('target-bar').style.display = 'block'; $('equation-text').innerText = `NEED ${d.requiredRuns} FROM ${d.remainingBalls || '--'}`;
+        } else $('target-bar').style.display = 'none';
+
+        if (d.thisOver && Array.isArray(d.thisOver)) {
+          $('this-over-balls').innerHTML = d.thisOver.map(ball => {
+            let clz = 'ball-dot';
+            if (ball === 'W') clz += ' ball-w'; else if (ball === '4') clz += ' ball-b'; else if (ball === '6') clz += ' ball-6';
+            return `<div class="${clz}">${ball}</div>`;
+          }).join('');
+        }
+
+        const sb = $('dashboard-wrapper');
+        if (!d.strikerName && d.team1Overs === "0.0" && !$('svt-text').innerText.includes('WON')) {
+           sb.className = 'state-vs';
+           $('svt-text').innerHTML = `${d.team1Name || 'TEAM 1'} <span style="color:var(--text-sub); margin:0 20px; font-style:italic;">VS</span> ${d.team2Name || 'TEAM 2'}`;
+        } else if (d.strikerName) {
+           sb.className = 'state-live';
+        }
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        const sb = $('dashboard-wrapper');
+        
+        if (t.type === 'VS_SCREEN') {
+          sb.className = 'state-vs';
+          $('svt-text').innerHTML = `${t.data?.team1 || 'TEAM 1'} <span style="color:var(--text-sub); margin:0 20px; font-style:italic;">VS</span> ${t.data?.team2 || 'TEAM 2'}`;
+        }
+
+        if (t.type === 'SHOW_TOSS') {
+          sb.className = 'state-vs';
+          $('svt-text').innerText = t.data?.text || "TOSS DECIDED";
+        }
+
+        if (t.type === 'START_INNINGS_INTRO') {
+          sb.className = 'state-live';
+          clearTimeout(introTimer); $('intro-cards-wrapper').classList.add('active-intro');
+          introTimer = setTimeout(() => { $('intro-cards-wrapper').classList.remove('active-intro'); }, 5000);
+        }
+
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', '50_RUNS', '100_RUNS'].includes(t.type)) {
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); 
+          $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); 
+          $('anim-decision').classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('anim-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-four').classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX') {
+            $('anim-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-six').classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET') {
+            $('anim-wicket').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-wicket').classList.remove('fire'), 4000);
+          } else if (t.type.includes('RUNS')) {
+            $('ms-text').innerText = `${t.data?.playerName || 'PLAYER'} - ${t.type.split('_')[0]}`;
+            $('anim-milestone').classList.add('fire');
+            eventTimer = setTimeout(() => $('anim-milestone').classList.remove('fire'), 5000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('anim-decision').classList.add('fire');
+            else $('anim-decision').classList.remove('fire');
+          }
+        }
+
+        if (['BATSMAN_PROFILE', 'BOWLER_PROFILE', 'CAREER_STATS', 'WICKET_SWITCH', 'BATSMAN_CHANGE', 'NEW_BOWLER'].includes(t.type)) {
+          clearTimeout(sideCardTimer);
+          const wrapper = $('side-card-wrapper');
+          const pc = $('profile-card'); const sc = $('switch-card');
+          
+          pc.classList.remove('active'); sc.classList.remove('active');
+
+          if (t.type === 'WICKET_SWITCH' || t.type === 'BATSMAN_CHANGE') {
+            sc.classList.add('active');
+            const isChange = t.type === 'BATSMAN_CHANGE';
+            $('sw-out-badge').innerText = isChange ? 'RET' : 'OUT';
+            $('sw-out-badge').style.background = isChange ? 'var(--t-gold)' : 'var(--t-red)';
+            $('sw-out-block').style.borderLeftColor = isChange ? 'var(--t-gold)' : 'var(--t-red)';
+            $('sw-out-name').innerText = t.data?.outName || 'PLAYER OUT';
+            $('sw-out-score').innerText = t.data?.outScore || '0 (0)';
+            $('sw-in-name').innerText = t.data?.inName || 'PLAYER IN';
+          } else {
+            pc.classList.add('active');
+            $('ppc-title-text').innerText = t.data?.title || "PLAYER DATA";
+            if (t.data?.stats) {
+              $('ppc-data').innerHTML = t.data.stats.map(s => `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val">${s.value}</span></div>`).join('');
+            }
+            pc.style.borderBottomColor = (t.type === 'CAREER_STATS' || t.type === 'NEW_BOWLER') ? 'var(--t-red)' : 'var(--t-blue)';
+          }
+
+          wrapper.classList.add('active-side');
+          sideCardTimer = setTimeout(() => wrapper.classList.remove('active-side'), 12000);
+        }
+
+        if (t.type === 'SHOW_SQUADS') {
+          $('fullscreen-layer').className = 'layer-show'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('squads-tab').className = 'fs-card tab-show';
+          $('sq-t1-name').innerText = t.data?.team1Name || 'TEAM 1'; $('sq-t2-name').innerText = t.data?.team2Name || 'TEAM 2';
+          $('sq-t1-list').innerHTML = (t.data?.team1Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="color:var(--t-blue); font-family:'Kanit';">${p.role||''}</span></div>`).join('');
+          $('sq-t2-list').innerHTML = (t.data?.team2Players||[]).map(p => `<div class="squad-item"><span class="truncate">${p.name}</span><span style="color:var(--t-red); font-family:'Kanit';">${p.role||''}</span></div>`).join('');
+        }
+
+        if (t.type === 'INNINGS_BREAK') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-show';
+          $('target-team').innerText = t.data?.chasingTeam || 'TEAM 2'; $('target-score').innerText = t.data?.target || 0;
+        }
+
+        if (t.type === 'MATCH_END') {
+          $('fullscreen-layer').className = 'layer-show'; $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-show';
+          clearInterval(endMatchInterval);
+          
+          $('me-header').innerText = "MATCH SUMMARY";
+          const renderBat = (batsmen) => $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--t-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          const t1 = t.data?.team1; const t2 = t.data?.team2;
+          let current = 1;
+          const updateUI = (data) => { $('me-header').innerText = `${data.name} INNINGS SUMMARY`; renderBat(data.batsmen); renderBowl(data.bowlers); };
+          if(t1) updateUI(t1);
+          if (t1 && t2) {
+            endMatchInterval = setInterval(() => {
+              $('match-end-tab').style.opacity = '0';
+              setTimeout(() => { current = current === 1 ? 2 : 1; updateUI(current === 1 ? t1 : t2); $('match-end-tab').style.opacity = '1'; }, 500);
+            }, config.switchInterval * 1000);
+          }
+        }
+
+        if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
+          const renderBat = (batsmen) => $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join('');
+          const renderBowl = (bowlers) => $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--t-red);">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+          
+          if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.batsmen) renderBat(t.data.batsmen);
+            $('sum-bat-col').classList.add('slide-in');
+          }
+          if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
+            if(t.data?.bowlers) renderBowl(t.data.bowlers);
+            $('sum-bowl-col').classList.add('slide-in');
+          }
+        }
+
+        if (t.type === 'RESTORE') {
+          $('fullscreen-layer').className = 'layer-hide'; 
+          $('squads-tab').className = 'fs-card tab-hide'; $('target-tab').className = 'fs-card tab-hide'; $('match-end-tab').className = 'fs-card tab-hide';
+          $('sum-bat-col').classList.remove('slide-in'); $('sum-bowl-col').classList.remove('slide-in');
+          
+          sb.className = 'state-live';
+          sb.style.transform = 'translateX(-50%) perspective(1500px) rotateX(8deg)';
+          
+          $('anim-four').classList.remove('fire'); $('anim-six').classList.remove('fire'); $('anim-wicket').classList.remove('fire'); $('anim-milestone').classList.remove('fire'); $('anim-decision').classList.remove('fire');
+          $('side-card-wrapper').classList.remove('active-side'); $('intro-cards-wrapper').classList.remove('active-intro');
+          clearInterval(endMatchInterval);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

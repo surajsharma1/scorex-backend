@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Lvl 1 Clean Cloud</title>
+  <style>
+    /* Nunito font weights via system fonts - CSP safe */
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nunito', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      font-weight: 400;
+    }
+    * { font-weight: inherit; }
+    .tm, .sc, .pn, .ps, .ov, .lbl { font-weight: 800; }
+    .sc, .ps { font-weight: 900; }
+    body { background: transparent; overflow: hidden; color: #1e293b; }
+    
+    #static-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: #ffffff; color: #0ea5e9; border: 1px solid #e2e8f0;
+      font-size: 13px; font-weight: 800; letter-spacing: 2px; padding: 6px 30px;
+      border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    /* Floating slightly with gaps between modules */
+    #bottom-bar {
+      position: absolute; bottom: 10px; left: 0; width: 100%; height: 75px;
+      display: flex; gap: 6px; padding: 0 10px;
+    }
+    
+    .panel { background: #ffffff; display: flex; align-items: center; padding: 0 35px; box-shadow: 0 10px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+    .p-score { min-width: 320px; justify-content: space-between; border-radius: 0 25px 25px 0; border-left: 4px solid #0ea5e9;}
+    .p-bat { flex: 1; justify-content: space-around; border-radius: 25px; }
+    .p-bowl { min-width: 320px; justify-content: space-between; border-radius: 25px 0 0 25px; background: #f8fafc;}
+
+    .tm { font-size: 26px; font-weight: 900; }
+    .sc { font-size: 44px; font-weight: 900; line-height: 1; color: #0ea5e9;}
+    .sc span { font-size: 24px; color: #94a3b8; }
+    .ov { font-size: 14px; font-weight: 800; color: #64748b; margin-left: 12px;}
+    
+    .pn { font-size: 20px; font-weight: 800; }
+    .ps { font-size: 32px; font-weight: 900; color: #1e293b; margin-left: 10px; line-height: 1;}
+    .pb { font-size: 14px; color: #94a3b8; font-weight: 600;}
+    .lbl { font-size: 12px; color: #0ea5e9; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;}
+    
+    .v-div { width: 2px; height: 35px; background: #f1f5f9; }
+  </style>
+</head>
+<body>
+  <div id="static-island">SCOREX-LIVE.VERCEL.APP</div>
+  <div id="bottom-bar">
+    <div class="panel p-score">
+      <div id="teamName" class="tm">TEAM</div>
+      <div style="display:flex; align-items:baseline;">
+        <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov">OV <span id="teamOvers">0.0</span></div>
+      </div>
+    </div>
+    <div class="panel p-bat">
+      <div style="display:flex; align-items:baseline;">
+        <span style="color:#0ea5e9; margin-right:8px;">●</span>
+        <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
+      </div>
+      <div class="v-div"></div>
+      <div style="display:flex; align-items:baseline; opacity: 0.6;">
+        <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#64748b;">0</span>
+      </div>
+    </div>
+    <div class="panel p-bowl">
+      <div style="display:flex; flex-direction:column;"><span class="lbl">Bowler</span><span id="bowlerName" class="pn">Bowler Name</span></div>
+      <div style="display:flex; align-items:baseline;">
+        <span class="ps" style="color:#0ea5e9;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') { const d = e.data.data; ['teamName','teamScore','teamWickets','teamOvers','strikerName','strikerRuns','strikerBalls','nonStrikerName','nonStrikerRuns','bowlerName','bowlerRuns','bowlerWickets','bowlerOvers'].forEach(k => { if($(k)) $(k).innerText = d[k]; }); }});
+  </script>
+</body>
+</html>
