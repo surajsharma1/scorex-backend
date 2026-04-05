@@ -248,14 +248,15 @@ app.get('/api/health/db', (req, res) => {
   });
 });
 
+import { startScheduler } from './utils/scheduler';
+
 // ─── Graceful Startup ──────────────────────────────────────────────────────────
 const startup = async () => {
-  // Session store with Render fallback (already set above)
-  
-  // Try DB connection (non-blocking)
-const dbResult = await connectDB();
+  const dbResult = await connectDB();
   if ('success' in dbResult && dbResult.success) {
     console.log('✅ Full startup complete - DB ready');
+    // Start background jobs only when DB is connected
+    startScheduler();
   } else {
     console.warn('⚠️ Server starting WITHOUT DB - static assets/API read-only');
   }

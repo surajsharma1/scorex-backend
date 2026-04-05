@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPointsTable = exports.getTournamentMatches = exports.startTournament = exports.generateBracket = exports.deleteTournament = exports.updateTournament = exports.getTournamentById = exports.getMyTournaments = exports.getTournaments = exports.createTournament = void 0;
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const Team_1 = __importDefault(require("../models/Team"));
 const Match_1 = __importDefault(require("../models/Match"));
 const createTournament = async (req, res, next) => {
     try {
@@ -104,9 +105,17 @@ const updateTournament = async (req, res, next) => {
 exports.updateTournament = updateTournament;
 const deleteTournament = async (req, res, next) => {
     try {
-        const tournament = await Tournament_1.default.findOneAndDelete({ _id: req.params.id, organizer: req.user?._id });
-        if (!tournament)
+        const isAdmin = req.user?.role === 'admin';
+        const query = isAdmin
+            ? { _id: req.params.id }
+            : { _id: req.params.id, organizer: req.user?._id };
+        const tournamentDoc = await Tournament_1.default.findOne(query);
+        if (!tournamentDoc)
             return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
+        await Tournament_1.default.findByIdAndDelete(tournamentDoc._id);
+        // Also clean up matches and teams belonging to this tournament
+        await Match_1.default.deleteMany({ tournament: tournamentDoc._id });
+        await Team_1.default.deleteMany({ tournament: tournamentDoc._id });
         res.json({ success: true, message: 'Tournament deleted' });
     }
     catch (error) {

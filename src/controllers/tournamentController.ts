@@ -51,8 +51,16 @@ export const updateTournament = async (req: AuthRequest, res: Response, next: Ne
 
 export const deleteTournament = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const tournament = await Tournament.findOneAndDelete({ _id: req.params.id, organizer: req.user?._id });
-    if (!tournament) return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
+    const isAdmin = req.user?.role === 'admin';
+    const query = isAdmin
+      ? { _id: req.params.id }
+      : { _id: req.params.id, organizer: req.user?._id };
+    const tournamentDoc = await Tournament.findOne(query);
+    if (!tournamentDoc) return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
+    await Tournament.findByIdAndDelete(tournamentDoc._id);
+    // Also clean up matches and teams belonging to this tournament
+    await Match.deleteMany({ tournament: tournamentDoc._id });
+    await Team.deleteMany({ tournament: tournamentDoc._id });
     res.json({ success: true, message: 'Tournament deleted' });
   } catch (error) { next(error); }
 };

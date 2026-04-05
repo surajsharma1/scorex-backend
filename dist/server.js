@@ -260,13 +260,14 @@ app.get('/api/health/db', (req, res) => {
         modelsCount: Object.keys(mongoose_1.default.models).length
     });
 });
+const scheduler_1 = require("./utils/scheduler");
 // ─── Graceful Startup ──────────────────────────────────────────────────────────
 const startup = async () => {
-    // Session store with Render fallback (already set above)
-    // Try DB connection (non-blocking)
     const dbResult = await (0, database_1.default)();
     if ('success' in dbResult && dbResult.success) {
         console.log('✅ Full startup complete - DB ready');
+        // Start background jobs only when DB is connected
+        (0, scheduler_1.startScheduler)();
     }
     else {
         console.warn('⚠️ Server starting WITHOUT DB - static assets/API read-only');

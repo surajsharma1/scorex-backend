@@ -125,14 +125,15 @@ exports.createOverlay = createOverlay;
 // ─── getOverlays ─────────────────────────────────────────────────────────────
 const getOverlays = async (req, res) => {
     try {
-        // FIX: req.user.id not user._id
-        const overlays = await Overlay_1.default.find({ createdBy: req.user?.id }).sort({ createdAt: -1 });
-        const baseUrl = getBaseUrl();
+        const overlays = await Overlay_1.default.find({ createdBy: req.user?.id })
+            .populate({ path: 'match', select: 'name team1Name team2Name status', populate: [{ path: 'team1', select: 'name shortName' }, { path: 'team2', select: 'name shortName' }] })
+            .populate('tournament', 'name')
+            .sort({ createdAt: -1 });
         const result = overlays.map(o => ({
             ...o.toObject(),
-            publicUrl: `${baseUrl}/overlays/public/${o.publicId}?template=${o.template}`
+            publicUrl: `${getBaseUrl()}/overlays/public/${o.publicId}?template=${o.template}`
         }));
-        res.json(result);
+        res.json({ success: true, data: result });
     }
     catch (error) {
         res.status(500).json({ message: 'Server error' });
