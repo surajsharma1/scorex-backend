@@ -4,7 +4,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "prebuild": "if not exist public/overlays mkdir public\\overlays && xcopy /s /e /y ..\\..\\scorex-frontend\\scorex-frontend\\public\\overlays\\* public\\overlays\\",
+"prebuild": "node scripts/copy-overlays.js",
     "build": "tsc"
   },
   "dependencies": {

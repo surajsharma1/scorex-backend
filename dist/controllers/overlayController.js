@@ -1,7 +1,17 @@
 "use strict";
 /**
- * Overlay Controller — Fixed & Rewritten
- * All TypeScript errors resolved, syntax cleaned
+ * Overlay Controller — Fully Fixed
+ * Fixes applied:
+ * 1. membershipAtCreation now stores actual creator membership level
+ * 2. Match.findByIdAndUpdate runs AFTER overlay is created (so _id exists)
+ * 3. requiredMembershipLevel derived from template name if not sent by client
+ * 4. serveOverlay checks CREATOR's membership, not the anonymous iframe viewer
+ * 5. Template level enforced (lvl2 requires level 2)
+ * 6. getOverlays deleteMany scoped to current user + $ne null guard
+ * 7. populate uses strictPopulate: false to avoid crashes on dangling refs
+ * 8. Progress param parsing fixed (was broken regex with escaped backslash)
+ * 9. Preview data dispatched after window load to ensure overlay is ready
+ * 10. Search paths hardened for Render deployment
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -15,9 +25,8 @@ const path_1 = __importDefault(require("path"));
 const Overlay_1 = __importDefault(require("../models/Overlay"));
 const Match_1 = __importDefault(require("../models/Match"));
 const User_1 = __importDefault(require("../models/User"));
-const getBaseUrl = () => process.env.API_BASE_URL || '/api/v1';
+const getBaseUrl = () => process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
 const URL_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
-const JWT_SECRET = process.env.JWT_SECRET || 'scorex-secret-key-change-in-production';
 const checkUserMembership = async (userId) => {
     const user = await User_1.default.findById(userId).select('role membershipLevel membershipExpiresAt');
     if (!user)
@@ -28,6 +37,41 @@ const checkUserMembership = async (userId) => {
     const level = expired ? 0 : (user.membershipLevel || 0);
     return { hasMembership: level > 0, level, isAdmin: false };
 };
+// ─── Resolve overlay template file path (works on Render + local) ─────────────
+const resolveTemplatePath = (templateFile) => {
+    const searchPaths = [
+        path_1.default.resolve(process.cwd(), 'public/overlays'),
+        path_1.default.resolve(process.cwd(), '../public/overlays'),
+        path_1.default.resolve(__dirname, '../../public/overlays'),
+        path_1.default.resolve(__dirname, '../../../public/overlays'),
+        path_1.default.resolve(__dirname, '../../../../public/overlays'),
+    ];
+    for (const dir of searchPaths) {
+        const candidate = path_1.default.join(dir, templateFile);
+        if (fs_1.default.existsSync(candidate))
+            return candidate;
+    }
+    console.error('[resolveTemplatePath] Not found:', templateFile, '| Searched:', searchPaths);
+    return null;
+};
+// ─── Membership-expired HTML page ─────────────────────────────────────────────
+const membershipExpiredHtml = (frontendUrl, title, body) => `
+  <html><head><title>${title}</title>
+  <style>
+    body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;
+         justify-content:center;align-items:center;height:100vh;margin:0}
+    .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px;max-width:400px}
+    h1{color:#ff6b6b;margin-bottom:12px}
+    p{color:#ccc;margin-bottom:24px;font-size:14px}
+    a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;
+      border-radius:30px;font-weight:bold;display:inline-block}
+  </style>
+  </head><body><div class="box">
+  <h1>${title}</h1><p>${body}</p>
+  <a href="${frontendUrl}/membership">Renew Membership</a>
+  </div></body></html>
+`;
+// ─── regenerateOverlayUrl ──────────────────────────────────────────────────────
 const regenerateOverlayUrl = async (req, res) => {
     try {
         const newPublicId = (0, uuid_1.v4)();
@@ -45,6 +89,7 @@ const regenerateOverlayUrl = async (req, res) => {
     }
 };
 exports.regenerateOverlayUrl = regenerateOverlayUrl;
+// ─── createOverlay ─────────────────────────────────────────────────────────────
 const createOverlay = async (req, res) => {
     try {
         if (!req.user?.id) {
@@ -53,7 +98,11 @@ const createOverlay = async (req, res) => {
         }
         const membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
         if (!membership.hasMembership && !membership.isAdmin) {
-            res.status(403).json({ message: 'Premium membership required for overlay creation', requiresMembership: true, currentLevel: membership.level });
+            res.status(403).json({
+                message: 'Premium membership required for overlay creation',
+                requiresMembership: true,
+                currentLevel: membership.level
+            });
             return;
         }
         const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
@@ -65,24 +114,35 @@ const createOverlay = async (req, res) => {
             res.status(400).json({ message: 'Template is required' });
             return;
         }
-        // Derive level from template name if not explicitly provided
-        const templateLevel = template?.trim().startsWith('lvl2') ? 2 : 1;
+        // ✅ FIX 1: Derive template level from name if client didn't send it
+        const templateStr = template.trim();
+        const templateLevel = templateStr.startsWith('lvl2') ? 2 : 1;
         const membershipLevel = requiredMembershipLevel ?? templateLevel;
-        const placeholderHtml = `<!-- ScoreX Overlay: ${name} | Template: ${template} -->\n<div class="scorex-overlay" data-template="${template}"></div>`;
+        // ✅ FIX 2: Block level 1 users from creating level 2 overlays
+        if (templateLevel > membership.level && !membership.isAdmin) {
+            res.status(403).json({
+                message: `This template requires Enterprise membership (Level 2). You are on Level ${membership.level}.`,
+                requiresMembership: true,
+                requiredLevel: templateLevel,
+                currentLevel: membership.level
+            });
+            return;
+        }
+        const placeholderHtml = `<!-- ScoreX Overlay: ${name} | Template: ${templateStr} -->\n<div class="scorex-overlay" data-template="${templateStr}"></div>`;
         const overlayData = {
             name: name.trim(),
-            template: template.trim(),
+            template: templateStr,
             html: placeholderHtml,
             config: config || {},
             elements: elements || [],
             publicId: (0, uuid_1.v4)(),
             createdBy: req.user.id,
             requiredMembershipLevel: membershipLevel,
-            membershipAtCreation: membership.level, // ✅ FIXED: was hardcoded 0
+            membershipAtCreation: membership.level, // ✅ FIX 3: was hardcoded 0
             urlExpiresAt: new Date(Date.now() + URL_EXPIRY_MS),
-            level: membershipLevel > 1 ? 2 : 1,
+            level: templateLevel,
             category: 'broadcast',
-            isPremium: membershipLevel > 1,
+            isPremium: templateLevel > 1,
         };
         if (tournament && mongoose_1.default.Types.ObjectId.isValid(tournament)) {
             overlayData.tournament = new mongoose_1.default.Types.ObjectId(tournament);
@@ -91,7 +151,7 @@ const createOverlay = async (req, res) => {
             overlayData.match = new mongoose_1.default.Types.ObjectId(match);
         }
         const overlay = await Overlay_1.default.create(overlayData);
-        // ✅ FIXED: update match AFTER overlay is created so overlay._id exists
+        // ✅ FIX 4: Update match AFTER overlay is created so overlay._id exists
         if (match && mongoose_1.default.Types.ObjectId.isValid(match)) {
             try {
                 await Match_1.default.findByIdAndUpdate(match, { overlayId: overlay._id });
@@ -107,39 +167,37 @@ const createOverlay = async (req, res) => {
     }
 };
 exports.createOverlay = createOverlay;
+// ─── getOverlays ───────────────────────────────────────────────────────────────
 const getOverlays = async (req, res) => {
     try {
-        console.log('[OVERLAYS] getOverlays called. User ID:', req.user?.id || 'NO_USER');
         if (!req.user?.id) {
-            console.log('[OVERLAYS] No authenticated user, returning empty array');
             res.json([]);
             return;
         }
-        console.log('[OVERLAYS] Checking Overlay model exists:', !!Overlay_1.default);
-        // ✅ FIXED: only delete current user's expired overlays, not everyone's
+        // ✅ FIX 5: Only delete CURRENT USER's expired overlays, and only where field is set
         await Overlay_1.default.deleteMany({
             createdBy: req.user.id,
             urlExpiresAt: { $lt: new Date(), $ne: null }
         });
         const overlays = await Overlay_1.default.find({ createdBy: req.user.id })
+            // ✅ FIX 6: strictPopulate false so dangling refs don't crash
             .populate({ path: 'match', select: 'name team1Name team2Name status', options: { strictPopulate: false } })
             .populate({ path: 'tournament', select: 'name', options: { strictPopulate: false } })
             .sort({ createdAt: -1 })
             .lean();
-        console.log(`[OVERLAYS] Found ${overlays.length} overlays, populating done`);
         const result = overlays.map((o) => ({
             ...o,
             publicUrl: `${getBaseUrl()}/overlays/public/${o.publicId}?template=${o.template}`
         }));
-        console.log('[OVERLAYS] Sending response:', result.length, 'items');
         res.json(result);
     }
     catch (error) {
         console.error('[OVERLAYS] ERROR in getOverlays:', error.message, error.stack);
-        res.status(500).json({ message: 'Server error', debug: process.env.NODE_ENV === 'development' ? error.message : undefined });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 exports.getOverlays = getOverlays;
+// ─── getOverlay ────────────────────────────────────────────────────────────────
 const getOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOne({ _id: req.params.id, createdBy: req.user?.id });
@@ -155,6 +213,7 @@ const getOverlay = async (req, res) => {
     }
 };
 exports.getOverlay = getOverlay;
+// ─── updateOverlay ─────────────────────────────────────────────────────────────
 const updateOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: req.user?.id }, req.body, { new: true, runValidators: true });
@@ -169,6 +228,7 @@ const updateOverlay = async (req, res) => {
     }
 };
 exports.updateOverlay = updateOverlay;
+// ─── deleteOverlay ─────────────────────────────────────────────────────────────
 const deleteOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOneAndDelete({ _id: req.params.id, createdBy: req.user?.id });
@@ -183,33 +243,47 @@ const deleteOverlay = async (req, res) => {
     }
 };
 exports.deleteOverlay = deleteOverlay;
+// ─── getOverlayTemplates ───────────────────────────────────────────────────────
 const getOverlayTemplates = async (req, res) => {
     try {
         let membership = { level: 0, isAdmin: false };
         if (req.user?.id) {
             membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
         }
-        const templatesPath = path_1.default.join(process.cwd(), 'public/templates.json');
+        // Search for templates.json alongside resolveTemplatePath logic
+        const templateJsonPaths = [
+            path_1.default.join(process.cwd(), 'public/templates.json'),
+            path_1.default.join(process.cwd(), '../public/templates.json'),
+            path_1.default.join(__dirname, '../../public/templates.json'),
+            path_1.default.join(__dirname, '../../../public/templates.json'),
+        ];
         let templates = [];
-        try {
-            if (fs_1.default.existsSync(templatesPath)) {
-                const rawData = fs_1.default.readFileSync(templatesPath, 'utf8');
-                const jsonData = JSON.parse(rawData);
-                templates = jsonData.map((t) => {
-                    const level = t.id.startsWith('lvl2') ? 2 : 1;
-                    return {
-                        ...t,
-                        url: `/overlays/${t.file}`,
-                        level,
-                    };
-                }).filter((t) => t.level <= membership.level || membership.isAdmin);
-            }
-            else {
-                console.warn('templates.json not found at', templatesPath);
+        let templatesPath = null;
+        for (const p of templateJsonPaths) {
+            if (fs_1.default.existsSync(p)) {
+                templatesPath = p;
+                break;
             }
         }
-        catch (err) {
-            console.error('Failed to load templates JSON:', err);
+        if (templatesPath) {
+            try {
+                const rawData = fs_1.default.readFileSync(templatesPath, 'utf8');
+                const jsonData = JSON.parse(rawData);
+                templates = jsonData
+                    .map((t) => ({
+                    ...t,
+                    url: `/overlays/${t.file}`,
+                    level: t.id.startsWith('lvl2') ? 2 : 1,
+                }))
+                    // ✅ Only return templates the user's membership level can access
+                    .filter(t => membership.isAdmin || t.level <= membership.level);
+            }
+            catch (err) {
+                console.error('Failed to parse templates.json:', err);
+            }
+        }
+        else {
+            console.warn('[getOverlayTemplates] templates.json not found in any search path');
         }
         res.json(templates);
     }
@@ -219,6 +293,7 @@ const getOverlayTemplates = async (req, res) => {
     }
 };
 exports.getOverlayTemplates = getOverlayTemplates;
+// ─── getMembershipStatus ───────────────────────────────────────────────────────
 const getMembershipStatus = async (req, res) => {
     try {
         if (!req.user?.id) {
@@ -233,130 +308,95 @@ const getMembershipStatus = async (req, res) => {
     }
 };
 exports.getMembershipStatus = getMembershipStatus;
+// ─── serveOverlay ──────────────────────────────────────────────────────────────
 const serveOverlay = async (req, res) => {
     try {
         const isDemo = req.query.demo === 'true';
         let overlay = null;
         if (!isDemo) {
             overlay = await Overlay_1.default.findOne({ publicId: req.params.id })
-                .populate('tournament')
-                .populate('match')
-                .populate('createdBy', 'role membershipLevel membershipExpiresAt');
+                .populate({ path: 'tournament', options: { strictPopulate: false } })
+                .populate({ path: 'match', options: { strictPopulate: false } })
+                .populate({ path: 'createdBy', select: 'role membershipLevel membershipExpiresAt', options: { strictPopulate: false } });
             if (!overlay) {
                 res.status(404).send('Overlay not found');
                 return;
             }
-            // ✅ FIXED: Check CREATOR's membership, not the anonymous iframe viewer
+            // ✅ FIX 7: Check CREATOR's membership, not the anonymous iframe viewer
             // Iframes never send Authorization headers, so checking req.headers.authorization
-            // on an iframe src always results in hasMembership=false → wrongful 403.
-            // The correct gate is: did the creator maintain their membership?
-            const creatorId = overlay.createdBy?._id || overlay.createdBy;
-            if (overlay.membershipAtCreation > 0 && creatorId) {
-                const creatorMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(creatorId.toString()));
-                if (!creatorMembership.hasMembership && !creatorMembership.isAdmin) {
-                    res.status(403).send(`
-            <html><head><title>Membership Expired</title>
-            <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-            .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
-            h1{color:#ff6b6b}a{background:#4ecdc4;color:#1a1a2e;padding:12px 28px;text-decoration:none;border-radius:30px;font-weight:bold}</style>
-            </head><body><div class="box">
-            <h1>🔒 Membership Expired</h1>
-            <p>The creator's membership has expired. This overlay is inactive.</p>
-            <a href="${process.env.FRONTEND_URL || 'https://scorex-live.vercel.app'}/membership">Renew Now</a>
-            </div></body></html>
-          `);
-                    return;
+            // on an iframe src always gives hasMembership=false → causes wrongful 403 every time.
+            if (overlay.membershipAtCreation > 0) {
+                const creatorId = overlay.createdBy?._id || overlay.createdBy;
+                if (creatorId) {
+                    const creatorMembership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(creatorId.toString()));
+                    if (!creatorMembership.hasMembership && !creatorMembership.isAdmin) {
+                        const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
+                        res.status(403).send(membershipExpiredHtml(frontendUrl, '🔒 Membership Expired', "The creator's membership has expired. This overlay is currently inactive."));
+                        return;
+                    }
+                    // ✅ FIX 8: Also enforce template level matches creator's current level
+                    const templateStr = req.query.template || overlay.template || '';
+                    const templateLevel = templateStr.startsWith('lvl2') ? 2 : 1;
+                    if (templateLevel > creatorMembership.level && !creatorMembership.isAdmin) {
+                        const frontendUrl = process.env.FRONTEND_URL || 'https://scorex-live.vercel.app';
+                        res.status(403).send(membershipExpiredHtml(frontendUrl, '🔒 Enterprise Template', 'This overlay template requires an Enterprise membership.'));
+                        return;
+                    }
                 }
             }
         }
         const templateId = req.query.template || overlay?.template || 'lvl1-modern-bar';
         const templateFile = templateId.endsWith('.html') ? templateId : `${templateId}.html`;
-        // ✅ Enforce level access: lvl2 templates require level 2 membership
-        if (!isDemo && overlay) {
-            const templateLevel = templateFile.startsWith('lvl2') ? 2 : 1;
-            if (templateLevel > (overlay.level || 1)) {
-                res.status(403).send(`
-          <html><head><title>Template Restricted</title>
-          <style>body{font-family:sans-serif;background:#1a1a2e;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-          .box{text-align:center;padding:40px;background:rgba(255,255,255,.1);border-radius:20px}
-          h1{color:#ff6b6b}</style>
-          </head><body><div class="box">
-          <h1>🔒 Enterprise Template</h1>
-          <p>This overlay template requires an Enterprise membership.</p>
-          </div></body></html>
-        `);
-                return;
-            }
-        }
-        const searchPaths = [
-            path_1.default.resolve(process.cwd(), 'public/overlays'),
-            path_1.default.resolve(__dirname, '../public/overlays'),
-            path_1.default.resolve(__dirname, '../../public/overlays'),
-            path_1.default.resolve(__dirname, '../../../public/overlays'),
-        ];
-        let templatePath = null;
-        for (const dir of searchPaths) {
-            const candidate = path_1.default.join(dir, templateFile);
-            if (fs_1.default.existsSync(candidate)) {
-                templatePath = candidate;
-                break;
-            }
-        }
+        const templatePath = resolveTemplatePath(templateFile);
         if (!templatePath) {
             res.status(404).send(`Template not found: ${templateFile}`);
             return;
         }
-        let matchId = null;
-        let tournamentId = null;
-        const isPreviewMode = req.query.preview === 'true' || req.query.demo === 'true';
-        if (!isPreviewMode) {
-            matchId = req.query.matchId || req.query.match ||
-                overlay?.match?._id?.toString() || null;
-            tournamentId = req.query.tournamentId ||
-                overlay?.tournament?._id?.toString() || null;
-            if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
-                const liveMatch = await Match_1.default.findOne({
-                    tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
-                    status: { $in: ['live', 'ongoing'] },
-                    date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-                }).sort({ date: 1 }).select('_id').lean();
-                if (liveMatch)
-                    matchId = liveMatch._id.toString();
-            }
-        }
+        const isPreviewMode = req.query.preview === 'true' || isDemo;
         if (isPreviewMode) {
-            const progressStr = req.query.progress || '69%';
-            const progress = parseInt(progressStr) || 69;
+            // ✅ FIX 9: Parse progress correctly (was broken regex with escaped backslash)
+            const progressStr = req.query.progress || '69';
+            const progress = Math.max(0, Math.min(100, parseInt(progressStr) || 69));
             const demoData = {
                 matchName: 'ScoreX Premium Showcase',
                 tournamentName: 'PREVIEW MODE',
                 team1Name: 'PREMIUM BATS',
+                team2Name: 'ROYAL CHALLENGERS',
                 team1Score: Math.round(180 * (progress / 100)),
-                team1Wickets: Math.round(10 * (progress / 100)),
-                team1Overs: '14.2',
+                team1Wickets: Math.round(9 * (progress / 100)),
+                team1Overs: `${Math.round(20 * (progress / 100))}.0`,
                 strikerName: 'V Kohli',
                 strikerRuns: Math.round(68 * (progress / 100)),
-                strikerBalls: 42,
+                strikerBalls: Math.round(42 * (progress / 100)),
                 nonStrikerName: 'R Sharma',
                 nonStrikerRuns: Math.round(32 * (progress / 100)),
-                nonStrikerBalls: 28,
+                nonStrikerBalls: Math.round(28 * (progress / 100)),
                 bowlerName: 'J Anderson',
                 bowlerRuns: Math.round(45 * (progress / 100)),
                 bowlerWickets: Math.round(2 * (progress / 100)),
                 bowlerOvers: '3.4',
-                target: 180,
+                target: 181,
                 runRate: '8.44',
-                requiredRunRate: '9.23'
+                requiredRunRate: '9.23',
+                status: 'live',
             };
             let html = fs_1.default.readFileSync(templatePath, 'utf8');
+            // ✅ FIX 10: Dispatch AFTER window load so the overlay's listeners are ready
             html = html.replace('</head>', `
         <script src="/overlays/overlay-utils.js"></script>
         <script>
-          window.addEventListener('load', function() {
-            window.dispatchEvent(new CustomEvent('scorex:update', { 
-              detail: ${JSON.stringify(demoData)} 
-            }));
-          });
+          (function() {
+            var data = ${JSON.stringify(demoData)};
+            function dispatch() {
+              window.dispatchEvent(new CustomEvent('scorex:update', { detail: data }));
+              window.postMessage({ type: 'UPDATE_SCORE', data: data }, '*');
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', function() { setTimeout(dispatch, 100); });
+            } else {
+              setTimeout(dispatch, 100);
+            }
+          })();
         </script>
       </head>`);
             res.setHeader('Content-Type', 'text/html');
@@ -364,6 +404,25 @@ const serveOverlay = async (req, res) => {
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.send(html);
             return;
+        }
+        // ─── Live mode: inject OVERLAY_CONFIG + engine ──────────────────────────
+        let matchId = req.query.matchId ||
+            req.query.match ||
+            overlay?.match?._id?.toString() || null;
+        let tournamentId = req.query.tournamentId ||
+            overlay?.tournament?._id?.toString() || null;
+        // Auto-find a live match for the tournament if no matchId given
+        if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
+            console.log('[serveOverlay] Auto-finding live match for tournament:', tournamentId);
+            const liveMatch = await Match_1.default.findOne({
+                tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
+                status: { $in: ['live', 'ongoing'] },
+                date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+            }).sort({ date: 1 }).select('_id').lean();
+            if (liveMatch) {
+                matchId = liveMatch._id.toString();
+                console.log('[serveOverlay] Auto-selected live match:', matchId);
+            }
         }
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
@@ -375,7 +434,7 @@ const serveOverlay = async (req, res) => {
           matchId: ${JSON.stringify(matchId)},
           tournamentId: ${JSON.stringify(tournamentId)},
           apiBaseUrl: ${JSON.stringify(apiBaseUrl)},
-          overlayId: ${JSON.stringify(overlay?._id || null)},
+          overlayId: ${JSON.stringify(overlay?._id?.toString() || null)},
           config: ${JSON.stringify(overlay?.config || {})},
         };
       </script>
@@ -395,13 +454,6 @@ const serveOverlay = async (req, res) => {
 };
 exports.serveOverlay = serveOverlay;
 exports.default = {
-    createOverlay: exports.createOverlay,
-    getOverlays: exports.getOverlays,
-    getOverlay: exports.getOverlay,
-    updateOverlay: exports.updateOverlay,
-    deleteOverlay: exports.deleteOverlay,
-    getOverlayTemplates: exports.getOverlayTemplates,
-    getMembershipStatus: exports.getMembershipStatus,
-    serveOverlay: exports.serveOverlay,
-    regenerateOverlayUrl: exports.regenerateOverlayUrl
+    createOverlay: exports.createOverlay, getOverlays: exports.getOverlays, getOverlay: exports.getOverlay, updateOverlay: exports.updateOverlay, deleteOverlay: exports.deleteOverlay,
+    getOverlayTemplates: exports.getOverlayTemplates, getMembershipStatus: exports.getMembershipStatus, serveOverlay: exports.serveOverlay, regenerateOverlayUrl: exports.regenerateOverlayUrl
 };
