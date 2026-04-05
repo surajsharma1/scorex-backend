@@ -95,6 +95,17 @@ app.use('/overlays', (req, res, next) => {
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/uploads', express_1.default.static('public/uploads'));
+// ✅ DB readiness guard — returns 503 during cold start instead of crashing
+app.use('/api/v1', (req, res, next) => {
+    if (mongoose_1.default.connection.readyState !== 1) {
+        // readyState 1 = connected; 0 = disconnected, 2 = connecting, 3 = disconnecting
+        return res.status(503).json({
+            message: 'Service temporarily unavailable, DB connecting. Retry in a moment.',
+            retryAfter: 5
+        });
+    }
+    next();
+});
 // ─── Session Middleware ───────────────────────────────────────────────────────
 let sessionStore;
 if (process.env.RENDER || !process.env.MONGODB_URI) {

@@ -112,15 +112,18 @@ export const getOverlays = async (req: AuthRequest, res: Response): Promise<void
 
     console.log('[OVERLAYS] Checking Overlay model exists:', !!Overlay);
     
-    await Overlay.deleteMany({ urlExpiresAt: { $lt: new Date() } });
+    // ✅ FIXED: only delete current user's expired overlays, not everyone's
+    await Overlay.deleteMany({ 
+      createdBy: req.user.id,
+      urlExpiresAt: { $lt: new Date(), $ne: null } 
+    });
 
-    console.log('[OVERLAYS] Querying overlays for user:', req.user.id);
     const overlays = await Overlay.find({ createdBy: req.user.id })
-      .populate('match', 'name team1Name team2Name status')
-      .populate('tournament', 'name')
+      .populate({ path: 'match', select: 'name team1Name team2Name status', options: { strictPopulate: false } })
+      .populate({ path: 'tournament', select: 'name', options: { strictPopulate: false } })
       .sort({ createdAt: -1 })
       .lean();
-      
+
     console.log(`[OVERLAYS] Found ${overlays.length} overlays, populating done`);
 
     const result = overlays.map((o: any) => ({
