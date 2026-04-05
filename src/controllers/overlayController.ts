@@ -25,6 +25,8 @@ import User from '../models/User';
 interface AuthRequest extends Request { user?: any; }
 
 const getBaseUrl = () => process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+
+const SAFE_OVERLAY_PATH = '/o/pub'; // Adblocker-safe path alias
 const URL_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const checkUserMembership = async (userId: mongoose.Types.ObjectId) => {
@@ -82,7 +84,7 @@ export const regenerateOverlayUrl = async (req: AuthRequest, res: Response): Pro
       { new: true }
     );
     if (!overlay) { res.status(404).json({ message: 'Overlay not found' }); return; }
-    const publicUrl = `${getBaseUrl()}/overlays/public/${newPublicId}?template=${overlay.template}`;
+    const publicUrl = `${getBaseUrl().replace('/api/v1', '')}${SAFE_OVERLAY_PATH}/${newPublicId}?template=${overlay.template}`;
     res.json({ publicId: newPublicId, url: publicUrl, urlExpiresAt: newExpiry, publicUrl });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -156,7 +158,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
       try { await Match.findByIdAndUpdate(match, { overlayId: overlay._id }); } catch {}
     }
 
-    const publicUrl = `${getBaseUrl()}/overlays/public/${overlay.publicId}?template=${overlay.template}`;
+    const publicUrl = `${getBaseUrl().replace('/api/v1', '')}${SAFE_OVERLAY_PATH}/${overlay.publicId}?template=${overlay.template}`;
     res.status(201).json({ ...overlay.toObject(), publicUrl, urlExpiresAt: overlay.urlExpiresAt });
   } catch (error) {
     console.error('Overlay creation error:', error);
@@ -407,7 +409,8 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
         </script>
       </head>`);
 
-      res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       res.setHeader('X-Frame-Options', 'ALLOWALL');
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.send(html);
@@ -457,6 +460,7 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     </head>`);
 
     res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.setHeader('X-Frame-Options', 'ALLOWALL');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
