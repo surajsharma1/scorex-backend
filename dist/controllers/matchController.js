@@ -411,7 +411,13 @@ const getLiveMatches = async (req, res, next) => {
             .populate('team2', 'name shortName logo')
             .populate('tournamentId', 'name')
             .sort({ updatedAt: -1 });
-        res.json({ success: true, data: matches });
+        // ✅ Filter out orphaned matches (tournament was deleted but match wasn't)
+        const valid = matches.filter(m => {
+            if (!m.tournamentId)
+                return true; // standalone match, keep it
+            return m.tournamentId !== null && typeof m.tournamentId === 'object';
+        });
+        res.json({ success: true, data: valid });
     }
     catch (error) {
         next(error);

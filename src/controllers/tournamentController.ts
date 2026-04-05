@@ -48,23 +48,31 @@ export const updateTournament = async (req: AuthRequest, res: Response, next: Ne
     res.json({ success: true, data: tournament });
   } catch (error) { next(error); }
 };
-
 export const deleteTournament = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const isAdmin = req.user?.role === 'admin';
     const query = isAdmin
       ? { _id: req.params.id }
       : { _id: req.params.id, organizer: req.user?._id };
+
     const tournamentDoc = await Tournament.findOne(query);
     if (!tournamentDoc) return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
-    await Tournament.findByIdAndDelete(tournamentDoc._id);
-    // Also clean up matches and teams belonging to this tournament
-    await Match.deleteMany({ tournament: tournamentDoc._id });
-    await Team.deleteMany({ tournament: tournamentDoc._id });
-    res.json({ success: true, message: 'Tournament deleted' });
+
+    const tid = tournamentDoc._id;
+
+    // ✅ FIX: was { tournament: tid } — field is tournamentId
+    await Match.deleteMany({ tournamentId: tid });
+
+    // ✅ Also clean up overlays and teams linked to this tournament
+    const Overlay = (await import('../models/Overlay')).default;
+    await Overlay.deleteMany({ tournament: tid });
+
+    await Team.deleteMany({ tournament: tid });
+    await Tournament.findByIdAndDelete(tid);
+
+    res.json({ success: true, message: 'Tournament and all associated data deleted' });
   } catch (error) { next(error); }
 };
-
 export const generateBracket = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const tournament = await Tournament.findById(req.params.id);

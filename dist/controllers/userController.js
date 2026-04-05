@@ -8,12 +8,20 @@ const User_1 = __importDefault(require("../models/User"));
 const searchUsers = async (req, res, next) => {
     try {
         const { q, limit = 10 } = req.query;
+        // ✅ Guard: empty or missing query returns empty array instead of crashing
+        if (!q || q.trim().length < 2) {
+            return res.json({ success: true, data: [] });
+        }
+        const safeQ = q.trim();
         const users = await User_1.default.find({
             $or: [
-                { username: { $regex: q, $options: 'i' } },
-                { email: { $regex: q, $options: 'i' } }
+                { username: { $regex: safeQ, $options: 'i' } },
+                { email: { $regex: safeQ, $options: 'i' } },
+                { fullName: { $regex: safeQ, $options: 'i' } }, // ✅ also search full name
             ]
-        }).select('-password').limit(Number(limit));
+        })
+            .select('username email fullName avatar role') // ✅ include email in response
+            .limit(Number(limit));
         res.json({ success: true, data: users });
     }
     catch (error) {

@@ -6,12 +6,24 @@ interface AuthRequest extends Request { user?: any; }
 export const searchUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { q, limit = 10 } = req.query;
+
+    // ✅ Guard: empty or missing query returns empty array instead of crashing
+    if (!q || (q as string).trim().length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const safeQ = (q as string).trim();
+
     const users = await User.find({
       $or: [
-        { username: { $regex: q as string, $options: 'i' } },
-        { email: { $regex: q as string, $options: 'i' } }
+        { username: { $regex: safeQ, $options: 'i' } },
+        { email:    { $regex: safeQ, $options: 'i' } },
+        { fullName: { $regex: safeQ, $options: 'i' } }, // ✅ also search full name
       ]
-    }).select('-password').limit(Number(limit));
+    })
+    .select('username email fullName avatar role')  // ✅ include email in response
+    .limit(Number(limit));
+
     res.json({ success: true, data: users });
   } catch (error) { next(error); }
 };

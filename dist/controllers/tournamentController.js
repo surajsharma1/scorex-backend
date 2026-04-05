@@ -112,11 +112,15 @@ const deleteTournament = async (req, res, next) => {
         const tournamentDoc = await Tournament_1.default.findOne(query);
         if (!tournamentDoc)
             return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
-        await Tournament_1.default.findByIdAndDelete(tournamentDoc._id);
-        // Also clean up matches and teams belonging to this tournament
-        await Match_1.default.deleteMany({ tournament: tournamentDoc._id });
-        await Team_1.default.deleteMany({ tournament: tournamentDoc._id });
-        res.json({ success: true, message: 'Tournament deleted' });
+        const tid = tournamentDoc._id;
+        // ✅ FIX: was { tournament: tid } — field is tournamentId
+        await Match_1.default.deleteMany({ tournamentId: tid });
+        // ✅ Also clean up overlays and teams linked to this tournament
+        const Overlay = (await Promise.resolve().then(() => __importStar(require('../models/Overlay')))).default;
+        await Overlay.deleteMany({ tournament: tid });
+        await Team_1.default.deleteMany({ tournament: tid });
+        await Tournament_1.default.findByIdAndDelete(tid);
+        res.json({ success: true, message: 'Tournament and all associated data deleted' });
     }
     catch (error) {
         next(error);
