@@ -9,6 +9,19 @@ const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Public route for serving the overlay HTML (OBS/Browser Source)
 router.get('/public/:id', overlayController_1.serveOverlay);
+// 🔒 Adblocker evasion alias - /o/pub/:id → same serveOverlay logic
+router.options('/o/pub/:id', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    }
+    else {
+        (0, overlayController_1.serveOverlay)(req, res);
+    }
+});
+router.get('/o/pub/:id', overlayController_1.serveOverlay);
 // Protected route so we can check membership level for templates
 router.get('/templates', auth_1.protect, overlayController_1.getOverlayTemplates);
 // Public route for membership status

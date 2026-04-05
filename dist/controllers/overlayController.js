@@ -26,6 +26,7 @@ const Overlay_1 = __importDefault(require("../models/Overlay"));
 const Match_1 = __importDefault(require("../models/Match"));
 const User_1 = __importDefault(require("../models/User"));
 const getBaseUrl = () => process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
+const SAFE_OVERLAY_PATH = '/o/pub'; // Adblocker-safe path alias
 const URL_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const checkUserMembership = async (userId) => {
     const user = await User_1.default.findById(userId).select('role membershipLevel membershipExpiresAt');
@@ -81,7 +82,7 @@ const regenerateOverlayUrl = async (req, res) => {
             res.status(404).json({ message: 'Overlay not found' });
             return;
         }
-        const publicUrl = `${getBaseUrl()}/overlays/public/${newPublicId}?template=${overlay.template}`;
+        const publicUrl = `${getBaseUrl().replace('/api/v1', '')}${SAFE_OVERLAY_PATH}/${newPublicId}?template=${overlay.template}`;
         res.json({ publicId: newPublicId, url: publicUrl, urlExpiresAt: newExpiry, publicUrl });
     }
     catch (error) {
@@ -158,7 +159,7 @@ const createOverlay = async (req, res) => {
             }
             catch { }
         }
-        const publicUrl = `${getBaseUrl()}/overlays/public/${overlay.publicId}?template=${overlay.template}`;
+        const publicUrl = `${getBaseUrl().replace('/api/v1', '')}${SAFE_OVERLAY_PATH}/${overlay.publicId}?template=${overlay.template}`;
         res.status(201).json({ ...overlay.toObject(), publicUrl, urlExpiresAt: overlay.urlExpiresAt });
     }
     catch (error) {
@@ -400,6 +401,7 @@ const serveOverlay = async (req, res) => {
         </script>
       </head>`);
             res.setHeader('Content-Type', 'text/html');
+            res.setHeader('Cache-Control', 'public, max-age=3600');
             res.setHeader('X-Frame-Options', 'ALLOWALL');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.send(html);
@@ -441,6 +443,7 @@ const serveOverlay = async (req, res) => {
       <script src="/overlays/engine.js"></script>
     </head>`);
         res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
         res.setHeader('X-Frame-Options', 'ALLOWALL');
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET');
