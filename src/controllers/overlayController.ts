@@ -71,7 +71,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
       publicId: uuidv4(),
       createdBy: req.user.id,
       requiredMembershipLevel: membershipLevel,
-      membershipAtCreation: 0,
+      membershipAtCreation: membership.level,   // ✅ FIXED: was hardcoded 0
       urlExpiresAt: new Date(Date.now() + URL_EXPIRY_MS),
       level: membershipLevel > 1 ? 2 : 1,
       category: 'broadcast',
@@ -83,10 +83,14 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
     }
     if (match && mongoose.Types.ObjectId.isValid(match)) {
       overlayData.match = new mongoose.Types.ObjectId(match);
-      try { await Match.findByIdAndUpdate(match, { overlayId: overlayData._id }); } catch {}
     }
 
     const overlay = await Overlay.create(overlayData);
+
+    // ✅ FIXED: update match AFTER overlay is created so overlay._id exists
+    if (match && mongoose.Types.ObjectId.isValid(match)) {
+      try { await Match.findByIdAndUpdate(match, { overlayId: overlay._id }); } catch {}
+    }
     const publicUrl = `${getBaseUrl()}/overlays/public/${overlay.publicId}?template=${overlay.template}`;
 
     res.status(201).json({ ...overlay.toObject(), publicUrl, urlExpiresAt: overlay.urlExpiresAt });
@@ -98,21 +102,37 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
 
 export const getOverlays = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('[OVERLAYS] getOverlays called. User ID:', req.user?.id || 'NO_USER');
+    
+    if (!req.user?.id) {
+      console.log('[OVERLAYS] No authenticated user, returning empty array');
+      res.json([]);
+      return;
+    }
+
+    console.log('[OVERLAYS] Checking Overlay model exists:', !!Overlay);
+    
     await Overlay.deleteMany({ urlExpiresAt: { $lt: new Date() } });
 
-    const overlays = await Overlay.find({ createdBy: req.user?.id })
-      .populate({ path: 'match', select: 'name team1Name team2Name status', populate: [{ path: 'teams', model: 'Team' }] })
+    console.log('[OVERLAYS] Querying overlays for user:', req.user.id);
+    const overlays = await Overlay.find({ createdBy: req.user.id })
+      .populate('match', 'name team1Name team2Name status')
       .populate('tournament', 'name')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
       
-    const result = overlays.map(o => ({
-      ...o.toObject(),
+    console.log(`[OVERLAYS] Found ${overlays.length} overlays, populating done`);
+
+    const result = overlays.map((o: any) => ({
+      ...o,
       publicUrl: `${getBaseUrl()}/overlays/public/${o.publicId}?template=${o.template}`
     }));
     
+    console.log('[OVERLAYS] Sending response:', result.length, 'items');
     res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+  } catch (error: any) {
+    console.error('[OVERLAYS] ERROR in getOverlays:', error.message, error.stack);
+    res.status(500).json({ message: 'Server error', debug: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
