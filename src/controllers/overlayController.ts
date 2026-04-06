@@ -177,7 +177,11 @@ export const getOverlays = async (req: AuthRequest, res: Response): Promise<void
       urlExpiresAt: { $lt: new Date(), $ne: null }
     });
 
-    const overlays = await Overlay.find({ createdBy: req.user.id })
+    const query: any = { createdBy: req.user.id };
+    if (req.query.tournamentId) {
+      query.tournament = new mongoose.Types.ObjectId(req.query.tournamentId as string);
+    }
+    const overlays = await Overlay.find(query)
       // ✅ FIX 6: strictPopulate false so dangling refs don't crash
       .populate({ path: 'match', select: 'name team1Name team2Name status', options: { strictPopulate: false } })
       .populate({ path: 'tournament', select: 'name', options: { strictPopulate: false } })
