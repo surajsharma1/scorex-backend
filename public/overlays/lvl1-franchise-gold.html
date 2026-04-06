@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -65,7 +65,55 @@
   </div>
   <script>
     const $ = id => document.getElementById(id);
-    window.addEventListener('message', e => { if(e.data?.type === 'UPDATE_SCORE') { const d = e.data.data; ['teamName','teamScore','teamWickets','teamOvers','strikerName','strikerRuns','strikerBalls','nonStrikerName','nonStrikerRuns','bowlerName','bowlerRuns','bowlerWickets','bowlerOvers'].forEach(k => { if($(k)) $(k).innerText = d[k]; }); }});
+
+    function processData(d) {
+      if (!d) return;
+      
+      // Safe DOM updater to handle missing data without crashing or printing "undefined"
+      const safeSet = (id, val, fallback) => {
+        const el = $(id);
+        if (el) el.innerText = val != null ? val : fallback;
+      };
+
+      // Team Stats
+      safeSet('teamName', d.team1Name || d.teamName, 'TEAM');
+      safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
+      safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
+      safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
+
+      // Striker Stats
+      safeSet('strikerName', d.strikerName, 'Striker');
+      safeSet('strikerRuns', d.strikerRuns, 0);
+      safeSet('strikerBalls', d.strikerBalls, 0);
+
+      // Non-Striker Stats
+      safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
+      safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+
+      // Bowler Stats
+      safeSet('bowlerName', d.bowlerName, 'Bowler');
+      safeSet('bowlerRuns', d.bowlerRuns, 0);
+      safeSet('bowlerWickets', d.bowlerWickets, 0);
+      safeSet('bowlerOvers', d.bowlerOvers, '0.0');
+    }
+
+    // 1. Listen for postMessage from engine.js or PreviewStudio.tsx
+    window.addEventListener('message', e => { 
+      if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
+    });
+
+    // 2. Listen for custom events
+    window.addEventListener('scorex:update', e => { 
+      if (e.detail) processData(e.detail); 
+    });
+
+    // 3. Listen for BroadcastChannel
+    if ('BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('scorex_overlay_channel');
+      channel.onmessage = e => { 
+        if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
+      };
+    }
   </script>
 </body>
 </html>
