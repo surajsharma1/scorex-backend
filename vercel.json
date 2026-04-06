@@ -12,27 +12,53 @@
       "dest": "src/server.ts"
     },
     {
-      "src": "/overlays/(.*)",
-      "dest": "/overlays/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "src/server.ts"
     }
   ],
   "headers": [
     {
-      "source": "/overlays/(.*)",
+      "source": "/api/(.*)",
       "headers": [
-        {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate, max-age=0"},
-        {"key": "X-Overlay-Fix", "value": "backend-static-v1"},
-        {"key": "Access-Control-Allow-Origin", "value": "*"}
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://scorex-live.vercel.app"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        }
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/overlays/(.*)",
       "headers": [
-        {"key": "X-Overlay-Fix", "value": "backend"}
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|css|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp|avif)$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ]
