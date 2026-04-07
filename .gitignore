@@ -2,4 +2,3 @@
 .env*.local
 node_modules
 public/overlays/test.html
-public/overlays/lvl3-media-engine.html

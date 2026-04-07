@@ -2,113 +2,337 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Yellow Impact</title>
+  <title>ScoreX - Lvl 1 IPL Mega Broadcast</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@700;900&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; text-transform: uppercase;}
-    body { background: transparent; overflow: hidden; color: #171717; }
-    
-    #static-island {
-      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-      background: #fde047; color: #171717; font-family: 'Righteous', cursive;
-      font-size: 15px; letter-spacing: 2px; padding: 6px 30px;
-      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-      box-shadow: 5px 5px 0 rgba(0,0,0,0.8);
+    /* Classic sports broadcast fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700;900&family=Teko:wght@500;600;700&display=swap');
+
+    :root {
+      --ipl-navy: #06112a;
+      --ipl-blue: #0f2a63;
+      --ipl-blue-light: #1e40af;
+      
+      --ipl-gold: #fbbf24;
+      --ipl-gold-dark: #b45309;
+      --ipl-gold-grad: linear-gradient(180deg, #fde68a 0%, #fbbf24 50%, #d97706 100%);
+      
+      --ipl-white: #ffffff;
+      --ipl-gray: #94a3b8;
+      
+      --ipl-red: #dc2626;
     }
 
-    /* Extreme diagonal cuts */
-    #bottom-bar {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 75px;
-      display: flex; filter: drop-shadow(0 -5px 15px rgba(0,0,0,0.5));
+    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
+    
+    body { 
+      background: transparent; 
+      overflow: hidden; 
+      color: var(--ipl-white);
+      font-family: 'Roboto Condensed', sans-serif;
+    }
+
+    /* Animations */
+    @keyframes barReveal {
+      0% { transform: translateY(100px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes goldSweep {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes pulseActive {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Top Static Island */
+    #ipl-island {
+      position: absolute; 
+      top: 15px; 
+      left: 50%; 
+      transform: translateX(-50%);
+      background: var(--ipl-navy);
+      color: var(--ipl-gold);
+      font-family: 'Teko', sans-serif;
+      font-size: 20px; 
+      font-weight: 600; 
+      letter-spacing: 2px;
+      padding: 4px 40px;
+      border: 1px solid var(--ipl-gold-dark);
+      border-radius: 4px 4px 0 0;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      animation: barReveal 0.5s ease-out forwards;
+    }
+
+    /* Bottom Bar Wrapper - Component Heavy */
+    #ipl-bottom {
+      position: absolute; 
+      bottom: 25px; 
+      left: 0; 
+      width: 100%; 
+      display: flex; 
+      justify-content: center;
+      padding: 0 1vw;
+      filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+    }
+
+    /* The Main Mega Bar */
+    .ipl-mega-container {
+      display: flex;
+      background: var(--ipl-navy);
+      border-radius: 8px;
+      border: 2px solid #1e3a8a;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(15, 42, 99, 0.8);
+      animation: barReveal 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    /* 1. Score Component (Highly Segmented) */
+    .ipl-score-zone {
+      display: flex;
+      background: linear-gradient(135deg, var(--ipl-blue), var(--ipl-navy));
+      border-right: 3px solid var(--ipl-gold);
+      position: relative;
+    }
+
+    .t-name-box {
+      background: var(--ipl-gold-grad);
+      color: var(--ipl-navy);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Teko', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      min-width: 120px;
+      position: relative;
+      overflow: hidden;
     }
     
-    .panel { display: flex; align-items: center; padding: 0 40px; }
-    .p-score { background: #fde047; min-width: 300px; justify-content: space-between; clip-path: polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%); z-index: 3; }
-    .p-bat { background: #171717; color: #fff; flex: 1; justify-content: space-around; clip-path: polygon(40px 0, 100% 0, calc(100% - 40px) 100%, 0 100%); margin-left: -40px; padding-left: 80px; z-index: 2;}
-    .p-bowl { background: #e5e5e5; min-width: 350px; justify-content: space-between; clip-path: polygon(40px 0, 100% 0, 100% 100%, 0 100%); margin-left: -40px; padding-left: 80px; z-index: 1;}
+    /* Sheen on the gold box */
+    .t-name-box::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+      transform: skewX(-20deg);
+      animation: goldSweep 3s infinite linear;
+    }
 
-    .tm { font-family: 'Righteous', cursive; font-size: 28px; }
-    .sc { font-family: 'Righteous', cursive; font-size: 50px; line-height: 1; }
-    .sc span { font-size: 26px; color: #a16207; }
-    .ov { font-size: 14px; font-weight: 900; color: #a16207; margin-left: 10px;}
+    .t-score-box {
+      padding: 10px 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .sc { 
+      font-family: 'Teko', sans-serif; 
+      font-size: 65px; 
+      font-weight: 700; 
+      line-height: 0.75; 
+      text-shadow: 2px 2px 0px #000;
+    }
+    .sc span { font-size: 35px; color: var(--ipl-gray); margin: 0 4px; }
     
-    .pn { font-size: 22px; font-weight: 900; }
-    .ps { font-family: 'Righteous', cursive; font-size: 38px; color: #fde047; margin-left: 10px; line-height: 1;}
-    .pb { font-size: 14px; color: #737373; font-weight: 700;}
-    .lbl { font-size: 12px; color: #a3a3a3; font-weight: 900; margin-bottom: 2px;}
+    .ov-box {
+      margin-top: 5px;
+      background: rgba(0,0,0,0.4);
+      padding: 2px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ipl-gold);
+    }
+    .ov-box span { color: var(--ipl-white); font-size: 16px; margin-left: 4px; }
+
+    /* 2. Batting Component (Stacked Rows) */
+    .ipl-bat-zone {
+      display: flex;
+      flex-direction: column;
+      min-width: 380px;
+      border-right: 1px solid var(--ipl-blue-light);
+    }
+
+    .bat-row {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .bat-row:last-child { border-bottom: none; background: rgba(0,0,0,0.2); }
+
+    .bat-icon {
+      color: var(--ipl-gold);
+      font-size: 12px;
+      margin-right: 10px;
+      animation: pulseActive 1.5s infinite;
+    }
+
+    .b-name { flex: 1; font-size: 18px; font-weight: 700; }
+    .b-runs { 
+      font-family: 'Teko', sans-serif; 
+      font-size: 40px; 
+      font-weight: 600; 
+      width: 50px; 
+      text-align: right; 
+      line-height: 1;
+    }
+    .b-balls { font-size: 14px; color: var(--ipl-gray); width: 45px; text-align: right; font-weight: 700;}
+    
+    .bat-row.inactive .b-name { color: var(--ipl-gray); }
+    .bat-row.inactive .b-runs { color: var(--ipl-gray); }
+
+    /* 3. Bowling Component (Detailed Grid) */
+    .ipl-bowl-zone {
+      min-width: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bowl-header {
+      background: var(--ipl-blue-light);
+      color: var(--ipl-white);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 20px;
+      letter-spacing: 1px;
+    }
+
+    .bowl-data {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      justify-content: space-between;
+    }
+
+    .bw-name { font-size: 18px; font-weight: 700; flex: 1; }
+    .bw-fig { 
+      font-family: 'Teko', sans-serif; 
+      font-size: 42px; 
+      font-weight: 600; 
+      color: var(--ipl-gold);
+      line-height: 1;
+    }
+    .bw-fig span { margin: 0 2px; }
+    .bw-ov { font-size: 14px; color: var(--ipl-gray); font-weight: 700; margin-left: 20px; }
+
+    /* Decorative 'This Over' Tracker */
+    .this-over-tracker {
+      padding: 6px 20px 8px 20px;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .this-over-tracker span { font-size: 11px; color: var(--ipl-gray); font-weight: 700; margin-right: 5px; }
+    .ball-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ipl-blue-light); background: rgba(255,255,255,0.1); }
+    .ball-dot.fill { background: var(--ipl-white); border-color: var(--ipl-white); }
+
   </style>
 </head>
 <body>
-  <div id="static-island">SCOREX-LIVE.VERCEL.APP</div>
-  <div id="bottom-bar">
-    <div class="panel p-score">
-      <div id="teamName" class="tm">TEAM</div>
-      <div style="display:flex; align-items:baseline;">
-        <div class="sc"><span id="teamScore">0</span><span>/</span><span id="teamWickets">0</span></div>
-        <div class="ov">OV <span id="teamOvers">0.0</span></div>
+
+  <div id="ipl-island">T20 PREMIUM BROADCAST</div>
+
+  <div id="ipl-bottom">
+    
+    <div class="ipl-mega-container">
+      
+      <div class="ipl-score-zone">
+        <div class="t-name-box" id="teamName">TEAM</div>
+        <div class="t-score-box">
+          <div class="sc"><span id="teamScore" style="color:#fff; margin:0;">0</span><span>/</span><span id="teamWickets">0</span></div>
+          <div class="ov-box">OVERS <span id="teamOvers">0.0</span></div>
+        </div>
       </div>
+
+      <div class="ipl-bat-zone">
+        <div class="bat-row">
+          <div class="bat-icon">▶</div>
+          <div class="b-name" id="strikerName">Striker Name</div>
+          <div class="b-runs" id="strikerRuns">0</div>
+          <div class="b-balls">(<span id="strikerBalls">0</span>)</div>
+        </div>
+        <div class="bat-row inactive">
+          <div class="bat-icon" style="opacity: 0;">▶</div>
+          <div class="b-name" id="nonStrikerName">Non-Striker</div>
+          <div class="b-runs" id="nonStrikerRuns">0</div>
+          <div class="b-balls"></div>
+        </div>
+      </div>
+
+      <div class="ipl-bowl-zone">
+        <div class="bowl-header">CURRENT BOWLER</div>
+        <div class="bowl-data">
+          <div class="bw-name" id="bowlerName">Bowler Name</div>
+          <div class="bw-fig"><span id="bowlerWickets">0</span><span style="color:var(--ipl-white); font-size:30px;">-</span><span id="bowlerRuns">0</span></div>
+          <div class="bw-ov">OV <span id="bowlerOvers" style="color:var(--ipl-white);">0.0</span></div>
+        </div>
+        <div class="this-over-tracker">
+          <span>THIS OVER</span>
+          <div class="ball-dot fill"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+        </div>
+      </div>
+
     </div>
-    <div class="panel p-bat">
-      <div style="display:flex; align-items:baseline;">
-        <span style="color:#fde047; margin-right:8px;">▶</span>
-        <span id="strikerName" class="pn">Striker</span><span id="strikerRuns" class="ps">0</span> <span class="pb">(<span id="strikerBalls">0</span>)</span>
-      </div>
-      <div style="display:flex; align-items:baseline; opacity: 0.6;">
-        <span id="nonStrikerName" class="pn">Non-Striker</span><span id="nonStrikerRuns" class="ps" style="color:#fff;">0</span>
-      </div>
-    </div>
-    <div class="panel p-bowl">
-      <div style="display:flex; flex-direction:column;"><span class="lbl">Bowler</span><span id="bowlerName" class="pn">Bowler Name</span></div>
-      <div style="display:flex; align-items:baseline;">
-        <span class="ps" style="color:#171717;"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span> <span class="pb" style="margin-left:10px;">OV <span id="bowlerOvers">0.0</span></span>
-      </div>
-    </div>
+
   </div>
+
   <script>
     const $ = id => document.getElementById(id);
 
     function processData(d) {
       if (!d) return;
       
-      // Safe DOM updater to handle missing data without crashing or printing "undefined"
       const safeSet = (id, val, fallback) => {
         const el = $(id);
-        if (el) el.innerText = val != null ? val : fallback;
+        if (el) el.innerText = val != null && val !== '' ? val : fallback;
       };
 
-      // Team Stats
-      safeSet('teamName', d.team1Name || d.teamName, 'TEAM');
+      // T20 formats usually use short acronyms in the gold box
+      const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,3);
+      safeSet('teamName', tName);
+      
       safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
       safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
       safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
 
-      // Striker Stats
       safeSet('strikerName', d.strikerName, 'Striker');
       safeSet('strikerRuns', d.strikerRuns, 0);
       safeSet('strikerBalls', d.strikerBalls, 0);
 
-      // Non-Striker Stats
       safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
       safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
 
-      // Bowler Stats
       safeSet('bowlerName', d.bowlerName, 'Bowler');
       safeSet('bowlerRuns', d.bowlerRuns, 0);
       safeSet('bowlerWickets', d.bowlerWickets, 0);
       safeSet('bowlerOvers', d.bowlerOvers, '0.0');
     }
 
-    // 1. Listen for postMessage from engine.js or PreviewStudio.tsx
+    // Connect to engine triggers
     window.addEventListener('message', e => { 
       if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
     });
 
-    // 2. Listen for custom events
     window.addEventListener('scorex:update', e => { 
       if (e.detail) processData(e.detail); 
     });
 
-    // 3. Listen for BroadcastChannel
     if ('BroadcastChannel' in window) {
       const channel = new BroadcastChannel('scorex_overlay_channel');
       channel.onmessage = e => { 

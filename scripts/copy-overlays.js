@@ -1,33 +1,35 @@
 #!/usr/bin/env node
 /**
- * Pre-build script: Ensure overlays/ directory is populated for Nixpacks/Render
- * Copies from repo root public/overlays if needed
+ * Pre-build script: Copy overlays from sibling frontend repo (separate repos setup)
+ * For Nixpacks/Render - local dev skips if already present
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const overlaysDir = path.join(__dirname, '../public/overlays');
-const sourceDir = path.join(__dirname, '../../public/overlays'); // From monorepo root
+const frontendOverlaysDir = path.join(__dirname, '../../../scorex-frontend/scorex-frontend/public/overlays'); // Sibling repo
 
+// Ensure target dir
 if (!fs.existsSync(overlaysDir)) {
   fs.mkdirSync(overlaysDir, { recursive: true });
   console.log('📁 Created public/overlays/');
 }
 
-if (fs.existsSync(sourceDir)) {
-  // Copy from monorepo root public/overlays
-  fs.readdirSync(sourceDir).forEach(file => {
-    const src = path.join(sourceDir, file);
+// Copy if frontend source exists
+if (fs.existsSync(frontendOverlaysDir)) {
+  fs.readdirSync(frontendOverlaysDir).forEach(file => {
+    const src = path.join(frontendOverlaysDir, file);
     const dst = path.join(overlaysDir, file);
     if (fs.statSync(src).isFile()) {
       fs.copyFileSync(src, dst);
-      console.log(`📄 Copied ${file}`);
+      console.log(`📄 Copied ${file} from frontend repo`);
     }
   });
-  console.log('✅ Overlays copied from monorepo root');
+  console.log('✅ Overlays synced from scorex-frontend/public/overlays');
 } else {
-  console.log('⚠️ No source overlays found, skipping copy');
+  console.log('⚠️ Frontend overlays source not found, using local public/overlays');
 }
 
-console.log('🎬 Pre-build complete');
+console.log('🎬 Pre-build copy-overlays complete');
+
