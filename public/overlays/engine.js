@@ -1,8 +1,5 @@
 /**
- * Scorex Overlay Engine V4
- * Fixes: sponsors dispatched to overlay, shortName support,
- * preview=true only blocks when no real matchId injected,
- * socket reconnect, tournamentName shows "Team1 vs Team2"
+ * Scorex Overlay Engine V3 (AUTO-DIRECTOR HYBRID ARCHITECTURE)
  */
 (function () {
   'use strict';
@@ -12,47 +9,34 @@
   const apiBaseUrl = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
   const socketUrl = apiBaseUrl.replace('/api/v1', '');
 
+  // --- PARSE GLOBAL CONFIG FROM URL ---
   const urlParams = new URLSearchParams(window.location.search);
   let globalCfg = {};
   try {
     const cfgParam = urlParams.get('cfg');
     if (cfgParam) globalCfg = JSON.parse(decodeURIComponent(cfgParam));
-  } catch(e) { console.error('Could not parse cfg', e); }
+  } catch(e) { console.error("Could not parse config", e); }
 
   const overlaySettings = {
-    tossDuration:     globalCfg.tossDuration     || 8,
-    squadDuration:    globalCfg.squadDuration    || 12,
-    introDuration:    globalCfg.introDuration    || 12,
-    autoBattingOvers: globalCfg.autoBattingOvers !== undefined ? globalCfg.autoBattingOvers : 2,
-    autoBowlingOvers: globalCfg.autoBowlingOvers !== undefined ? globalCfg.autoBowlingOvers : 3,
-    autoStatsStyle:   globalCfg.autoStatsStyle   || 'TOGETHER',
-    autoStatsDuration:globalCfg.autoStatsDuration|| 10,
-    // ✅ Sponsors from cfg
-    sponsors:         globalCfg.sponsors         || [],
-    sponsorDuration:  globalCfg.showDuration      || 6,
+    tossDuration: globalCfg.tossDuration || 8,
+    squadDuration: globalCfg.squadDuration || 12,
+    introDuration: globalCfg.introDuration || 12,
+    autoStatsOvers: globalCfg.autoStatsOvers !== undefined ? globalCfg.autoStatsOvers : 5, 
+    autoStatsType: globalCfg.autoStatsType || 'BOTH_CARDS',
+    autoStatsDuration: globalCfg.autoStatsDuration || 10
   };
 
   let matchData = null;
   let socket = null;
-  let currentState = 'BOOTING';
+  
+  let currentState = 'BOOTING'; 
   let hasPlayedIntro = false;
-  let lastAutoBattingOver = -1;
-  let lastAutoBowlingOver = -1;
+  let lastAutoStatOver = -1;
   let animationLock = false;
 
   function dispatchTrigger(triggerObj) {
+    console.log(`[Scorex Auto-Director] 🎬 Firing: ${triggerObj.type}`, triggerObj);
     window.postMessage({ type: 'OVERLAY_TRIGGER', payload: triggerObj }, '*');
-  }
-
-  // ✅ Dispatch sponsors to overlay so templates can display them
-  function dispatchSponsors() {
-    if (overlaySettings.sponsors && overlaySettings.sponsors.length > 0) {
-      window.postMessage({
-        type: 'UPDATE_SPONSORS',
-        sponsors: overlaySettings.sponsors,
-        duration: overlaySettings.sponsorDuration
-      }, '*');
-    }
   }
 
   function safeUpdateState(rawDoc) {
@@ -60,85 +44,77 @@
       if (!rawDoc) return;
       const trigger = rawDoc.activeTrigger || null;
       const rawMatch = rawDoc.match || rawDoc;
-      let flatData = typeof window.normalizeScoreData === 'function'
-        ? window.normalizeScoreData(rawMatch)
-        : rawMatch;
+      let flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawMatch) : rawMatch;
 
-      // ✅ Override tournamentName to show "Team1 vs Team2" for overlay display
-      if (rawMatch.team1Name && rawMatch.team2Name) {
-        const t1Short = rawMatch.team1?.shortName || rawMatch.team1ShortName || rawMatch.team1Name;
-        const t2Short = rawMatch.team2?.shortName || rawMatch.team2ShortName || rawMatch.team2Name;
-        flatData.tournamentName = (rawMatch.tournamentId?.name || rawMatch.tournamentName || 'SCOREX LIVE');
-        flatData.matchDisplayName = `${t1Short} vs ${t2Short}`;
-        flatData.team1ShortName = t1Short;
-        flatData.team2ShortName = t2Short;
+      // --- TRUNCATION & ANTI-CLIPPING LOGIC ---
+      // Limit team names to 4 characters max to prevent UI clipping in all overlays
+      if (flatData.team1Name && flatData.team1Name.length > 4) {
+          flatData.team1Name = flatData.team1Name.substring(0, 4).toUpperCase();
+      }
+      if (flatData.team2Name && flatData.team2Name.length > 4) {
+          flatData.team2Name = flatData.team2Name.substring(0, 4).toUpperCase();
       }
 
       matchData = flatData;
-      const isMatchNew = flatData.team1Score === 0 && flatData.team1Overs === '0.0' && flatData.team1Wickets === 0;
+
+      const isMatchNew = flatData.team1Score === 0 && (flatData.team1Overs === "0.0" || flatData.team1Overs === 0) && flatData.team1Wickets === 0;
       const tossDone = !!rawMatch.tossWinnerName;
       const hasPlayers = !!flatData.strikerName;
 
-      if (currentState === 'BOOTING') {
+      // --- 1. BROADCAST SEQUENCING ---
+      if (currentState === 'BOOTING' || currentState === 'VS_SCREEN') {
         if (!tossDone) {
-          currentState = 'VS_SCREEN';
-          dispatchTrigger({ type: 'SHOW_VS_SCREEN' });
-        } else if (tossDone && isMatchNew && !hasPlayers) {
+          // Stay on VS screen until toss is decided
+          if (currentState !== 'VS_SCREEN') {
+            currentState = 'VS_SCREEN';
+            dispatchTrigger({ type: 'SHOW_VS_SCREEN' });
+          }
+        } 
+        else if (tossDone && isMatchNew && !hasPlayers) {
+          // Toss just happened, cascade through the sequence
           currentState = 'TOSS_SCREEN';
-          dispatchTrigger({ type: 'SHOW_TOSS', data: { text: rawMatch.tossWinnerName + ' won the toss' } });
+          dispatchTrigger({ type: 'SHOW_TOSS' });
+          
           setTimeout(() => {
             currentState = 'SQUAD_SCREEN';
             dispatchTrigger({ type: 'SHOW_SQUADS' });
+            
             setTimeout(() => {
               currentState = 'LIVE';
               dispatchTrigger({ type: 'RESTORE' });
             }, overlaySettings.squadDuration * 1000);
           }, overlaySettings.tossDuration * 1000);
         } else {
+          // Fallback if match is already in progress
           currentState = 'LIVE';
+          dispatchTrigger({ type: 'RESTORE' });
         }
       }
 
+      // --- 2. INNINGS START AUTOMATION ---
       if (currentState === 'LIVE' && hasPlayers && isMatchNew && !hasPlayedIntro && !animationLock) {
         hasPlayedIntro = true;
         animationLock = true;
         dispatchTrigger({ type: 'START_INNINGS_INTRO' });
-        setTimeout(() => { animationLock = false; dispatchTrigger({ type: 'RESTORE' }); }, overlaySettings.introDuration * 1000);
+        setTimeout(() => {
+          animationLock = false;
+          dispatchTrigger({ type: 'RESTORE' });
+        }, overlaySettings.introDuration * 1000);
       }
 
-      // ✅ Independent batting/bowling card auto-triggers
-      if (currentState === 'LIVE' && !animationLock) {
-        const overs = parseFloat(flatData.team1Overs);
-        const isOverComplete = Number.isInteger(overs) && overs > 0;
-
-        if (isOverComplete) {
-          const doBatting = overlaySettings.autoBattingOvers > 0 && (overs % overlaySettings.autoBattingOvers === 0) && overs !== lastAutoBattingOver;
-          const doBowling = overlaySettings.autoBowlingOvers > 0 && (overs % overlaySettings.autoBowlingOvers === 0) && overs !== lastAutoBowlingOver;
-
-          if (doBatting) lastAutoBattingOver = overs;
-          if (doBowling) lastAutoBowlingOver = overs;
-
-          if (doBatting && doBowling) {
-            animationLock = true;
-            if (overlaySettings.autoStatsStyle === 'SEQUENTIAL') {
-              dispatchTrigger({ type: 'BATTING_CARD' });
-              setTimeout(() => {
-                dispatchTrigger({ type: 'BOWLING_CARD' });
-                setTimeout(() => { animationLock = false; dispatchTrigger({ type: 'RESTORE' }); }, overlaySettings.autoStatsDuration * 1000);
-              }, overlaySettings.autoStatsDuration * 1000);
-            } else {
-              dispatchTrigger({ type: 'BOTH_CARDS' });
-              setTimeout(() => { animationLock = false; dispatchTrigger({ type: 'RESTORE' }); }, overlaySettings.autoStatsDuration * 1000);
-            }
-          } else if (doBatting) {
-            animationLock = true;
-            dispatchTrigger({ type: 'BATTING_CARD' });
-            setTimeout(() => { animationLock = false; dispatchTrigger({ type: 'RESTORE' }); }, overlaySettings.autoStatsDuration * 1000);
-          } else if (doBowling) {
-            animationLock = true;
-            dispatchTrigger({ type: 'BOWLING_CARD' });
-            setTimeout(() => { animationLock = false; dispatchTrigger({ type: 'RESTORE' }); }, overlaySettings.autoStatsDuration * 1000);
-          }
+      // --- 3. AUTO-STATS AT END OF OVERS ---
+      if (currentState === 'LIVE' && overlaySettings.autoStatsOvers > 0 && !animationLock) {
+        const currentOversFloat = parseFloat(flatData.team1Overs);
+        const isOverComplete = Number.isInteger(currentOversFloat) && currentOversFloat > 0;
+        
+        if (isOverComplete && (currentOversFloat % overlaySettings.autoStatsOvers === 0) && currentOversFloat !== lastAutoStatOver) {
+          lastAutoStatOver = currentOversFloat;
+          animationLock = true;
+          dispatchTrigger({ type: overlaySettings.autoStatsType });
+          setTimeout(() => {
+            animationLock = false;
+            dispatchTrigger({ type: 'RESTORE' });
+          }, overlaySettings.autoStatsDuration * 1000);
         }
       }
 
@@ -146,55 +122,65 @@
         dispatchTrigger(trigger);
       }
 
-      // ✅ Dispatch score update
+      // Update the DOM Data
       window.postMessage({ type: 'UPDATE_SCORE', data: flatData, raw: rawMatch }, '*');
+
     } catch (err) {
-      console.error('[Scorex Engine] Error:', err);
+      console.error('[Scorex Engine] Automation Error:', err);
     }
   }
 
+  // --- SAFE FETCH & SOCKET LOGIC ---
   async function safeFetchMatchData() {
-    if (!matchId) { safeUpdateState(getDemoData()); return; }
+    if (!matchId) return safeUpdateState(getDemoData());
     try {
-      const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { Accept: 'application/json' } });
+      const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { 'Accept': 'application/json' } });
       const json = await res.json();
       safeUpdateState(json.data || json);
-    } catch (err) {
-      console.error('[Engine] fetch error:', err);
-      safeUpdateState(getDemoData());
-    }
+    } catch (err) { safeUpdateState(getDemoData()); }
   }
 
   function safeConnectSocket() {
     if (typeof io === 'undefined') return;
-    socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true, reconnectionDelay: 2000 });
+    socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity });
     socket.on('connect', () => { if (matchId) socket.emit('joinMatch', matchId); });
     socket.on('scoreUpdate', (data) => safeUpdateState(data));
-    socket.on('disconnect', () => console.warn('[Engine] socket disconnected, will reconnect'));
+    socket.on('disconnect', () => console.warn('[Scorex Engine] Disconnected, attempting reconnect...'));
+  }
+
+  function renderSponsors() {
+    if (globalCfg.sponsors && globalCfg.sponsors.length > 0) {
+      const spDiv = document.createElement('div');
+      spDiv.style.position = 'absolute';
+      spDiv.style[globalCfg.position === 'top' ? 'top' : 'bottom'] = '10px';
+      spDiv.style.width = '100%';
+      spDiv.style.textAlign = 'center';
+      spDiv.style.zIndex = '99999';
+      spDiv.style.pointerEvents = 'none';
+      
+      const spText = globalCfg.sponsors.map(s => `${s.name} ${s.tagline ? '- ' + s.tagline : ''}`).join(' &nbsp;&bull;&nbsp; ');
+      spDiv.innerHTML = `<div style="display:inline-block; background:rgba(0,0,0,0.7); color:#fff; padding:4px 15px; border-radius:20px; font-family:sans-serif; font-size:11px; font-weight:bold; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px); text-transform:uppercase; letter-spacing:1px;">POWERED BY <span style="color:#fbbf24; margin-left:5px;">${spText}</span></div>`;
+      document.body.appendChild(spDiv);
+    }
   }
 
   function getDemoData() {
-    return {
-      team1Name: 'PREMIUM BATS', team2Name: 'ROYAL CHALLENGERS',
-      team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
-      tossWinnerName: 'Team A', tossDecision: 'bat',
-      strikerName: 'V. Kohli'
-    };
+    return { match: { tossWinnerName: 'Team A', tossDecision: 'bat' }, team1Score: 0, team1Wickets: 0, team1Overs: '0.0', team1Name: 'PREM', team2Name: 'CHAL', strikerName: 'V. Kohli' };
   }
 
   function init() {
-    const isPreview = urlParams.get('preview') === 'true';
-    // ✅ Only use demo if preview AND no real matchId was injected by backend
-    if (isPreview && !matchId) { safeUpdateState(getDemoData()); return; }
-    safeFetchMatchData();
+    const params = new URLSearchParams(window.location.search);
+    const isPreview = params.get('preview') === 'true';
+    renderSponsors();
+
+    if (isPreview && !config.matchId) { 
+      safeUpdateState(getDemoData()); 
+      return; 
+    }
+    safeFetchMatchData(); 
     safeConnectSocket();
-    // ✅ Dispatch sponsors after a short delay so overlay listeners are ready
-    setTimeout(dispatchSponsors, 800);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+

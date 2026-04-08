@@ -2,19 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Broadcast Heavyweight</title>
+  <title>ScoreX - Lvl 1 Super Flare (Edge-to-Edge Slant)</title>
   <style>
-    /* Heavy, condensed fonts for that premium sports TV look */
-    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@500;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700;900&family=Teko:wght@500;600;700&display=swap');
 
     :root {
-      --net-navy: #0a1128;
-      --net-gold: #ffb703;
-      --net-gold-dark: #fb8500;
-      --net-white: #ffffff;
-      --net-gray: #e5e5e5;
-      --net-red: #d90429;
-      --text-dark: #14213d;
+      --cs-navy: #0f172a;
+      --cs-blue: #1e3a8a;
+      --cs-yellow: #eab308;
+      --cs-yellow-light: #fde047;
+      --cs-white: #ffffff;
+      --cs-gray: #94a3b8;
+      --cs-red: #ef4444;
+      --skew-deg: -18deg;
+      --unskew-deg: 18deg;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
@@ -22,202 +23,177 @@
     body { 
       background: transparent; 
       overflow: hidden; 
-      color: var(--net-white);
-      font-family: 'Roboto', sans-serif;
+      color: var(--cs-white);
+      font-family: 'Roboto Condensed', sans-serif;
     }
 
-    /* Entrance Animations */
-    @keyframes slideInLeft {
-      0% { transform: translateX(-50px) skewX(-10deg); opacity: 0; }
-      100% { transform: translateX(0) skewX(-10deg); opacity: 1; }
-    }
-    @keyframes slideInRight {
-      0% { transform: translateX(50px) skewX(-10deg); opacity: 0; }
-      100% { transform: translateX(0) skewX(-10deg); opacity: 1; }
+    /* Animations */
+    @keyframes slideUp { 0% { transform: translateY(150px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Static Top Island */
+    #cs-island {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: var(--cs-navy); border-bottom: 3px solid var(--cs-yellow);
+      color: var(--cs-white); font-family: 'Teko', sans-serif; font-size: 22px; 
+      font-weight: 600; letter-spacing: 3px; padding: 4px 50px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.8); animation: slideUp 0.5s ease-out forwards;
     }
 
-    /* Continuous Metallic Shimmer */
-    @keyframes metallicShimmer {
-      0% { background-position: -200% center; }
-      100% { background-position: 200% center; }
+    /* Edge to Edge Bottom Bar Wrapper */
+    #cs-bottom {
+      position: absolute; bottom: 0; left: 0; width: 100vw; height: 85px;
+      display: flex; filter: drop-shadow(0 -10px 25px rgba(0,0,0,0.7));
+      background: var(--cs-navy); border-top: 3px solid var(--cs-yellow);
+      animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      overflow: hidden;
     }
 
-    /* Top Static Island */
-    #bh-island {
-      position: absolute; 
-      top: 15px; 
-      left: 50%; 
-      transform: translateX(-50%);
-      background: var(--net-navy);
-      color: var(--net-white);
-      font-family: 'Oswald', sans-serif;
-      font-size: 14px; 
-      font-weight: 700; 
-      letter-spacing: 2px;
-      padding: 6px 40px;
-      border-bottom: 3px solid var(--net-gold);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-      animation: slideInLeft 0.5s ease-out forwards;
-    }
+    /* Geometry Engine: Slanted Blocks */
+    .skew-block { transform: skewX(var(--skew-deg)); height: 100%; border-right: 4px solid var(--cs-navy); display: flex; }
+    .unskew-content { transform: skewX(var(--unskew-deg)); width: 100%; display: flex; align-items: center; }
 
-    /* The Main Bottom Bar Wrapper - Adds the master slant */
-    #bh-bottom {
-      position: absolute; 
-      bottom: 25px; 
-      left: 0; 
-      width: 100%; 
-      display: flex; 
-      justify-content: center;
-      padding: 0 2vw;
-      filter: drop-shadow(0 15px 20px rgba(0,0,0,0.4));
-    }
-
-    /* Module Containers */
-    .bh-mod {
-      display: flex; 
-      align-items: center; 
-      padding: 10px 45px;
-      transform: skewX(-10deg); /* The broadcast slant */
-      opacity: 0; /* Handled by animation */
-    }
-
-    /* Un-skew the text inside the modules */
-    .unskew {
-      transform: skewX(10deg);
-      display: flex;
-      align-items: center;
-      width: 100%;
-    }
-
-    /* 1. Score Panel (Gold Shimmer) */
-    .mod-score {
-      background: linear-gradient(90deg, var(--net-gold) 0%, #ffd000 50%, var(--net-gold) 100%);
-      background-size: 200% auto;
-      color: var(--text-dark);
-      flex: 0 1 350px;
-      animation: slideInLeft 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards, metallicShimmer 4s linear infinite;
-      border-left: 8px solid var(--net-navy);
-      z-index: 3;
-    }
-
-    /* 2. Batting Panel (White/Gray) */
-    .mod-bat {
-      background: var(--net-white);
-      color: var(--text-dark);
-      flex: 1 1 auto;
-      margin-left: -15px; /* Overlap to remove gaps */
-      padding-left: 60px;
-      animation: slideInLeft 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards;
-      border-right: 2px solid var(--net-gray);
-      z-index: 2;
-    }
-
-    /* 3. Bowling Panel (Navy) */
-    .mod-bowl {
-      background: var(--net-navy);
-      flex: 0 1 360px;
-      margin-left: -15px; /* Overlap */
-      padding-left: 60px;
-      animation: slideInRight 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards;
-      border-right: 8px solid var(--net-red);
-      z-index: 1;
-    }
-
-    /* Typography Classes */
-    .tm { 
-      font-family: 'Oswald', sans-serif; 
-      font-size: 26px; 
-      font-weight: 700; 
-      letter-spacing: -0.5px;
-      margin-bottom: 5px;
-      line-height: 1;
-    }
-    .sc { 
-      font-family: 'Oswald', sans-serif; 
-      font-size: 52px; 
-      font-weight: 700; 
-      line-height: 0.85; 
-    }
-    .sc span { font-size: 28px; color: var(--net-gold-dark); margin: 0 2px;}
-    .ov { 
-      font-family: 'Roboto', sans-serif;
-      font-size: 15px; 
-      font-weight: 900; 
-      color: var(--net-navy); 
-      margin-left: 15px; 
-    }
-
-    .pn { font-size: 22px; font-weight: 900; letter-spacing: -0.5px;}
-    .ps { 
-      font-family: 'Oswald', sans-serif; 
-      font-size: 42px; 
-      font-weight: 700; 
-      margin-left: 15px;
-      line-height: 0.85;
-    }
-    .pb { font-family: 'Roboto', sans-serif; font-size: 15px; color: #6b7280; margin-left: 8px; font-weight: 700;}
-    
-    .lbl { 
-      font-family: 'Roboto', sans-serif; 
-      font-size: 12px; 
-      color: var(--net-gray); 
-      letter-spacing: 1px; 
-      font-weight: 700;
-      margin-bottom: 2px;
+    /* 1. Score Block (Bright Yellow) */
+    .cs-score-zone {
+      flex: 0 0 450px; background: linear-gradient(90deg, var(--cs-yellow), var(--cs-yellow-light));
+      margin-left: -30px; /* Offset the slant gap on the left edge */
+      padding-left: 30px; color: var(--cs-navy);
     }
     
-    .v-div { 
-      width: 2px; 
-      height: 40px; 
-      background: var(--net-gray); 
-      margin: 0 25px;
+    .team-badge { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.8; padding: 0 20px; border-right: 2px solid rgba(0,0,0,0.1); }
+    .score-txt { font-family: 'Teko', sans-serif; font-size: 75px; font-weight: 700; line-height: 0.8; padding: 0 20px; }
+    .score-txt span { font-size: 40px; color: #52525b; margin: 0 4px; }
+    .ov-txt { font-size: 18px; font-weight: 900; color: var(--cs-navy); display: flex; flex-direction: column; line-height: 1; }
+
+    /* 2. Batting Block (Navy/Dark Blue) */
+    .cs-bat-zone { flex: 1; background: var(--cs-navy); position: relative; }
+    .bat-grid { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 40px; }
+    .bat-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
+    
+    .b-name-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .b-ind { color: var(--cs-yellow); font-size: 14px; animation: pulse 1.5s infinite; }
+    .b-name { font-size: 22px; font-weight: 700; color: #fff; }
+    .b-runs { font-family: 'Teko', sans-serif; font-size: 42px; font-weight: 700; color: var(--cs-yellow); line-height: 1; width: 50px; text-align: right;}
+    .b-balls { font-size: 16px; color: var(--cs-gray); width: 50px; text-align: right; font-weight: 700;}
+    
+    .bat-row.inactive .b-ind { opacity: 0; }
+    .bat-row.inactive .b-name, .bat-row.inactive .b-runs { color: var(--cs-gray); font-size: 20px; }
+    .bat-row.inactive .b-runs { font-size: 32px; }
+
+    /* 3. Bowling Block (Blue) */
+    .cs-bowl-zone { flex: 0 0 500px; background: var(--cs-blue); margin-right: -30px; /* Offset right gap */ padding-right: 30px;}
+    .bowl-flex { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 40px; }
+    
+    .bw-main { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px;}
+    .bw-name { font-size: 22px; font-weight: 700; flex: 1; }
+    .bw-fig { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: var(--cs-yellow); line-height: 0.8; }
+    .bw-ov { font-size: 16px; color: var(--cs-white); font-weight: 700; margin-left: 20px; }
+
+    .this-over-row { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+    .this-over-row span { font-size: 14px; color: var(--cs-gray); font-weight: 900; }
+    .ball-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--cs-white); background: transparent; }
+    .ball-dot.fill { background: var(--cs-yellow); border-color: var(--cs-yellow); }
+
+
+    /* =========================================
+       4. EVENT ANIMATIONS (4, 6, OUT, DECISION)
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 200; overflow: hidden;}
+    
+    .anim-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
+      font-family: 'Teko', sans-serif; font-size: 200px; font-weight: 700; line-height: 1;
+      text-align: center; opacity: 0; text-shadow: 6px 6px 0 #000, 0 20px 50px rgba(0,0,0,0.8); font-style: italic;
+    }
+    
+    .anim-event.fire { animation: smashIn 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
+    #ev-four { color: #38bdf8; -webkit-text-stroke: 5px var(--cs-blue); }
+    #ev-six { color: var(--cs-yellow); -webkit-text-stroke: 5px #b45309; font-size: 240px; }
+    #ev-out { color: var(--cs-red); -webkit-text-stroke: 5px #fff; }
+
+    /* Decision Pending Radar */
+    #ev-decision {
+      position: absolute; top: 15%; left: 50%; transform: translate(-50%, 0);
+      background: rgba(15, 23, 42, 0.95); border: 4px solid var(--cs-yellow); border-radius: 4px;
+      padding: 20px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; pointer-events: none;
+    }
+    #ev-decision.fire { opacity: 1; animation: radarPulse 1.5s infinite; }
+    .d-title { font-size: 20px; color: #cbd5e1; letter-spacing: 10px; margin-bottom: 5px; font-weight: 900;}
+    .d-text { font-family: 'Teko', sans-serif; font-size: 90px; color: var(--cs-yellow); line-height: 1; white-space: nowrap;}
+
+    @keyframes smashIn {
+      0% { transform: translate(-50%, -50%) scale(0) rotate(-15deg); opacity: 0; }
+      15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
+      25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5) translateY(-50px); opacity: 0; }
+    }
+
+    @keyframes radarPulse { 
+      0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 
+      70% { box-shadow: 0 0 0 50px rgba(234, 179, 8, 0); } 
+      100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); } 
     }
 
   </style>
 </head>
 <body>
 
-  <div id="bh-island">SCOREX LIVE . BROADCAST PRO</div>
+  <div class="event-layer">
+    <div id="ev-four" class="anim-event">FOUR!</div>
+    <div id="ev-six" class="anim-event">SIX!</div>
+    <div id="ev-out" class="anim-event">OUT!</div>
+    <div id="ev-decision">
+      <div class="d-title">THIRD UMPIRE</div>
+      <div class="d-text">DECISION PENDING</div>
+    </div>
+  </div>
 
-  <div id="bh-bottom">
-    
-    <div class="bh-mod mod-score">
-      <div class="unskew" style="justify-content: space-between;">
-        <div id="teamName" class="tm">TEAM</div>
-        <div style="display:flex; align-items:baseline;">
-          <div class="sc"><span id="teamScore" style="color:var(--text-dark); font-size: 52px;">0</span><span>/</span><span id="teamWickets">0</span></div>
-          <div class="ov">OV <span id="teamOvers" style="font-size: 20px;">0.0</span></div>
+  <div id="cs-island">LIVE MATCH BROADCAST</div>
+
+  <div id="cs-bottom">
+      
+    <div class="skew-block cs-score-zone">
+      <div class="unskew-content">
+        <div class="team-badge" id="teamName">TM</div>
+        <div class="score-txt"><span id="teamScore" style="color:var(--cs-navy); margin:0;">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="ov-txt">OVERS <span id="teamOvers" style="font-size:24px;">0.0</span></div>
+      </div>
+    </div>
+
+    <div class="skew-block cs-bat-zone">
+      <div class="unskew-content bat-grid">
+        <div class="bat-row">
+          <div class="b-name-wrap"><div class="b-ind">▶</div><div class="b-name" id="strikerName">Striker Name</div></div>
+          <div class="b-runs" id="strikerRuns">0</div>
+          <div class="b-balls">(<span id="strikerBalls">0</span>)</div>
+        </div>
+        <div class="bat-row inactive">
+          <div class="b-name-wrap"><div class="b-ind">▶</div><div class="b-name" id="nonStrikerName">Non-Striker</div></div>
+          <div class="b-runs" id="nonStrikerRuns">0</div>
+          <div class="b-balls">(<span id="nonStrikerBalls">0</span>)</div>
         </div>
       </div>
     </div>
 
-    <div class="bh-mod mod-bat">
-      <div class="unskew" style="justify-content: center;">
-        <div style="display:flex; align-items:baseline;">
-          <span style="color:var(--net-gold-dark); font-size: 14px; margin-right:10px;">▶</span>
-          <span id="strikerName" class="pn">Striker</span>
-          <span id="strikerRuns" class="ps" style="color:var(--net-gold-dark);">0</span>
-          <span class="pb">(<span id="strikerBalls">0</span>)</span>
+    <div class="skew-block cs-bowl-zone">
+      <div class="unskew-content bowl-flex">
+        <div class="bw-main">
+          <div class="bw-name">BOWL: <span id="bowlerName" style="color:var(--cs-yellow); margin-left: 8px;">Bowler Name</span></div>
+          <div style="display:flex; align-items:baseline;">
+            <div class="bw-fig"><span id="bowlerWickets">0</span><span style="color:#fff; font-size:30px; margin:0 4px;">-</span><span id="bowlerRuns">0</span></div>
+            <div class="bw-ov">OV <span id="bowlerOvers">0.0</span></div>
+          </div>
         </div>
-        
-        <div class="v-div"></div>
-        
-        <div style="display:flex; align-items:baseline; opacity: 0.6;">
-          <span id="nonStrikerName" class="pn">Non-Striker</span>
-          <span id="nonStrikerRuns" class="ps" style="color:var(--text-dark);">0</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="bh-mod mod-bowl">
-      <div class="unskew" style="justify-content: space-between;">
-        <div style="display:flex; flex-direction:column;">
-          <span class="lbl">CURRENT BOWLER</span>
-          <span id="bowlerName" class="pn">Bowler Name</span>
-        </div>
-        <div style="display:flex; align-items:baseline;">
-          <span class="ps" style="color:var(--net-red);"><span id="bowlerWickets">0</span>-<span id="bowlerRuns">0</span></span>
-          <span class="pb" style="color:var(--net-gray);">OV <span id="bowlerOvers" style="color:var(--net-white);">0.0</span></span>
+        <div class="this-over-row">
+          <span>THIS OVER</span>
+          <div class="ball-dot fill"></div>
+          <div class="ball-dot fill"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
+          <div class="ball-dot"></div>
         </div>
       </div>
     </div>
@@ -226,7 +202,10 @@
 
   <script>
     const $ = id => document.getElementById(id);
+    let eventTimer;
+    let decisionPendingState = false;
 
+    // Normal Score Data Processing
     function processData(d) {
       if (!d) return;
       
@@ -235,8 +214,8 @@
         if (el) el.innerText = val != null && val !== '' ? val : fallback;
       };
 
-      // Handle raw data or normalized data
-      safeSet('teamName', d.team1ShortName || d.team1Name || d.teamName, 'TEAM');
+      const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,3);
+      safeSet('teamName', tName);
       safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
       safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
       safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
@@ -247,6 +226,7 @@
 
       safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
       safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+      safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
 
       safeSet('bowlerName', d.bowlerName, 'Bowler');
       safeSet('bowlerRuns', d.bowlerRuns, 0);
@@ -254,21 +234,41 @@
       safeSet('bowlerOvers', d.bowlerOvers, '0.0');
     }
 
-    // Connect to your engine's triggers
+    // Engine Event Listeners
     window.addEventListener('message', e => { 
-      if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
+      if (e.data?.type === 'UPDATE_SCORE') {
+        processData(e.data.data); 
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', 'RESTORE'].includes(t.type)) {
+          $('ev-four').classList.remove('fire'); $('ev-six').classList.remove('fire'); $('ev-out').classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('ev-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-four').classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX') {
+            $('ev-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-six').classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET') {
+            $('ev-out').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-out').classList.remove('fire'), 3000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('ev-decision').classList.add('fire');
+            else $('ev-decision').classList.remove('fire');
+          } else if (t.type === 'RESTORE') {
+             decisionPendingState = false;
+             $('ev-decision').classList.remove('fire');
+          }
+        }
+      }
     });
 
-    window.addEventListener('scorex:update', e => { 
-      if (e.detail) processData(e.detail); 
-    });
-
-    if ('BroadcastChannel' in window) {
-      const channel = new BroadcastChannel('scorex_overlay_channel');
-      channel.onmessage = e => { 
-        if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
-      };
-    }
+    window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
   </script>
 </body>
 </html>

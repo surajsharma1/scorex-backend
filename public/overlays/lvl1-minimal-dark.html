@@ -2,21 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScoreX - Lvl 1 Esports Armor</title>
+  <title>ScoreX - Lvl 1 Solid Silver & Navy</title>
   <style>
-    /* Sci-fi gaming fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;900&family=Oswald:wght@500;700&display=swap');
 
     :root {
-      --es-bg-dark: #0b0914;
-      --es-bg-panel: #161224;
-      --es-border: #2d244a;
+      /* Pure Silver/Gray Gradients (No Pure White) */
+      --slv-light: #ffffff;
+      --slv-mid: #ffffff;
+      --slv-base: #ffffff;
+      --slv-dark: #64748b;
+      --slv-deep: #ffffff;
       
-      --es-cyan: #00ffcc;
-      --es-magenta: #ff00cc;
-      
-      --text-main: #ffffff;
-      --text-dim: #8b80b0;
+      /* Theme Colors */  
+      --navy: #0f172a;
+      --navy-light: #1e293b;
+      --blue: #0ea5e9;
+      --yellow: #eab308;
+      --black: #000000;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
@@ -24,223 +27,259 @@
     body { 
       background: transparent; 
       overflow: hidden; 
-      color: var(--text-main);
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Chakra Petch', sans-serif;
     }
 
-    /* Animations */
-    @keyframes warpIn {
-      0% { transform: perspective(500px) translateZ(-100px) translateY(50px); opacity: 0; }
-      100% { transform: perspective(500px) translateZ(0) translateY(0); opacity: 1; }
+    @keyframes barRise { 
+      0% { transform: translateY(120px); opacity: 0; } 
+      100% { transform: translateY(0); opacity: 1; } 
     }
 
-    @keyframes pulseTriangle {
-      0%, 100% { filter: drop-shadow(0 0 2px var(--es-cyan)); }
-      50% { filter: drop-shadow(0 0 10px var(--es-cyan)); }
+    /* =========================================
+       THE SOLID SILVER SCOREBOARD
+       ========================================= */
+    #silver-bottom-bar {
+      position: absolute; bottom: 0; left: 0; width: 100vw; height: 95px;
+      display: flex; align-items: stretch; padding: 10px 15px; gap: 15px;
+      
+      /* Solid Silver Base (No White) */
+      background: linear-gradient(180deg, var(--slv-mid) 0%, var(--slv-base) 20%, var(--slv-dark) 80%, var(--slv-deep) 100%);
+      
+      /* Heavy Inset Shadow in the center */
+      box-shadow: inset 0 0 60px rgba(0,0,0,0.6), 0 -10px 25px rgba(0,0,0,0.5);
+      border-top: 2px solid var(--slv-light);
+      
+      animation: barRise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      z-index: 100;
     }
 
-    @keyframes neonGlow {
-      0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 204, 0.2); }
-      50% { box-shadow: 0 0 20px rgba(0, 255, 204, 0.5); }
-    }
-
-    /* Top Static Island */
-    #es-island {
-      position: absolute; 
-      top: 15px; 
-      left: 50%; 
-      transform: translateX(-50%);
-      background: var(--es-bg-dark);
-      color: var(--es-cyan);
-      font-family: 'Orbitron', sans-serif;
-      font-size: 12px; 
-      font-weight: 700; 
-      letter-spacing: 3px;
-      padding: 6px 35px;
-      border: 2px solid var(--es-border);
-      border-bottom: 2px solid var(--es-cyan);
-      /* Hexagon-like angled cuts */
-      clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%, 0 50%);
-      animation: warpIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    /* Bottom Bar Wrapper */
-    #es-bottom {
-      position: absolute; 
-      bottom: 25px; 
-      left: 0; 
-      width: 100%; 
-      display: flex; 
-      justify-content: center;
-      gap: 15px;
-      padding: 0 2vw;
-    }
-
-    /* Base Armor Module */
-    .es-mod {
-      background: linear-gradient(135deg, var(--es-bg-panel), var(--es-bg-dark));
-      display: flex; 
-      align-items: center; 
-      padding: 15px 35px;
+    /* Common Navy Box Style */
+    .navy-box {
+      background: var(--navy);
+      border: 1px solid var(--navy-light);
+      border-radius: 4px;
+      display: flex; align-items: center;
+      box-shadow: 4px 4px 10px rgba(0,0,0,0.4);
       position: relative;
-      border: 2px solid var(--es-border);
-      opacity: 0;
-      animation: warpIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      box-shadow: 0 15px 25px rgba(0,0,0,0.8);
+      z-index: 2; /* Sits above the silver shadow */
     }
 
-    /* 1. Score Armor Plate */
-    .mod-score {
-      flex: 0 1 330px;
-      justify-content: space-between;
-      clip-path: polygon(0 0, 100% 0, calc(100% - 25px) 100%, 0 100%);
-      border-left: 4px solid var(--es-cyan);
-      animation-delay: 0.1s;
+    /* Common Yellow Shape */
+    .yellow-shape {
+      background: var(--yellow);
+      color: var(--black);
+      clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      display: flex; align-items: baseline; justify-content: center; gap: 6px;
+    }
+
+    /* 1. Team & Score Box */
+    .box-team-score { flex: 0 0 auto; padding: 0 20px 0 30px; gap: 20px; }
+    
+    .team-name { 
+      font-family: 'Oswald', sans-serif; font-size: 45px; font-weight: 700;
+      color: var(--slv-light); letter-spacing: 2px;
     }
     
-    /* 2. Batting Armor Plate */
-    .mod-bat {
-      flex: 1 1 auto;
-      justify-content: space-around;
-      clip-path: polygon(25px 0, 100% 0, calc(100% - 25px) 100%, 0 100%);
-      animation-delay: 0.2s;
-    }
-
-    /* 3. Bowling Armor Plate */
-    .mod-bowl {
-      flex: 0 1 350px;
-      justify-content: space-between;
-      clip-path: polygon(25px 0, 100% 0, 100% 100%, 0 100%);
-      border-right: 4px solid var(--es-magenta);
-      animation-delay: 0.3s;
-    }
-
-    /* Typography */
-    .tm { 
-      font-family: 'Orbitron', sans-serif; 
-      font-size: 16px; 
-      font-weight: 900; 
-      color: var(--text-dim);
-      letter-spacing: 2px;
-      margin-bottom: 2px;
-    }
-    .sc { 
-      font-family: 'Orbitron', sans-serif; 
-      font-size: 46px; 
-      font-weight: 900; 
-      line-height: 0.9; 
-      color: #fff;
-    }
-    .sc span { font-size: 24px; color: var(--es-cyan); margin: 0 4px;}
+    .box-team-score .yellow-shape { height: 60px; padding: 0 30px; }
+    .box-team-score .yellow-shape .main-val { font-family: 'Oswald', sans-serif; font-size: 45px; font-weight: 700; line-height: 1.2; }
+    .box-team-score .yellow-shape .sub-val { font-size: 24px; font-weight: 700; color: rgba(0,0,0,0.7); }
     
-    .ov { 
-      font-size: 18px; 
-      font-weight: 700; 
-      color: var(--es-cyan); 
-      margin-left: 15px; 
-      background: rgba(0, 255, 204, 0.1);
-      padding: 2px 10px;
-      border-radius: 2px;
-      border: 1px solid rgba(0, 255, 204, 0.3);
+    .ov-txt { font-size: 14px; font-weight: 700; color: var(--slv-base); display: flex; flex-direction: column; align-items: center; line-height: 1;}
+    .ov-txt span { color: var(--slv-light); font-size: 22px; margin-top: 2px;}
+
+    /* 2. Batting Box */
+    .box-batting { flex: 1; flex-direction: column; justify-content: center; padding: 0 20px; gap: 4px;}
+    
+    .bat-row { display: flex; align-items: center; width: 100%; justify-content: space-between; }
+    .b-name-wrap { display: flex; align-items: center; flex: 1; }
+    
+    /* Single Blue Line & Slanted Bar */
+    .blue-line { width: 4px; height: 30px; background: var(--blue); margin-right: 8px; }
+    .blue-slant {
+      background: var(--blue);
+      clip-path: polygon(0 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      padding: 2px 40px 2px 15px; min-width: 180px; display: flex; align-items: center;
+    }
+    .b-name { font-size: 20px; font-weight: 700; color: var(--slv-light); letter-spacing: 1px;}
+    
+    /* Inactive State (No Blue) */
+    .bat-row.inactive .blue-line { background: transparent; }
+    .bat-row.inactive .blue-slant { background: transparent; clip-path: none; padding: 2px 15px; }
+    .bat-row.inactive .b-name { color: var(--slv-base); }
+    
+    /* Batting Yellow Shape */
+    .bat-row .yellow-shape { height: 32px; padding: 0 20px; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+    .bat-row .yellow-shape .main-val { font-size: 24px; font-weight: 700; line-height: 1.3;}
+    .bat-row .yellow-shape .sub-val { font-size: 15px; color: rgba(0,0,0,0.7); font-weight: 700;}
+
+    /* Inactive Yellow Shape fades out slightly */
+    .bat-row.inactive .yellow-shape { background: var(--slv-dark); color: var(--slv-light); }
+    .bat-row.inactive .yellow-shape .sub-val { color: var(--slv-base); }
+
+    /* 3. Bowling Box */
+    .box-bowling { flex: 1; justify-content: space-between; padding: 0 20px; }
+    
+    .bw-info-wrap { display: flex; align-items: center; gap: 20px; }
+    .bw-details { display: flex; flex-direction: column; justify-content: center; }
+    .bw-name { font-size: 22px; font-weight: 700; color: var(--slv-light); letter-spacing: 1px; margin-bottom: 2px;}
+    .bw-ov { font-size: 13px; color: var(--slv-base); font-weight: 700;}
+    .bw-ov span { color: var(--slv-light); font-size: 16px; margin-left: 6px;}
+    
+    /* Bowler Yellow Shape */
+    .box-bowling .yellow-shape { height: 45px; padding: 0 25px; }
+    .box-bowling .yellow-shape .main-val { font-size: 32px; font-weight: 700; line-height: 1.3;}
+    .box-bowling .yellow-shape .sub-val { font-size: 22px; font-weight: 700; margin: 0 2px;}
+
+    /* This Over: Yellow Pill with Black Frame */
+    .this-over-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center;}
+    .tracker-lbl { font-size: 12px; color: var(--slv-base); font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+    
+    .yellow-pill {
+      background: var(--yellow);
+      border: 3px solid var(--black);
+      border-radius: 50px;
+      padding: 4px 12px;
+      display: flex; gap: 8px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
     }
 
-    .pn { 
-      font-size: 22px; 
-      font-weight: 700; 
-      letter-spacing: 1px;
+    /* Silver Circular Balls */
+    .silver-ball { 
+      width: 18px; height: 18px; border-radius: 50%; 
+      border: 1px solid var(--black);
+      background: radial-gradient(circle at 30% 30%, var(--slv-light) 0%, var(--slv-base) 50%, var(--slv-dark) 100%);
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     }
-    .ps { 
-      font-family: 'Orbitron', sans-serif; 
-      font-size: 38px; 
-      font-weight: 900; 
-      margin-left: 15px;
-      line-height: 0.9;
+    .silver-ball.fill { 
+      /* Fill state uses the blue to indicate current over action */
+      background: radial-gradient(circle at 30% 30%, var(--slv-light) 0%, var(--blue) 50%, #0284c7 100%);
     }
-    .pb { 
-      font-size: 16px; 
-      color: var(--text-dim); 
-      margin-left: 8px; 
-      font-weight: 700;
+
+
+    /* =========================================
+       EVENT ANIMATIONS
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 200; overflow: hidden;}
+    
+    .anim-event {
+      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
+      font-family: 'Oswald', sans-serif; font-size: 200px; line-height: 1; font-weight: 900;
+      text-align: center; opacity: 0; font-style: italic; text-shadow: 6px 6px 0 rgba(0,0,0,0.8);
     }
     
-    .lbl { 
-      font-size: 13px; 
-      color: var(--es-magenta); 
-      letter-spacing: 2px; 
-      font-weight: 700;
-      margin-bottom: 2px;
+    .anim-event.fire { animation: popIn 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
+    #ev-four { color: var(--blue); -webkit-text-stroke: 4px var(--slv-light); }
+    #ev-six { color: var(--yellow); font-size: 240px; -webkit-text-stroke: 4px var(--navy); }
+    #ev-out { color: #ef4444; -webkit-text-stroke: 4px var(--slv-light); }
+
+    /* Umpire Decision HUD */
+    #ev-decision {
+      position: absolute; top: 15%; left: 50%; transform: translate(-50%, 0);
+      background: var(--navy); border: 4px solid var(--yellow); border-radius: 8px;
+      padding: 15px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; pointer-events: none;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 10px 10px 0 var(--black);
+    }
+    #ev-decision.fire { opacity: 1; animation: umpireFlash 1.2s infinite; }
+    .d-title { font-size: 16px; color: var(--slv-base); letter-spacing: 6px; margin-bottom: 2px; font-weight: 900;}
+    .d-text { font-family: 'Oswald', sans-serif; font-size: 70px; color: var(--yellow); line-height: 1; white-space: nowrap; text-shadow: 3px 3px 0 var(--black);}
+
+    @keyframes popIn {
+      0% { transform: translate(-50%, -50%) scale(0) rotate(-5deg); opacity: 0; }
+      15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
+      25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.2) translateY(-40px); opacity: 0; }
     }
 
-    /* Glowing Triangle Indicator for Striker */
-    .es-triangle {
-      display: inline-block;
-      width: 0;
-      height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-left: 12px solid var(--es-cyan);
-      margin-right: 12px;
-      animation: pulseTriangle 1.5s infinite;
-    }
-
-    .v-div { 
-      width: 2px; 
-      height: 40px; 
-      background: var(--es-border); 
-      margin: 0 20px;
+    @keyframes umpireFlash {
+      0%, 100% { border-color: var(--yellow); box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 10px 10px 0 var(--black); }
+      50% { border-color: var(--slv-light); box-shadow: inset 0 0 40px rgba(234, 179, 8, 0.4), 10px 10px 0 var(--black); }
     }
 
   </style>
 </head>
 <body>
 
-  <div id="es-island">SCOREX // ESPORTS ARENA</div>
+  <div class="event-layer">
+    <div id="ev-four" class="anim-event">FOUR!</div>
+    <div id="ev-six" class="anim-event">SIX!</div>
+    <div id="ev-out" class="anim-event">OUT!</div>
+    <div id="ev-decision">
+      <div class="d-title">THIRD UMPIRE</div>
+      <div class="d-text">DECISION PENDING</div>
+    </div>
+  </div>
 
-  <div id="es-bottom">
-    
-    <div class="es-mod mod-score">
-      <div style="display:flex; flex-direction:column;">
-        <div id="teamName" class="tm">TEAM</div>
-        <div style="display:flex; align-items:baseline;">
-          <div class="sc"><span id="teamScore" style="color:#fff;">0</span><span>/</span><span id="teamWickets">0</span></div>
-          <div class="ov">OV <span id="teamOvers" style="color:#fff;">0.0</span></div>
-        </div>
+  <div id="silver-bottom-bar">
+      
+    <div class="navy-box box-team-score">
+      <div class="team-name" id="teamName">TM</div>
+      <div class="yellow-shape">
+        <span class="main-val"><span id="teamScore">0</span>/<span id="teamWickets">0</span></span>
       </div>
+      <div class="ov-txt">OVERS <span id="teamOvers">0.0</span></div>
     </div>
 
-    <div class="es-mod mod-bat">
-      <div style="display:flex; align-items:center;">
-        <span class="es-triangle"></span>
-        <div style="display:flex; align-items:baseline;">
-          <span id="strikerName" class="pn">Striker</span>
-          <span id="strikerRuns" class="ps" style="color:var(--es-cyan);">0</span>
-          <span class="pb">(<span id="strikerBalls">0</span>)</span>
+    <div class="navy-box box-batting">
+      
+      <div class="bat-row">
+        <div class="b-name-wrap">
+          <div class="blue-line"></div>
+          <div class="blue-slant"><div class="b-name" id="strikerName">Striker Name</div></div>
+        </div>
+        <div class="yellow-shape">
+          <span class="main-val" id="strikerRuns">0</span>
+          <span class="sub-val">(<span id="strikerBalls">0</span>)</span>
         </div>
       </div>
       
-      <div class="v-div"></div>
-      
-      <div style="display:flex; align-items:baseline; opacity: 0.6;">
-        <span id="nonStrikerName" class="pn">Non-Striker</span>
-        <span id="nonStrikerRuns" class="ps" style="color:var(--text-main);">0</span>
+      <div class="bat-row inactive">
+        <div class="b-name-wrap">
+          <div class="blue-line"></div>
+          <div class="blue-slant"><div class="b-name" id="nonStrikerName">Non-Striker</div></div>
+        </div>
+        <div class="yellow-shape">
+          <span class="main-val" id="nonStrikerRuns">0</span>
+          <span class="sub-val">(<span id="nonStrikerBalls">0</span>)</span>
+        </div>
       </div>
+
     </div>
 
-    <div class="es-mod mod-bowl">
-      <div style="display:flex; flex-direction:column;">
-        <span class="lbl">TARGET ACQUIRED</span>
-        <span id="bowlerName" class="pn">Bowler Name</span>
+    <div class="navy-box box-bowling">
+      
+      <div class="bw-info-wrap">
+        <div class="bw-details">
+          <div class="bw-name" id="bowlerName">Bowler Name</div>
+          <div class="bw-ov">OVERS <span id="bowlerOvers">0.0</span></div>
+        </div>
+        
+        <div class="yellow-shape">
+          <span class="main-val"><span id="bowlerWickets">0</span><span class="sub-val">-</span><span id="bowlerRuns">0</span></span>
+        </div>
       </div>
-      <div style="display:flex; align-items:baseline;">
-        <span class="ps" style="color:var(--es-magenta);"><span id="bowlerWickets">0</span><span style="color:var(--text-dim); margin:0 4px;">-</span><span id="bowlerRuns">0</span></span>
-        <span class="pb" style="margin-left:15px;">OV <span id="bowlerOvers" style="color:#fff;">0.0</span></span>
+
+      <div class="this-over-wrapper">
+        <div class="tracker-lbl">THIS OVER</div>
+        <div class="yellow-pill">
+          <div class="silver-ball fill"></div>
+          <div class="silver-ball fill"></div>
+          <div class="silver-ball"></div>
+          <div class="silver-ball"></div>
+          <div class="silver-ball"></div>
+          <div class="silver-ball"></div>
+        </div>
       </div>
+
     </div>
 
   </div>
 
   <script>
     const $ = id => document.getElementById(id);
+    let eventTimer;
+    let decisionPendingState = false;
 
     function processData(d) {
       if (!d) return;
@@ -250,7 +289,8 @@
         if (el) el.innerText = val != null && val !== '' ? val : fallback;
       };
 
-      safeSet('teamName', d.team1ShortName || d.team1Name || d.teamName, 'TEAM');
+      const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,3);
+      safeSet('teamName', tName);
       safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
       safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
       safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
@@ -261,6 +301,7 @@
 
       safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
       safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+      safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
 
       safeSet('bowlerName', d.bowlerName, 'Bowler');
       safeSet('bowlerRuns', d.bowlerRuns, 0);
@@ -268,21 +309,40 @@
       safeSet('bowlerOvers', d.bowlerOvers, '0.0');
     }
 
-    // Connect to engine triggers
     window.addEventListener('message', e => { 
-      if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
+      if (e.data?.type === 'UPDATE_SCORE') {
+        processData(e.data.data); 
+      }
+
+      if (e.data?.type === 'OVERLAY_TRIGGER') {
+        const t = e.data.payload;
+        
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', 'RESTORE'].includes(t.type)) {
+          $('ev-four').classList.remove('fire'); $('ev-six').classList.remove('fire'); $('ev-out').classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR') {
+            $('ev-four').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-four').classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX') {
+            $('ev-six').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-six').classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET') {
+            $('ev-out').classList.add('fire');
+            eventTimer = setTimeout(() => $('ev-out').classList.remove('fire'), 3000);
+          } else if (t.type === 'DECISION_PENDING') {
+            decisionPendingState = !decisionPendingState;
+            if (decisionPendingState) $('ev-decision').classList.add('fire');
+            else $('ev-decision').classList.remove('fire');
+          } else if (t.type === 'RESTORE') {
+             decisionPendingState = false;
+             $('ev-decision').classList.remove('fire');
+          }
+        }
+      }
     });
 
-    window.addEventListener('scorex:update', e => { 
-      if (e.detail) processData(e.detail); 
-    });
-
-    if ('BroadcastChannel' in window) {
-      const channel = new BroadcastChannel('scorex_overlay_channel');
-      channel.onmessage = e => { 
-        if (e.data?.type === 'UPDATE_SCORE') processData(e.data.data); 
-      };
-    }
+    window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
   </script>
 </body>
 </html>
