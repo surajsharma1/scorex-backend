@@ -82,19 +82,24 @@ const forgotPassword = async (_req, res) => res.json({ success: true, message: '
 exports.forgotPassword = forgotPassword;
 const resetPassword = async (_req, res) => res.json({ success: true, message: 'Password reset successfully' });
 exports.resetPassword = resetPassword;
+// Strip trailing slash from FRONTEND_URL so redirects don't produce double slashes
+const getFrontendUrl = () => (process.env.FRONTEND_URL || '').replace(/\/$/, '');
 const googleCallback = (req, res) => {
     if (!req.user?._id)
-        return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+        return res.redirect(`${getFrontendUrl()}/login?error=oauth_failed`);
     const token = signToken(req.user._id.toString());
-    const frontendUrl = req.query.state || process.env.FRONTEND_URL || '';
+    // state param is set by Login.tsx as encodeURIComponent(window.location.origin)
+    const frontendUrl = req.query.state
+        ? decodeURIComponent(req.query.state).replace(/\/$/, '')
+        : getFrontendUrl();
     res.redirect(`${frontendUrl}/oauth/callback?token=${token}`);
 };
 exports.googleCallback = googleCallback;
 const githubCallback = (req, res) => {
     if (!req.user?._id)
-        return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+        return res.redirect(`${getFrontendUrl()}/login?error=oauth_failed`);
     const token = signToken(req.user._id.toString());
-    res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${token}`);
+    res.redirect(`${getFrontendUrl()}/oauth/callback?token=${token}`);
 };
 exports.githubCallback = githubCallback;
 exports.default = { register: exports.register, login: exports.login, getMe: exports.getMe, changePassword: exports.changePassword, logout: exports.logout, forgotPassword: exports.forgotPassword, resetPassword: exports.resetPassword, googleCallback: exports.googleCallback, githubCallback: exports.githubCallback };

@@ -62,17 +62,23 @@ export const logout = (_req: AuthRequest, res: Response) => res.json({ success: 
 export const forgotPassword = async (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'If that email exists, a reset link was sent.' });
 export const resetPassword = async (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'Password reset successfully' });
 
+// Strip trailing slash from FRONTEND_URL so redirects don't produce double slashes
+const getFrontendUrl = () => (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+
 export const googleCallback = (req: any, res: Response) => {
-  if (!req.user?._id) return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+  if (!req.user?._id) return res.redirect(`${getFrontendUrl()}/login?error=oauth_failed`);
   const token = signToken(req.user._id.toString());
-  const frontendUrl = (req.query.state as string) || process.env.FRONTEND_URL || '';
+  // state param is set by Login.tsx as encodeURIComponent(window.location.origin)
+  const frontendUrl = req.query.state
+    ? decodeURIComponent(req.query.state as string).replace(/\/$/, '')
+    : getFrontendUrl();
   res.redirect(`${frontendUrl}/oauth/callback?token=${token}`);
 };
 
 export const githubCallback = (req: any, res: Response) => {
-  if (!req.user?._id) return res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+  if (!req.user?._id) return res.redirect(`${getFrontendUrl()}/login?error=oauth_failed`);
   const token = signToken(req.user._id.toString());
-  res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${token}`);
+  res.redirect(`${getFrontendUrl()}/oauth/callback?token=${token}`);
 };
 
 export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback };

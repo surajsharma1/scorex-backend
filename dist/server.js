@@ -276,14 +276,16 @@ const scheduler_1 = require("./utils/scheduler");
 // ─── Graceful Startup ──────────────────────────────────────────────────────────
 const startup = async () => {
     const dbResult = await (0, database_1.default)();
-    if ('success' in dbResult && dbResult.success) {
+    // connectDB returns { success: false } on failure, or the mongoose instance on success
+    const dbFailed = typeof dbResult === 'object' && 'success' in dbResult && !dbResult.success;
+    if (!dbFailed) {
         console.log('✅ Full startup complete - DB ready');
-        // Start background jobs only when DB is connected
         (0, scheduler_1.startScheduler)();
     }
     else {
-        console.warn('⚠️ Server starting WITHOUT DB - static assets/API read-only');
+        console.warn('⚠️ Server starting WITHOUT DB - API will return 503 until DB reconnects');
     }
+    // Always start the HTTP server so Render health checks pass
     httpServer.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📊 Health: http://localhost:${PORT}/api/health`);
@@ -291,7 +293,7 @@ const startup = async () => {
     });
 };
 startup().catch(err => {
-    console.error('💥 Fatal startup error:', err);
-    process.exit(1);
+    // Log but don't exit — keeps Render from triggering 521
+    console.error('💥 Fatal startup error (server still listening):', err);
 });
 exports.default = app;

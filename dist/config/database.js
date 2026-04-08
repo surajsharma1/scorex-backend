@@ -19,7 +19,8 @@ const connectDB = async () => {
     try {
         const connStr = process.env.MONGODB_URI || process.env.MONGODB_URL;
         if (!connStr) {
-            throw new Error('MONGODB_URI not set in .env');
+            console.error('💥 MONGODB_URI not set in environment variables');
+            return { success: false };
         }
         console.log('🔌 Connecting to MongoDB...');
         cachedConnection = await mongoose_1.default.connect(connStr, {
@@ -33,7 +34,10 @@ const connectDB = async () => {
     }
     catch (error) {
         console.error('💥 Database connection failed:', error);
-        process.exit(1);
+        // Don't call process.exit(1) — let the server stay up so Render
+        // health checks pass and the /api/health endpoint still responds.
+        // The DB-readiness guard in server.ts will return 503 until reconnected.
+        return { success: false };
     }
 };
 exports.default = connectDB;
