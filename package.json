@@ -1,10 +1,14 @@
 {
   "name": "scorex-backend",
   "version": "2.0.0",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-"prebuild": "node scripts/copy-overlays.js",
+    "prebuild": "node scripts/copy-overlays-safe.js",
+    "postinstall": "npm run prebuild",
     "build": "tsc"
   },
   "dependencies": {

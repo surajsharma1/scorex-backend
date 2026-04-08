@@ -1,8 +1,1 @@
-[phases.setup]
-nixPkgs = ["nodejs_22", "typescript"]
-
-[phases.build]
-cmds = ["mkdir -p public/overlays", "cp -r ../../scorex-frontend/scorex-frontend/public/overlays/* public/overlays/", "npm install", "npm run build"]
-
-[start]
-cmd = "npm start"
+[phases.setup]\nnixPkgs = [\"nodejs_22\", \"typescript\"]\n\n[phases.build]\ncmds = [\"npm install\", \"npm run prebuild\", \"npm run build\"]\n\n[start]\ncmd = \"npm start\"\n
