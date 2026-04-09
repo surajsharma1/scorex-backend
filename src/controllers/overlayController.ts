@@ -106,7 +106,7 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { name, template, config, tournament, match, elements, requiredMembershipLevel } = req.body;
+const { name, template, config, tournamentId, match, elements, requiredMembershipLevel } = req.body;
     if (!name?.trim()) { res.status(400).json({ message: 'Overlay name is required' }); return; }
     if (!template?.trim()) { res.status(400).json({ message: 'Template is required' }); return; }
 
@@ -144,8 +144,8 @@ export const createOverlay = async (req: AuthRequest, res: Response): Promise<vo
       isPremium: templateLevel > 1,
     };
 
-    if (tournament && mongoose.Types.ObjectId.isValid(tournament)) {
-      overlayData.tournament = new mongoose.Types.ObjectId(tournament);
+if (tournamentId && mongoose.Types.ObjectId.isValid(tournamentId)) {
+      overlayData.tournament = new mongoose.Types.ObjectId(tournamentId);
     }
     if (match && mongoose.Types.ObjectId.isValid(match)) {
       overlayData.match = new mongoose.Types.ObjectId(match);
