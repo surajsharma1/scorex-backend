@@ -6,6 +6,7 @@ window.normalizeScoreData = function(data) {
             matchName: 'No Data',
             tournamentName: 'SCOREX LIVE',
             team1Name: 'Team 1', team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
+            team1ShortName: '', team2ShortName: '', thisOver: [],
             strikerName: '', strikerRuns: 0, strikerBalls: 0,
             nonStrikerName: '', nonStrikerRuns: 0, nonStrikerBalls: 0,
             bowlerName: 'Waiting Bowler...', bowlerRuns: 0, bowlerWickets: 0, bowlerOvers: '0.0',
@@ -76,7 +77,16 @@ window.normalizeScoreData = function(data) {
     return {
         matchName: computedMatchName,
         tournamentName: safeTournamentName,
+        
+        // Team Names & Truncation Handling
         team1Name: data.battingTeamName || data.team1Name || data.team1?.name || 'Team 1',
+        team1ShortName: data.team1ShortName || data.team1?.shortName || '',
+        team2ShortName: data.team2ShortName || data.team2?.shortName || '',
+        
+        // The newly connected "This Over" array for visual ball tracking
+        thisOver: data.thisOver || [],
+
+        // Core Match Stats
         team1Score: t1Score,
         team1Wickets: t1Wickets,
         team1Overs: t1Overs,

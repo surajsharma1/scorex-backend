@@ -435,241 +435,180 @@
   </div>
 
   <script>
-    // Robust DOM Selector
     const $ = id => document.getElementById(id);
-    // Safety setter to prevent silent JS crashes if an ID is temporarily missing
-    const setText = (id, text) => { if($(id)) $(id).innerText = text; };
-    
     let decisionPendingState = false;
-    let animTimers = {}; 
-    let endMatchInterval, sideCardTimer, introTimer;
-    const config = window.OVERLAY_CONFIG?.config || { switchInterval: 8 };
+    let endMatchInterval;
+    let eventTimer;
 
-    // Bar View Manager
-    function setBarView(viewId) {
-      if($('view-live')) $('view-live').classList.remove('active');
-      if($('view-vs')) $('view-vs').classList.remove('active');
-      if($('view-toss')) $('view-toss').classList.remove('active');
-      if($(viewId)) $(viewId).classList.add('active');
-    }
+    function processData(d) {
+      if (!d) return;
+      
+      const safeSet = (id, val, fallback) => {
+        const el = $(id);
+        if (el) el.innerText = val != null && val !== '' ? val : fallback;
+      };
 
-    function closeCenterCards() {
-      ['anim-four', 'anim-six', 'anim-wicket', 'anim-milestone'].forEach(id => {
-          if($(id)) $(id).classList.remove('fire');
-          clearTimeout(animTimers[id]);
+      // Smart Truncation mapping
+      const rawTeamName = d.team1Name || d.teamName || 'TEAM';
+      const tName = d.team1ShortName || rawTeamName.substring(0, 3).toUpperCase();
+      
+      safeSet('teamName', tName);
+      safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
+      safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
+      safeSet('teamOvers', d.team1Overs ?? d.teamOvers ?? '0.0');
+
+      safeSet('strikerName', d.strikerName, 'Striker');
+      safeSet('strikerRuns', d.strikerRuns, 0);
+      safeSet('strikerBalls', d.strikerBalls, 0);
+
+      safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
+      safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+      safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+
+      safeSet('bowlerName', d.bowlerName, 'Bowler');
+      safeSet('bowlerRuns', d.bowlerRuns, 0);
+      safeSet('bowlerWickets', d.bowlerWickets, 0);
+      safeSet('bowlerOvers', d.bowlerOvers, '0.0');
+
+      safeSet('targetScore', d.target, '');
+      safeSet('reqRunRate', d.requiredRunRate, '');
+
+      // --- NEW: Advanced "This Over" Array Parsing ---
+      const ballDots = document.querySelectorAll('.ball-dot');
+      const thisOverArray = d.thisOver || [];
+      
+      ballDots.forEach((dot, index) => {
+        dot.className = 'ball-dot'; // Reset state
+        dot.innerText = ''; 
+        
+        if (index < thisOverArray.length) {
+          const ball = thisOverArray[index];
+          dot.classList.add('fill');
+          
+          if (ball.wicket) {
+            dot.classList.add('wicket-color'); // Optional: Add CSS for these classes to change text color
+            dot.innerText = 'W';
+          } else if (ball.isBoundary) {
+            dot.classList.add('boundary-color');
+            dot.innerText = ball.runs;
+          } else if (ball.isWide) {
+            dot.classList.add('extra-color');
+            dot.innerText = 'Wd';
+          } else if (ball.isNoBall) {
+             dot.classList.add('extra-color');
+             dot.innerText = 'Nb';
+          } else {
+            dot.innerText = ball.runs === 0 ? '•' : ball.runs;
+          }
+        }
       });
     }
 
-    // Flawless Animation Trigger (Forces browser reflow to restart animations cleanly)
-    function triggerAnimation(elementId, duration = 3500) {
-      const el = $(elementId);
-      if(!el) return;
-      el.classList.remove('fire');
-      void el.offsetWidth; 
-      el.classList.add('fire');
-      
-      clearTimeout(animTimers[elementId]);
-      if(duration) {
-          animTimers[elementId] = setTimeout(() => el.classList.remove('fire'), duration);
-      }
-    }
-
-    function updateTicker(d) {
-      let txt = d.sponsors && d.sponsors.length > 0 
-        ? `BROADCAST SPONSORED BY: ${d.sponsors.join('   •   ')}` 
-        : 'SCOREX LIVE BROADCAST SYSTEM';
-      if($('ticker-text')) $('ticker-text').innerHTML = txt + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + txt;
-    }
-
-    window.addEventListener('message', e => {
-      
+    // Engine Event Listeners
+    window.addEventListener('message', e => { 
       if (e.data?.type === 'UPDATE_SCORE') {
-        const d = e.data.data;
-        
-        setText('team-name', d.team1ShortName || (d.team1Name || 'TM').substring(0,3));
-        
-        // Sync Team Text for multiple areas safely
-        let t1 = d.team1ShortName || (d.team1Name || 'T1').substring(0,3);
-        let t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,3);
-        setText('vs-team1', t1); setText('vs-team2', t2);
-        setText('vs-inbar-t1', d.team1Name || 'TEAM 1'); setText('vs-inbar-t2', d.team2Name || 'TEAM 2');
-
-        setText('score', d.team1Score); setText('wickets', d.team1Wickets); setText('overs', d.team1Overs);
-        
-        setText('s-name', d.strikerName); setText('s-runs', d.strikerRuns); setText('s-balls', `(${d.strikerBalls})`);
-        setText('ns-name', d.nonStrikerName); setText('ns-runs', d.nonStrikerRuns); setText('ns-balls', `(${d.nonStrikerBalls})`);
-        setText('bw-name', d.bowlerName); setText('bw-runs', d.bowlerRuns); setText('bw-wkts', d.bowlerWickets); setText('bw-ov', d.bowlerOvers || '0.0');
-        
-        setText('in-s', d.strikerName || 'TBA'); setText('in-ns', d.nonStrikerName || 'TBA'); setText('in-b', d.bowlerName || 'TBA');
-        
-        // Target Logic
-        if (d.target > 0) {
-            if($('target-container')) $('target-container').style.display = 'flex';
-            if (d.requiredRuns <= 50 && d.requiredRuns > 0) {
-                setText('target-text', `NEED ${d.requiredRuns} FROM ${d.remainingBalls}`);
-                if($('target-container')) $('target-container').className = 'cell yellow w-target';
-            } else {
-                setText('target-text', `TARGET: ${d.target}`);
-                if($('target-container')) $('target-container').className = 'cell blue w-target';
-            }
-        } else {
-            if($('target-container')) $('target-container').style.display = 'none';
-        }
-        
-        updateTicker(d);
-
-        // Infinite Tracker
-        let overRuns = 0;
-        if (d.thisOver && Array.isArray(d.thisOver)) {
-          if($('this-over-balls')) $('this-over-balls').innerHTML = d.thisOver.map(ball => {
-            let clz = 'dot';
-            let str = ball.toString().toLowerCase();
-            
-            let val = parseInt(ball);
-            if (!isNaN(val)) overRuns += val;
-            if (str.includes('wd') || str.includes('nb')) overRuns += 1;
-
-            if (str.includes('w') && !str.includes('wd')) clz += ' danger'; 
-            else if (str.includes('4') || str.includes('6')) clz += ' boundary'; 
-            else if (ball !== '.') clz += ' fill';
-            return `<div class="${clz}">${ball}</div>`;
-          }).join('');
-        }
-        setText('over-runs', overRuns + ' R');
-
-        // View Router
-        if (!$('view-vs').classList.contains('active') && !$('view-toss').classList.contains('active')) {
-            if (!d.strikerName && d.team1Overs === "0.0") setBarView('view-vs'); 
-            else if (d.strikerName) setBarView('view-live');
-        }
+        processData(e.data.data); 
       }
 
       if (e.data?.type === 'OVERLAY_TRIGGER') {
         const t = e.data.payload;
         
-        // IN-BAR OVERLAYS
-        if (t.type === 'VS_SCREEN') { closeCenterCards(); setBarView('view-vs'); }
-        if (t.type === 'SHOW_TOSS') { closeCenterCards(); setText('toss-text-inbar', t.data?.text || "TEAM WON THE TOSS"); setBarView('view-toss'); }
+        // Handle Quick Action Animations (Checks for both Lvl 1 and Lvl 2 naming conventions)
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING'].includes(t.type)) {
+          const fId = $('anim-four') ? 'anim-four' : 'ev-four';
+          const sId = $('anim-six') ? 'anim-six' : 'ev-six';
+          const wId = $('anim-wicket') ? 'anim-wicket' : 'ev-out';
+          const dId = $('anim-decision') ? 'anim-decision' : 'ev-decision';
 
-        // CENTER ANIMATIONS
-        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', '50_RUNS', '100_RUNS'].includes(t.type)) {
-          closeCenterCards();
-          if (t.type === 'FOUR') { triggerAnimation('anim-four'); }
-          else if (t.type === 'SIX') { triggerAnimation('anim-six'); }
-          else if (t.type === 'WICKET') { triggerAnimation('anim-wicket', 4000); }
-          else if (t.type.includes('RUNS')) {
-            setText('ms-text', `${t.data?.playerName || 'PLAYER'} - ${t.type.split('_')[0]}`);
-            triggerAnimation('anim-milestone', 5000);
-          }
-          else if (t.type === 'DECISION_PENDING') {
+          if($(fId)) $(fId).classList.remove('fire'); 
+          if($(sId)) $(sId).classList.remove('fire'); 
+          if($(wId)) $(wId).classList.remove('fire');
+          clearTimeout(eventTimer);
+
+          if (t.type === 'FOUR' && $(fId)) {
+            $(fId).classList.add('fire');
+            eventTimer = setTimeout(() => $(fId).classList.remove('fire'), 3000);
+          } else if (t.type === 'SIX' && $(sId)) {
+            $(sId).classList.add('fire');
+            eventTimer = setTimeout(() => $(sId).classList.remove('fire'), 3000);
+          } else if (t.type === 'WICKET' && $(wId)) {
+            $(wId).classList.add('fire');
+            eventTimer = setTimeout(() => $(wId).classList.remove('fire'), 3000);
+          } else if (t.type === 'DECISION_PENDING' && $(dId)) {
             decisionPendingState = !decisionPendingState;
-            const el = $('anim-decision');
-            if(el) {
-                if (decisionPendingState) { el.classList.remove('layer-hide'); el.classList.add('layer-show'); } 
-                else { el.classList.remove('layer-show'); el.classList.add('layer-hide'); }
-            }
+            if (decisionPendingState) $(dId).classList.add('fire');
+            else $(dId).classList.remove('fire');
           }
         }
 
-        // SIDE PANELS
-        if (['BATSMAN_PROFILE', 'BOWLER_PROFILE', 'CAREER_STATS', 'WICKET_SWITCH', 'BATSMAN_CHANGE', 'NEW_BOWLER'].includes(t.type)) {
-          clearTimeout(sideCardTimer);
-          const wrap = $('side-layer'); const pc = $('prof-card'); const sc = $('sw-card');
-          if(pc) pc.classList.remove('active'); if(sc) sc.classList.remove('active');
+        // Handle Sliding Stats Cards
+        const renderBat = (batsmen) => {
+           if(!$('sum-bat-body')) return;
+           $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours||0}</td><td>${b.sixes||0}</td><td>${b.sr}</td></tr>`).join('');
+        };
+        const renderBowl = (bowlers) => {
+           if(!$('sum-bowl-body')) return;
+           $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:#ef4444;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
+        };
 
-          if (t.type === 'WICKET_SWITCH' || t.type === 'BATSMAN_CHANGE') {
-            if(sc) sc.classList.add('active');
-            const isChange = t.type === 'BATSMAN_CHANGE';
-            setText('sw-out-lbl', isChange ? 'RET' : 'OUT');
-            if($('sw-out-lbl')) $('sw-out-lbl').style.background = isChange ? 'rgba(0,0,0,0.5)' : 'var(--svg-red)';
-            if($('sw-out-wrap')) $('sw-out-wrap').style.borderLeftColor = isChange ? 'rgba(0,0,0,0.5)' : 'var(--svg-red)';
-            setText('sw-out-name', t.data?.outName || 'PLAYER OUT'); setText('sw-out-score', t.data?.outScore || '0 (0)');
-            setText('sw-in-name', t.data?.inName || 'PLAYER IN');
-          } else {
-            if(pc) pc.classList.add('active');
-            setText('pc-title', t.data?.title || "PLAYER PROFILE");
-            if (t.data?.stats && $('pc-data')) $('pc-data').innerHTML = (t.data.stats || []).map(s => `<div class="pc-row"><span class="pc-lbl">${s.label}</span><span class="pc-val">${s.value}</span></div>`).join('');
-          }
-
-          if(wrap) wrap.classList.add('active');
-          sideCardTimer = setTimeout(() => { if(wrap) wrap.classList.remove('active') }, 12000);
+        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
+          if(t.data?.batsmen) renderBat(t.data.batsmen);
+          if($('sum-bat-col')) $('sum-bat-col').classList.add('slide-in');
+        }
+        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
+          if(t.data?.bowlers) renderBowl(t.data.bowlers);
+          if($('sum-bowl-col')) $('sum-bowl-col').classList.add('slide-in');
         }
 
-        // START INNINGS
-        if (t.type === 'START_INNINGS_INTRO') {
-          closeCenterCards(); setBarView('view-live'); 
-          clearTimeout(introTimer); if($('intro-wrap')) $('intro-wrap').classList.add('active');
-          introTimer = setTimeout(() => { if($('intro-wrap')) $('intro-wrap').classList.remove('active'); }, 6000);
-        }
-
-        // FULLSCREEN CARDS
-        if (t.type === 'SHOW_SQUADS') {
-          if($('fs-system')) $('fs-system').className = 'layer-show'; 
-          if($('target-tab')) $('target-tab').className = 'fs-window tab-hide'; 
-          if($('match-end-tab')) $('match-end-tab').className = 'fs-window tab-hide'; 
-          if($('squads-tab')) $('squads-tab').className = 'fs-window tab-show';
-          setText('sq-t1-name', t.data?.team1Name || 'TEAM 1'); setText('sq-t2-name', t.data?.team2Name || 'TEAM 2');
-          if($('sq-t1-list')) $('sq-t1-list').innerHTML = (t.data?.team1Players||[]).map(p => `<div class="list-item"><span class="truncate">${p.name}</span><span style="color:var(--svg-blue);">${p.role||''}</span></div>`).join('');
-          if($('sq-t2-list')) $('sq-t2-list').innerHTML = (t.data?.team2Players||[]).map(p => `<div class="list-item"><span class="truncate">${p.name}</span><span style="color:var(--svg-red);">${p.role||''}</span></div>`).join('');
-        }
-
-        if (t.type === 'INNINGS_BREAK') {
-          if($('fs-system')) $('fs-system').className = 'layer-show'; 
-          if($('squads-tab')) $('squads-tab').className = 'fs-window tab-hide'; 
-          if($('match-end-tab')) $('match-end-tab').className = 'fs-window tab-hide'; 
-          if($('target-tab')) $('target-tab').className = 'fs-window tab-show';
-          setText('fs-tgt-team', t.data?.chasingTeam || 'TEAM 2'); setText('fs-tgt-score', t.data?.target || 0);
-        }
-
+        // Handle Match End Summary Rotator
         if (t.type === 'MATCH_END') {
-          if($('fs-system')) $('fs-system').className = 'layer-show'; 
-          if($('squads-tab')) $('squads-tab').className = 'fs-window tab-hide'; 
-          if($('target-tab')) $('target-tab').className = 'fs-window tab-hide'; 
-          if($('match-end-tab')) $('match-end-tab').className = 'fs-window tab-show';
-          clearInterval(endMatchInterval);
-          
-          setText('me-header', "MATCH SUMMARY");
-          const renderBat = (batsmen) => { if($('me-bat-body')) $('me-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td style="color:var(--svg-black); font-family:'Teko'; font-size:24px;" class="truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join(''); };
-          const renderBowl = (bowlers) => { if($('me-bowl-body')) $('me-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--svg-black); font-family:'Teko'; font-size:24px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--svg-red); font-family:'Teko'; font-size:28px;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join(''); };
-          
-          const t1 = t.data?.team1; const t2 = t.data?.team2; let current = 1;
-          const updateUI = (data) => { setText('me-header', `${data.name} SUMMARY`); renderBat(data.batsmen); renderBowl(data.bowlers); };
-          
+          if($('sum-bat-col')) $('sum-bat-col').style.display = 'block'; 
+          if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'block';
+          const t1 = t.data?.team1; const t2 = t.data?.team2;
+          let current = 1;
+          const updateUI = (data) => { 
+             if($('sum-header')) $('sum-header').innerText = `${data.name} INNINGS SUMMARY`; 
+             renderBat(data.batsmen); renderBowl(data.bowlers); 
+          };
           if(t1) updateUI(t1);
-          if (t1 && t2) {
+          if (t1 && t2 && $('summary-tab')) {
+            clearInterval(endMatchInterval);
             endMatchInterval = setInterval(() => {
-              if($('match-end-tab')) $('match-end-tab').style.opacity = '0';
-              setTimeout(() => { current = current === 1 ? 2 : 1; updateUI(current === 1 ? t1 : t2); if($('match-end-tab')) $('match-end-tab').style.opacity = '1'; }, 500);
-            }, config.switchInterval * 1000);
+              $('summary-tab').style.opacity = '0';
+              setTimeout(() => { 
+                current = current === 1 ? 2 : 1; 
+                updateUI(current === 1 ? t1 : t2); 
+                $('summary-tab').style.opacity = '1'; 
+              }, 500);
+            }, 8000);
           }
         }
 
-        // SUMMARIES
-        if (['BATTING_CARD', 'BOWLING_CARD', 'BOTH_CARDS'].includes(t.type)) {
-          const renderBat = (batsmen) => { if($('sb-bat-body')) $('sb-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td style="color:var(--svg-black); font-family:'Teko'; font-size:22px;" class="truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours}</td><td>${b.sixes}</td><td>${b.sr}</td></tr>`).join(''); };
-          const renderBowl = (bowlers) => { if($('sb-bowl-body')) $('sb-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td style="color:var(--svg-black); font-family:'Teko'; font-size:22px;" class="truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td style="color:var(--svg-red); font-family:'Teko'; font-size:26px;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join(''); };
-          
-          if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') { if(t.data?.batsmen) renderBat(t.data.batsmen); if($('sum-bat-col')) $('sum-bat-col').classList.add('show'); }
-          if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') { if(t.data?.bowlers) renderBowl(t.data.bowlers); if($('sum-bowl-col')) $('sum-bowl-col').classList.add('show'); }
-        }
-
-        // RESTORE
+        // --- NEW: Fully Repaired RESTORE Logic ---
         if (t.type === 'RESTORE') {
-          if($('fs-system')) $('fs-system').className = 'layer-hide'; 
-          if($('squads-tab')) $('squads-tab').className = 'fs-window tab-hide'; 
-          if($('target-tab')) $('target-tab').className = 'fs-window tab-hide'; 
-          if($('match-end-tab')) $('match-end-tab').className = 'fs-window tab-hide';
-          if($('sum-bat-col')) $('sum-bat-col').classList.remove('show'); 
-          if($('sum-bowl-col')) $('sum-bowl-col').classList.remove('show');
+          decisionPendingState = false;
+          const dId = $('anim-decision') ? 'anim-decision' : 'ev-decision';
+          if($(dId)) $(dId).classList.remove('fire');
           
-          closeCenterCards();
-          setBarView('view-live');
-          if($('side-layer')) $('side-layer').classList.remove('active'); 
-          if($('intro-wrap')) $('intro-wrap').classList.remove('active');
-          clearInterval(endMatchInterval);
+          if($('fullscreen-layer')) $('fullscreen-layer').className = 'layer-hide hide'; 
+          if($('squads-tab')) $('squads-tab').className = 'fs-card tab-hide hide'; 
+          if($('target-tab')) $('target-tab').className = 'fs-card tab-hide hide'; 
+          if($('summary-tab')) $('summary-tab').className = 'fs-card tab-hide hide';
+          if($('match-end-tab')) $('match-end-tab').className = 'fs-card tab-hide hide';
+          
+          if($('sum-bat-col')) $('sum-bat-col').classList.remove('slide-in'); 
+          if($('sum-bowl-col')) $('sum-bowl-col').classList.remove('slide-in');
+          
+          const sb = $('scoreboard');
+          if (sb) {
+             sb.style.opacity = '1';
+             sb.classList.add('state-live'); 
+          }
         }
       }
     });
+
+    window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
   </script>
 </body>
 </html>
