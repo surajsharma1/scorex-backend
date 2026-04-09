@@ -493,6 +493,48 @@
         }
       });
     }
+// --- NEW: Native Sponsor Carousel Logic ---
+    // 1. Read the config directly from the OBS/Preview URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let overlayConfig = {};
+    try {
+      const cfgParam = urlParams.get('cfg');
+      if (cfgParam) overlayConfig = JSON.parse(decodeURIComponent(cfgParam));
+    } catch(e) { console.warn("No config found in URL"); }
+
+    const sponsors = overlayConfig.sponsors || [];
+
+    // 2. Power the native carousel if sponsors exist
+    if (sponsors.length > 0) {
+      // NOTE: Change 'sponsor-text' to match the exact ID of the text element inside your Level 2 carousel
+      const sponsorEl = $('sponsor-track'); 
+      
+      if (sponsorEl) {
+        let currentSponsorIdx = 0;
+        
+        // Setup smooth CSS transitions for the fade effect
+        sponsorEl.style.transition = 'opacity 0.5s ease';
+        
+        const updateSponsorText = () => {
+          const sp = sponsors[currentSponsorIdx];
+          sponsorEl.innerText = `${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}`;
+          sponsorEl.style.opacity = 1;
+        };
+
+        // Show the first sponsor immediately
+        updateSponsorText();
+
+        // Cycle through the rest every 6 seconds
+        setInterval(() => {
+          sponsorEl.style.opacity = 0; // Fade out
+          setTimeout(() => {
+            currentSponsorIdx = (currentSponsorIdx + 1) % sponsors.length;
+            updateSponsorText(); // Update text and fade in
+          }, 500); 
+        }, 6000);
+      }
+    }
+    // ------------------------------------------
 
     // Engine Event Listeners
     window.addEventListener('message', e => { 

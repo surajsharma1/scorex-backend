@@ -148,21 +148,7 @@
     socket.on('disconnect', () => console.warn('[Scorex Engine] Disconnected, attempting reconnect...'));
   }
 
-  function renderSponsors() {
-    if (globalCfg.sponsors && globalCfg.sponsors.length > 0) {
-      const spDiv = document.createElement('div');
-      spDiv.style.position = 'absolute';
-      spDiv.style[globalCfg.position === 'top' ? 'top' : 'bottom'] = '10px';
-      spDiv.style.width = '100%';
-      spDiv.style.textAlign = 'center';
-      spDiv.style.zIndex = '99999';
-      spDiv.style.pointerEvents = 'none';
-      
-      const spText = globalCfg.sponsors.map(s => `${s.name} ${s.tagline ? '- ' + s.tagline : ''}`).join(' &nbsp;&bull;&nbsp; ');
-      spDiv.innerHTML = `<div style="display:inline-block; background:rgba(0,0,0,0.7); color:#fff; padding:4px 15px; border-radius:20px; font-family:sans-serif; font-size:11px; font-weight:bold; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px); text-transform:uppercase; letter-spacing:1px;">POWERED BY <span style="color:#fbbf24; margin-left:5px;">${spText}</span></div>`;
-      document.body.appendChild(spDiv);
-    }
-  }
+
 
   function getDemoData() {
     return { match: { tossWinnerName: 'Team A', tossDecision: 'bat' }, team1Score: 0, team1Wickets: 0, team1Overs: '0.0', team1Name: 'PREM', team2Name: 'CHAL', strikerName: 'V. Kohli' };
@@ -171,8 +157,6 @@
   function init() {
     const params = new URLSearchParams(window.location.search);
     const isPreview = params.get('preview') === 'true';
-    renderSponsors();
-
     if (isPreview && !config.matchId) { 
       safeUpdateState(getDemoData()); 
       return; 
