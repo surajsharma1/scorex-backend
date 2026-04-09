@@ -5,12 +5,15 @@
   'use strict';
 
   const config = window.OVERLAY_CONFIG || {};
-  const matchId = config.matchId;
+  
+  // 🔥 THE FIX: Grab the matchId directly from the URL first!
+  const urlParams = new URLSearchParams(window.location.search);
+  const matchId = urlParams.get('matchId') || config.matchId;
+  
   const apiBaseUrl = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
   const socketUrl = apiBaseUrl.replace('/api/v1', '');
 
   // --- PARSE GLOBAL CONFIG FROM URL ---
-  const urlParams = new URLSearchParams(window.location.search);
   let globalCfg = {};
   try {
     const cfgParam = urlParams.get('cfg');
