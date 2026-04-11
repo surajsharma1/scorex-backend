@@ -138,22 +138,51 @@
     }
   }
 
-  // --- SAFE FETCH & SOCKET LOGIC ---
+// --- SAFE FETCH & SOCKET LOGIC ---
   async function safeFetchMatchData() {
     if (!matchId) return safeUpdateState(getDemoData());
     try {
       const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
-      safeUpdateState(json.data || json);
-    } catch (err) { safeUpdateState(getDemoData()); }
+      
+      // 🔥 FIX: Safely unwrap the API payload if it's nested
+      let matchPayload = json.data || json;
+      if (matchPayload && matchPayload.match) matchPayload = matchPayload.match;
+      
+      safeUpdateState(matchPayload);
+    } catch (err) { 
+      console.error('[Scorex Engine] Initial fetch error:', err);
+      safeUpdateState(getDemoData()); 
+    }
   }
 
   function safeConnectSocket() {
     if (typeof io === 'undefined') return;
     socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity });
-    socket.on('connect', () => { if (matchId) socket.emit('joinMatch', matchId); });
-    socket.on('scoreUpdate', (data) => safeUpdateState(data));
-    socket.on('disconnect', () => console.warn('[Scorex Engine] Disconnected, attempting reconnect...'));
+    
+    socket.on('connect', () => { 
+      console.log('[Scorex Engine] 🟢 Connected to Live Socket!');
+      if (matchId) {
+        socket.emit('joinMatch', matchId); 
+        socket.emit('join_match', matchId); // Fallback for alternative event name
+      }
+    });
+
+    // 🔥 FIX: Unwrap the Socket payload before updating the UI
+    socket.on('scoreUpdate', (payload) => {
+      console.log('[Scorex Engine] ⚡ Received scoreUpdate:', payload);
+      const actualData = (payload && payload.match) ? payload.match : payload;
+      safeUpdateState(actualData);
+    });
+
+    // Fallback just in case your backend uses match_updated
+    socket.on('match_updated', (payload) => {
+      const actualData = (payload && payload.match) ? payload.match : payload;
+      safeUpdateState(actualData);
+    });
+
+    socket.on('disconnect', () => console.warn('[Scorex Engine] 🔴 Disconnected, attempting reconnect...'));
   }
 
 
