@@ -469,6 +469,10 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    // 🔥 ADD THIS LINE: Completely bypass CSP for OBS and Overlays
+    res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';");
+    
     res.send(html);
   } catch (error) {
     console.error('serveOverlay error:', error);

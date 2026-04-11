@@ -13,16 +13,19 @@ window.normalizeScoreData = function(data) {
         };
     }
 
-    let t1Score = Math.max(0, Number(data.team1Score) || 0);
-    let t1Wickets = Math.max(0, Number(data.team1Wickets) || 0);
-    let t1Overs = data.team1Overs || '0.0';
-    let sRuns = Math.max(0, Number(data.strikerRuns) || 0);
-    let sBalls = Math.max(0, Number(data.strikerBalls) || 0);
-    let nsRuns = Math.max(0, Number(data.nonStrikerRuns) || 0);
-    let nsBalls = Math.max(0, Number(data.nonStrikerBalls) || 0);
-    let bRuns = Math.max(0, Number(data.bowlerRuns) || 0);
-    let bWickets = Math.max(0, Number(data.bowlerWickets) || 0);
-    let bOvers = data.bowlerOvers || '0.0';
+    // Aggressively search for flat OR nested values
+    let t1Score = Math.max(0, Number(data.team1Score) || Number(data.team1?.score) || Number(data.score1) || 0);
+    let t1Wickets = Math.max(0, Number(data.team1Wickets) || Number(data.team1?.wickets) || Number(data.wickets1) || 0);
+    let t1Overs = data.team1Overs || data.team1?.overs || data.overs1 || '0.0';
+    
+    let sRuns = Math.max(0, Number(data.strikerRuns) || Number(data.striker?.runs) || 0);
+    let sBalls = Math.max(0, Number(data.strikerBalls) || Number(data.striker?.balls) || 0);
+    let nsRuns = Math.max(0, Number(data.nonStrikerRuns) || Number(data.nonStriker?.runs) || 0);
+    let nsBalls = Math.max(0, Number(data.nonStrikerBalls) || Number(data.nonStriker?.balls) || 0);
+    
+    let bRuns = Math.max(0, Number(data.bowlerRuns) || Number(data.bowler?.runs) || 0);
+    let bWickets = Math.max(0, Number(data.bowlerWickets) || Number(data.bowler?.wickets) || 0);
+    let bOvers = data.bowlerOvers || data.bowler?.overs || '0.0';
     let target = Math.max(0, Number(data.target) || 0);
     let runRate = '0.00', reqRunRate = '0.00';
 
