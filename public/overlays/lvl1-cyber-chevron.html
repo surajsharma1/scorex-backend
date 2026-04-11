@@ -261,14 +261,14 @@
       if (e.data?.type === 'OVERLAY_TRIGGER') {
         const t = e.data.payload;
         
-        if (['BOUNDARY_FOUR', 'BOUNDARY_SIX', 'WICKET', 'DECISION_PENDING', 'RESTORE'].includes(t.type)) {
+        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', 'RESTORE'].includes(t.type)) {
           $('ev-four').classList.remove('fire'); $('ev-six').classList.remove('fire'); $('ev-out').classList.remove('fire');
           clearTimeout(eventTimer);
 
-          if (t.type === 'BOUNDARY_FOUR') {
+          if (t.type === 'FOUR') {
             $('ev-four').classList.add('fire');
             eventTimer = setTimeout(() => $('ev-four').classList.remove('fire'), 3000);
-          } else if (t.type === 'BOUNDARY_SIX') {
+          } else if (t.type === 'SIX') {
             $('ev-six').classList.add('fire');
             eventTimer = setTimeout(() => $('ev-six').classList.remove('fire'), 3000);
           } else if (t.type === 'WICKET') {

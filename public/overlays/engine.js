@@ -2,7 +2,55 @@
  * Scorex Overlay Engine V3 (AUTO-DIRECTOR HYBRID ARCHITECTURE)
  */
 (function () {
-  'use strict';
+'use strict';
+
+  // --- SCOREX DATA TRANSLATOR ---
+  // Flattens the nested backend payload for the HTML overlays
+  window.normalizeScoreData = function(rawDoc) {
+    const match = rawDoc.match || rawDoc;
+    const result = rawDoc.result || {};
+    
+    // 1. Determine which team is actively batting based on the Toss
+    let isTeam1Batting = true;
+match.tossDecision === "bowl"
+match.tossWinnerName === match.team2Name && match.tossDecision === "bat"
+    
+    let battingTeam = isTeam1Batting ? match.team1 : match.team2;
+    let battingTeamName = isTeam1Batting ? match.team1Name : match.team2Name;
+    
+    // 2. Extract live scores (Prioritize the \'result\' object, fallback to \'match\' object)
+    let currentScore = result.score ?? (isTeam1Batting ? match.team1Score : match.team2Score) ?? 0;
+    let currentWickets = result.wickets ?? (isTeam1Batting ? match.team1Wickets : match.team2Wickets) ?? 0;
+    let currentOvers = result.overs ?? (isTeam1Batting ? match.team1Overs : match.team2Overs) ?? "0.0";
+    
+    // 3. Extract player stats (Safely fallback to 0 if \'result\' doesn\'t contain them yet)
+    const strikerStats = result.striker || {};
+    const nonStrikerStats = result.nonStriker || {};
+    const bowlerStats = result.bowler || {};
+
+    // 4. Return the perfectly flat object the HTML files expect
+    return {
+      teamName: battingTeam?.shortName || battingTeamName || "TM",
+      teamScore: currentScore,
+      teamWickets: currentWickets,
+      teamOvers: currentOvers,
+      
+      strikerName: match.strikerName || "Striker",
+      strikerRuns: strikerStats.runs || 0,
+      strikerBalls: strikerStats.balls || 0,
+      
+      nonStrikerName: match.nonStrikerName || "Non-Striker",
+      nonStrikerRuns: nonStrikerStats.runs || 0,
+      nonStrikerBalls: nonStrikerStats.balls || 0,
+      
+      bowlerName: match.currentBowlerName || "Bowler",
+      bowlerRuns: bowlerStats.runs || 0,
+      bowlerWickets: bowlerStats.wickets || 0,
+      bowlerOvers: bowlerStats.overs || "0.0",
+      
+      thisOver: rawDoc.overSummary || ""
+    };
+  };
 
   const config = window.OVERLAY_CONFIG || {};
   
@@ -47,63 +95,16 @@
       if (!rawDoc) return;
       const trigger = rawDoc.activeTrigger || null;
       const rawMatch = rawDoc.match || rawDoc;
-      let flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawMatch) : rawMatch;
+let flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawDoc) : rawDoc;
 
-// --- NORMALIZE SCORE DATA (NEW: Flatten nested backend payloads) ---
-window.normalizeScoreData = window.normalizeScoreData || function(raw) {
-  const flat = {};
-
-  // Helper to safely get nested values
-  const getNested = (obj, path, fallback = '') => {
-    return path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : fallback), obj) || fallback;
-  };
-
-  // Team/Score (handle team1/teamA/batting.team, match.teams[0], etc.)
-  flat.team1Name = getNested(raw, 'team1Name') || getNested(raw, 'match.team1.name') || getNested(raw, 'batting.team1.name') || getNested(raw, 'teams.0.name') || 'TEAM';
-  flat.team1ShortName = flat.team1Name.substring(0, 3).toUpperCase();
-  flat.team1Score = parseInt(getNested(raw, 'team1Score')) || parseInt(getNested(raw, 'match.team1.score')) || parseInt(getNested(raw, 'batting.team1.total_runs')) || parseInt(getNested(raw, 'teams.0.score')) || 0;
-  flat.team1Wickets = parseInt(getNested(raw, 'team1Wickets')) || parseInt(getNested(raw, 'match.team1.wickets')) || parseInt(getNested(raw, 'batting.team1.wickets')) || parseInt(getNested(raw, 'teams.0.wickets')) || 0;
-  flat.team1Overs = getNested(raw, 'team1Overs') || getNested(raw, 'match.team1.overs') || getNested(raw, 'batting.team1.overs') || '0.0';
-
-  // Players
-  flat.strikerName = getNested(raw, 'strikerName') || getNested(raw, 'batting.striker.name') || getNested(raw, 'match.batting.striker.name') || 'Striker';
-  flat.strikerRuns = parseInt(getNested(raw, 'strikerRuns')) || parseInt(getNested(raw, 'batting.striker.runs')) || 0;
-  flat.strikerBalls = parseInt(getNested(raw, 'strikerBalls')) || parseInt(getNested(raw, 'batting.striker.balls')) || 0;
-  flat.nonStrikerName = getNested(raw, 'nonStrikerName') || getNested(raw, 'batting.nonStriker.name') || getNested(raw, 'match.batting.nonstriker.name') || 'Non-Striker';
-  flat.nonStrikerRuns = parseInt(getNested(raw, 'nonStrikerRuns')) || parseInt(getNested(raw, 'batting.nonStriker.runs')) || 0;
-  flat.nonStrikerBalls = parseInt(getNested(raw, 'nonStrikerBalls')) || parseInt(getNested(raw, 'batting.nonStriker.balls')) || 0;
-
-  // Bowler
-  flat.bowlerName = getNested(raw, 'bowlerName') || getNested(raw, 'batting.bowler.name') || getNested(raw, 'match.bowling.currentBowler') || 'Bowler';
-  flat.bowlerRuns = parseInt(getNested(raw, 'bowlerRuns')) || parseInt(getNested(raw, 'batting.bowler.runs')) || 0;
-  flat.bowlerWickets = parseInt(getNested(raw, 'bowlerWickets')) || parseInt(getNested(raw, 'batting.bowler.wickets')) || 0;
-  flat.bowlerOvers = getNested(raw, 'bowlerOvers') || getNested(raw, 'batting.bowler.overs') || '0.0';
-
-  // Current over balls (array of outcomes)
-  flat.thisOver = getNested(raw, 'thisOver') || getNested(raw, 'batting.currentOver.balls') || [];
-
-  // Fallback: copy any direct flat props
-  Object.keys(raw).forEach(key => {
-    if (!flat.hasOwnProperty(key) && ['string', 'number'].includes(typeof raw[key])) {
-      flat[key] = raw[key];
-    }
-  });
-
-  console.log('[ScoreX Normalizer] Flattened data:', flat);
-  return flat;
-};
-
-// Re-normalize if not already flat
-flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawMatch) : rawMatch;
-
-// --- TRUNCATION & ANTI-CLIPPING LOGIC ---
-// Limit team names to 4 characters max to prevent UI clipping in all overlays
-if (flatData.team1Name && flatData.team1Name.length > 4) {
-    flatData.team1Name = flatData.team1Name.substring(0, 4).toUpperCase();
-}
-if (flatData.team2Name && flatData.team2Name.length > 4) {
-    flatData.team2Name = flatData.team2Name.substring(0, 4).toUpperCase();
-}
+      // --- TRUNCATION & ANTI-CLIPPING LOGIC ---
+      // Limit team names to 4 characters max to prevent UI clipping in all overlays
+      if (flatData.team1Name && flatData.team1Name.length > 4) {
+          flatData.team1Name = flatData.team1Name.substring(0, 4).toUpperCase();
+      }
+      if (flatData.team2Name && flatData.team2Name.length > 4) {
+          flatData.team2Name = flatData.team2Name.substring(0, 4).toUpperCase();
+      }
 
       matchData = flatData;
 
