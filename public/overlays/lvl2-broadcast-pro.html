@@ -448,7 +448,7 @@
         const t = e.data.payload;
         
         // Handle Quick Action Animations (Checks for both Lvl 1 and Lvl 2 naming conventions)
-        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING'].includes(t.type)) {
+        if (['BOUNDARY_FOUR', 'BOUNDARY_SIX', 'WICKET', 'DECISION_PENDING'].includes(t.type)) {
           const fId = $('anim-four') ? 'anim-four' : 'ev-four';
           const sId = $('anim-six') ? 'anim-six' : 'ev-six';
           const wId = $('anim-wicket') ? 'anim-wicket' : 'ev-out';
@@ -459,10 +459,10 @@
           if($(wId)) $(wId).classList.remove('fire');
           clearTimeout(eventTimer);
 
-          if (t.type === 'FOUR' && $(fId)) {
+          if (t.type === 'BOUNDARY_FOUR' && $(fId)) {
             $(fId).classList.add('fire');
             eventTimer = setTimeout(() => $(fId).classList.remove('fire'), 3000);
-          } else if (t.type === 'SIX' && $(sId)) {
+          } else if (t.type === 'BOUNDARY_SIX' && $(sId)) {
             $(sId).classList.add('fire');
             eventTimer = setTimeout(() => $(sId).classList.remove('fire'), 3000);
           } else if (t.type === 'WICKET' && $(wId)) {
