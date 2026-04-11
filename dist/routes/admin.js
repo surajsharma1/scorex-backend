@@ -38,119 +38,90 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
+// import { isAdmin } from '../middleware/auth';
 const adminController = __importStar(require("../controllers/adminController"));
 const userController = __importStar(require("../controllers/userController"));
 const tournamentController = __importStar(require("../controllers/tournamentController"));
 const matchController = __importStar(require("../controllers/matchController"));
 const dataExport_1 = require("../utils/dataExport");
 const promises_1 = __importDefault(require("fs/promises"));
-const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const User_1 = __importDefault(require("../models/User"));
 const router = express_1.default.Router();
-// ── Membership prices — GET is public (used on Membership page without auth) ──
 router.get('/membership-prices', adminController.getMembershipPrices);
 router.post('/membership-prices', auth_1.protect, auth_1.isAdmin, adminController.updateMembershipPrices);
-// ── User management ──────────────────────────────────────────────────────────
 router.get('/users', auth_1.protect, auth_1.isAdmin, userController.getUsers);
 router.patch('/users/:id/role', auth_1.protect, auth_1.isAdmin, userController.updateRole);
+router.get('/export/users', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
+// User management
 router.post('/users/:id/ban', auth_1.protect, auth_1.isAdmin, userController.banUser);
 router.post('/users/:id/unban', auth_1.protect, auth_1.isAdmin, userController.unbanUser);
+// Membership assign
 router.patch('/users/:id/membership', auth_1.protect, auth_1.isAdmin, userController.updateMembership);
-// ── CSV exports ──────────────────────────────────────────────────────────────
-router.get('/export/users', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportUsers(res, 'csv'));
-router.get('/export/payments', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportPayments(res, 'csv'));
-router.get('/export/tournaments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
-    try {
-        await dataExport_1.DataExportService.exportTournaments(res, 'csv');
-    }
-    catch {
-        res.status(500).json({ message: 'Export failed' });
-    }
-});
-// ── Tournament/Match admin delete (bypasses organizer check) ─────────────────
+// Tournament/Match admin delete
 router.delete('/tournaments/:id', auth_1.protect, auth_1.isAdmin, tournamentController.deleteTournament);
 router.delete('/matches/:id', auth_1.protect, auth_1.isAdmin, matchController.deleteMatch);
-// ── Payments report ──────────────────────────────────────────────────────────
-router.get('/payments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
-    try {
-        const payments = await User_1.default.aggregate([
-            { $unwind: '$paymentHistory' },
-            { $sort: { 'paymentHistory.date': -1 } },
-            { $limit: 100 },
-            {
-                $project: {
-                    userId: '$_id',
-                    username: 1,
-                    email: 1,
-                    amount: '$paymentHistory.amount',
-                    currency: '$paymentHistory.currency',
-                    level: '$paymentHistory.level',
-                    date: '$paymentHistory.date',
-                    status: '$paymentHistory.status',
-                },
-            },
-        ]);
-        res.json({ success: true, data: payments });
-    }
-    catch {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-// ── Logs list — returns {name, size, mtime} objects ─────────────────────────
+// Payments CSV export
+router.get('/export/payments', auth_1.protect, auth_1.isAdmin, (req, res) => dataExport_1.DataExportService.exportPayments(res, 'csv'));
+// Logs
 router.get('/logs', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     try {
         const logsPath = path_1.default.join(process.cwd(), 'logs');
-        // Create logs dir if it doesn't exist
-        try {
-            await promises_1.default.mkdir(logsPath, { recursive: true });
-        }
-        catch { }
-        let entries = [];
-        try {
-            entries = await promises_1.default.readdir(logsPath);
-        }
-        catch {
-            entries = [];
-        }
-        const logFiles = entries.filter(f => f.endsWith('.log') || f.endsWith('.txt'));
-        const statResults = await Promise.all(logFiles.slice(-20).map(async (name) => {
-            try {
-                const stat = await promises_1.default.stat(path_1.default.join(logsPath, name));
-                return { name, size: stat.size, mtime: stat.mtime.toISOString() };
-            }
-            catch {
-                return { name, size: 0, mtime: '' };
-            }
-        }));
-        res.json({ success: true, data: statResults });
+        const logFiles = await promises_1.default.readdir(logsPath);
+        res.json({ success: true, data: logFiles.slice(-20) }); // Last 20 logs
     }
     catch (error) {
-        console.error('Logs list error:', error);
-        res.status(500).json({ success: false, message: 'Failed to list logs', data: [] });
+        res.status(500).json({ message: 'Server error' });
     }
 });
-// ── Log download ──────────────────────────────────────────────────────────────
+// Log download
 router.get('/logs/:filename', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     try {
         const filename = req.params.filename;
-        if (!filename.match(/^[a-zA-Z0-9\-_.]+\.(log|txt)$/)) {
-            return res.status(400).json({ message: 'Invalid filename' });
-        }
         const logsPath = path_1.default.join(process.cwd(), 'logs', filename);
-        if (!fs_1.default.existsSync(logsPath)) {
-            return res.status(404).json({ message: 'Log file not found' });
+        // Security: validate filename
+        if (!filename.match(/^[a-zA-Z0-9\-_.]+\.log$/)) {
+            return res.status(400).json({ message: 'Invalid filename' });
         }
         const data = await promises_1.default.readFile(logsPath, 'utf8');
         res.set({
             'Content-Type': 'text/plain',
             'Content-Disposition': `attachment; filename="scorex-${filename}"`,
+            'Content-Length': data.length
         });
-        res.send(data);
+        res.status(200).send(data);
     }
     catch (error) {
         console.error('Log download error:', error);
         res.status(404).json({ message: 'Log file not found' });
+    }
+});
+// Payments report
+router.get('/payments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
+    try {
+        const payments = await User_1.default.aggregate([
+            { $unwind: '$paymentHistory' },
+            { $sort: { 'paymentHistory.date': -1 } },
+            { $limit: 200 },
+            { $project: {
+                    userId: '$_id',
+                    username: 1,
+                    email: 1,
+                    amount: '$paymentHistory.amount',
+                    currency: { $ifNull: ['$paymentHistory.currency', 'INR'] },
+                    plan: { $ifNull: ['$paymentHistory.plan', '$paymentHistory.level', 'Premium'] },
+                    level: '$paymentHistory.level',
+                    duration: '$paymentHistory.duration',
+                    date: '$paymentHistory.date',
+                    status: '$paymentHistory.status',
+                    razorpay_order_id: '$paymentHistory.razorpay_order_id',
+                    razorpay_payment_id: '$paymentHistory.razorpay_payment_id',
+                } }
+        ]);
+        res.json({ success: true, data: payments });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Server error' });
     }
 });
 exports.default = router;

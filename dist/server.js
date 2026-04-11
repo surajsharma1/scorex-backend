@@ -144,10 +144,8 @@ const io = new socket_io_1.Server(httpServer, {
 });
 app.set('io', io);
 io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
     socket.on('joinMatch', async (matchId) => {
         socket.join(`match:${matchId}`);
-        console.log(`Socket ${socket.id} joined match:${matchId}`);
         // ✅ FIX: Send current match state immediately on join
         try {
             const Match = mongoose_1.default.models.Match;
@@ -156,7 +154,6 @@ io.on('connection', (socket) => {
                 .lean();
             if (match) {
                 socket.emit('scoreUpdate', { match });
-                console.log(`Sent initial match data to ${socket.id}`);
             }
         }
         catch (err) {
@@ -172,14 +169,28 @@ io.on('connection', (socket) => {
     socket.on('leaveTournament', (tournamentId) => {
         socket.leave(`tournament:${tournamentId}`);
     });
+    // ── updateScore: scorer → server → all overlay/viewer clients on that match ──
+    socket.on('updateScore', (payload) => {
+        if (!payload?.matchId)
+            return;
+        // Relay to all clients watching this match (overlays, live viewers, etc.)
+        io.to(`match:${payload.matchId}`).emit('scoreUpdate', { match: payload.match });
+    });
+    // ── updateMatchState: decision pending etc. ────────────────────────────────
+    socket.on('updateMatchState', (payload) => {
+        if (!payload?.match?._id)
+            return;
+        io.to(`match:${payload.match._id}`).emit('scoreUpdate', payload);
+    });
     socket.on('manualOverlayTrigger', (payload) => {
-        console.log('🎬 Manual Trigger received:', payload.trigger.type);
+        if (!payload?.matchId)
+            return;
         io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
-            activeTrigger: payload.trigger
+            activeTrigger: payload.trigger,
         });
     });
     socket.on('disconnect', () => {
-        console.log('Socket disconnected:', socket.id);
+        // silent disconnect
     });
 });
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
