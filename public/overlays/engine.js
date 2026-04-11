@@ -139,18 +139,15 @@
   }
 
 // --- SAFE FETCH & SOCKET LOGIC ---
+  // --- SAFE FETCH & SOCKET LOGIC ---
   async function safeFetchMatchData() {
     if (!matchId) return safeUpdateState(getDemoData());
     try {
       const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
-      
-      // 🔥 FIX: Safely unwrap the API payload if it's nested
-      let matchPayload = json.data || json;
-      if (matchPayload && matchPayload.match) matchPayload = matchPayload.match;
-      
-      safeUpdateState(matchPayload);
+      // 🔥 FIX: Pass the FULL payload, do not strip away the result or overSummary
+      safeUpdateState(json.data || json); 
     } catch (err) { 
       console.error('[Scorex Engine] Initial fetch error:', err);
       safeUpdateState(getDemoData()); 
@@ -165,21 +162,18 @@
       console.log('[Scorex Engine] 🟢 Connected to Live Socket!');
       if (matchId) {
         socket.emit('joinMatch', matchId); 
-        socket.emit('join_match', matchId); // Fallback for alternative event name
+        socket.emit('join_match', matchId); 
       }
     });
 
-    // 🔥 FIX: Unwrap the Socket payload before updating the UI
+    // 🔥 FIX: Pass the FULL payload so the balls and live scores survive
     socket.on('scoreUpdate', (payload) => {
       console.log('[Scorex Engine] ⚡ Received scoreUpdate:', payload);
-      const actualData = (payload && payload.match) ? payload.match : payload;
-      safeUpdateState(actualData);
+      safeUpdateState(payload);
     });
 
-    // Fallback just in case your backend uses match_updated
     socket.on('match_updated', (payload) => {
-      const actualData = (payload && payload.match) ? payload.match : payload;
-      safeUpdateState(actualData);
+      safeUpdateState(payload);
     });
 
     socket.on('disconnect', () => console.warn('[Scorex Engine] 🔴 Disconnected, attempting reconnect...'));
