@@ -1,104 +1,93 @@
-// ========== UNIFIED DATA NORMALIZER (ENHANCED WITH VALIDATION & FALLBACKS) ==========
+// ========== SCOREX DATA NORMALIZER (PAYLOAD MATCHED) ==========
 window.normalizeScoreData = function(data) {
-    if (!data) {
-        console.warn('[OVERLAY UTILS] No data provided to normalizer');
-        return {
-            matchName: 'No Data', tournamentName: 'SCOREX LIVE',
-            team1Name: 'Team 1', team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
-            team1ShortName: '', team2ShortName: '', thisOver: [],
-            strikerName: '', strikerRuns: 0, strikerBalls: 0,
-            nonStrikerName: '', nonStrikerRuns: 0, nonStrikerBalls: 0,
-            bowlerName: 'Waiting Bowler...', bowlerRuns: 0, bowlerWickets: 0, bowlerOvers: '0.0',
-            target: 0, runRate: '0.00', requiredRunRate: '0.00'
-        };
-    }
+    if (!data) return getFallbackData();
 
-    // Aggressively search for flat OR nested values
-    let t1Score = Math.max(0, Number(data.team1Score) || Number(data.team1?.score) || Number(data.score1) || 0);
-    let t1Wickets = Math.max(0, Number(data.team1Wickets) || Number(data.team1?.wickets) || Number(data.wickets1) || 0);
-    let t1Overs = data.team1Overs || data.team1?.overs || data.overs1 || '0.0';
+    // 1. Map root-level scores directly from your console payload
+    let t1Score = Number(data.team1Score) || 0;
+    let t1Wickets = Number(data.team1Wickets) || 0;
+    let t1Overs = data.team1Overs != null ? String(data.team1Overs) : '0.0';
+
+    let t2Score = Number(data.team2Score) || 0;
+    let t2Wickets = Number(data.team2Wickets) || 0;
+    let t2Overs = data.team2Overs != null ? String(data.team2Overs) : '0.0';
+
+    // 2. Determine who is actively batting (to map primary vs secondary scores)
+    let isTeam2Batting = (data.currentInnings === 2) || (t2Score > 0 && t1Score === 0);
     
-    let sRuns = Math.max(0, Number(data.strikerRuns) || Number(data.striker?.runs) || 0);
-    let sBalls = Math.max(0, Number(data.strikerBalls) || Number(data.striker?.balls) || 0);
-    let nsRuns = Math.max(0, Number(data.nonStrikerRuns) || Number(data.nonStriker?.runs) || 0);
-    let nsBalls = Math.max(0, Number(data.nonStrikerBalls) || Number(data.nonStriker?.balls) || 0);
-    
-    let bRuns = Math.max(0, Number(data.bowlerRuns) || Number(data.bowler?.runs) || 0);
-    let bWickets = Math.max(0, Number(data.bowlerWickets) || Number(data.bowler?.wickets) || 0);
-    let bOvers = data.bowlerOvers || data.bowler?.overs || '0.0';
-    let target = Math.max(0, Number(data.target) || 0);
-    let runRate = '0.00', reqRunRate = '0.00';
-
-    let safeBowlerName = data.currentBowlerName || data.bowlerName || 'Bowler';
-    const safeTournamentName = data.tournament?.name || data.tournamentName || data.name || 'SCOREX LIVE';
-
-    let validInning = null;
-    if (data.innings && Array.isArray(data.innings) && data.innings.length > 0) {
-        const rawIdx = Number(data.currentInnings || 1) - 1;
-        const safeIdx = Math.max(0, Math.min(data.innings.length - 1, isNaN(rawIdx) ? 0 : rawIdx));
-        
-        validInning = data.innings[safeIdx];
-        if (validInning.score != null && (isNaN(validInning.score) || validInning.score < 0)) validInning.score = 0;
-        
-        t1Score = Math.max(0, Number(validInning.score) || 0);
-        t1Wickets = Math.max(0, Number(validInning.wickets) || 0);
-        t1Overs = validInning.overs != null ? String(validInning.overs) : '0.0';
-        
-        if (validInning.batsmen && Array.isArray(validInning.batsmen)) {
-            const striker = validInning.batsmen.find(b => b && b.name === data.strikerName) || {};
-            sRuns = Math.max(0, Number(striker.runs) || 0);
-            sBalls = Math.max(0, Number(striker.balls) || 0);
-            
-            const nonStriker = validInning.batsmen.find(b => b && b.name === data.nonStrikerName) || {};
-            nsRuns = Math.max(0, Number(nonStriker.runs) || 0);
-            nsBalls = Math.max(0, Number(nonStriker.balls) || 0);
-        }
-        
-        if (validInning.bowlers && Array.isArray(validInning.bowlers)) {
-            const bowler = validInning.bowlers.find(b => b && b.name === data.currentBowlerName) || { name: data.currentBowlerName || '' };
-            bRuns = Math.max(0, Number(bowler.runs) || 0);
-            bWickets = Math.max(0, Number(bowler.wickets) || 0);
-            
-            const bowlerBalls = Math.max(0, Number(bowler.balls) || 0);
-            const bowlerOversNum = Math.floor(bowlerBalls / 6);
-            const ballsInOver = bowlerBalls % 6;
-            bOvers = bowlerBalls > 0 ? `${bowlerOversNum}.${ballsInOver}` : '0.0';
-            
-            if (bowler.name) safeBowlerName = bowler.name;
-        }
-        
-        if (validInning.targetScore) target = Math.max(0, Number(validInning.targetScore));
-        if (validInning.runRate != null) runRate = Number(validInning.runRate).toFixed(2);
-        if (validInning.requiredRunRate != null) reqRunRate = Number(validInning.requiredRunRate).toFixed(2);
+    // 3. Convert the overSummary string ("1 W 4 WD") into the array format
+    let parsedOverArray = [];
+    if (data.overSummary && typeof data.overSummary === 'string') {
+        parsedOverArray = data.overSummary.trim().split(/\s+/).filter(b => b !== '').map(ballStr => {
+            const upper = ballStr.toUpperCase();
+            return {
+                isWicket: upper.includes('W') && upper !== 'WD',
+                isWide: upper.includes('WD'),
+                isNoBall: upper.includes('NB'),
+                runs: parseInt(upper) || 0,
+                raw: upper
+            };
+        });
     }
 
     return {
-        matchName: data.name || `${data.team1Name || 'Team 1'} vs ${data.team2Name || 'Team 2'}`,
-        tournamentName: safeTournamentName,
-        team1Name: data.battingTeamName || data.team1Name || data.team1?.name || 'Team 1',
-        team1ShortName: data.team1ShortName || data.team1?.shortName || '',
-        team2ShortName: data.team2ShortName || data.team2?.shortName || '',
-        thisOver: data.thisOver || [],
-        team1Score: t1Score, team1Wickets: t1Wickets, team1Overs: t1Overs,
-        strikerName: data.strikerName || '', strikerRuns: sRuns, strikerBalls: sBalls,
-        nonStrikerName: data.nonStrikerName || '', nonStrikerRuns: nsRuns, nonStrikerBalls: nsBalls,
-        bowlerName: safeBowlerName, bowlerRuns: bRuns, bowlerWickets: bWickets, bowlerOvers: bOvers,
-        target: target, runRate: runRate, requiredRunRate: reqRunRate,
-        status: data.status || 'LIVE', _raw: data
+        matchName: data.name || 'Live Match',
+        tournamentName: data.tournamentName || 'SCOREX',
+        
+        // Dynamic Mapping: Put the batting team as Team 1 for the UI
+        team1Name: isTeam2Batting ? (data.team2Name || 'Team 2') : (data.team1Name || 'Team 1'),
+        team1ShortName: isTeam2Batting ? (data.team2?.shortName || '') : (data.team1?.shortName || ''),
+        team1Score: isTeam2Batting ? t2Score : t1Score,
+        team1Wickets: isTeam2Batting ? t2Wickets : t1Wickets,
+        team1Overs: isTeam2Batting ? t2Overs : t1Overs,
+
+        team2Name: isTeam2Batting ? (data.team1Name || 'Team 1') : (data.team2Name || 'Team 2'),
+        team2ShortName: isTeam2Batting ? (data.team1?.shortName || '') : (data.team2?.shortName || ''),
+        team2Score: isTeam2Batting ? t1Score : t2Score,
+        team2Wickets: isTeam2Batting ? t1Wickets : t2Wickets,
+        team2Overs: isTeam2Batting ? t1Overs : t2Overs,
+
+        // Attach the converted array for the ball renderer
+        thisOver: parsedOverArray,
+
+        // Player Data
+        strikerName: data.strikerName || '',
+        strikerRuns: Number(data.result?.strikerMatchRuns) || 0,
+        strikerBalls: Number(data.result?.strikerMatchBalls) || 0,
+        
+        nonStrikerName: data.nonStrikerName || '',
+        // Note: Payload didn't show non-striker runs, defaulting to 0
+        nonStrikerRuns: 0, 
+        nonStrikerBalls: 0,
+
+        bowlerName: data.currentBowlerName || '',
+        bowlerRuns: 0,
+        bowlerWickets: 0,
+        bowlerOvers: '0.0',
+        
+        runRate: data.result?.runRate ? Number(data.result.runRate).toFixed(2) : '0.00',
+        target: 0, requiredRunRate: '0.00',
+        status: data.status || 'LIVE', 
+        _raw: data
     };
 };
 
-// ========== UNIVERSAL AUTO-BALL RENDERER FOR ALL LEVEL 1 & 2 OVERLAYS ==========
+function getFallbackData() {
+    return {
+        matchName: 'Loading...', team1Name: 'Team 1', team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
+        team2Name: 'Team 2', team2Score: 0, team2Wickets: 0, team2Overs: '0.0', thisOver: []
+    };
+}
+
+// ========== UNIVERSAL AUTO-BALL RENDERER ==========
 window.renderCurrentOver = function(thisOverArray) {
-    // Target the ball containers in whichever HTML design is currently loaded
     const containers = document.querySelectorAll('#this-over, .this-over, #balls-container, .balls-container');
     if (!containers.length) return;
 
-    // RULE: ALWAYS show at least 6 spots. If an over has more balls (extras), expand dynamically!
+    // Minimum 6 spots, expands automatically if more balls exist
     const totalSpots = Math.max(6, thisOverArray.length);
 
     containers.forEach(container => {
-        // Capture the original design's ball styling so we don't change a single pixel
+        // Clone original CSS shape
         if (!container.dataset.ballTemplate) {
             const firstBall = container.children[0];
             container.dataset.ballTemplate = firstBall ? firstBall.outerHTML : '<div class="ball" style="display:flex;align-items:center;justify-content:center;font-weight:bold;"></div>';
@@ -109,46 +98,33 @@ window.renderCurrentOver = function(thisOverArray) {
 
         for (let i = 0; i < totalSpots; i++) {
             let ballData = thisOverArray[i];
-            
-            // Create a virtual element to safely inject data without breaking the original HTML/CSS
             let tempDiv = document.createElement('div');
             tempDiv.innerHTML = template;
             let ballEl = tempDiv.firstElementChild;
             
             if (ballData) {
-                // Parse Wickets and Extras
-                if (ballData.isWicket || ballData.wicket) {
-                    ballEl.innerText = 'W';
-                    ballEl.style.backgroundColor = '#ef4444'; // Solid Red for Out
+                // Apply the string directly (e.g. "1", "W", "WD")
+                ballEl.innerText = ballData.raw === '0' ? '•' : ballData.raw;
+                
+                // Color coding while keeping your exact CSS shapes
+                if (ballData.isWicket) {
+                    ballEl.style.backgroundColor = '#ef4444';
                     ballEl.style.color = '#ffffff';
                     ballEl.style.borderColor = '#ef4444';
-                } else if (ballData.isWide || ballData.extraType === 'WD' || ballData.extraType === 'wide') {
-                    ballEl.innerText = 'WD';
+                } else if (ballData.isWide || ballData.isNoBall) {
                     ballEl.style.backgroundColor = 'transparent';
-                } else if (ballData.isNoBall || ballData.extraType === 'NB' || ballData.extraType === 'noBall') {
-                    ballEl.innerText = 'NB';
-                    ballEl.style.backgroundColor = 'transparent';
-                } else {
-                    // Normal Runs
-                    let runs = ballData.runs || ballData.runsOffBat || 0;
-                    ballEl.innerText = runs === 0 ? '•' : runs;
-                    
-                    // Highlight Boundaries without changing the CSS shape
-                    if (runs === 4) {
-                        ballEl.style.backgroundColor = '#3b82f6'; // Solid Blue for Four
-                        ballEl.style.color = '#ffffff';
-                        ballEl.style.borderColor = '#3b82f6';
-                    } else if (runs === 6) {
-                        ballEl.style.backgroundColor = '#10b981'; // Solid Green for Six
-                        ballEl.style.color = '#ffffff';
-                        ballEl.style.borderColor = '#10b981';
-                    }
+                } else if (ballData.raw === '4') {
+                    ballEl.style.backgroundColor = '#3b82f6';
+                    ballEl.style.color = '#ffffff';
+                    ballEl.style.borderColor = '#3b82f6';
+                } else if (ballData.raw === '6') {
+                    ballEl.style.backgroundColor = '#10b981';
+                    ballEl.style.color = '#ffffff';
+                    ballEl.style.borderColor = '#10b981';
                 }
             } else {
-                // Empty upcoming ball slots
                 ballEl.innerText = '';
             }
-            
             htmlContent += ballEl.outerHTML;
         }
         
