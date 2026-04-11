@@ -182,7 +182,24 @@
 
 
   function getDemoData() {
-    return { match: { tossWinnerName: 'Team A', tossDecision: 'bat' }, team1Score: 0, team1Wickets: 0, team1Overs: '0.0', team1Name: 'PREM', team2Name: 'CHAL', strikerName: 'V. Kohli' };
+    return { 
+      matchId: "demo-123",
+      team1Name: 'PREM', 
+      team2Name: 'CHAL', 
+      team1Score: 184, 
+      team1Wickets: 4, 
+      team1Overs: '18.2', 
+      strikerName: 'V. Kohli',
+      strikerRuns: 78,
+      strikerBalls: 45,
+      nonStrikerName: 'S. Yadav',
+      nonStrikerRuns: 32,
+      nonStrikerBalls: 18,
+      bowlerName: 'J. Bumrah',
+      bowlerWickets: 2,
+      bowlerRuns: 24,
+      bowlerOvers: '3.2'
+    };
   }
 
   function init() {
