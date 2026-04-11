@@ -3,8 +3,7 @@ window.normalizeScoreData = function(data) {
     if (!data) {
         console.warn('[OVERLAY UTILS] No data provided to normalizer');
         return {
-            matchName: 'No Data',
-            tournamentName: 'SCOREX LIVE',
+            matchName: 'No Data', tournamentName: 'SCOREX LIVE',
             team1Name: 'Team 1', team1Score: 0, team1Wickets: 0, team1Overs: '0.0',
             team1ShortName: '', team2ShortName: '', thisOver: [],
             strikerName: '', strikerRuns: 0, strikerBalls: 0,
@@ -27,7 +26,6 @@ window.normalizeScoreData = function(data) {
     let target = Math.max(0, Number(data.target) || 0);
     let runRate = '0.00', reqRunRate = '0.00';
 
-    // GUARANTEED FALLBACKS FOR MISSING DATA
     let safeBowlerName = data.currentBowlerName || data.bowlerName || 'Bowler';
     const safeTournamentName = data.tournament?.name || data.tournamentName || data.name || 'SCOREX LIVE';
 
@@ -37,7 +35,6 @@ window.normalizeScoreData = function(data) {
         const safeIdx = Math.max(0, Math.min(data.innings.length - 1, isNaN(rawIdx) ? 0 : rawIdx));
         
         validInning = data.innings[safeIdx];
-        
         if (validInning.score != null && (isNaN(validInning.score) || validInning.score < 0)) validInning.score = 0;
         
         t1Score = Math.max(0, Number(validInning.score) || 0);
@@ -72,38 +69,86 @@ window.normalizeScoreData = function(data) {
         if (validInning.requiredRunRate != null) reqRunRate = Number(validInning.requiredRunRate).toFixed(2);
     }
 
-    const computedMatchName = data.name || `${data.team1Name || 'Team 1'} vs ${data.team2Name || 'Team 2'}` || 'Live Match';
-
     return {
-        matchName: computedMatchName,
+        matchName: data.name || `${data.team1Name || 'Team 1'} vs ${data.team2Name || 'Team 2'}`,
         tournamentName: safeTournamentName,
-        
-        // Team Names & Truncation Handling
         team1Name: data.battingTeamName || data.team1Name || data.team1?.name || 'Team 1',
         team1ShortName: data.team1ShortName || data.team1?.shortName || '',
         team2ShortName: data.team2ShortName || data.team2?.shortName || '',
-        
-        // The newly connected "This Over" array for visual ball tracking
         thisOver: data.thisOver || [],
-
-        // Core Match Stats
-        team1Score: t1Score,
-        team1Wickets: t1Wickets,
-        team1Overs: t1Overs,
-        strikerName: data.strikerName || '',
-        strikerRuns: sRuns,
-        strikerBalls: sBalls,
-        nonStrikerName: data.nonStrikerName || '',
-        nonStrikerRuns: nsRuns,
-        nonStrikerBalls: nsBalls,
-        bowlerName: safeBowlerName,
-        bowlerRuns: bRuns,
-        bowlerWickets: bWickets,
-        bowlerOvers: bOvers,
-        target: target,
-        runRate: runRate,
-        requiredRunRate: reqRunRate,
-        status: data.status || 'LIVE',
-        _raw: data
+        team1Score: t1Score, team1Wickets: t1Wickets, team1Overs: t1Overs,
+        strikerName: data.strikerName || '', strikerRuns: sRuns, strikerBalls: sBalls,
+        nonStrikerName: data.nonStrikerName || '', nonStrikerRuns: nsRuns, nonStrikerBalls: nsBalls,
+        bowlerName: safeBowlerName, bowlerRuns: bRuns, bowlerWickets: bWickets, bowlerOvers: bOvers,
+        target: target, runRate: runRate, requiredRunRate: reqRunRate,
+        status: data.status || 'LIVE', _raw: data
     };
+};
+
+// ========== UNIVERSAL AUTO-BALL RENDERER FOR ALL LEVEL 1 & 2 OVERLAYS ==========
+window.renderCurrentOver = function(thisOverArray) {
+    // Target the ball containers in whichever HTML design is currently loaded
+    const containers = document.querySelectorAll('#this-over, .this-over, #balls-container, .balls-container');
+    if (!containers.length) return;
+
+    // RULE: ALWAYS show at least 6 spots. If an over has more balls (extras), expand dynamically!
+    const totalSpots = Math.max(6, thisOverArray.length);
+
+    containers.forEach(container => {
+        // Capture the original design's ball styling so we don't change a single pixel
+        if (!container.dataset.ballTemplate) {
+            const firstBall = container.children[0];
+            container.dataset.ballTemplate = firstBall ? firstBall.outerHTML : '<div class="ball" style="display:flex;align-items:center;justify-content:center;font-weight:bold;"></div>';
+        }
+
+        const template = container.dataset.ballTemplate;
+        let htmlContent = '';
+
+        for (let i = 0; i < totalSpots; i++) {
+            let ballData = thisOverArray[i];
+            
+            // Create a virtual element to safely inject data without breaking the original HTML/CSS
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = template;
+            let ballEl = tempDiv.firstElementChild;
+            
+            if (ballData) {
+                // Parse Wickets and Extras
+                if (ballData.isWicket || ballData.wicket) {
+                    ballEl.innerText = 'W';
+                    ballEl.style.backgroundColor = '#ef4444'; // Solid Red for Out
+                    ballEl.style.color = '#ffffff';
+                    ballEl.style.borderColor = '#ef4444';
+                } else if (ballData.isWide || ballData.extraType === 'WD' || ballData.extraType === 'wide') {
+                    ballEl.innerText = 'WD';
+                    ballEl.style.backgroundColor = 'transparent';
+                } else if (ballData.isNoBall || ballData.extraType === 'NB' || ballData.extraType === 'noBall') {
+                    ballEl.innerText = 'NB';
+                    ballEl.style.backgroundColor = 'transparent';
+                } else {
+                    // Normal Runs
+                    let runs = ballData.runs || ballData.runsOffBat || 0;
+                    ballEl.innerText = runs === 0 ? '•' : runs;
+                    
+                    // Highlight Boundaries without changing the CSS shape
+                    if (runs === 4) {
+                        ballEl.style.backgroundColor = '#3b82f6'; // Solid Blue for Four
+                        ballEl.style.color = '#ffffff';
+                        ballEl.style.borderColor = '#3b82f6';
+                    } else if (runs === 6) {
+                        ballEl.style.backgroundColor = '#10b981'; // Solid Green for Six
+                        ballEl.style.color = '#ffffff';
+                        ballEl.style.borderColor = '#10b981';
+                    }
+                }
+            } else {
+                // Empty upcoming ball slots
+                ballEl.innerText = '';
+            }
+            
+            htmlContent += ballEl.outerHTML;
+        }
+        
+        container.innerHTML = htmlContent;
+    });
 };

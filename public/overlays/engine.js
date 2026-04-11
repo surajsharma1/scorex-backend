@@ -125,6 +125,11 @@
         dispatchTrigger(trigger);
       }
 
+      // 🔴 ADD THIS LINE: Fire the universal ball renderer with the parsed data
+      if (typeof window.renderCurrentOver === 'function') {
+        window.renderCurrentOver(flatData.thisOver);
+      }
+
       // Update the DOM Data
       window.postMessage({ type: 'UPDATE_SCORE', data: flatData, raw: rawMatch }, '*');
 
