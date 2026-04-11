@@ -4,48 +4,8 @@
 (function () {
   'use strict';
   
-    // --- SCOREX DATA TRANSLATOR ---
-    // Flattens the nested backend payload for the HTML overlays
-    window.normalizeScoreData = function(rawDoc) {
-      const match = rawDoc.match || rawDoc;
-      const result = rawDoc.result || {};
-      
-      // 1. Determine which team is actively batting based on the Toss
-  let isTeam1Batting = true;   if (match.tossWinnerName === match.team1Name && match.tossDecision === "bowl") isTeam1Batting = false;    if (match.tossWinnerName === match.team2Name && match.tossDecision === "bat") isTeam1Batting = false;   let battingTeam = isTeam1Batting ? match.team1 : match.team2;
-      let battingTeamName = isTeam1Batting ? match.team1Name : match.team2Name;
-      
-      // 2. Extract live scores (Prioritize the \'result\' object, fallback to \'match\' object)
-      let currentScore = result.score ?? (isTeam1Batting ? match.team1Score : match.team2Score) ?? 0;
-      let currentWickets = result.wickets ?? (isTeam1Batting ? match.team1Wickets : match.team2Wickets) ?? 0;
-      let currentOvers = result.overs ?? (isTeam1Batting ? match.team1Overs : match.team2Overs) ?? "0.0";
-      
-      // 3. Extract player stats (Safely fallback to 0 if \'result\' doesn\'t contain them yet)
-      const strikerStats = result.striker || {};
-      const nonStrikerStats = result.nonStriker || {};
-      const bowlerStats = result.bowler || {};
-  
-      // 4. Return the perfectly flat object the HTML files expect
-      return {
-        teamName: battingTeam?.shortName || battingTeamName || "TM",
-        teamScore: currentScore,
-        teamWickets: currentWickets,
-        teamOvers: currentOvers,
-        
-        strikerName: match.strikerName || "Striker",
-        strikerRuns: strikerStats.runs || 0,
-        strikerBalls: strikerStats.balls || 0,
-        
-        nonStrikerName: match.nonStrikerName || "Non-Striker",
-        nonStrikerRuns: nonStrikerStats.runs || 0,
-        nonStrikerBalls: nonStrikerStats.balls || 0,
-        
-        bowlerName: match.currentBowlerName || "Bowler",
-        bowlerRuns: bowlerStats.runs || 0,
-        bowlerWickets: bowlerStats.wickets || 0,
-        bowlerOvers: bowlerStats.overs || "0.0",
-        
-        thisOver: rawDoc.overSummary || ""
-      };
+    // normalizeScoreData is provided by overlay-utils.js (loaded before engine.js)
+
     };
   
     const config = window.OVERLAY_CONFIG || {};
@@ -226,23 +186,32 @@
   
   
     function getDemoData() {
-      return { 
-        matchId: "demo-123",
-        team1Name: 'PREM', 
-        team2Name: 'CHAL', 
-        team1Score: 184, 
-        team1Wickets: 4, 
-        team1Overs: '18.2', 
-        strikerName: 'V. Kohli',
-        strikerRuns: 78,
-        strikerBalls: 45,
-        nonStrikerName: 'S. Yadav',
-        nonStrikerRuns: 32,
-        nonStrikerBalls: 18,
-        bowlerName: 'J. Bumrah',
-        bowlerWickets: 2,
-        bowlerRuns: 24,
-        bowlerOvers: '3.2'
+      // Wrap in the nested structure that normalizeScoreData expects
+      return {
+        match: {
+          team1Name: 'PREM',
+          team2Name: 'CHAL',
+          team1Score: 184,
+          team1Wickets: 4,
+          team1Overs: '18.2',
+          team2Score: 0,
+          team2Wickets: 0,
+          team2Overs: '0.0',
+          currentInnings: 1,
+          strikerName: 'V. Kohli',
+          nonStrikerName: 'S. Yadav',
+          currentBowlerName: 'J. Bumrah'
+        },
+        result: {
+          score: 184,
+          wickets: 4,
+          overs: '18.2',
+          strikerMatchRuns: 78,
+          strikerMatchBalls: 45,
+          runRate: '10.11',
+          overSummary: '1 4 W 0 6 1'
+        },
+        overSummary: '1 4 W 0 6 1'
       };
     }
   

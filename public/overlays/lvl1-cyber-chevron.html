@@ -207,21 +207,18 @@
           <div class="bw-ov">OV <span id="bowlerOvers" style="color:var(--em-green-glow);">0.0</span></div>
         </div>
       </div>
-      <div class="this-over-row">
+      <div class="this-over-row" id="this-over">
         <span>THIS OVER</span>
-        <div class="ball-dot fill"></div>
-        <div class="ball-dot fill"></div>
-        <div class="ball-dot"></div>
-        <div class="ball-dot"></div>
-        <div class="ball-dot"></div>
         <div class="ball-dot"></div>
       </div>
     </div>
 
   </div>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="/overlays/engine.js">
-    const $ = id => document.getElementById(id);
+<script src="/overlays/overlay-utils.js"></script>
+<script src="/overlays/engine.js"></script>
+<script>
+const $ = id => document.getElementById(id);
     let eventTimer;
     let decisionPendingState = false;
 
@@ -287,6 +284,6 @@
     });
 
     window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
-  </script>
+</script>
 </body>
 </html>

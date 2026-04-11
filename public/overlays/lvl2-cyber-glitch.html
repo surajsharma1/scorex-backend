@@ -393,8 +393,10 @@
   </div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="/overlays/engine.js">
-    const $ = id => document.getElementById(id);
+<script src="/overlays/overlay-utils.js"></script>
+<script src="/overlays/engine.js"></script>
+<script>
+const $ = id => document.getElementById(id);
     let decisionPendingState = false;
     let endMatchInterval;
     let eventTimer;
@@ -431,36 +433,11 @@
 
       safeSet('targetScore', d.target, '');
       safeSet('reqRunRate', d.requiredRunRate, '');
+      // Ball rendering handled by renderCurrentOver in overlay-utils.js
+      if (typeof window.renderCurrentOver === 'function') {
+        window.renderCurrentOver(d.thisOver || []);
+      }
 
-      // --- NEW: Advanced "This Over" Array Parsing ---
-      const ballDots = document.querySelectorAll('.ball-dot');
-      const thisOverArray = d.thisOver || [];
-      
-      ballDots.forEach((dot, index) => {
-        dot.className = 'ball-dot'; // Reset state
-        dot.innerText = ''; 
-        
-        if (index < thisOverArray.length) {
-          const ball = thisOverArray[index];
-          dot.classList.add('fill');
-          
-          if (ball.wicket) {
-            dot.classList.add('wicket-color'); // Optional: Add CSS for these classes to change text color
-            dot.innerText = 'W';
-          } else if (ball.isBoundary) {
-            dot.classList.add('boundary-color');
-            dot.innerText = ball.runs;
-          } else if (ball.isWide) {
-            dot.classList.add('extra-color');
-            dot.innerText = 'Wd';
-          } else if (ball.isNoBall) {
-             dot.classList.add('extra-color');
-             dot.innerText = 'Nb';
-          } else {
-            dot.innerText = ball.runs === 0 ? '•' : ball.runs;
-          }
-        }
-      });
     }
 // --- NEW: Native Sponsor Carousel Logic ---
     // 1. Read the config directly from the OBS/Preview URL
@@ -610,6 +587,6 @@
     });
 
     window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
-  </script>
+</script>
 </body>
 </html>
