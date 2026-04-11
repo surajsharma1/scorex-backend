@@ -2,261 +2,262 @@
  * Scorex Overlay Engine V3 (AUTO-DIRECTOR HYBRID ARCHITECTURE)
  */
 (function () {
-'use strict';
-
-  // --- SCOREX DATA TRANSLATOR ---
-  // Flattens the nested backend payload for the HTML overlays
-  window.normalizeScoreData = function(rawDoc) {
-    const match = rawDoc.match || rawDoc;
-    const result = rawDoc.result || {};
-    
-    // 1. Determine which team is actively batting based on the Toss
-let isTeam1Batting = true;\n    if (match.tossWinnerName === match.team1Name && match.tossDecision === "bowl") isTeam1Batting = false;\n    if (match.tossWinnerName === match.team2Name && match.tossDecision === "bat") isTeam1Batting = false;\n    \n    let battingTeam = isTeam1Batting ? match.team1 : match.team2;
-    let battingTeamName = isTeam1Batting ? match.team1Name : match.team2Name;
-    
-Prioritize the "result" object
-    let currentScore = result.score ?? (isTeam1Batting ? match.team1Score : match.team2Score) ?? 0;
-    let currentWickets = result.wickets ?? (isTeam1Batting ? match.team1Wickets : match.team2Wickets) ?? 0;
-    let currentOvers = result.overs ?? (isTeam1Batting ? match.team1Overs : match.team2Overs) ?? "0.0";
-    
-if "result" doesn't contain them yet)
-    const strikerStats = result.striker || {};
-    const nonStrikerStats = result.nonStriker || {};
-    const bowlerStats = result.bowler || {};
-
-    // 4. Return the perfectly flat object the HTML files expect
-    return {
-      teamName: battingTeam?.shortName || battingTeamName || "TM",
-      teamScore: currentScore,
-      teamWickets: currentWickets,
-      teamOvers: currentOvers,
+  'use strict';
+  
+    // --- SCOREX DATA TRANSLATOR ---
+    // Flattens the nested backend payload for the HTML overlays
+    window.normalizeScoreData = function(rawDoc) {
+      const match = rawDoc.match || rawDoc;
+      const result = rawDoc.result || {};
       
-      strikerName: match.strikerName || "Striker",
-      strikerRuns: strikerStats.runs || 0,
-      strikerBalls: strikerStats.balls || 0,
+      // 1. Determine which team is actively batting based on the Toss
+  let isTeam1Batting = true;   if (match.tossWinnerName === match.team1Name && match.tossDecision === "bowl") isTeam1Batting = false;    if (match.tossWinnerName === match.team2Name && match.tossDecision === "bat") isTeam1Batting = false;   let battingTeam = isTeam1Batting ? match.team1 : match.team2;
+      let battingTeamName = isTeam1Batting ? match.team1Name : match.team2Name;
       
-      nonStrikerName: match.nonStrikerName || "Non-Striker",
-      nonStrikerRuns: nonStrikerStats.runs || 0,
-      nonStrikerBalls: nonStrikerStats.balls || 0,
+      // 2. Extract live scores (Prioritize the \'result\' object, fallback to \'match\' object)
+      let currentScore = result.score ?? (isTeam1Batting ? match.team1Score : match.team2Score) ?? 0;
+      let currentWickets = result.wickets ?? (isTeam1Batting ? match.team1Wickets : match.team2Wickets) ?? 0;
+      let currentOvers = result.overs ?? (isTeam1Batting ? match.team1Overs : match.team2Overs) ?? "0.0";
       
-      bowlerName: match.currentBowlerName || "Bowler",
-      bowlerRuns: bowlerStats.runs || 0,
-      bowlerWickets: bowlerStats.wickets || 0,
-      bowlerOvers: bowlerStats.overs || "0.0",
-      
-      thisOver: rawDoc.overSummary || ""
+      // 3. Extract player stats (Safely fallback to 0 if \'result\' doesn\'t contain them yet)
+      const strikerStats = result.striker || {};
+      const nonStrikerStats = result.nonStriker || {};
+      const bowlerStats = result.bowler || {};
+  
+      // 4. Return the perfectly flat object the HTML files expect
+      return {
+        teamName: battingTeam?.shortName || battingTeamName || "TM",
+        teamScore: currentScore,
+        teamWickets: currentWickets,
+        teamOvers: currentOvers,
+        
+        strikerName: match.strikerName || "Striker",
+        strikerRuns: strikerStats.runs || 0,
+        strikerBalls: strikerStats.balls || 0,
+        
+        nonStrikerName: match.nonStrikerName || "Non-Striker",
+        nonStrikerRuns: nonStrikerStats.runs || 0,
+        nonStrikerBalls: nonStrikerStats.balls || 0,
+        
+        bowlerName: match.currentBowlerName || "Bowler",
+        bowlerRuns: bowlerStats.runs || 0,
+        bowlerWickets: bowlerStats.wickets || 0,
+        bowlerOvers: bowlerStats.overs || "0.0",
+        
+        thisOver: rawDoc.overSummary || ""
+      };
     };
-  };
-
-  const config = window.OVERLAY_CONFIG || {};
   
-  // 🔥 THE FIX: Grab the matchId directly from the URL first!
-  const urlParams = new URLSearchParams(window.location.search);
-  const matchId = urlParams.get('matchId') || config.matchId;
+    const config = window.OVERLAY_CONFIG || {};
+    
+    // 🔥 THE FIX: Grab the matchId directly from the URL first!
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get('matchId') || config.matchId;
+    
+    const apiBaseUrl = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
+    const socketUrl = apiBaseUrl.replace('/api/v1', '');
   
-  const apiBaseUrl = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
-  const socketUrl = apiBaseUrl.replace('/api/v1', '');
-
-  // --- PARSE GLOBAL CONFIG FROM URL ---
-  let globalCfg = {};
-  try {
-    const cfgParam = urlParams.get('cfg');
-    if (cfgParam) globalCfg = JSON.parse(decodeURIComponent(cfgParam));
-  } catch(e) { console.error("Could not parse config", e); }
-
-  const overlaySettings = {
-    tossDuration: globalCfg.tossDuration || 8,
-    squadDuration: globalCfg.squadDuration || 12,
-    introDuration: globalCfg.introDuration || 12,
-    autoStatsOvers: globalCfg.autoStatsOvers !== undefined ? globalCfg.autoStatsOvers : 5, 
-    autoStatsType: globalCfg.autoStatsType || 'BOTH_CARDS',
-    autoStatsDuration: globalCfg.autoStatsDuration || 10
-  };
-
-  let matchData = null;
-  let socket = null;
-  
-  let currentState = 'BOOTING'; 
-  let hasPlayedIntro = false;
-  let lastAutoStatOver = -1;
-  let animationLock = false;
-
-  function dispatchTrigger(triggerObj) {
-    console.log(`[Scorex Auto-Director] 🎬 Firing: ${triggerObj.type}`, triggerObj);
-    window.postMessage({ type: 'OVERLAY_TRIGGER', payload: triggerObj }, '*');
-  }
-
-  function safeUpdateState(rawDoc) {
+    // --- PARSE GLOBAL CONFIG FROM URL ---
+    let globalCfg = {};
     try {
-      if (!rawDoc) return;
-      const trigger = rawDoc.activeTrigger || null;
-      const rawMatch = rawDoc.match || rawDoc;
-let flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawDoc) : rawDoc;
-
-      // --- TRUNCATION & ANTI-CLIPPING LOGIC ---
-      // Limit team names to 4 characters max to prevent UI clipping in all overlays
-      if (flatData.team1Name && flatData.team1Name.length > 4) {
-          flatData.team1Name = flatData.team1Name.substring(0, 4).toUpperCase();
-      }
-      if (flatData.team2Name && flatData.team2Name.length > 4) {
-          flatData.team2Name = flatData.team2Name.substring(0, 4).toUpperCase();
-      }
-
-      matchData = flatData;
-
-      const isMatchNew = flatData.team1Score === 0 && (flatData.team1Overs === "0.0" || flatData.team1Overs === 0) && flatData.team1Wickets === 0;
-      const tossDone = !!rawMatch.tossWinnerName;
-      const hasPlayers = !!flatData.strikerName;
-
-      // --- 1. BROADCAST SEQUENCING ---
-      if (currentState === 'BOOTING' || currentState === 'VS_SCREEN') {
-        if (!tossDone) {
-          // Stay on VS screen until toss is decided
-          if (currentState !== 'VS_SCREEN') {
-            currentState = 'VS_SCREEN';
-            dispatchTrigger({ type: 'SHOW_VS_SCREEN' });
-          }
-        } 
-        else if (tossDone && isMatchNew && !hasPlayers) {
-          // Toss just happened, cascade through the sequence
-          currentState = 'TOSS_SCREEN';
-          dispatchTrigger({ type: 'SHOW_TOSS' });
-          
-          setTimeout(() => {
-            currentState = 'SQUAD_SCREEN';
-            dispatchTrigger({ type: 'SHOW_SQUADS' });
+      const cfgParam = urlParams.get('cfg');
+      if (cfgParam) globalCfg = JSON.parse(decodeURIComponent(cfgParam));
+    } catch(e) { console.error("Could not parse config", e); }
+  
+    const overlaySettings = {
+      tossDuration: globalCfg.tossDuration || 8,
+      squadDuration: globalCfg.squadDuration || 12,
+      introDuration: globalCfg.introDuration || 12,
+      autoStatsOvers: globalCfg.autoStatsOvers !== undefined ? globalCfg.autoStatsOvers : 5, 
+      autoStatsType: globalCfg.autoStatsType || 'BOTH_CARDS',
+      autoStatsDuration: globalCfg.autoStatsDuration || 10
+    };
+  
+    let matchData = null;
+    let socket = null;
+    
+    let currentState = 'BOOTING'; 
+    let hasPlayedIntro = false;
+    let lastAutoStatOver = -1;
+    let animationLock = false;
+  
+    function dispatchTrigger(triggerObj) {
+      console.log(`[Scorex Auto-Director] 🎬 Firing: ${triggerObj.type}`, triggerObj);
+      window.postMessage({ type: 'OVERLAY_TRIGGER', payload: triggerObj }, '*');
+    }
+  
+    function safeUpdateState(rawDoc) {
+      try {
+        if (!rawDoc) return;
+        const trigger = rawDoc.activeTrigger || null;
+        const rawMatch = rawDoc.match || rawDoc;
+  let flatData = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(rawDoc) : rawDoc;
+  
+        // --- TRUNCATION & ANTI-CLIPPING LOGIC ---
+        // Limit team names to 4 characters max to prevent UI clipping in all overlays
+        if (flatData.team1Name && flatData.team1Name.length > 4) {
+            flatData.team1Name = flatData.team1Name.substring(0, 4).toUpperCase();
+        }
+        if (flatData.team2Name && flatData.team2Name.length > 4) {
+            flatData.team2Name = flatData.team2Name.substring(0, 4).toUpperCase();
+        }
+  
+        matchData = flatData;
+  
+        const isMatchNew = flatData.team1Score === 0 && (flatData.team1Overs === "0.0" || flatData.team1Overs === 0) && flatData.team1Wickets === 0;
+        const tossDone = !!rawMatch.tossWinnerName;
+        const hasPlayers = !!flatData.strikerName;
+  
+        // --- 1. BROADCAST SEQUENCING ---
+        if (currentState === 'BOOTING' || currentState === 'VS_SCREEN') {
+          if (!tossDone) {
+            // Stay on VS screen until toss is decided
+            if (currentState !== 'VS_SCREEN') {
+              currentState = 'VS_SCREEN';
+              dispatchTrigger({ type: 'SHOW_VS_SCREEN' });
+            }
+          } 
+          else if (tossDone && isMatchNew && !hasPlayers) {
+            // Toss just happened, cascade through the sequence
+            currentState = 'TOSS_SCREEN';
+            dispatchTrigger({ type: 'SHOW_TOSS' });
             
             setTimeout(() => {
-              currentState = 'LIVE';
-              dispatchTrigger({ type: 'RESTORE' });
-            }, overlaySettings.squadDuration * 1000);
-          }, overlaySettings.tossDuration * 1000);
-        } else {
-          // Fallback if match is already in progress
-          currentState = 'LIVE';
-          dispatchTrigger({ type: 'RESTORE' });
+              currentState = 'SQUAD_SCREEN';
+              dispatchTrigger({ type: 'SHOW_SQUADS' });
+              
+              setTimeout(() => {
+                currentState = 'LIVE';
+                dispatchTrigger({ type: 'RESTORE' });
+              }, overlaySettings.squadDuration * 1000);
+            }, overlaySettings.tossDuration * 1000);
+          } else {
+            // Fallback if match is already in progress
+            currentState = 'LIVE';
+            dispatchTrigger({ type: 'RESTORE' });
+          }
         }
-      }
-
-      // --- 2. INNINGS START AUTOMATION ---
-      if (currentState === 'LIVE' && hasPlayers && isMatchNew && !hasPlayedIntro && !animationLock) {
-        hasPlayedIntro = true;
-        animationLock = true;
-        dispatchTrigger({ type: 'START_INNINGS_INTRO' });
-        setTimeout(() => {
-          animationLock = false;
-          dispatchTrigger({ type: 'RESTORE' });
-        }, overlaySettings.introDuration * 1000);
-      }
-
-      // --- 3. AUTO-STATS AT END OF OVERS ---
-      if (currentState === 'LIVE' && overlaySettings.autoStatsOvers > 0 && !animationLock) {
-        const currentOversFloat = parseFloat(flatData.team1Overs);
-        const isOverComplete = Number.isInteger(currentOversFloat) && currentOversFloat > 0;
-        
-        if (isOverComplete && (currentOversFloat % overlaySettings.autoStatsOvers === 0) && currentOversFloat !== lastAutoStatOver) {
-          lastAutoStatOver = currentOversFloat;
+  
+        // --- 2. INNINGS START AUTOMATION ---
+        if (currentState === 'LIVE' && hasPlayers && isMatchNew && !hasPlayedIntro && !animationLock) {
+          hasPlayedIntro = true;
           animationLock = true;
-          dispatchTrigger({ type: overlaySettings.autoStatsType });
+          dispatchTrigger({ type: 'START_INNINGS_INTRO' });
           setTimeout(() => {
             animationLock = false;
             dispatchTrigger({ type: 'RESTORE' });
-          }, overlaySettings.autoStatsDuration * 1000);
+          }, overlaySettings.introDuration * 1000);
         }
+  
+        // --- 3. AUTO-STATS AT END OF OVERS ---
+        if (currentState === 'LIVE' && overlaySettings.autoStatsOvers > 0 && !animationLock) {
+          const currentOversFloat = parseFloat(flatData.team1Overs);
+          const isOverComplete = Number.isInteger(currentOversFloat) && currentOversFloat > 0;
+          
+          if (isOverComplete && (currentOversFloat % overlaySettings.autoStatsOvers === 0) && currentOversFloat !== lastAutoStatOver) {
+            lastAutoStatOver = currentOversFloat;
+            animationLock = true;
+            dispatchTrigger({ type: overlaySettings.autoStatsType });
+            setTimeout(() => {
+              animationLock = false;
+              dispatchTrigger({ type: 'RESTORE' });
+            }, overlaySettings.autoStatsDuration * 1000);
+          }
+        }
+  
+        if (currentState === 'LIVE' && trigger) {
+          dispatchTrigger(trigger);
+        }
+  
+        // 🔴 ADD THIS LINE: Fire the universal ball renderer with the parsed data
+        if (typeof window.renderCurrentOver === 'function') {
+          window.renderCurrentOver(flatData.thisOver);
+        }
+  
+        // Update the DOM Data
+        window.postMessage({ type: 'UPDATE_SCORE', data: flatData, raw: rawMatch }, '*');
+  
+      } catch (err) {
+        console.error('[Scorex Engine] Automation Error:', err);
       }
-
-      if (currentState === 'LIVE' && trigger) {
-        dispatchTrigger(trigger);
-      }
-
-      // 🔴 ADD THIS LINE: Fire the universal ball renderer with the parsed data
-      if (typeof window.renderCurrentOver === 'function') {
-        window.renderCurrentOver(flatData.thisOver);
-      }
-
-      // Update the DOM Data
-      window.postMessage({ type: 'UPDATE_SCORE', data: flatData, raw: rawMatch }, '*');
-
-    } catch (err) {
-      console.error('[Scorex Engine] Automation Error:', err);
     }
-  }
-
-// --- SAFE FETCH & SOCKET LOGIC ---
+  
   // --- SAFE FETCH & SOCKET LOGIC ---
-  async function safeFetchMatchData() {
-    if (!matchId) return safeUpdateState(getDemoData());
-    try {
-      const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) throw new Error('API fetch failed');
-      const json = await res.json();
-      // 🔥 FIX: Pass the FULL payload, do not strip away the result or overSummary
-      safeUpdateState(json.data || json); 
-    } catch (err) { 
-      console.error('[Scorex Engine] Initial fetch error:', err);
-      safeUpdateState(getDemoData()); 
-    }
-  }
-
-  function safeConnectSocket() {
-    if (typeof io === 'undefined') return;
-    socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity });
-    
-    socket.on('connect', () => { 
-      console.log('[Scorex Engine] 🟢 Connected to Live Socket!');
-      if (matchId) {
-        socket.emit('joinMatch', matchId); 
-        socket.emit('join_match', matchId); 
+    // --- SAFE FETCH & SOCKET LOGIC ---
+    async function safeFetchMatchData() {
+      if (!matchId) return safeUpdateState(getDemoData());
+      try {
+        const res = await fetch(`${apiBaseUrl}/matches/${matchId}`, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('API fetch failed');
+        const json = await res.json();
+        // 🔥 FIX: Pass the FULL payload, do not strip away the result or overSummary
+        safeUpdateState(json.data || json); 
+      } catch (err) { 
+        console.error('[Scorex Engine] Initial fetch error:', err);
+        safeUpdateState(getDemoData()); 
       }
-    });
-
-    // 🔥 FIX: Pass the FULL payload so the balls and live scores survive
-    socket.on('scoreUpdate', (payload) => {
-      console.log('[Scorex Engine] ⚡ Received scoreUpdate:', payload);
-      safeUpdateState(payload);
-    });
-
-    socket.on('match_updated', (payload) => {
-      safeUpdateState(payload);
-    });
-
-    socket.on('disconnect', () => console.warn('[Scorex Engine] 🔴 Disconnected, attempting reconnect...'));
-  }
-
-
-
-  function getDemoData() {
-    return { 
-      matchId: "demo-123",
-      team1Name: 'PREM', 
-      team2Name: 'CHAL', 
-      team1Score: 184, 
-      team1Wickets: 4, 
-      team1Overs: '18.2', 
-      strikerName: 'V. Kohli',
-      strikerRuns: 78,
-      strikerBalls: 45,
-      nonStrikerName: 'S. Yadav',
-      nonStrikerRuns: 32,
-      nonStrikerBalls: 18,
-      bowlerName: 'J. Bumrah',
-      bowlerWickets: 2,
-      bowlerRuns: 24,
-      bowlerOvers: '3.2'
-    };
-  }
-
-  function init() {
-    const params = new URLSearchParams(window.location.search);
-    const isPreview = params.get('preview') === 'true';
-    if (isPreview && !config.matchId) { 
-      safeUpdateState(getDemoData()); 
-      return; 
     }
-    safeFetchMatchData(); 
-    safeConnectSocket();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-})();
-
+  
+    function safeConnectSocket() {
+      if (typeof io === 'undefined') return;
+      socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity });
+      
+      socket.on('connect', () => { 
+        console.log('[Scorex Engine] 🟢 Connected to Live Socket!');
+        if (matchId) {
+          socket.emit('joinMatch', matchId); 
+          socket.emit('join_match', matchId); 
+        }
+      });
+  
+      // 🔥 FIX: Pass the FULL payload so the balls and live scores survive
+      socket.on('scoreUpdate', (payload) => {
+        console.log('[Scorex Engine] ⚡ Received scoreUpdate:', payload);
+        safeUpdateState(payload);
+      });
+  
+      socket.on('match_updated', (payload) => {
+        safeUpdateState(payload);
+      });
+  
+      socket.on('disconnect', () => console.warn('[Scorex Engine] 🔴 Disconnected, attempting reconnect...'));
+    }
+  
+  
+  
+    function getDemoData() {
+      return { 
+        matchId: "demo-123",
+        team1Name: 'PREM', 
+        team2Name: 'CHAL', 
+        team1Score: 184, 
+        team1Wickets: 4, 
+        team1Overs: '18.2', 
+        strikerName: 'V. Kohli',
+        strikerRuns: 78,
+        strikerBalls: 45,
+        nonStrikerName: 'S. Yadav',
+        nonStrikerRuns: 32,
+        nonStrikerBalls: 18,
+        bowlerName: 'J. Bumrah',
+        bowlerWickets: 2,
+        bowlerRuns: 24,
+        bowlerOvers: '3.2'
+      };
+    }
+  
+    function init() {
+      const params = new URLSearchParams(window.location.search);
+      const isPreview = params.get('preview') === 'true';
+      if (isPreview && !config.matchId) { 
+        safeUpdateState(getDemoData()); 
+        return; 
+      }
+      safeFetchMatchData(); 
+      safeConnectSocket();
+    }
+  
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  })();
+  
+  
