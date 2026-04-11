@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
+import User from '../models/User';
+import Tournament from '../models/Tournament';
+import Match from '../models/Match';
 
 const PRICES_FILE = path.join(process.cwd(), 'public', 'membership-prices.json');
 
@@ -60,5 +63,49 @@ export const updateMembershipPrices = async (req: Request, res: Response, next: 
   }
 };
 
-export default { getMembershipPrices, updateMembershipPrices };
+// --- FIX: ADDED MISSING DASHBOARD STATS LOGIC ---
+export const getStats = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const users = await User.countDocuments();
+    const premiumUsers = await User.countDocuments({ membershipLevel: { $gt: 0 } });
+    const enterpriseUsers = await User.countDocuments({ membershipLevel: 2 });
+    
+    const tournaments = await Tournament.countDocuments();
+    const activeTournaments = await Tournament.countDocuments({ status: 'ongoing' });
+    
+    const matches = await Match.countDocuments();
+    const liveMatches = await Match.countDocuments({ status: 'live' });
+    
+    let revenue = 0;
+    const usersWithHistory = await User.find({ paymentHistory: { $exists: true, $not: { $size: 0 } } });
+    usersWithHistory.forEach(u => {
+      u.paymentHistory?.forEach((p: any) => {
+        if (p.status === 'completed') revenue += p.amount;
+      });
+    });
+
+    res.json({ users, premiumUsers, enterpriseUsers, tournaments, activeTournaments, matches, liveMatches, revenue });
+  } catch (error) { next(error); }
+};
+
+// --- FIX: ADDED MISSING LOGS LOGIC (Resolves 500 Error) ---
+export const getLogs = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const logDir = path.join(process.cwd(), 'logs');
+    let logs: any[] = [];
+    try {
+      const files = await fs.readdir(logDir);
+      for (const file of files) {
+        const stats = await fs.stat(path.join(logDir, file));
+        logs.push({ name: file, size: stats.size, mtime: stats.mtime });
+      }
+    } catch {
+      // Fallback if directory doesn't exist
+      logs = [{ name: 'System logs are routed to Render dashboard.', size: 0, mtime: new Date().toISOString() }];
+    }
+    res.json({ success: true, data: logs });
+  } catch (error) { next(error); }
+};
+
+export default { getMembershipPrices, updateMembershipPrices, getStats, getLogs };
 

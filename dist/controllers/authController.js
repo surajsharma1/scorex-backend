@@ -5,11 +5,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.githubCallback = exports.googleCallback = exports.resetPassword = exports.forgotPassword = exports.logout = exports.changePassword = exports.getMe = exports.login = exports.register = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dns_1 = __importDefault(require("dns"));
+const util_1 = require("util");
 const User_1 = __importDefault(require("../models/User"));
 const signToken = (id) => jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+// Verifies if the email domain actually has mail servers to receive emails
+const resolveMx = (0, util_1.promisify)(dns_1.default.resolveMx);
+async function isEmailDomainValid(email) {
+    const domain = email.split('@')[1];
+    if (!domain)
+        return false;
+    try {
+        const addresses = await resolveMx(domain);
+        return addresses && addresses.length > 0;
+    }
+    catch (err) {
+        return false;
+    }
+}
 const register = async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
+        // --- FIX: DNS Validation for fake emails ---
+        const isValidDomain = await isEmailDomainValid(email);
+        if (!isValidDomain) {
+            return res.status(400).json({ success: false, message: 'Invalid email domain. Please use a real, functioning email address.' });
+        }
         const existingUser = await User_1.default.findOne({ $or: [{ email }, { username }] });
         if (existingUser)
             return res.status(400).json({ success: false, message: 'User already exists' });

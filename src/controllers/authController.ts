@@ -1,15 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import dns from 'dns';
+import { promisify } from 'util';
 import User from '../models/User';
 
 interface AuthRequest extends Request { user?: any; }
 const signToken = (id: string) => jwt.sign({ id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
 
+// Verifies if the email domain actually has mail servers to receive emails
+const resolveMx = promisify(dns.resolveMx);
+
+async function isEmailDomainValid(email: string): Promise<boolean> {
+  const domain = email.split('@')[1];
+  if (!domain) return false;
+  try {
+    const addresses = await resolveMx(domain);
+    return addresses && addresses.length > 0;
+  } catch (err) {
+    return false;
+  }
+}
+
 export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
+    
+    // --- FIX: DNS Validation for fake emails ---
+    const isValidDomain = await isEmailDomainValid(email);
+    if (!isValidDomain) {
+      return res.status(400).json({ success: false, message: 'Invalid email domain. Please use a real, functioning email address.' });
+    }
+
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) return res.status(400).json({ success: false, message: 'User already exists' });
+    
     const user = await User.create({ username, email, password });
     const token = signToken(user._id.toString());
     res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
