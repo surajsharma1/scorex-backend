@@ -328,198 +328,109 @@
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-    let decisionPendingState = false;
-    let endMatchInterval;
-    let eventTimer;
+(function() {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let eventTimer = null;
+  let decisionPendingState = false;
 
-    function processData(d) {
-      if (!d) return;
-      
-      const safeSet = (id, val, fallback) => {
-        const el = $(id);
-        if (el) el.innerText = val != null && val !== '' ? val : fallback;
-      };
+  const safeSet = (id, val, fallback) => {
+    const el = $(id);
+    if (!el) return;
+    const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
+    el.innerText = String(v);
+  };
 
-      // Smart Truncation mapping
-      const rawTeamName = d.team1Name || d.teamName || 'TEAM';
-      const tName = d.team1ShortName || rawTeamName.substring(0, 3).toUpperCase();
-      
-      safeSet('teamName', tName);
-      safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
-      safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
-      safeSet('teamOvers', d.team1Overs ?? d.teamOvers ?? '0.0');
+  function processData(d) {
+    if (!d) return;
 
-      safeSet('strikerName', d.strikerName, 'Striker');
-      safeSet('strikerRuns', d.strikerRuns, 0);
-      safeSet('strikerBalls', d.strikerBalls, 0);
+    const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,4).toUpperCase();
+    safeSet('bat-team',    tName);
+    safeSet('bowl-team',   d.team2ShortName || (d.team2Name || '').substring(0,4).toUpperCase());
+    safeSet('score',       d.team1Score    ?? d.teamScore,   0);
+    safeSet('wickets',     d.team1Wickets  ?? d.teamWickets, 0);
+    safeSet('overs',       d.team1Overs    ?? d.teamOvers,   '0.0');
+    safeSet('bowler',      d.bowlerName,   'Bowler');
+    safeSet('b-wkts',      d.bowlerWickets, 0);
+    safeSet('b-runs',      d.bowlerRuns,    0);
+    safeSet('b-ov',        d.bowlerOvers,   '0.0');
 
-      safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
-      safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
-      safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+    safeSet('striker',     d.strikerName,    'Striker');
+    safeSet('s-runs',      d.strikerRuns,    0);
+    safeSet('s-balls',     d.strikerBalls,   0);
 
-      safeSet('bowlerName', d.bowlerName, 'Bowler');
-      safeSet('bowlerRuns', d.bowlerRuns, 0);
-      safeSet('bowlerWickets', d.bowlerWickets, 0);
-      safeSet('bowlerOvers', d.bowlerOvers, '0.0');
+    safeSet('nonstriker',  d.nonStrikerName,  'Non-Striker');
+    safeSet('ns-runs',     d.nonStrikerRuns,  0);
+    safeSet('ns-balls',    d.nonStrikerBalls, 0);
 
-      safeSet('targetScore', d.target, '');
-      safeSet('reqRunRate', d.requiredRunRate, '');
-      // Ball rendering handled by renderCurrentOver in overlay-utils.js
-      if (typeof window.renderCurrentOver === 'function') {
-        window.renderCurrentOver(d.thisOver || []);
-      }
+    // Target / RRR (optional elements)
+    safeSet('targetScore',    d.target,           '');
+    safeSet('reqRunRate',     d.requiredRunRate,   '');
+    safeSet('runRate',        d.runRate,           '');
+    safeSet('fs-tgt-score',   d.target,           '');
+    safeSet('over-runs',      d.runRate,           '');
 
+    // Ball renderer (handled by overlay-utils.js)
+    if (typeof window.renderCurrentOver === 'function') {
+      window.renderCurrentOver(d.thisOver || []);
     }
+  }
 
-    // --- NEW: Native Sponsor Carousel Logic ---
-    // 1. Read the config directly from the OBS/Preview URL
+  // Sponsor carousel
+  (function initSponsors() {
     const urlParams = new URLSearchParams(window.location.search);
-    let overlayConfig = {};
-    try {
-      const cfgParam = urlParams.get('cfg');
-      if (cfgParam) overlayConfig = JSON.parse(decodeURIComponent(cfgParam));
-    } catch(e) { console.warn("No config found in URL"); }
+    let cfg = {};
+    try { const p = urlParams.get('cfg'); if (p) cfg = JSON.parse(decodeURIComponent(p)); } catch(e) {}
+    const sponsors = cfg.sponsors || [];
+    if (!sponsors.length) return;
+    const track = $('sponsor-track');
+    if (!track) return;
+    let idx = 0;
+    track.style.transition = 'opacity 0.5s ease';
+    const show = () => {
+      const sp = sponsors[idx];
+      track.innerText = sp.name + (sp.tagline ? ' | ' + sp.tagline : '');
+      track.style.opacity = 1;
+    };
+    show();
+    setInterval(() => {
+      track.style.opacity = 0;
+      setTimeout(() => { idx = (idx + 1) % sponsors.length; show(); }, 600);
+    }, 6000);
+  })();
 
-    const sponsors = overlayConfig.sponsors || [];
+  function handleTrigger(t) {
+    const evFour     = $('ev-four');
+    const evSix      = $('ev-six');
+    const evOut      = $('ev-out') || $('anim-wicket');
+    const evDecision = $('ev-decision');
 
-    // 2. Power the native carousel if sponsors exist
-    if (sponsors.length > 0) {
-      // NOTE: Change 'sponsor-text' to match the exact ID of the text element inside your Level 2 carousel
-      const sponsorEl = $('sponsor-track'); 
-      
-      if (sponsorEl) {
-        let currentSponsorIdx = 0;
-        
-        // Setup smooth CSS transitions for the fade effect
-        sponsorEl.style.transition = 'opacity 0.5s ease';
-        
-        const updateSponsorText = () => {
-          const sp = sponsors[currentSponsorIdx];
-          sponsorEl.innerText = `${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}`;
-          sponsorEl.style.opacity = 1;
-        };
+    if (evFour) evFour.classList.remove('fire');
+    if (evSix)  evSix.classList.remove('fire');
+    if (evOut)  evOut.classList.remove('fire');
+    clearTimeout(eventTimer);
 
-        // Show the first sponsor immediately
-        updateSponsorText();
-
-        // Cycle through the rest every 6 seconds
-        setInterval(() => {
-          sponsorEl.style.opacity = 0; // Fade out
-          setTimeout(() => {
-            currentSponsorIdx = (currentSponsorIdx + 1) % sponsors.length;
-            updateSponsorText(); // Update text and fade in
-          }, 500); 
-        }, 6000);
-      }
+    if (t.type === 'FOUR') {
+      if (evFour) { evFour.classList.add('fire'); eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000); }
+    } else if (t.type === 'SIX') {
+      if (evSix)  { evSix.classList.add('fire');  eventTimer = setTimeout(() => evSix.classList.remove('fire'),  3000); }
+    } else if (t.type === 'WICKET') {
+      if (evOut)  { evOut.classList.add('fire');  eventTimer = setTimeout(() => evOut.classList.remove('fire'),  4000); }
+    } else if (t.type === 'DECISION_PENDING') {
+      decisionPendingState = !decisionPendingState;
+      if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
+    } else if (t.type === 'RESTORE') {
+      decisionPendingState = false;
+      if (evDecision) evDecision.classList.remove('fire');
     }
-    // ------------------------------------------
+  }
 
-    // Engine Event Listeners
-    window.addEventListener('message', e => { 
-      if (e.data?.type === 'UPDATE_SCORE') {
-        processData(e.data.data); 
-      }
-
-      if (e.data?.type === 'OVERLAY_TRIGGER') {
-        const t = e.data.payload;
-        
-        // Handle Quick Action Animations (Checks for both Lvl 1 and Lvl 2 naming conventions)
-        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING'].includes(t.type)) {
-          const fId = $('anim-four') ? 'anim-four' : 'ev-four';
-          const sId = $('anim-six') ? 'anim-six' : 'ev-six';
-          const wId = $('anim-wicket') ? 'anim-wicket' : 'ev-out';
-          const dId = $('anim-decision') ? 'anim-decision' : 'ev-decision';
-
-          if($(fId)) $(fId).classList.remove('fire'); 
-          if($(sId)) $(sId).classList.remove('fire'); 
-          if($(wId)) $(wId).classList.remove('fire');
-          clearTimeout(eventTimer);
-
-          if (t.type === 'FOUR' && $(fId)) {
-            $(fId).classList.add('fire');
-            eventTimer = setTimeout(() => $(fId).classList.remove('fire'), 3000);
-          } else if (t.type === 'SIX' && $(sId)) {
-            $(sId).classList.add('fire');
-            eventTimer = setTimeout(() => $(sId).classList.remove('fire'), 3000);
-          } else if (t.type === 'WICKET' && $(wId)) {
-            $(wId).classList.add('fire');
-            eventTimer = setTimeout(() => $(wId).classList.remove('fire'), 3000);
-          } else if (t.type === 'DECISION_PENDING' && $(dId)) {
-            decisionPendingState = !decisionPendingState;
-            if (decisionPendingState) $(dId).classList.add('fire');
-            else $(dId).classList.remove('fire');
-          }
-        }
-
-        // Handle Sliding Stats Cards
-        const renderBat = (batsmen) => {
-           if(!$('sum-bat-body')) return;
-           $('sum-bat-body').innerHTML = (batsmen||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours||0}</td><td>${b.sixes||0}</td><td>${b.sr}</td></tr>`).join('');
-        };
-        const renderBowl = (bowlers) => {
-           if(!$('sum-bowl-body')) return;
-           $('sum-bowl-body').innerHTML = (bowlers||[]).map(b => `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:#ef4444;">${b.wickets !== undefined ? b.wickets : (b.wkts || 0)}</td><td>${b.econ}</td></tr>`).join('');
-        };
-
-        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') {
-          if(t.data?.batsmen) renderBat(t.data.batsmen);
-          if($('sum-bat-col')) $('sum-bat-col').classList.add('slide-in');
-        }
-        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') {
-          if(t.data?.bowlers) renderBowl(t.data.bowlers);
-          if($('sum-bowl-col')) $('sum-bowl-col').classList.add('slide-in');
-        }
-
-        // Handle Match End Summary Rotator
-        if (t.type === 'MATCH_END') {
-          if($('sum-bat-col')) $('sum-bat-col').style.display = 'block'; 
-          if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'block';
-          const t1 = t.data?.team1; const t2 = t.data?.team2;
-          let current = 1;
-          const updateUI = (data) => { 
-             if($('sum-header')) $('sum-header').innerText = `${data.name} INNINGS SUMMARY`; 
-             renderBat(data.batsmen); renderBowl(data.bowlers); 
-          };
-          if(t1) updateUI(t1);
-          if (t1 && t2 && $('summary-tab')) {
-            clearInterval(endMatchInterval);
-            endMatchInterval = setInterval(() => {
-              $('summary-tab').style.opacity = '0';
-              setTimeout(() => { 
-                current = current === 1 ? 2 : 1; 
-                updateUI(current === 1 ? t1 : t2); 
-                $('summary-tab').style.opacity = '1'; 
-              }, 500);
-            }, 8000);
-          }
-        }
-
-        // --- NEW: Fully Repaired RESTORE Logic ---
-        if (t.type === 'RESTORE') {
-          decisionPendingState = false;
-          const dId = $('anim-decision') ? 'anim-decision' : 'ev-decision';
-          if($(dId)) $(dId).classList.remove('fire');
-          
-          if($('fullscreen-layer')) $('fullscreen-layer').className = 'layer-hide hide'; 
-          if($('squads-tab')) $('squads-tab').className = 'fs-card tab-hide hide'; 
-          if($('target-tab')) $('target-tab').className = 'fs-card tab-hide hide'; 
-          if($('summary-tab')) $('summary-tab').className = 'fs-card tab-hide hide';
-          if($('match-end-tab')) $('match-end-tab').className = 'fs-card tab-hide hide';
-          
-          if($('sum-bat-col')) $('sum-bat-col').classList.remove('slide-in'); 
-          if($('sum-bowl-col')) $('sum-bowl-col').classList.remove('slide-in');
-          
-          const sb = $('scoreboard');
-          if (sb) {
-             sb.style.opacity = '1';
-             sb.classList.add('state-live'); 
-          }
-        }
-      }
-    });
-
-    window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'UPDATE_SCORE' && e.data.data) processData(e.data.data);
+    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) handleTrigger(e.data.payload);
+  });
+})();
 </script>
 </body>
 </html>

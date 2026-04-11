@@ -196,77 +196,91 @@
   </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="/overlays/overlay-utils.js"></script>
+<script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-    let eventTimer;
-    let decisionPendingState = false;
+(function() {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let eventTimer = null;
+  let decisionPendingState = false;
 
-    // Normal Score Data Processing
-    function processData(d) {
-      if (!d) return;
-      
-      const safeSet = (id, val, fallback) => {
-        const el = $(id);
-        if (el) el.innerText = val != null && val !== '' ? val : fallback;
-      };
+  const safeSet = (id, val, fallback) => {
+    const el = $(id);
+    if (!el) return;
+    const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
+    el.innerText = String(v);
+  };
 
-      const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,3);
-      safeSet('teamName', tName);
-      safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
-      safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
-      safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
+  function processData(d) {
+    if (!d) return;
 
-      safeSet('strikerName', d.strikerName, 'Striker');
-      safeSet('strikerRuns', d.strikerRuns, 0);
-      safeSet('strikerBalls', d.strikerBalls, 0);
+    const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
+    safeSet('teamName',      tName);
+    safeSet('teamScore',     d.team1Score    ?? d.teamScore,    0);
+    safeSet('teamWickets',   d.team1Wickets  ?? d.teamWickets,  0);
+    safeSet('teamOvers',     d.team1Overs    ?? d.teamOvers,    '0.0');
 
-      safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
-      safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
-      safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+    safeSet('strikerName',   d.strikerName,    'Striker');
+    safeSet('strikerRuns',   d.strikerRuns,    0);
+    safeSet('strikerBalls',  d.strikerBalls,   0);
 
-      safeSet('bowlerName', d.bowlerName, 'Bowler');
-      safeSet('bowlerRuns', d.bowlerRuns, 0);
-      safeSet('bowlerWickets', d.bowlerWickets, 0);
-      safeSet('bowlerOvers', d.bowlerOvers, '0.0');
+    safeSet('nonStrikerName',  d.nonStrikerName,  'Non-Striker');
+    safeSet('nonStrikerRuns',  d.nonStrikerRuns,  0);
+    safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+
+    safeSet('bowlerName',    d.bowlerName,    'Bowler');
+    safeSet('bowlerRuns',    d.bowlerRuns,    0);
+    safeSet('bowlerWickets', d.bowlerWickets, 0);
+    safeSet('bowlerOvers',   d.bowlerOvers,   '0.0');
+
+    // Ball renderer
+    if (typeof window.renderCurrentOver === 'function') {
+      window.renderCurrentOver(d.thisOver || []);
     }
+  }
 
-    // Engine Event Listeners
-    window.addEventListener('message', e => { 
-      if (e.data?.type === 'UPDATE_SCORE') {
-        processData(e.data.data); 
-      }
+  function handleTrigger(t) {
+    const evFour     = $('ev-four');
+    const evSix      = $('ev-six');
+    const evOut      = $('ev-out');
+    const evDecision = $('ev-decision');
+    if (!evFour || !evSix || !evOut || !evDecision) return;
 
-      if (e.data?.type === 'OVERLAY_TRIGGER') {
-        const t = e.data.payload;
-        
-        if (['FOUR', 'SIX', 'WICKET', 'DECISION_PENDING', 'RESTORE'].includes(t.type)) {
-          $('ev-four').classList.remove('fire'); $('ev-six').classList.remove('fire'); $('ev-out').classList.remove('fire');
-          clearTimeout(eventTimer);
+    // Clear all active animations first
+    evFour.classList.remove('fire');
+    evSix.classList.remove('fire');
+    evOut.classList.remove('fire');
+    clearTimeout(eventTimer);
 
-          if (t.type === 'FOUR') {
-            $('ev-four').classList.add('fire');
-            eventTimer = setTimeout(() => $('ev-four').classList.remove('fire'), 3000);
-          } else if (t.type === 'SIX') {
-            $('ev-six').classList.add('fire');
-            eventTimer = setTimeout(() => $('ev-six').classList.remove('fire'), 3000);
-          } else if (t.type === 'WICKET') {
-            $('ev-out').classList.add('fire');
-            eventTimer = setTimeout(() => $('ev-out').classList.remove('fire'), 3000);
-          } else if (t.type === 'DECISION_PENDING') {
-            decisionPendingState = !decisionPendingState;
-            if (decisionPendingState) $('ev-decision').classList.add('fire');
-            else $('ev-decision').classList.remove('fire');
-          } else if (t.type === 'RESTORE') {
-             decisionPendingState = false;
-             $('ev-decision').classList.remove('fire');
-          }
-        }
-      }
-    });
+    if (t.type === 'FOUR') {
+      evFour.classList.add('fire');
+      eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
+    } else if (t.type === 'SIX') {
+      evSix.classList.add('fire');
+      eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
+    } else if (t.type === 'WICKET') {
+      evOut.classList.add('fire');
+      eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
+    } else if (t.type === 'DECISION_PENDING') {
+      decisionPendingState = !decisionPendingState;
+      evDecision.classList.toggle('fire', decisionPendingState);
+    } else if (t.type === 'RESTORE') {
+      decisionPendingState = false;
+      evDecision.classList.remove('fire');
+    }
+  }
 
-    window.addEventListener('scorex:update', e => { if (e.detail) processData(e.detail); });
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
+      processData(e.data.data);
+    }
+    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
+      handleTrigger(e.data.payload);
+    }
+  });
+})();
 </script>
 </body>
 </html>
