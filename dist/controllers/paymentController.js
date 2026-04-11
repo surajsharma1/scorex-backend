@@ -283,8 +283,28 @@ const verifyRazorpayPayment = async (req, res) => {
         if (!user)
             return res.status(404).json({ success: false, message: 'User not found' });
         const now = new Date();
-        const level = notesPlan.includes('lv2') || notesPlan === 'Enterprise' || notesPlan === 'premium' ? 2 : 1;
-        const durationDays = notesPlan.includes('1-month') || notesPlan.includes('month') ? 30 : notesPlan.includes('1-week') || notesPlan.includes('week') ? 7 : 1;
+        // ── Determine membership level ─────────────────────────────────────────
+        const level = (notesPlan.includes('lv2') || notesPlan === 'Enterprise' ||
+            notesPlan.toLowerCase() === 'premium') ? 2 : 1;
+        // ── Determine duration in days ─────────────────────────────────────────
+        // FIX: Use the explicit 'duration' key from req.body FIRST (sent by frontend as
+        //      '1day' | '1week' | '1month'). Fall back to plan-name string matching only
+        //      as a last resort. Previously this always fell through to 1 day because
+        //      plan.name is 'Premium'/'Enterprise' and never contains 'month'/'week'.
+        const durationKey = req.body.duration || '';
+        let durationDays;
+        if (durationKey === '1month' || notesPlan.includes('1-month') || notesPlan.includes('month')) {
+            durationDays = 30;
+        }
+        else if (durationKey === '1week' || notesPlan.includes('1-week') || notesPlan.includes('week')) {
+            durationDays = 7;
+        }
+        else if (durationKey === '1day') {
+            durationDays = 1;
+        }
+        else {
+            durationDays = 30; // Safe default: assume monthly if ambiguous
+        }
         let expiry = new Date(now);
         if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) > now) {
             expiry = new Date(user.membershipExpiresAt);
@@ -293,28 +313,21 @@ const verifyRazorpayPayment = async (req, res) => {
         user.membershipLevel = level;
         user.membershipExpiresAt = expiry;
         user.membershipStartedAt = now;
-        // History
-        const pendingIndex = user.paymentHistory?.findIndex((h) => h.razorpay_order_id === razorpay_order_id);
-        if (pendingIndex > -1) {
-            user.paymentHistory[pendingIndex] = {
-                ...user.paymentHistory[pendingIndex],
-                status: 'completed',
-                razorpay_payment_id,
-            };
-        }
-        else {
-            user.paymentHistory = user.paymentHistory || [];
-            user.paymentHistory.push({
-                amount,
-                currency: 'INR',
-                razorpay_order_id,
-                razorpay_payment_id,
-                status: 'completed',
-                plan: notesPlan,
-                duration: `${durationDays} days`,
-                date: now,
-            });
-        }
+        // ── Update payment history ─────────────────────────────────────────────
+        // FIX: Remove ALL stale 'created'/'pending' records for this order_id first,
+        //      then push a single clean 'completed' record. Previously, findIndex only
+        //      updated an existing record but a second push still left the old one.
+        user.paymentHistory = (user.paymentHistory || []).filter((h) => h.razorpay_order_id !== razorpay_order_id);
+        user.paymentHistory.push({
+            amount,
+            currency: 'INR',
+            razorpay_order_id,
+            razorpay_payment_id,
+            status: 'completed',
+            plan: notesPlan,
+            duration: `${durationDays} day${durationDays !== 1 ? 's' : ''}`,
+            date: now,
+        });
         user.membershipTimeline = user.membershipTimeline || [];
         user.membershipTimeline.push({
             level,
