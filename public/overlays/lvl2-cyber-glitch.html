@@ -10,10 +10,19 @@
     html, body { width: 100vw; height: 100vh; background: transparent; overflow: hidden; color: #0f172a; }
 
     /* Visibility Logic */
-    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(40px) scale(0.95); }
-    .layer-show { opacity: 1; visibility: visible; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(0) scale(1); z-index: 200;}
+    .hide { opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(40px) scale(0.95); position: absolute; pointer-events: none; inset: 0;}
+    .show { opacity: 1; visibility: visible; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(0) scale(1); position: relative; pointer-events: auto;}
+    
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(40px) scale(0.95); pointer-events: none;}
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(0) scale(1); z-index: 300; pointer-events: auto;}
+    
     .tab-hide { display: none !important; }
-    .tab-show { display: block !important; }
+    .tab-show { display: flex !important; }
+
+    /* UI Toggle States */
+    .base-ui-hide { opacity: 0 !important; transform: translateY(100px) !important; pointer-events: none !important; }
+
+    .fit-container { width: 100%; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
 
     :root {
       --pill-bg: #ffffff;
@@ -29,7 +38,6 @@
       --text-sub: #64748b;
     }
 
-    /* Generic Pill Style */
     .pill {
       background: var(--pill-bg);
       border: 2px solid var(--pill-border);
@@ -38,37 +46,45 @@
       display: flex; flex-direction: column; justify-content: center;
     }
 
-    /* =========================================
-       1. SPONSOR CAROUSEL (Top Floating Pill)
-       ========================================= */
+    /* 1. SPONSOR CAROUSEL (Moved to BOTTOM) */
     #sponsor-bar {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      width: auto; min-width: 60vw; max-width: 90vw; height: 45px;
-      z-index: 10; display: flex; align-items: center; overflow: hidden;
-      padding: 0 10px 0 0;
+      position: absolute; bottom: 0; left: 0; width: 100vw; height: 45px;
+      z-index: 100; display: flex; align-items: center; overflow: hidden;
+      background: var(--pill-bg); border-top: 2px solid var(--pill-border);
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .sponsor-label { 
-      background: var(--acc-blue); color: #fff; font-size: 15px; font-weight: 900; 
-      padding: 0 30px; height: 100%; display: flex; align-items: center; z-index: 2; 
-      border-radius: 40px; box-shadow: 5px 0 15px rgba(0,0,0,0.1); letter-spacing: 1px;
+      background: var(--acc-blue); color: #fff; font-size: 16px; font-weight: 900; 
+      padding: 0 40px; height: 100%; display: flex; align-items: center; z-index: 2; 
+      letter-spacing: 1px;
     }
     .sponsor-track-container { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; padding-left: 30px; }
-    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; font-size: 15px; font-weight: 900; color: var(--text-sub); gap: 50px; padding-left: 100vw; }
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; font-size: 16px; font-weight: 900; color: var(--text-sub); gap: 50px; padding-left: 100vw; }
     .sponsor-item { display: inline-flex; align-items: center; gap: 10px; }
     .sponsor-item::before { content: '•'; color: var(--acc-gold); font-size: 20px; }
     @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-    /* =========================================
-       2. EVENT ANIMATIONS
-       ========================================= */
-    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; overflow: hidden;}
+    /* 2. EVENT ANIMATIONS */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 250; overflow: hidden;}
     
-    /* FOUR */
-    #anim-four { position: absolute; bottom: 150px; left: -600px; transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; padding: 15px 50px; display: flex; align-items: center; gap: 20px; border-left: none; border-radius: 0 40px 40px 0;}
-    #anim-four.fire { left: 0; opacity: 1; }
-    #anim-four .ev-val { font-family: 'Teko'; font-size: 110px; color: var(--acc-blue); line-height: 1; font-weight: 900; }
+    /* Massive Glitch Four */
+    #anim-four { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 250;}
+    #anim-four.fire { opacity: 1; animation: popFour 2.5s forwards; }
+    .four-txt { font-family: 'Teko'; font-size: 280px; font-weight: 900; color: var(--acc-cyan); line-height: 0.8; text-shadow: 0 20px 50px rgba(6, 182, 212, 0.4); position: relative; z-index: 2;}
+    .four-ring { position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; border: 15px solid var(--acc-blue); border-radius: 20px; transform: translate(-50%, -50%); z-index: 1; opacity: 0;}
+    #anim-four.fire .four-ring { animation: shockwaveSquare 1s ease-out forwards; }
+    @keyframes popFour { 
+      0% { transform: translate(-50%, -50%) scale(0.2) skewX(20deg); opacity: 0; } 
+      10% { transform: translate(-50%, -50%) scale(1) skewX(-10deg); opacity: 1; } 
+      20% { transform: translate(-50%, -50%) scale(1) skewX(0deg); }
+      80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; filter: blur(10px); }
+    }
+    @keyframes shockwaveSquare { 
+      0% { width: 200px; height: 200px; opacity: 1; transform: translate(-50%, -50%) rotate(0deg); } 
+      100% { width: 1200px; height: 1200px; opacity: 0; border-width: 2px; transform: translate(-50%, -50%) rotate(45deg); } 
+    }
 
-    /* SIX: Shockwave Explosion */
     #anim-six { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); opacity: 0; display: flex; align-items: center; justify-content: center; }
     #anim-six.fire { opacity: 1; animation: popSix 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .six-txt { font-family: 'Teko'; font-size: 280px; font-weight: 900; color: var(--acc-blue); line-height: 0.8; text-shadow: 0 20px 50px rgba(37, 99, 235, 0.4); position: relative; z-index: 2;}
@@ -77,7 +93,6 @@
     @keyframes popSix { 0% { transform: translate(-50%, -50%) scale(0.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
     @keyframes shockwave { 0% { width: 200px; height: 200px; opacity: 1; } 100% { width: 1000px; height: 1000px; opacity: 0; border-width: 2px;} }
 
-    /* WICKET: Impact Slam */
     #anim-wicket { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(3); opacity: 0; display: flex; align-items: center; justify-content: center; }
     #anim-wicket.fire { opacity: 1; animation: slamWicket 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .wicket-content { background: var(--acc-red); color: #fff; padding: 20px 80px; border-radius: 40px; font-family: 'Teko'; font-size: 160px; font-weight: 900; line-height: 1; letter-spacing: 10px; box-shadow: 0 20px 50px rgba(239, 68, 68, 0.5), 0 0 100px rgba(239, 68, 68, 0.4); position: relative; z-index: 2;}
@@ -86,45 +101,32 @@
     @keyframes slamWicket { 0% { transform: translate(-50%, -50%) scale(3); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
     @keyframes expandWicketRing { 0% { transform: scale(1); opacity: 1; border-width: 10px; } 100% { transform: scale(1.5); opacity: 0; border-width: 1px; } }
 
-    /* MILESTONE */
-    #anim-milestone { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(50px); opacity: 0; transition: all 0.4s ease; z-index: 45; padding: 15px 50px; border-bottom: 8px solid var(--acc-gold);}
+    #anim-milestone { position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%) translateY(50px); opacity: 0; transition: all 0.4s ease; z-index: 45; padding: 15px 50px; border-bottom: 8px solid var(--acc-gold);}
     #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
     .ms-content { font-family: 'Teko'; font-size: 70px; font-weight: 900; color: var(--text-main); }
 
-    /* DECISION PENDING */
     #anim-decision { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); padding: 20px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; border: 4px solid var(--acc-gold); }
     #anim-decision.fire { opacity: 1; animation: pulseDP 1.5s infinite alternate; }
     #anim-decision .d-title { font-size: 18px; color: var(--text-sub); letter-spacing: 8px; margin-bottom: 5px; font-weight: 900;}
     #anim-decision .d-text { font-family: 'Teko'; font-size: 70px; font-weight: 900; color: var(--text-main); line-height: 1;}
     @keyframes pulseDP { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); } 100% { box-shadow: 0 0 0 30px rgba(245, 158, 11, 0); } }
 
-    /* =========================================
-       3. 5-PILL DETACHED SCOREBOARD
-       ========================================= */
+    /* 3. 5-PILL DETACHED SCOREBOARD */
     #scoreboard-container { 
-      position: absolute; bottom: 30px; left: 0; width: 100vw; height: 110px; z-index: 50; 
+      position: absolute; bottom: 65px; left: 0; width: 100vw; height: 110px; z-index: 100; 
       display: flex; justify-content: center; align-items: stretch; gap: 20px; padding: 0 2vw;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    #target-bar { 
-      position: absolute; bottom: 160px; right: 2vw; padding: 12px 40px; display: none; z-index: 49; 
-      border-right: 6px solid var(--acc-red); 
-    }
-    #target-bar .tb-content { color: var(--text-main); font-weight: 900; font-size: 18px; display: flex; gap: 30px; align-items: center;}
-    #equation-text { color: var(--acc-red); font-family: 'Teko'; font-size: 26px; letter-spacing: 1px; line-height: 1;}
-
-    /* View States */
     .sb-view { position: absolute; inset: 0; display: flex; justify-content: center; gap: 20px; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 0 2vw;}
     .state-vs #panel-live { opacity: 0; transform: translateY(50px); pointer-events: none; }
     .state-vs #panel-vs { opacity: 1; transform: translateY(0); pointer-events: auto; }
     .state-live #panel-vs { opacity: 0; transform: translateY(50px); pointer-events: none; }
     .state-live #panel-live { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-    /* VS Screen */
-    #panel-vs .vs-pill { padding: 0 80px; align-items: center; border: 4px solid var(--acc-blue); }
+    #panel-vs .vs-pill { padding: 0 80px; align-items: center; border: 4px solid var(--acc-blue); position: relative; overflow: hidden; width: 100%;}
     #svt-text { color: var(--text-main); font-family: 'Teko'; font-size: 80px; font-weight: 900; letter-spacing: 5px; line-height: 1; margin-top: 10px;}
 
-    /* Live Data Pills */
     .pill-team { width: 14%; align-items: center; text-align: center; font-family: 'Teko'; font-size: 70px; font-weight: 900; line-height: 1; }
     #bat-team { color: var(--acc-blue); border: 2px solid var(--acc-blue); }
     #bowl-team { color: var(--acc-red); border: 2px solid var(--acc-red); }
@@ -139,102 +141,96 @@
     .p-row { display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 800; margin-bottom: 2px; white-space: nowrap;}
     .p-name { color: var(--text-sub); display: flex; align-items: center; flex: 1; min-width: 0; } 
     .p-name.active { color: var(--text-main); font-weight: 900;}
-    .name-txt { display: inline-block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .p-stats { color: var(--text-main); font-family: 'Teko'; font-size: 38px; line-height: 0.8; margin-left: 15px; font-weight: 900;}
+    .p-stats { color: var(--text-main); font-family: 'Teko'; font-size: 38px; line-height: 0.8; margin-left: 15px; font-weight: 900; flex-shrink: 0;}
     .p-sub { font-size: 16px; color: var(--text-sub); font-weight: 700;}
 
     .this-over-row { display: flex; gap: 8px; align-items: center; margin-top: 6px;}
     .this-over-lbl { font-size: 13px; font-weight: 900; color: var(--text-sub); margin-right: 5px; }
     .ball-dot { width: 26px; height: 26px; border-radius: 50%; background: #f1f5f9; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-family: 'Teko'; font-size: 16px; line-height: 1; font-weight: 900; color: var(--text-main);}
-    .ball-w { background: var(--acc-red); border-color: var(--acc-red); color: #fff;} 
-    .ball-b { background: var(--acc-blue); border-color: var(--acc-blue); color: #fff;} 
-    .ball-6 { background: var(--acc-gold); border-color: var(--acc-gold); color: #fff;}
 
-    /* =========================================
-       4. 3-CARD INTRO
-       ========================================= */
+    /* 4. 3-CARD INTRO */
     #intro-cards-wrapper { 
-      position: absolute; bottom: 155px; left: 50%; transform: translateX(-50%) translateY(50px); 
-      display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; 
+      position: absolute; bottom: 190px; left: 50%; transform: translateX(-50%) translateY(50px); 
+      display: flex; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; width: 95%; max-width: 1200px; justify-content: center;
     }
     #intro-cards-wrapper.active-intro { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
     
-    .intro-card { padding: 20px 30px; width: 330px; border-top: 6px solid transparent;}
+    .intro-card { padding: 20px 30px; flex: 1; border-top: 6px solid transparent;}
     .intro-lbl { font-size: 14px; color: var(--text-sub); font-weight: 900; letter-spacing: 2px;}
-    .intro-val { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .intro-val { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1; margin-top: 5px; width: 100%;}
 
-    /* =========================================
-       5. SIDE PROFILES & SWITCH CARDS 
-       ========================================= */
+    /* 5. SIDE PROFILES & SWITCH CARDS */
     #side-card-wrapper { 
-      position: absolute; bottom: 160px; left: 2vw; width: 500px; transform: translateX(-100px); 
+      position: absolute; bottom: 190px; left: 2vw; width: 500px; transform: translateX(-100px); 
       opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 90; 
     }
     #side-card-wrapper.active-side { transform: translateX(0); opacity: 1; visibility: visible; }
 
     .profile-card { display: none; padding: 0; border-left: 8px solid var(--acc-blue); overflow: hidden;}
     .profile-card.active { display: block; }
-    .ppc-title { background: #f8fafc; font-family: 'Teko'; font-size: 50px; font-weight: 900; color: var(--text-main); line-height: 1; padding: 20px 35px; border-bottom: 1px solid var(--pill-border); }
-    .ppc-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 800; padding: 15px 35px; border-bottom: 1px solid var(--pill-border); }
+    .ppc-title { background: #f8fafc; font-family: 'Teko'; font-size: 50px; font-weight: 900; color: var(--text-main); line-height: 1; padding: 20px 35px; border-bottom: 1px solid var(--pill-border); display: flex; align-items: center;}
+    .ppc-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 800; padding: 15px 35px; border-bottom: 1px solid var(--pill-border); align-items: center; }
     .ppc-row:last-child { border-bottom: none; }
     .ppc-lbl { color: var(--text-sub); } .ppc-val { color: var(--acc-blue); font-family: 'Teko'; font-size: 34px; line-height: 0.8; font-weight: 900;}
 
     .switch-card { display: none; flex-direction: column; gap: 15px; width: 100%; }
     .switch-card.active { display: flex; }
-    .switch-block { padding: 20px 35px; display: flex; align-items: center; justify-content: space-between; border-left: 8px solid transparent;}
-    .sw-badge { color: #fff; font-weight: 900; font-size: 15px; padding: 4px 15px; border-radius: 12px; letter-spacing: 2px; display: inline-block; margin-bottom: 5px;}
-    .sw-name { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-    .sw-score { font-size: 28px; font-weight: 900; color: var(--text-sub); font-family: 'Teko'; margin-left: 15px;}
+    .switch-block { padding: 20px 35px; display: flex; align-items: center; justify-content: space-between; border-left: 8px solid transparent; transition: all 0.3s ease;}
+    .sw-badge { color: #fff; font-weight: 900; font-size: 15px; padding: 4px 15px; border-radius: 12px; letter-spacing: 2px; display: inline-block; margin-bottom: 5px; transition: all 0.3s ease;}
+    .sw-name { font-family: 'Teko'; font-size: 45px; font-weight: 900; color: var(--text-main); line-height: 1;}
+    .sw-score { font-size: 28px; font-weight: 900; color: var(--text-sub); font-family: 'Teko'; margin-left: 15px; flex-shrink: 0;}
 
-    /* =========================================
-       6. SIDE-SLIDING OVER SUMMARIES
-       ========================================= */
-    .side-summary-container { position: absolute; bottom: 155px; top: 70px; width: 100vw; pointer-events: none; z-index: 45; display: flex; justify-content: space-between; padding: 0 2vw; overflow: hidden;}
+    /* 6. FLUID FULL SCREEN GRAPHICS (COVERS EVERYTHING) */
+    #fullscreen-layer { 
+      position: absolute; inset: 0; 
+      background: rgba(241, 245, 249, 1); /* Solid to hide underneath */
+      z-index: 300; display: flex; align-items: stretch; justify-content: center; flex-direction: column;
+      padding: 3vh 3vw; overflow: hidden;
+    }
     
-    .side-panel { width: 46%; border: 2px solid var(--pill-border); border-top: 8px solid var(--acc-cyan); display: flex; flex-direction: column; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s; pointer-events: auto; opacity: 0; visibility: hidden; background: var(--pill-bg); border-radius: 30px; overflow: hidden; box-shadow: var(--pill-shadow);}
-    
-    #sum-bat-col { transform: translateX(-120%); }
-    #sum-bat-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
-    
-    #sum-bowl-col { transform: translateX(120%); }
-    #sum-bowl-col.slide-in { transform: translateX(0); opacity: 1; visibility: visible;}
-
-    .panel-header { font-family: 'Teko'; font-weight: 900; font-size: 55px; color: var(--text-main); padding: 20px 35px; background: #f8fafc; border-bottom: 2px solid var(--pill-border); line-height: 1;}
-    .data-table { width: 100%; border-collapse: collapse; font-size: 22px; font-weight: 800; text-align: left; }
-    .data-table th { color: var(--text-sub); border-bottom: 2px solid var(--pill-border); padding: 15px 35px; font-size: 18px; background: #fff;}
-    .data-table td { padding: 15px 35px; border-bottom: 1px solid var(--pill-border); color: var(--text-main); white-space: nowrap; font-family: 'Teko'; font-size: 26px; font-weight: 600;}
-    .data-table tr:nth-child(even) { background: #f8fafc; }
-    .hl-text { color: var(--acc-blue) !important; font-weight: 900 !important; font-family: 'Outfit' !important; font-size: 22px !important;}
-
-    /* =========================================
-       7. FULL SCREEN GRAPHICS
-       ========================================= */
-    #fullscreen-layer { position: absolute; inset: 0; background: rgba(241, 245, 249, 0.95); z-index: 200; display: flex; align-items: center; justify-content: center; }
-    
-    .fs-card { width: 95%; max-width: 1600px; padding: 40px; }
-    .fs-header { font-family: 'Teko'; font-size: 90px; font-weight: 900; color: var(--text-main); text-align: center; margin-bottom: 40px; line-height: 1; letter-spacing: 2px; border-bottom: 4px solid var(--pill-border); padding-bottom: 10px;}
+    .fs-card { width: 100%; height: 100%; flex-direction: column; }
+    .fs-header { font-family: 'Teko'; font-size: 6vh; font-weight: 900; color: var(--text-main); text-align: center; margin-bottom: 2vh; line-height: 1; letter-spacing: 2px; border-bottom: 4px solid var(--pill-border); padding-bottom: 1vh; flex-shrink: 0;}
     
     /* ANIMATED TARGET BREAK */
-    #target-tab { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;}
-    .target-anim-wrapper { position: relative; width: 450px; height: 450px; display: flex; align-items: center; justify-content: center; margin: 20px auto; border-radius: 50%; }
+    #target-tab, #winner-tab { align-items: center; justify-content: center;}
+    .target-anim-wrapper { position: relative; width: 45vh; height: 45vh; max-width: 600px; max-height: 600px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .ta-ring-1 { position: absolute; inset: 0; border-radius: 50%; border: 8px dashed var(--acc-blue); animation: spinCircle 12s linear infinite; }
     .ta-ring-2 { position: absolute; inset: 15px; border-radius: 50%; border: 6px solid transparent; border-top-color: var(--acc-red); border-bottom-color: var(--acc-gold); animation: spinCircle 6s reverse linear infinite; }
-    .ta-core { position: absolute; inset: 35px; background: var(--pill-bg); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--pill-shadow); border: 4px solid var(--pill-border); z-index: 2; animation: pulseTargetGlow 2s ease-in-out infinite alternate; }
+    .ta-core { position: absolute; inset: 35px; background: var(--pill-bg); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--pill-shadow); border: 4px solid var(--pill-border); z-index: 2; animation: pulseTargetGlow 2s ease-in-out infinite alternate; width: calc(100% - 70px); height: calc(100% - 70px);}
     
-    #target-score { font-family: 'Teko'; font-size: 180px; color: var(--text-main); line-height: 0.8; font-weight: 900;}
-    .ta-lbl { font-size: 24px; font-weight: 900; color: var(--text-sub); margin-top: 10px;}
+    #target-score { font-family: 'Teko'; font-size: 15vh; color: var(--text-main); line-height: 0.8; font-weight: 900;}
+    .ta-lbl { font-size: 2vh; font-weight: 900; color: var(--text-sub); margin-top: 1vh;}
     
     @keyframes spinCircle { 100% { transform: rotate(360deg); } }
     @keyframes pulseTargetGlow { 0% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.2); border-color: var(--pill-border); } 100% { box-shadow: 0 0 50px rgba(37, 99, 235, 0.6); border-color: var(--acc-blue); } }
 
-    .teams-split-container { display: flex; gap: 40px; }
-    .team-col-fs { flex: 1; padding: 0; overflow: hidden; border: 2px solid var(--pill-border);} 
-    .team-header-1 { background: #eff6ff; color: var(--acc-blue); padding: 25px; text-align: center; font-family: 'Teko'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-blue);}
-    .team-header-2 { background: #fef2f2; color: var(--acc-red); padding: 25px; text-align: center; font-family: 'Teko'; font-size: 60px; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-red);}
+    /* MATHEMATICALLY PERFECT FLEX TABLES (NEVER OVERFLOWS) */
+    .teams-split-container { display: flex; gap: 3vw; width: 100%; height: 100%; flex: 1; overflow: hidden;}
+    .team-col-fs { flex: 1; display: flex; flex-direction: column; overflow: hidden; border: 2px solid var(--pill-border); background: var(--pill-bg); border-radius: 30px; box-shadow: var(--pill-shadow);} 
+    .team-header-1 { background: #eff6ff; color: var(--acc-blue); padding: 1.5vh; text-align: center; font-family: 'Teko'; font-size: 4.5vh; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-blue); flex-shrink: 0;}
+    .team-header-2 { background: #fef2f2; color: var(--acc-red); padding: 1.5vh; text-align: center; font-family: 'Teko'; font-size: 4.5vh; line-height: 1; font-weight: 900; border-bottom: 4px solid var(--acc-red); flex-shrink: 0;}
     
-    .squad-list { padding: 10px 0; background: #fff;}
-    .squad-item { padding: 15px 40px; font-size: 24px; font-weight: 800; color: var(--text-main); border-bottom: 1px solid var(--pill-border); display: flex; justify-content: space-between;}
+    /* Squad List Fix */
+    .squad-list { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; background: #fff;}
+    .squad-item { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 2vw; border-bottom: 1px solid var(--pill-border); width: 100%;}
     .squad-item:nth-child(even) { background: #f8fafc; }
+    .squad-item:last-child { border-bottom: none; }
+
+    /* Summary Table Fix */
+    .table-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .data-table { display: flex; flex-direction: column; width: 100%; height: 100%; }
+    .data-table thead { display: flex; width: 100%; flex-shrink: 0; background: #fff; border-bottom: 2px solid var(--pill-border); }
+    .data-table tbody { display: flex; flex-direction: column; flex: 1; justify-content: space-evenly; }
+    .data-table tr { display: flex; width: 100%; flex: 1;}
+    .data-table th, .data-table td { flex: 1; display: flex; align-items: center; justify-content: center; font-family: 'Teko'; font-size: 3vh; font-weight: 600; color: var(--text-main); padding: 0 1vw; }
+    .data-table th { font-family: 'Outfit'; font-size: 1.8vh; color: var(--text-sub); }
+    .data-table th:first-child, .data-table td:first-child { flex: 3; justify-content: flex-start; }
+    .data-table tr:nth-child(even) { background: #f8fafc; }
+    .hl-text { color: var(--acc-blue) !important; font-weight: 900 !important; font-family: 'Outfit' !important; font-size: 2vh !important;}
+
+    /* CORRECTED MATCH END BANNER */
+    .winner-team { font-family: 'Teko'; font-size: 12vh; color: var(--acc-gold); line-height: 1; text-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);}
+    .winner-margin { font-size: 3vh; color: var(--text-sub); font-weight: 900; letter-spacing: 5px; margin-top: 1vh;}
 
   </style>
 </head>
@@ -242,11 +238,14 @@
 
   <div id="sponsor-bar">
     <div class="sponsor-label">BROADCAST PARTNERS</div>
-    <div class="sponsor-track-container pill" style="border-radius: 40px;"><div class="sponsor-track" id="sponsor-track"></div></div>
+    <div class="sponsor-track-container pill" style="border-radius: 40px; border:none; box-shadow:none; background:transparent;"><div class="sponsor-track" id="sponsor-track"></div></div>
   </div>
 
   <div class="event-layer">
-    <div id="anim-four" class="pill"><div class="ev-val">FOUR</div></div>
+    <div id="anim-four">
+      <div class="four-ring"></div>
+      <div class="four-txt">FOUR</div>
+    </div>
     
     <div id="anim-six">
       <div class="six-ring"></div>
@@ -258,97 +257,102 @@
       <div class="wicket-content">OUT!</div>
     </div>
 
-    <div id="anim-milestone" class="pill"><div class="ms-content" id="ms-text">V. KOHLI - 50</div></div>
-    <div id="anim-decision" class="pill"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
-  </div>
-
-  <div id="target-bar" class="pill">
-    <div class="tb-content">
-      <span style="color:var(--text-sub);">2ND INNINGS</span>
-      <span id="equation-text">NEED 0 FROM 0</span>
+    <div id="anim-milestone" class="pill">
+      <div class="fit-container"><div class="ms-content fit-text" id="ms-text">V. KOHLI - 50</div></div>
     </div>
+    
+    <div id="anim-decision" class="pill"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
   </div>
 
   <div id="intro-cards-wrapper">
     <div class="intro-card pill" style="border-top-color: var(--acc-blue);">
-      <div class="intro-lbl">STRIKER</div><div class="intro-val" id="intro-striker">BATSMAN</div>
+      <div class="intro-lbl">STRIKER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-striker">BATSMAN</div></div>
     </div>
     <div class="intro-card pill" style="border-top-color: #94a3b8; opacity:0.8;">
-      <div class="intro-lbl">NON-STRIKER</div><div class="intro-val" id="intro-nonstriker">BATSMAN</div>
+      <div class="intro-lbl">NON-STRIKER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-nonstriker">BATSMAN</div></div>
     </div>
     <div class="intro-card pill" style="border-top-color: var(--acc-red);">
-      <div class="intro-lbl">BOWLER</div><div class="intro-val" id="intro-bowler">BOWLER</div>
+      <div class="intro-lbl">BOWLER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-bowler">BOWLER</div></div>
     </div>
   </div>
 
   <div id="side-card-wrapper">
     <div id="profile-card" class="profile-card pill">
-      <div class="ppc-title" id="ppc-title-text">PLAYER NAME</div>
-      <div id="ppc-data"></div>
+      <div class="ppc-title"><span class="sw-badge" style="background: var(--acc-blue); margin-right: 15px; margin-bottom: 0;" id="pc-badge">PROFILE</span> <div class="fit-container"><span class="fit-text" id="pc-name">PLAYER NAME</span></div></div>
+      <div id="pc-stats-container"></div>
     </div>
     
     <div id="switch-card" class="switch-card">
       <div class="switch-block pill switch-out" id="sw-out-block" style="border-left: 8px solid var(--acc-red);">
-        <div style="display:flex; flex-direction:column; align-items: flex-start;"><span class="sw-badge" style="background: var(--acc-red);" id="sw-out-badge">OUT</span><span class="sw-name" id="sw-out-name">PLAYER 1</span></div>
+        <div style="display:flex; flex-direction:column; align-items: flex-start; flex: 1; overflow: hidden;">
+          <span class="sw-badge" style="background: var(--acc-red);" id="sw-out-badge">OUT</span>
+          <div class="fit-container"><span class="sw-name fit-text" id="sw-out-name">PLAYER 1</span></div>
+          <div style="font-size: 14px; color: var(--text-sub); font-weight: 700; margin-top: 5px;" class="fit-text" id="sw-out-desc"></div>
+        </div>
         <div class="sw-score" id="sw-out-score">0 (0)</div>
       </div>
-      <div class="switch-block pill switch-in" style="border-left: 8px solid var(--acc-blue);">
-        <div style="display:flex; flex-direction:column; align-items: flex-start;"><span class="sw-badge" style="background: var(--acc-blue);">IN</span><span class="sw-name" id="sw-in-name">PLAYER 2</span></div>
+      <div class="switch-block pill switch-in" id="sw-in-block" style="border-left: 8px solid var(--acc-blue);">
+        <div style="display:flex; flex-direction:column; align-items: flex-start; flex: 1; overflow: hidden;">
+          <span class="sw-badge" style="background: var(--acc-blue);" id="sw-in-badge">IN</span>
+          <div class="fit-container"><span class="sw-name fit-text" id="sw-in-name">PLAYER 2</span></div>
+        </div>
+        <div class="sw-score hide" id="sw-in-stats-row">
+          <span id="sw-in-r">0</span> (<span id="sw-in-b">0</span>)
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div class="side-summary-container">
-    <div class="side-panel" id="sum-bat-col">
-      <div class="panel-header">BATTING SUMMARY</div>
-      <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="sum-bat-body"></tbody></table>
-    </div>
-    <div class="side-panel" id="sum-bowl-col">
-      <div class="panel-header">BOWLING SUMMARY</div>
-      <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="sum-bowl-body"></tbody></table>
     </div>
   </div>
 
   <div id="scoreboard-container" class="state-vs">
     <div class="sb-view" id="panel-vs">
-       <div class="pill vs-pill"><span id="svt-text">TEAM 1 <span style="color:var(--acc-red); margin:0 20px;">VS</span> TEAM 2</span></div>
+       <div class="pill vs-pill">
+         <span id="svt-text"><span id="vs-t1">TEAM 1</span> <span style="color:var(--acc-red); margin:0 20px;">VS</span> <span id="vs-t2">TEAM 2</span></span>
+       </div>
     </div>
 
     <div class="sb-view" id="panel-live">
-      
-      <div class="pill pill-team" id="bat-team" style="color: var(--acc-blue); border-color: var(--acc-blue);">IND</div>
-      
+      <div class="pill pill-team" id="bat-team">IND</div>
       <div class="pill pill-data">
           <div class="p-row">
-            <span class="p-name active"><span style="color:var(--acc-gold); margin-right:10px;">▶</span><span id="striker" class="name-txt">Striker</span></span> 
+            <span class="p-name active"><span style="color:var(--acc-gold); margin-right:10px;">▶</span><div class="fit-container" style="width: 140px;"><span id="striker" class="name-txt fit-text">Striker</span></div></span> 
             <span class="p-stats"><span id="s-runs">0</span> <span class="p-sub">(<span id="s-balls">0</span>)</span></span>
           </div>
           <div class="p-row" style="opacity: 0.6;">
-            <span class="p-name"><span id="nonstriker" class="name-txt">Non-Striker</span></span> 
+            <span class="p-name"><div class="fit-container" style="width: 140px;"><span id="nonstriker" class="name-txt fit-text">Non-Striker</span></div></span> 
             <span class="p-stats"><span id="ns-runs">0</span> <span class="p-sub">(<span id="ns-balls">0</span>)</span></span>
           </div>
       </div>
-
       <div class="pill pill-score">
           <div class="runs-wkts"><span id="score">0</span><span class="slash">/</span><span id="wickets">0</span></div>
           <div class="overs-text">OVERS<span><span id="overs">0.0</span></span></div>
       </div>
-
       <div class="pill pill-data">
           <div class="p-row">
-            <span class="p-name active" style="color:var(--text-main);">BOWL: <span id="bowler" class="name-txt" style="margin-left: 8px;">Bowler</span></span>
+            <span class="p-name active" style="color:var(--text-main);">BOWL: <div class="fit-container" style="width: 130px; margin-left: 8px;"><span id="bowler" class="name-txt fit-text">Bowler</span></div></span>
             <span class="p-stats" style="color:var(--acc-red);"><span id="b-wkts">0</span>-<span id="b-runs">0</span> <span class="p-sub" style="margin-left:10px;">OV <span id="b-ov">0.0</span></span></span>
           </div>
           <div class="this-over-row"><span class="this-over-lbl">THIS OVER:</span><div id="this-over-balls" style="display:flex; gap:6px;"></div></div>
       </div>
-
-      <div class="pill pill-team" id="bowl-team" style="color: var(--acc-red); border-color: var(--acc-red);">AUS</div>
-      
+      <div class="pill pill-team" id="bowl-team">AUS</div>
     </div>
   </div>
 
   <div id="fullscreen-layer" class="layer-hide">
     
+    <div id="squads-tab" class="fs-card tab-hide">
+      <div class="fs-header" id="squads-toss-header">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs">
+          <div class="team-header-1" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs">
+          <div class="team-header-2" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="target-tab" class="fs-card tab-hide">
       <div class="fs-header" style="border:none;">INNINGS BREAK</div>
       <div class="target-anim-wrapper">
@@ -359,399 +363,377 @@
           <div class="ta-lbl">TARGET</div>
         </div>
       </div>
-      <div style="font-size: 35px; color: var(--text-main); font-weight: 900; margin-top: 20px;">CHASING: <span id="target-team" style="color:var(--acc-blue);">TEAM 2</span></div>
+      <div style="font-size: 3.5vh; color: var(--text-main); font-weight: 900; margin-top: 3vh;">CHASING: <span id="target-team" style="color:var(--acc-blue);">TEAM 2</span></div>
     </div>
 
-    <div id="squads-tab" class="fs-card tab-hide">
-      <div class="fs-header">PLAYING XI</div>
-      <div class="teams-split-container">
-        <div class="team-col-fs pill" style="border-radius: 30px;">
-          <div class="team-header-1" id="sq-t1-name">TEAM 1</div>
-          <div class="squad-list" id="sq-t1-list"></div>
-        </div>
-        <div class="team-col-fs pill" style="border-radius: 30px;">
-          <div class="team-header-2" id="sq-t2-name">TEAM 2</div>
-          <div class="squad-list" id="sq-t2-list"></div>
-        </div>
+    <div id="winner-tab" class="fs-card tab-hide">
+      <div class="fs-header" style="border:none;">MATCH CONCLUDED</div>
+      <div class="pill" style="margin: auto; width: 80%; max-width: 1200px; padding: 6vh 4vw; border: 4px solid var(--acc-gold); box-shadow: 0 20px 50px rgba(245, 158, 11, 0.2); align-items: center; text-align: center;">
+        <div class="winner-team fit-container" style="justify-content: center;"><span id="win-team" class="fit-text">TEAM WON</span></div>
+        <div class="winner-margin" id="win-margin">BY 10 RUNS</div>
       </div>
     </div>
 
-    <div id="match-end-tab" class="fs-card tab-hide">
-      <div class="fs-header" id="me-header">MATCH SUMMARY</div>
+    <div id="summary-tab" class="fs-card tab-hide">
+      <div class="fs-header" id="sum-header">INNINGS SUMMARY</div>
       <div class="teams-split-container">
-        <div class="team-col-fs pill" style="border-radius: 30px;">
-          <div class="team-header-1">BATTING</div>
-          <table class="data-table"><thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody id="me-bat-body"></tbody></table>
+        <div class="team-col-fs" id="sum-bat-col">
+          <div class="team-header-1" id="sum-bat-title">BATTING</div>
+          <div class="table-wrapper">
+             <table class="data-table">
+               <thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+               <tbody id="sum-bat-body"></tbody>
+             </table>
+          </div>
         </div>
-        <div class="team-col-fs pill" style="border-radius: 30px;">
-          <div class="team-header-2">BOWLING</div>
-          <table class="data-table"><thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead><tbody id="me-bowl-body"></tbody></table>
+        <div class="team-col-fs" id="sum-bowl-col">
+          <div class="team-header-2" id="sum-bowl-title">BOWLING</div>
+          <div class="table-wrapper">
+             <table class="data-table">
+               <thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead>
+               <tbody id="sum-bowl-body"></tbody>
+             </table>
+          </div>
         </div>
       </div>
     </div>
 
   </div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
 <script>
 (function() {
   'use strict';
   const $ = id => document.getElementById(id);
-  let decisionPendingState = false;
-  let endMatchInterval = null;
-  let eventTimer = null;
-  let milestoneTimer = null;
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const safeSet = (id, val, fallback) => {
-    const el = $(id);
-    if (!el) return;
-    el.innerText = String((val != null && val !== '') ? val : (fallback !== undefined ? fallback : ''));
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  let cfg = {};
+  try { const p = urlParams.get('cfg'); if (p) cfg = JSON.parse(decodeURIComponent(p)); } catch(e) {}
+  
+  const getDur = (val, base, max) => Math.min((val !== undefined ? val : base), max) * 1000;
+  
+  const DURATIONS = {
+    event: getDur(cfg.eventDuration, 6, 12),
+    milestone: getDur(cfg.milestoneDuration, 6, 12),
+    toss: getDur(cfg.tossDuration, 15, 35),
+    intro: getDur(cfg.introDuration, 8, 18),
+    matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
+    inningsBreak: 12000 
   };
 
-  const showEl  = (id, cls) => { const e=$(id); if(e) e.className = cls || ''; };
-  const hideEl  = (id, cls) => { const e=$(id); if(e) e.className = cls || 'hide'; };
+  let decisionPendingState = false;
+  let endMatchInterval = null;
+  let actionTimer = null;
+  let breakTimer = null;
+  let curStriker = '', curNonStriker = '', curBowler = '';
+
+  const safeSet = (id, val, fallback) => { const el = $(id); if (el) el.innerText = String((val != null && val !== '') ? val : (fallback !== undefined ? fallback : '')); };
   const addCls  = (id, cls) => { const e=$(id); if(e) e.classList.add(cls); };
   const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
 
-  // Resolve quick-anim IDs (lvl2 uses anim-*, lvl1 uses ev-*)
-  const fId = () => $('anim-four')     ? 'anim-four'     : 'ev-four';
-  const sId = () => $('anim-six')      ? 'anim-six'      : 'ev-six';
-  const wId = () => $('anim-wicket')   ? 'anim-wicket'   : 'ev-out';
-  const dId = () => $('anim-decision') ? 'anim-decision' : 'ev-decision';
+  const triggerAutoShrink = () => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.fit-text').forEach(el => {
+        el.style.fontSize = ''; 
+        let style = window.getComputedStyle(el);
+        let fontSize = parseFloat(style.fontSize);
+        const parent = el.parentElement;
+        
+        while (el.scrollWidth > parent.clientWidth && fontSize > 10) {
+          fontSize -= 0.5;
+          el.style.fontSize = fontSize + 'px';
+        }
+      });
+    });
+  };
 
-  // ── Score updater ──────────────────────────────────────────────────────────
   function processData(d) {
     if (!d) return;
+    const t1 = d.team1ShortName || (d.team1Name || 'T1').substring(0,4).toUpperCase();
+    const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
+    
+    safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
+    safeSet('bat-team', t1); safeSet('bowl-team', t2);
+    
+    safeSet('score', d.team1Score ?? d.teamScore, 0);
+    safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
+    safeSet('overs', d.team1Overs ?? d.teamOvers, '0.0');
 
-    const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0,4).toUpperCase();
-    safeSet('bat-team',    tName);
-    safeSet('bowl-team',   d.team2ShortName || (d.team2Name || '').substring(0,4).toUpperCase());
-    safeSet('score',       d.team1Score   ?? d.teamScore,   0);
-    safeSet('wickets',     d.team1Wickets ?? d.teamWickets, 0);
-    safeSet('overs',       d.team1Overs   ?? d.teamOvers,   '0.0');
-    safeSet('bowler',      d.bowlerName,    'Bowler');
-    safeSet('b-wkts',      d.bowlerWickets, 0);
-    safeSet('b-runs',      d.bowlerRuns,    0);
-    safeSet('b-ov',        d.bowlerOvers,   '0.0');
+    curBowler = d.bowlerName || 'Bowler';
+    safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0); safeSet('b-ov', d.bowlerOvers, '0.0');
 
-    safeSet('striker',       d.strikerName,    'Striker');
-    safeSet('s-runs',        d.strikerRuns,    0);
-    safeSet('s-balls',       d.strikerBalls,   0);
+    curStriker = d.strikerName || 'Striker';
+    safeSet('striker', curStriker); safeSet('s-runs', d.strikerRuns, 0); safeSet('s-balls', d.strikerBalls, 0);
 
-    safeSet('nonstriker',    d.nonStrikerName,  'Non-Striker');
-    safeSet('ns-runs',       d.nonStrikerRuns,  0);
-    safeSet('ns-balls',      d.nonStrikerBalls, 0);
+    curNonStriker = d.nonStrikerName || 'Non-Striker';
+    safeSet('nonstriker', curNonStriker); safeSet('ns-runs', d.nonStrikerRuns, 0); safeSet('ns-balls', d.nonStrikerBalls, 0);
 
-    safeSet('targetScore',   d.target,          '');
-    safeSet('reqRunRate',    d.requiredRunRate,  '');
-    safeSet('runRate',       d.runRate,          '');
-    safeSet('fs-tgt-score',  d.target,          '');
-    safeSet('over-runs',     d.runRate,          '');
-
-    // Balls
     if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(d.thisOver || []);
+    triggerAutoShrink();
   }
 
-  // ── Sponsor carousel ───────────────────────────────────────────────────────
-  (function initSponsors() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let cfg = {};
-    try { const p = urlParams.get('cfg'); if (p) cfg = JSON.parse(decodeURIComponent(p)); } catch(e) {}
-    const sponsors = cfg.sponsors || [];
-    if (!sponsors.length) return;
-    const track = $('sponsor-track');
-    if (!track) return;
-    let idx = 0;
-    track.style.transition = 'opacity 0.5s ease';
-    const show = () => {
-      const sp = sponsors[idx];
-      track.innerText = sp.name + (sp.tagline ? ' | ' + sp.tagline : '');
-      track.style.opacity = 1;
-    };
-    show();
-    setInterval(() => {
-      track.style.opacity = 0;
-      setTimeout(() => { idx = (idx + 1) % sponsors.length; show(); }, 500);
-    }, 6000);
-  })();
-
-  // ── Card renderers ─────────────────────────────────────────────────────────
   const renderBat = (batsmen) => {
     const el = $('sum-bat-body');
     if (!el || !batsmen) return;
-    el.innerHTML = batsmen.map(b =>
-      `<tr><td class="hl-text truncate">${b.name}</td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours||0}</td><td>${b.sixes||0}</td><td>${b.sr||b.strikeRate||0}</td></tr>`
-    ).join('');
+    el.innerHTML = batsmen.map(b => {
+      const isAct = (b.name === curStriker || b.name === curNonStriker) && b.outStatus !== 'out';
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours||0}</td><td>${b.sixes||0}</td><td>${b.sr||b.strikeRate||0}</td></tr>`;
+    }).join('');
   };
 
   const renderBowl = (bowlers) => {
     const el = $('sum-bowl-body');
     if (!el || !bowlers) return;
-    el.innerHTML = bowlers.map(b =>
-      `<tr><td class="hl-text truncate">${b.name}</td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:#ef4444;">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`
-    ).join('');
+    el.innerHTML = bowlers.map(b => {
+      const isAct = (b.name === curBowler);
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--acc-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
+    }).join('');
   };
 
-  const renderSquads = (data) => {
-    const el = $('squads-tab');
-    if (!el) return;
-    const t1 = (data.team1Players || []).slice(0,11).map(p => `<tr><td class="hl-text">${p.name}</td><td>${p.role||''}</td></tr>`).join('');
-    const t2 = (data.team2Players || []).slice(0,11).map(p => `<tr><td class="hl-text">${p.name}</td><td>${p.role||''}</td></tr>`).join('');
-    const t1h = $('squad-t1-header'); if(t1h) t1h.innerText = data.team1Name || 'Team 1';
-    const t2h = $('squad-t2-header'); if(t2h) t2h.innerText = data.team2Name || 'Team 2';
-    const t1b = $('squad-t1-body');  if(t1b) t1b.innerHTML = t1;
-    const t2b = $('squad-t2-body');  if(t2b) t2b.innerHTML = t2;
-    el.className = el.className.replace(/\bhide\b/g, '').trim();
-    el.classList.add('show');
+  const hideBaseUI = () => {
+    $('scoreboard-container').classList.add('base-ui-hide');
+    $('sponsor-bar').classList.add('base-ui-hide');
+    $('intro-cards-wrapper').classList.add('base-ui-hide');
+    $('side-card-wrapper').classList.add('base-ui-hide');
   };
 
-  const renderProfile = (data) => {
-    const el = $('profile-card');
-    if (!el) return;
-    const titleEl = $('profile-title'); if(titleEl) titleEl.innerText = data.title || 'PLAYER';
-    const bodyEl  = $('profile-body');
-    if (bodyEl && data.stats) {
-      bodyEl.innerHTML = data.stats.map(s =>
-        `<div class="profile-row"><span class="profile-label">${s.label}</span><span class="profile-val">${s.value}</span></div>`
-      ).join('');
-    }
-    el.className = el.className.replace(/\bhide\b/g, '').trim();
-    el.classList.add('show');
+  const showBaseUI = () => {
+    $('scoreboard-container').classList.remove('base-ui-hide');
+    $('sponsor-bar').classList.remove('base-ui-hide');
+    $('intro-cards-wrapper').classList.remove('base-ui-hide');
+    $('side-card-wrapper').classList.remove('base-ui-hide');
   };
 
-  const renderSwitch = (data) => {
-    const el = $('switch-card');
-    if (!el) return;
-    const outEl = $('switch-out-name'); if(outEl) outEl.innerText = data.outName || '';
-    const outScEl = $('switch-out-score'); if(outScEl) outScEl.innerText = data.outScore || '';
-    const inEl  = $('switch-in-name');  if(inEl)  inEl.innerText  = data.inName  || '';
-    // Also update the sw-out-score shown in the scoreboard ticker
-    const swOut = $('sw-out-score'); if(swOut) swOut.innerText = data.outScore || '';
-    el.className = el.className.replace(/\bhide\b/g, '').trim();
-    el.classList.add('show');
-  };
-
-  const showMilestone = (data) => {
-    const el = $('profile-card') || $('milestone-card');
-    if (!el) return;
-    const titleEl = $('profile-title') || $('milestone-title');
-    if (titleEl) titleEl.innerText = data.milestone || (data.runs === 50 ? '50 RUNS!' : '100 RUNS!');
-    const bodyEl = $('profile-body') || $('milestone-body');
-    if (bodyEl) bodyEl.innerHTML = `<div class="profile-row"><span class="profile-val" style="font-size:80px">${data.runs||''}</span></div><div class="profile-row"><span class="profile-label">${data.playerName||''}</span></div>`;
-    el.className = el.className.replace(/\bhide\b/g, '').trim();
-    el.classList.add('show');
-    clearTimeout(milestoneTimer);
-    milestoneTimer = setTimeout(() => { el.classList.remove('show'); el.classList.add('hide'); }, 6000);
-  };
-
-  const showTarget = (data) => {
-    const tab = $('target-tab');
-    if (!tab) return;
-    safeSet('target-score', data.targetScore || data.target || 0);
-    safeSet('target-team',  data.chasingTeam || '');
-    tab.className = tab.className.replace(/\bhide\b/g, '').trim();
-    tab.classList.add('show');
-  };
-
-  const showToss = (data) => {
-    const bar = $('toss-text-inbar') || $('toss-bar') || $('target-bar');
-    if (bar) bar.innerText = data.text || 'TOSS DECIDED';
-    // Show the fullscreen layer if available
-    const fl = $('fullscreen-layer');
-    if (fl) { fl.className = fl.className.replace(/\bhide\b/g,'').trim(); fl.classList.add('show'); }
-    const tt = $('toss-tab');
-    if (tt) { tt.className = tt.className.replace(/\bhide\b/g,'').trim(); tt.classList.add('show'); }
-  };
-
-  // ── RESTORE — clears every overlay state back to live scoreboard ───────────
-  function restoreToLive() {
-    decisionPendingState = false;
-    clearInterval(endMatchInterval);
-    clearTimeout(milestoneTimer);
-
-    // Quick-anim elements
-    remCls(fId(), 'fire'); remCls(sId(), 'fire'); remCls(wId(), 'fire');
-    remCls(dId(), 'fire');
-
-    // Fullscreen layer
-    const fl = $('fullscreen-layer');
-    if (fl) fl.className = 'layer-hide hide';
-
-    // All overlay tabs
-    ['squads-tab','target-tab','summary-tab','match-end-tab','toss-tab',
-     'profile-card','switch-card','milestone-card'].forEach(id => {
-      const e = $(id);
-      if (e) { e.classList.remove('show'); e.classList.add('hide'); }
-    });
-
-    // Slide-in stat columns
-    remCls('sum-bat-col',  'slide-in');
-    remCls('sum-bowl-col', 'slide-in');
-
-    // Scoreboard back to live state
-    const sb = $('scoreboard-container') || $('scoreboard');
-    if (sb) { sb.style.opacity = '1'; sb.classList.add('state-live'); }
+  function showActionAnim(id, duration) {
+    remCls('anim-four','fire'); remCls('anim-six','fire'); remCls('anim-wicket','fire');
+    clearTimeout(actionTimer);
+    addCls(id, 'fire');
+    actionTimer = setTimeout(() => remCls(id, 'fire'), duration);
   }
 
-  // ── Message handler ────────────────────────────────────────────────────────
+  function restoreToLive() {
+    clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    
+    const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
+    ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
+    
+    remCls('intro-cards-wrapper', 'active-intro');
+    remCls('side-card-wrapper', 'active-side');
+    ['switch-card','profile-card'].forEach(id => remCls(id, 'active'));
+
+    const sb = $('scoreboard-container');
+    if (sb) { sb.classList.remove('state-vs'); sb.classList.add('state-live'); }
+    showBaseUI();
+  }
+
   window.addEventListener('message', function(e) {
     if (!e.data) return;
-
-    if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
-      processData(e.data.data);
-      return;
-    }
-
+    if (e.data.type === 'UPDATE_SCORE' && e.data.data) { processData(e.data.data); return; }
     if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
+    
     const t = e.data.payload;
     const data = t.data || {};
+    const fl = $('fullscreen-layer');
 
     switch (t.type) {
-
-      // ── Quick action animations ─────────────────────────────────────────
-      case 'FOUR':
-        remCls(fId(),'fire'); remCls(sId(),'fire'); remCls(wId(),'fire');
-        clearTimeout(eventTimer);
-        addCls(fId(), 'fire');
-        eventTimer = setTimeout(() => remCls(fId(),'fire'), 3000);
-        break;
-
-      case 'SIX':
-        remCls(fId(),'fire'); remCls(sId(),'fire'); remCls(wId(),'fire');
-        clearTimeout(eventTimer);
-        addCls(sId(), 'fire');
-        eventTimer = setTimeout(() => remCls(sId(),'fire'), 3000);
-        break;
-
+      case 'FOUR': showActionAnim('anim-four', DURATIONS.event); break;
+      case 'SIX': showActionAnim('anim-six', DURATIONS.event); break;
+      
       case 'WICKET':
-        remCls(fId(),'fire'); remCls(sId(),'fire'); remCls(wId(),'fire');
-        clearTimeout(eventTimer);
-        addCls(wId(), 'fire');
-        eventTimer = setTimeout(() => remCls(wId(),'fire'), 4000);
+      case 'WICKET_SWITCH':
+        showActionAnim('anim-wicket', DURATIONS.event);
+        if (data.outName) {
+          $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
+          
+          $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
+          $('sw-out-badge').style.background = 'var(--acc-red)';
+          $('sw-out-block').style.borderLeftColor = 'var(--acc-red)';
+          
+          safeSet('sw-out-name', data.outName);
+          safeSet('sw-out-desc', data.howOut || 'Substitution');
+          safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
+          
+          if (data.inName) {
+            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
+            else { $('sw-in-stats-row').classList.add('hide'); }
+            $('sw-in-block').style.display = 'flex';
+          } else { $('sw-in-block').style.display = 'none'; }
+          addCls('side-card-wrapper', 'active-side');
+          triggerAutoShrink();
+          setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+        }
         break;
+
+      case 'BATSMAN_CHANGE':
+        if (data.outName) {
+          $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
+          
+          $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
+          $('sw-out-badge').style.background = 'var(--text-sub)';
+          $('sw-out-block').style.borderLeftColor = 'var(--text-sub)';
+          
+          safeSet('sw-out-name', data.outName);
+          safeSet('sw-out-desc', data.howOut || 'Retired');
+          safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
+          
+          if (data.inName) {
+            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
+            else { $('sw-in-stats-row').classList.add('hide'); }
+            $('sw-in-block').style.display = 'flex';
+          } else { $('sw-in-block').style.display = 'none'; }
+          
+          addCls('side-card-wrapper', 'active-side');
+          triggerAutoShrink();
+          setTimeout(() => {
+              remCls('side-card-wrapper', 'active-side');
+              setTimeout(() => {
+                  $('sw-out-badge').style.background = 'var(--acc-red)';
+                  $('sw-out-block').style.borderLeftColor = 'var(--acc-red)';
+              }, 500);
+          }, DURATIONS.event);
+        }
+        break;
+
+      case 'NEW_BOWLER':
+      case 'BOWLER_PROFILE':
+      case 'BATSMAN_PROFILE': {
+        $('profile-card').classList.add('active'); $('switch-card').classList.remove('active');
+        
+        const isBat = t.type === 'BATSMAN_PROFILE';
+        const badgeColor = isBat ? 'var(--acc-blue)' : 'var(--acc-red)';
+        
+        $('pc-badge').style.background = badgeColor;
+        $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
+        
+        if (data.stats && data.stats.length > 0) {
+            const nameStat = data.stats.find(s => s.label === 'BATSMAN' || s.label === 'BOWLER');
+            safeSet('pc-name', nameStat ? nameStat.value : (data.bowler || data.name || 'PROFILE'));
+            const otherStats = data.stats.filter(s => s.label !== 'BATSMAN' && s.label !== 'BOWLER');
+            $('pc-stats-container').innerHTML = otherStats.map(s => 
+                `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val">${s.value}</span></div>`
+            ).join('');
+        } else {
+            safeSet('pc-name', data.bowler || data.name || 'BOWLER');
+            $('pc-stats-container').innerHTML = `
+                <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val">${data.overs||'0.0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val">${data.maidens||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val">${data.runs||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val">${data.wickets||'0'}</span></div>
+            `;
+        }
+        
+        addCls('side-card-wrapper', 'active-side');
+        triggerAutoShrink();
+        setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+        break;
+      }
 
       case 'DECISION_PENDING':
         decisionPendingState = !decisionPendingState;
-        if (decisionPendingState) addCls(dId(), 'fire');
-        else remCls(dId(), 'fire');
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
         break;
 
-      // ── VS Screen ──────────────────────────────────────────────────────
+      case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':
-      case 'VS_SCREEN': {
-        const sb = $('scoreboard-container') || $('scoreboard');
-        if (sb) { sb.classList.remove('state-live'); sb.classList.add('state-vs'); }
-        const fl = $('fullscreen-layer');
-        if (fl) { fl.className = fl.className.replace(/\bhide\b/g,'').trim(); fl.classList.add('show'); }
-        break;
-      }
-
-      // ── Toss result ────────────────────────────────────────────────────
-      case 'SHOW_TOSS':
-        showToss(data);
-        break;
-
-      // ── Playing XI squads ──────────────────────────────────────────────
-      case 'SHOW_SQUADS':
-        renderSquads(data);
-        break;
-
-      // ── Innings intro (animated player cards) ──────────────────────────
-      case 'START_INNINGS_INTRO': {
-        const wrap = $('intro-cards-wrapper') || $('intro-wrap');
-        if (wrap) { wrap.className = wrap.className.replace(/\bhide\b/g,'').trim(); wrap.classList.add('show'); }
-        if (data.striker)    safeSet('intro-striker',    data.striker);
-        if (data.nonStriker) safeSet('intro-nonstriker', data.nonStriker);
-        if (data.bowler)     safeSet('intro-bowler',     data.bowler);
-        break;
-      }
-
-      // ── Batting / bowling cards ────────────────────────────────────────
-      case 'BATTING_CARD':
-        if (data.batsmen) renderBat(data.batsmen);
-        addCls('sum-bat-col', 'slide-in');
-        break;
-
-      case 'BOWLING_CARD':
-        if (data.bowlers) renderBowl(data.bowlers);
-        addCls('sum-bowl-col', 'slide-in');
-        break;
-
-      case 'BOTH_CARDS':
-        if (data.batsmen) renderBat(data.batsmen);
-        if (data.bowlers) renderBowl(data.bowlers);
-        addCls('sum-bat-col',  'slide-in');
-        addCls('sum-bowl-col', 'slide-in');
-        break;
-
-      // ── Player profile (batsman / bowler) ─────────────────────────────
-      case 'BATSMAN_PROFILE':
-      case 'BOWLER_PROFILE':
-        renderProfile(data);
-        break;
-
-      // ── Wicket / player switch card ───────────────────────────────────
-      case 'WICKET_SWITCH':
-        renderSwitch(data);
-        // Also fire the wicket animation
-        remCls(wId(), 'fire');
-        addCls(wId(), 'fire');
-        clearTimeout(eventTimer);
-        eventTimer = setTimeout(() => remCls(wId(), 'fire'), 4000);
-        break;
-
-      // ── New bowler card ────────────────────────────────────────────────
-      case 'NEW_BOWLER':
-        renderProfile({ title: 'NEW SPELL', stats: data.stats || [{ label: 'BOWLER', value: data.bowler || '' }] });
-        break;
-
-      // ── Milestone cards (50 / 100 runs) ───────────────────────────────
-      case '50_RUNS':
-        showMilestone({ ...data, runs: 50, milestone: '50 RUNS!' });
-        break;
-
-      case '100_RUNS':
-        showMilestone({ ...data, runs: 100, milestone: '100 RUNS!' });
-        break;
-
-      // ── Innings break / target card ────────────────────────────────────
-      case 'INNINGS_BREAK':
-        showTarget(data);
-        break;
-
-      // ── Match end ──────────────────────────────────────────────────────
-      case 'MATCH_END': {
-        const t1 = data.team1; const t2 = data.team2;
-        let current = 1;
-        const updateUI = (team) => {
-          safeSet('sum-header', (team.name || '') + ' INNINGS SUMMARY');
-          renderBat(team.batsmen);
-          renderBowl(team.bowlers);
-        };
-        if (t1) updateUI(t1);
-        const sumTab = $('summary-tab') || $('match-end-tab');
-        if (sumTab) { sumTab.classList.remove('hide'); sumTab.classList.add('show'); }
-        if (t1 && t2 && sumTab) {
-          clearInterval(endMatchInterval);
-          endMatchInterval = setInterval(() => {
-            sumTab.style.opacity = '0';
-            setTimeout(() => {
-              current = current === 1 ? 2 : 1;
-              updateUI(current === 1 ? t1 : t2);
-              sumTab.style.opacity = '1';
-            }, 500);
-          }, 8000);
-        }
-        break;
-      }
-
-      // ── Restore to live scoreboard ─────────────────────────────────────
-      case 'RESTORE':
         restoreToLive();
+        if(data.team1) safeSet('vs-t1', data.team1);
+        if(data.team2) safeSet('vs-t2', data.team2);
+        $('scoreboard-container').classList.remove('state-live'); $('scoreboard-container').classList.add('state-vs');
         break;
+
+      case 'SHOW_TOSS':
+        restoreToLive();
+        hideBaseUI(); 
+        safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
+        
+        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,14).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,14).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        
+        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
+        $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show');
+        triggerAutoShrink();
+        setTimeout(() => restoreToLive(), DURATIONS.toss);
+        break;
+
+      case 'START_INNINGS_INTRO':
+        safeSet('intro-striker', data.striker); safeSet('intro-nonstriker', data.nonStriker); safeSet('intro-bowler', data.bowler);
+        addCls('intro-cards-wrapper', 'active-intro');
+        triggerAutoShrink();
+        setTimeout(() => remCls('intro-cards-wrapper', 'active-intro'), DURATIONS.intro);
+        break;
+
+      case '50_RUNS': case '100_RUNS':
+        safeSet('ms-text', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`);
+        addCls('anim-milestone', 'fire');
+        triggerAutoShrink();
+        setTimeout(() => remCls('anim-milestone', 'fire'), DURATIONS.milestone);
+        break;
+
+      case 'BATTING_CARD': case 'BOWLING_CARD': case 'BOTH_CARDS':
+        restoreToLive(); 
+        hideBaseUI();
+        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
+        $('summary-tab').classList.remove('tab-hide'); $('summary-tab').classList.add('tab-show');
+        safeSet('sum-header', 'CURRENT SUMMARY');
+        
+        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') { $('sum-bat-col').style.display = 'flex'; if (data.batsmen) renderBat(data.batsmen); } else { $('sum-bat-col').style.display = 'none'; }
+        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') { $('sum-bowl-col').style.display = 'flex'; if (data.bowlers) renderBowl(data.bowlers); } else { $('sum-bowl-col').style.display = 'none'; }
+        triggerAutoShrink();
+        break;
+
+      case 'INNINGS_BREAK':
+        restoreToLive(); 
+        hideBaseUI();
+        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
+        $('target-tab').classList.remove('tab-hide'); $('target-tab').classList.add('tab-show');
+        safeSet('target-score', data.targetScore || data.target || 0); safeSet('target-team', data.chasingTeam || 'TEAM 2');
+        breakTimer = setTimeout(() => restoreToLive(), DURATIONS.inningsBreak);
+        break;
+
+      case 'MATCH_END':
+        restoreToLive(); 
+        hideBaseUI();
+        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
+        const winTab = $('winner-tab'); 
+        winTab.classList.remove('tab-hide'); winTab.classList.add('tab-show');
+        safeSet('win-team', data.winnerTeam || 'MATCH CONCLUDED'); safeSet('win-margin', data.winMargin || '');
+        triggerAutoShrink();
+        
+        setTimeout(() => {
+          winTab.classList.remove('tab-show'); winTab.classList.add('tab-hide');
+          const sumTab = $('summary-tab'); 
+          sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show');
+          
+          let currentTeamIdx = 1;
+          clearInterval(endMatchInterval);
+          
+          const flip = () => {
+             const tm = currentTeamIdx === 1 ? data.team1 : data.team2;
+             if (tm) {
+                 safeSet('sum-header', (tm.name||'') + ' INNINGS');
+                 $('sum-bat-col').style.display = 'flex'; $('sum-bowl-col').style.display = 'flex';
+                 renderBat(tm.batsmen); renderBowl(tm.bowlers);
+                 triggerAutoShrink();
+             }
+             currentTeamIdx = currentTeamIdx === 1 ? 2 : 1;
+          };
+          
+          if(data.team1) flip();
+          
+          endMatchInterval = setInterval(() => {
+             sumTab.style.opacity = '0';
+             setTimeout(() => { flip(); sumTab.style.opacity = '1'; }, 400);
+          }, DURATIONS.matchEndSwitch);
+
+        }, DURATIONS.matchEndSwitch);
+        break;
+
+      case 'RESTORE': restoreToLive(); break;
     }
   });
 
