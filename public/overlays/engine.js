@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v11 — PERFECT TEST.HTML EVENT SYNC
+ * ScoreX Overlay Engine v12 — PERFECT TEST.HTML EVENT SYNC
  */
 (function () {
   'use strict';
@@ -76,6 +76,7 @@
   }
 
   function queueAnimation(type, data, duration, then) {
+    // Priority Override: Player changes and Bowler changes jump ahead of Summary cards
     if (type === 'NEW_BOWLER' || type === 'BATSMAN_CHANGE' || type === 'WICKET_SWITCH') {
       var summaryIdx = animQueue.findIndex(function(a) { return a.type.indexOf('CARD') !== -1; });
       if (summaryIdx !== -1) {
@@ -156,17 +157,14 @@
     switch (t) {
       case 'FOUR':             if (!cfg.showFour) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
       case 'SIX':              if (!cfg.showSix) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
+      case 'WICKET':           if (!cfg.showWicket) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
       case 'WICKET_SWITCH':    if (!cfg.showWicket) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
       case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
       case 'NEW_BOWLER':       if (!cfg.showBowlerChange) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
       
       case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, cfg.summaryDuration); break;
       case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration); break;
-      case 'BOTH_CARDS':       
-        queueAnimation('BATTING_CARD', richData, cfg.summaryDuration, function() {
-          queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration);
-        }); 
-        break;
+      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration); break; // Handled natively by HTML
 
       case 'OVER_COMPLETE':
         var over = data.overNumber || 0;
@@ -182,7 +180,7 @@
         if (!cfg.showDecision) return; 
         decisionPending = data.active; 
         if(decisionPending) { 
-          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); 
+          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); // Infinite Lock
         } else { 
           isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); 
         }

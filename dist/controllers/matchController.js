@@ -113,12 +113,23 @@ const selectPlayers = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
-            // Emit exact names required by HTML
+            const inn = match.innings?.[match.currentInnings - 1];
+            const allBatsmen = inn?.batsmen || [];
             if (req.body.bowler && req.body.bowler !== prevBowler) {
                 io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'NEW_BOWLER', duration: 8, data: { bowler: req.body.bowler, overs: "0.0", maidens: 0, runs: 0, wickets: 0 } });
             }
             if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: { inName: req.body.striker || req.body.nonStriker, isSub: false, outName: prevStriker, howOut: "Replaced", outRuns: 0, outBalls: 0 } });
+                const outName = req.body.striker !== prevStriker ? prevStriker : prevNonStriker;
+                const inName = req.body.striker !== prevStriker ? req.body.striker : req.body.nonStriker;
+                const outBatsman = allBatsmen.find((b) => b.name === outName);
+                if (outBatsman?.isOut) {
+                    // Player is OUT: trigger the RED Wicket Switch card with both names
+                    io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: { outName: outName, howOut: outBatsman.outType || "OUT", outRuns: outBatsman.runs || 0, outBalls: outBatsman.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: false } });
+                }
+                else if (outName) {
+                    // Player RETIRED: trigger the GREY Batsman Change card
+                    io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: { outName: outName, howOut: "Retired", outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: true } });
+                }
             }
         }
         res.json({ success: true, message: 'Players selected' });
@@ -145,20 +156,15 @@ const addBall = async (req, res, next) => {
             name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', maidens: 0, runs: b.runs ?? 0, wkts: b.wickets ?? 0, econ: b.economy ?? 0
         }));
         let activeTrigger = null;
-        // WICKET_SWITCH mapping
         if (result.isWicket || req.body.wicket) {
-            const outName = result.outBatsmanName || req.body.outBatsmanName;
-            const outBatsman = allBatsmen.find((b) => b.name === outName);
-            activeTrigger = {
-                type: 'WICKET_SWITCH',
-                data: {
-                    outName: outName,
-                    howOut: result.outType || req.body.outType,
-                    outRuns: outBatsman?.runs || result.strikerMatchRuns || 0,
-                    outBalls: outBatsman?.balls || result.strikerMatchBalls || 0,
-                    isSub: false
-                }
-            };
+            // Just flashes the "OUT!" animation on screen. The Card will pop up when the new player is selected above.
+            activeTrigger = { type: 'WICKET', data: {} };
+            // Fallback: If innings ends on a wicket, selectPlayers won't trigger, so we pass the WICKET_SWITCH here.
+            if (result.inningsEnded || result.matchEnded) {
+                const outName = result.outBatsmanName || req.body.outBatsmanName;
+                const outBatsman = allBatsmen.find((b) => b.name === outName);
+                activeTrigger = { type: 'WICKET_SWITCH', data: { outName: outName, howOut: result.outType || req.body.outType, outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0, isSub: false } };
+            }
         }
         else if (result.isSix) {
             activeTrigger = { type: 'SIX', data: { playerName: match.strikerName } };
