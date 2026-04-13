@@ -401,17 +401,25 @@
   const addCls  = (id, cls) => { const e=$(id); if(e) e.classList.add(cls); };
   const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
 
+// 🚀 REPLACE THE OLD triggerAutoShrink WITH THIS ULTRA-FAST VERSION
   const triggerAutoShrink = () => {
     requestAnimationFrame(() => {
       document.querySelectorAll('.fit-text').forEach(el => {
+        // Reset to default CSS size first
         el.style.fontSize = ''; 
-        let style = window.getComputedStyle(el);
-        let fontSize = parseFloat(style.fontSize);
-        const parent = el.parentElement;
         
-        while (el.scrollWidth > parent.clientWidth && fontSize > 10) {
-          fontSize -= 0.5;
-          el.style.fontSize = fontSize + 'px';
+        const parent = el.parentElement;
+        const scrollW = el.scrollWidth;
+        const clientW = parent.clientWidth;
+        
+        // If the text is wider than its container, calculate exact shrink ratio
+        if (scrollW > clientW && clientW > 0) {
+          const currentSize = parseFloat(window.getComputedStyle(el).fontSize);
+          const ratio = clientW / scrollW;
+          
+          // Apply ratio with a 2% safety buffer, minimum size 10px
+          const newSize = Math.max(10, currentSize * ratio * 0.98); 
+          el.style.fontSize = newSize + 'px';
         }
       });
     });
