@@ -1,10 +1,10 @@
 /**
- * ScoreX Overlay Engine v6 — LIVE UPDATES FIXED
+ * ScoreX Overlay Engine v6.1 — QUEUE SYSTEM FIXED
  * - Robust socket reconnection that re-joins match room on every connect/reconnect
  * - HTTP polling fallback (every 5s) so OBS always stays current even if socket drops
  * - cache:'no-store' on all fetches to prevent stale browser cache
  * - postMessage passthrough for preview iframe parent triggers
- * - Full animation state machine from v5 preserved
+ * - NEW: Animation Queue prevents triggers from dropping when fired simultaneously
  */
 (function () {
   'use strict';
@@ -59,8 +59,11 @@
   var matchData         = null;
   var socket            = null;
   var state             = 'BOOTING';
-  var animLock          = false;
-  var animLockTimer     = null;
+  
+  // Animation Queue System
+  var animQueue         = [];
+  var isPlayingAnim     = false;
+
   var lastOverNumber    = -1;
   var inn1IntroPlayed   = false;
   var inn2IntroPlayed   = false;
@@ -78,21 +81,31 @@
     window.postMessage({ type: 'OVERLAY_TRIGGER', payload: payload, _engineSelf: true }, '*');
   }
 
-  function lock(seconds, callback) {
-    if (animLockTimer) clearTimeout(animLockTimer);
-    animLock = true;
-    animLockTimer = setTimeout(function() {
-      animLock = false;
-      if (callback) callback();
-    }, seconds * 1000);
+  function processQueue() {
+    if (isPlayingAnim || animQueue.length === 0) return;
+    
+    var nextAnim = animQueue.shift();
+    isPlayingAnim = true;
+    
+    dispatch(nextAnim.type, nextAnim.data, nextAnim.duration);
+    
+    setTimeout(function() {
+      dispatch('RESTORE', {});
+      isPlayingAnim = false;
+      if (nextAnim.then) nextAnim.then();
+      processQueue(); 
+    }, nextAnim.duration * 1000);
   }
 
-  function dispatchAndUnlock(type, data, duration, then) {
-    dispatch(type, data, duration);
-    lock(duration, function() {
-      dispatch('RESTORE', {});
-      if (then) then();
-    });
+  function queueAnimation(type, data, duration, then) {
+    // If we want WICKET and PLAYER_CHANGE at the EXACT same time, bypass queue
+    if (type === 'PLAYER_CHANGE' && isPlayingAnim && animQueue.length === 0) {
+        dispatch(type, data, duration);
+        return;
+    }
+    
+    animQueue.push({ type: type, data: data, duration: duration, then: then });
+    processQueue();
   }
 
   // ── Main update handler ───────────────────────────────────────────────────
@@ -127,13 +140,13 @@
         matchEndFired = true;
         state = 'MATCH_END';
         var summary = raw.matchSummary || flat.matchSummary || null;
-        dispatch('MATCH_WIN', {
+        
+        queueAnimation('MATCH_WIN', {
           winnerName: flat.winnerName || matchObj.winnerName || '',
           resultSummary: flat.resultSummary || matchObj.resultSummary || '',
           summary: summary
-        }, cfg.matchSummaryDuration);
-        lock(cfg.matchSummaryDuration, function() {
-          dispatch('MATCH_SUMMARY', { summary: summary, data: flat }, cfg.matchSummaryDuration);
+        }, cfg.matchSummaryDuration, function() {
+           queueAnimation('MATCH_SUMMARY', { summary: summary, data: flat }, cfg.matchSummaryDuration);
         });
         return;
       }
@@ -159,13 +172,14 @@
         return;
       }
 
-      if (state !== 'LIVE' || animLock) return;
+      // If we are playing an animation, we don't abort, we just let the queue run
+      if (state !== 'LIVE') return;
 
       if (currentInn === 2 && !inn2IntroPlayed && hasPlayers && cfg.showInningIntro) {
         inn2IntroPlayed = true;
         var inn2 = matchObj.innings && matchObj.innings[1] ? matchObj.innings[1] : {};
         if ((inn2.balls || 0) < 2) {
-          dispatchAndUnlock('INNING_START', {
+          queueAnimation('INNING_START', {
             innings: 2, battingTeamName: flat.inn2TeamName || flat.team2Name,
             players: flat.team2Players || [], target: flat.target,
           }, cfg.introDuration);
@@ -177,7 +191,7 @@
         inn1IntroPlayed = true;
         var inn1 = matchObj.innings && matchObj.innings[0] ? matchObj.innings[0] : {};
         if ((inn1.balls || 0) < 2) {
-          dispatchAndUnlock('INNING_START', {
+          queueAnimation('INNING_START', {
             innings: 1, battingTeamName: flat.inn1TeamName || flat.team1Name,
             players: flat.team1Players || [],
           }, cfg.introDuration);
@@ -188,7 +202,7 @@
       if (lastInnings !== currentInn && currentInn === 2) {
         lastInnings = currentInn;
         if (cfg.showTargetCard) {
-          dispatchAndUnlock('TARGET_CARD', {
+          queueAnimation('TARGET_CARD', {
             targetScore: flat.target || (flat.inn1Score + 1),
             inn1Score: flat.inn1Score, inn1Wickets: flat.inn1Wickets,
             inn1Overs: flat.inn1Overs, inn1TeamName: flat.inn1TeamName,
@@ -196,7 +210,7 @@
           }, cfg.targetCardDuration, function() {
             if (cfg.showInningIntro && !inn2IntroPlayed) {
               inn2IntroPlayed = true;
-              dispatchAndUnlock('INNING_START', {
+              queueAnimation('INNING_START', {
                 innings: 2, battingTeamName: flat.inn2TeamName || flat.team2Name,
                 players: flat.team2Players || [], target: flat.target,
               }, cfg.introDuration);
@@ -213,11 +227,11 @@
       if (currentBalls % 6 === 0 && completedOvers > 0 && completedOvers !== lastOverNumber) {
         lastOverNumber = completedOvers;
         if (cfg.autoBattingOvers > 0 && completedOvers % cfg.autoBattingOvers === 0 && cfg.showBattingSummary) {
-          dispatchAndUnlock('BATTING_SUMMARY', { batsmen: flat.battingSummary, teamName: flat.battingTeamName, innings: currentInn }, cfg.summaryDuration);
+          queueAnimation('BATTING_SUMMARY', { batsmen: flat.battingSummary, teamName: flat.battingTeamName, innings: currentInn }, cfg.summaryDuration);
           return;
         }
         if (cfg.autoBowlingOvers > 0 && completedOvers % cfg.autoBowlingOvers === 0 && cfg.showBowlingSummary) {
-          dispatchAndUnlock('BOWLING_SUMMARY', { bowlers: flat.bowlingSummary, teamName: flat.bowlingTeamName, innings: currentInn }, cfg.summaryDuration);
+          queueAnimation('BOWLING_SUMMARY', { bowlers: flat.bowlingSummary, teamName: flat.bowlingTeamName, innings: currentInn }, cfg.summaryDuration);
           return;
         }
       }
@@ -235,13 +249,13 @@
       tossDecision: matchObj.tossDecision || flat.tossDecision || '',
       team1Name: flat.team1Name, team2Name: flat.team2Name,
     });
-    lock(cfg.tossDuration, function() {
+    setTimeout(function() {
       if (cfg.showSquads) {
         state = 'SQUADS';
         dispatch('SHOW_SQUADS', { team1Name: flat.team1Name, team2Name: flat.team2Name, team1Players: flat.team1Players, team2Players: flat.team2Players });
-        lock(cfg.squadDuration, function() { state = 'LIVE'; dispatch('RESTORE', {}); });
+        setTimeout(function() { state = 'LIVE'; dispatch('RESTORE', {}); }, cfg.squadDuration * 1000);
       } else { state = 'LIVE'; dispatch('RESTORE', {}); }
-    });
+    }, cfg.tossDuration * 1000);
   }
 
   function handleTrigger(trigger, flat) {
@@ -251,28 +265,28 @@
     var richData = Object.assign({}, flat, data);
 
     switch (t) {
-      case 'FOUR':             if (!cfg.showFour)          return; dispatch('FOUR', richData, dur); break;
-      case 'SIX':              if (!cfg.showSix)           return; dispatch('SIX', richData, dur); break;
-      case 'WICKET':           if (!cfg.showWicket)        return; dispatch('WICKET', richData, dur); break;
+      case 'FOUR':             if (!cfg.showFour)          return; queueAnimation('FOUR', richData, dur); break;
+      case 'SIX':              if (!cfg.showSix)           return; queueAnimation('SIX', richData, dur); break;
+      case 'WICKET':           if (!cfg.showWicket)        return; queueAnimation('WICKET', richData, dur); break;
       case 'DECISION_PENDING': if (!cfg.showDecision)      return; decisionPending = !decisionPending; dispatch('DECISION_PENDING', { active: decisionPending }, 0); break;
-      case 'PLAYER_CHANGE':    if (!cfg.showPlayerChange)  return; dispatch('PLAYER_CHANGE', richData, dur); break;
-      case 'BOWLER_CHANGE':    if (!cfg.showBowlerChange)  return; dispatch('BOWLER_CHANGE', richData, dur); break;
-      case 'BATTING_SUMMARY':  if (!cfg.showBattingSummary) return; dispatchAndUnlock('BATTING_SUMMARY', richData, cfg.summaryDuration); break;
-      case 'BOWLING_SUMMARY':  if (!cfg.showBowlingSummary) return; dispatchAndUnlock('BOWLING_SUMMARY', richData, cfg.summaryDuration); break;
+      case 'PLAYER_CHANGE':    if (!cfg.showPlayerChange)  return; queueAnimation('PLAYER_CHANGE', richData, dur); break;
+      case 'BOWLER_CHANGE':    if (!cfg.showBowlerChange)  return; queueAnimation('BOWLER_CHANGE', richData, dur); break;
+      case 'BATTING_SUMMARY':  if (!cfg.showBattingSummary) return; queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration); break;
+      case 'BOWLING_SUMMARY':  if (!cfg.showBowlingSummary) return; queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration); break;
       case 'BOTH_CARDS':
         if (cfg.showBattingSummary) {
-          dispatchAndUnlock('BATTING_SUMMARY', richData, cfg.summaryDuration, function() {
-            if (cfg.showBowlingSummary) dispatchAndUnlock('BOWLING_SUMMARY', richData, cfg.summaryDuration);
+          queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration, function() {
+            if (cfg.showBowlingSummary) queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration);
           });
         }
         break;
-      case 'TARGET_CARD':   if (!cfg.showTargetCard) return; dispatch('TARGET_CARD', richData, cfg.targetCardDuration); break;
-      case 'INNING_START':  dispatch('INNING_START', richData, cfg.introDuration); break;
+      case 'TARGET_CARD':   if (!cfg.showTargetCard) return; queueAnimation('TARGET_CARD', richData, cfg.targetCardDuration); break;
+      case 'INNING_START':  queueAnimation('INNING_START', richData, cfg.introDuration); break;
       case 'SHOW_VS_SCREEN': dispatch('SHOW_VS_SCREEN', richData); break;
       case 'SHOW_TOSS':     dispatch('SHOW_TOSS', richData, cfg.tossDuration); break;
       case 'SHOW_SQUADS':   dispatch('SHOW_SQUADS', richData, cfg.squadDuration); break;
-      case 'MATCH_WIN':     dispatch('MATCH_WIN', richData, cfg.matchSummaryDuration); break;
-      case 'MATCH_SUMMARY': dispatch('MATCH_SUMMARY', richData, cfg.matchSummaryDuration); break;
+      case 'MATCH_WIN':     queueAnimation('MATCH_WIN', richData, cfg.matchSummaryDuration); break;
+      case 'MATCH_SUMMARY': queueAnimation('MATCH_SUMMARY', richData, cfg.matchSummaryDuration); break;
       case 'RESTORE':       decisionPending = false; dispatch('RESTORE', {}); break;
       default:              dispatch(t, richData, dur);
     }
@@ -350,7 +364,6 @@
       joinRoom();
     });
 
-    // Re-join on every reconnect — critical for OBS long-running sessions
     socket.io.on('reconnect', function() {
       console.log('[Engine] Socket reconnected — re-joining room');
       joinRoom();
@@ -374,7 +387,7 @@
 
     socket.on('inningsEnded', function(payload) {
       console.log('[Engine] inningsEnded');
-      state = 'LIVE'; animLock = false;
+      state = 'LIVE'; isPlayingAnim = false; animQueue = []; // Clear queue on innings end
       onData(payload);
     });
 
@@ -384,13 +397,13 @@
         matchEndFired = true;
         var flat = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(payload) : {};
         state = 'MATCH_END';
-        dispatch('MATCH_WIN', {
+        
+        queueAnimation('MATCH_WIN', {
           winnerName: payload.winnerName || flat.winnerName || '',
           resultSummary: payload.resultSummary || flat.resultSummary || '',
           summary: payload.matchSummary || null,
-        }, cfg.matchSummaryDuration);
-        lock(cfg.matchSummaryDuration, function() {
-          dispatch('MATCH_SUMMARY', { summary: payload.matchSummary, data: flat }, cfg.matchSummaryDuration);
+        }, cfg.matchSummaryDuration, function() {
+          queueAnimation('MATCH_SUMMARY', { summary: payload.matchSummary, data: flat }, cfg.matchSummaryDuration);
         });
       }
     });
@@ -444,13 +457,11 @@
     var isPreview = urlParams.get('preview') === 'true';
 
     if (isPreview && !matchId) {
-      // Pure preview mode — show demo, wait for postMessage from parent
       console.log('[Engine] Preview mode (no matchId) — showing demo');
       onData(getDemoData());
       return;
     }
 
-    // Fetch immediately + start socket + start polling
     fetchMatch(function(data) { onData(data || getDemoData()); });
     connectSocket();
     startPolling();

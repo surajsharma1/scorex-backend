@@ -7,7 +7,7 @@ import Player from '../models/Player';
 
 interface AuthRequest extends Request { user?: any; }
 
-// ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
+// ─── REUSABLE POPULATE OPTIONS ──────────────────────────────────────────────
 const teamPopulateOptions = [
   { 
     path: 'team1', 
@@ -51,7 +51,7 @@ export const getMatches = async (req: Request, res: Response, next: NextFunction
 export const getMatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id)
-      .populate(teamPopulateOptions) // Uses the reusable deep populate
+      .populate(teamPopulateOptions)
       .populate('tournamentId')
       .populate('winner');
       
@@ -63,7 +63,7 @@ export const getMatch = async (req: Request, res: Response, next: NextFunction) 
 // ─── POST /matches ────────────────────────────────────────────────────────────
 export const createMatch = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-const {
+    const {
       name, tournamentId, round, matchNumber,
       team1, team2, date, time, format, venue, maxOvers
     } = req.body;
@@ -169,7 +169,7 @@ export const startMatch = async (req: AuthRequest, res: Response, next: NextFunc
       bowler
     });
 
-    await match.populate(teamPopulateOptions); // FIX: Deep populate for real-time
+    await match.populate(teamPopulateOptions); 
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('matchStarted', match.toObject());
@@ -191,7 +191,6 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
 
     const io = req.app.get('io');
 
-    // Determine which change card to show
     const bowlerChanged = bowler && bowler !== prevBowler;
     let changeTrigger: any = null;
     if (bowlerChanged) {
@@ -233,14 +232,12 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
 };
 
 // ─── POST /matches/:id/score ──────────────────────────────────────────────────
-// ─── POST /matches/:id/score ──────────────────────────────────────────────────
 export const addBall = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
 
-    // Validate active striker exists
     const innings = match.innings?.[match.currentInnings - 1];
     if (!innings?.batsmen?.some((b: any) => b.isStriker && !b.isOut)) {
       return res.status(400).json({
@@ -250,18 +247,14 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 
     const result = await match.addBall(req.body);
-    await match.populate(teamPopulateOptions); // Ensure players are included for UI updates
+    await match.populate(teamPopulateOptions); 
 
-    // ==========================================
-    // 🧠 THE BRAIN: OVERLAY TRIGGER LOGIC
-    // ==========================================
     let activeTrigger: any = null;
 
     const currentInningsData = match.innings?.[match.currentInnings - 1];
     const allBatsmen = currentInningsData?.batsmen || [];
     const allBowlers = currentInningsData?.bowlers || [];
 
-    // Build rich batting summary (all batsmen who batted)
     const battingSummary = allBatsmen.map((b: any) => ({
       name: b.name,
       runs: b.runs ?? 0,
@@ -273,7 +266,6 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
       outType: b.outType ?? '',
     }));
 
-    // Build rich bowling summary
     const bowlingSummary = allBowlers.map((b: any) => ({
       name: b.name,
       overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
@@ -291,7 +283,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
           outType: result.outType || 'out',
           runs: result.strikerMatchRuns ?? 0,
           balls: result.strikerMatchBalls ?? 0,
-          newBatsmanName: '', // will be filled once player select done
+          newBatsmanName: '', 
         }
       };
     } else if (result.isSix) {
@@ -314,23 +306,9 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
           balls: result.strikerMatchBalls ?? 0,
         }
       };
-    } else if (result.overChanged && result.completedOverNumber) {
-      // Auto-stats: alternate batting/bowling card each over
-      const overNum = result.completedOverNumber;
-      if (overNum % 2 === 0) {
-        activeTrigger = {
-          type: 'BATTING_SUMMARY',
-          duration: 12,
-          data: { batsmen: battingSummary, teamName: currentInningsData?.teamName || '', innings: match.currentInnings }
-        };
-      } else {
-        activeTrigger = {
-          type: 'BOWLING_SUMMARY',
-          duration: 12,
-          data: { bowlers: bowlingSummary, teamName: '', innings: match.currentInnings }
-        };
-      }
-    }
+    } 
+    // AUTO-SUMMARY LOGIC REMOVED FROM HERE
+    // engine.js now perfectly handles it via the queue and config settings.
 
     const io = req.app.get('io');
     if (io) {
@@ -344,13 +322,11 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
       });
     }
 
-    // Handle innings end — fire TARGET_CARD then INNING_START
     if (result.inningsEnded && !result.matchEnded) {
       const inn1 = match.innings?.[0];
       const targetScore = (inn1?.score ?? 0) + 1;
 
       if (io) {
-        // 1. Innings summary for completed innings
         io.to(`match:${match._id}`).emit('inningsEnded', {
           inningsNumber: match.currentInnings - 1,
           score: inn1?.score ?? 0,
@@ -361,21 +337,16 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
           bowlingSummary,
         });
 
-        // 2. Fire TARGET_CARD trigger so overlay shows it
         io.to(`match:${match._id}`).emit('overlayTrigger', {
           type: 'TARGET_CARD',
           duration: 10,
           data: {
             targetScore,
-            battingTeam: match.innings?.[1]
-              ? (match.team1Name || 'Team 2')
-              : '',
+            battingTeam: match.innings?.[1] ? (match.team1Name || 'Team 2') : '',
             bowlingTeam: inn1?.teamName || '',
             inn1Score: inn1?.score ?? 0,
             inn1Wickets: inn1?.wickets ?? 0,
-            inn1Overs: inn1?.balls
-              ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}`
-              : '0.0',
+            inn1Overs: inn1?.balls ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}` : '0.0',
           }
         });
       }
@@ -426,8 +397,7 @@ export const undoLastBall = async (req: AuthRequest, res: Response, next: NextFu
     if (match.status !== 'live') return res.status(400).json({ success: false, message: 'Match is not live' });
 
     await match.undoLastBall();
-
-    await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+    await match.populate(teamPopulateOptions); 
 
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
@@ -494,7 +464,6 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
     if (playerOfMatch) match.playerOfMatch = playerOfMatch;
     await match.save();
 
-    // Update team win/loss stats
     if (winnerId) {
       await Team.findByIdAndUpdate(winnerId, {
         $inc: { 'stats.matchesWon': 1, 'stats.matchesPlayed': 1, 'tournamentStats.matchesWon': 1, 'tournamentStats.matchesPlayed': 1 }
@@ -541,9 +510,8 @@ export const getLiveMatches = async (req: Request, res: Response, next: NextFunc
       .populate('tournamentId', 'name')
       .sort({ updatedAt: -1 });
 
-    // ✅ Filter out orphaned matches (tournament was deleted but match wasn't)
     const valid = matches.filter(m => {
-      if (!m.tournamentId) return true; // standalone match, keep it
+      if (!m.tournamentId) return true; 
       return m.tournamentId !== null && typeof m.tournamentId === 'object';
     });
 

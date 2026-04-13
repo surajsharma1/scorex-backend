@@ -7,7 +7,7 @@ exports.getLiveMatches = exports.updateMatchStatus = exports.endMatch = exports.
 const Match_1 = __importDefault(require("../models/Match"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
-// ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
+// ─── REUSABLE POPULATE OPTIONS ──────────────────────────────────────────────
 const teamPopulateOptions = [
     {
         path: 'team1',
@@ -54,7 +54,7 @@ exports.getMatches = getMatches;
 const getMatch = async (req, res, next) => {
     try {
         const match = await Match_1.default.findById(req.params.id)
-            .populate(teamPopulateOptions) // Uses the reusable deep populate
+            .populate(teamPopulateOptions)
             .populate('tournamentId')
             .populate('winner');
         if (!match)
@@ -171,7 +171,7 @@ const startMatch = async (req, res, next) => {
             nonStriker,
             bowler
         });
-        await match.populate(teamPopulateOptions); // FIX: Deep populate for real-time
+        await match.populate(teamPopulateOptions);
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('matchStarted', match.toObject());
@@ -194,7 +194,6 @@ const selectPlayers = async (req, res, next) => {
         const prevBowler = match.currentBowlerName;
         await match.selectPlayers({ striker, nonStriker, bowler });
         const io = req.app.get('io');
-        // Determine which change card to show
         const bowlerChanged = bowler && bowler !== prevBowler;
         let changeTrigger = null;
         if (bowlerChanged) {
@@ -238,7 +237,6 @@ const selectPlayers = async (req, res, next) => {
 };
 exports.selectPlayers = selectPlayers;
 // ─── POST /matches/:id/score ──────────────────────────────────────────────────
-// ─── POST /matches/:id/score ──────────────────────────────────────────────────
 const addBall = async (req, res, next) => {
     try {
         const match = await Match_1.default.findById(req.params.id);
@@ -246,7 +244,6 @@ const addBall = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
-        // Validate active striker exists
         const innings = match.innings?.[match.currentInnings - 1];
         if (!innings?.batsmen?.some((b) => b.isStriker && !b.isOut)) {
             return res.status(400).json({
@@ -255,15 +252,11 @@ const addBall = async (req, res, next) => {
             });
         }
         const result = await match.addBall(req.body);
-        await match.populate(teamPopulateOptions); // Ensure players are included for UI updates
-        // ==========================================
-        // 🧠 THE BRAIN: OVERLAY TRIGGER LOGIC
-        // ==========================================
+        await match.populate(teamPopulateOptions);
         let activeTrigger = null;
         const currentInningsData = match.innings?.[match.currentInnings - 1];
         const allBatsmen = currentInningsData?.batsmen || [];
         const allBowlers = currentInningsData?.bowlers || [];
-        // Build rich batting summary (all batsmen who batted)
         const battingSummary = allBatsmen.map((b) => ({
             name: b.name,
             runs: b.runs ?? 0,
@@ -274,7 +267,6 @@ const addBall = async (req, res, next) => {
             isOut: b.isOut ?? false,
             outType: b.outType ?? '',
         }));
-        // Build rich bowling summary
         const bowlingSummary = allBowlers.map((b) => ({
             name: b.name,
             overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
@@ -291,7 +283,7 @@ const addBall = async (req, res, next) => {
                     outType: result.outType || 'out',
                     runs: result.strikerMatchRuns ?? 0,
                     balls: result.strikerMatchBalls ?? 0,
-                    newBatsmanName: '', // will be filled once player select done
+                    newBatsmanName: '',
                 }
             };
         }
@@ -317,24 +309,8 @@ const addBall = async (req, res, next) => {
                 }
             };
         }
-        else if (result.overChanged && result.completedOverNumber) {
-            // Auto-stats: alternate batting/bowling card each over
-            const overNum = result.completedOverNumber;
-            if (overNum % 2 === 0) {
-                activeTrigger = {
-                    type: 'BATTING_SUMMARY',
-                    duration: 12,
-                    data: { batsmen: battingSummary, teamName: currentInningsData?.teamName || '', innings: match.currentInnings }
-                };
-            }
-            else {
-                activeTrigger = {
-                    type: 'BOWLING_SUMMARY',
-                    duration: 12,
-                    data: { bowlers: bowlingSummary, teamName: '', innings: match.currentInnings }
-                };
-            }
-        }
+        // AUTO-SUMMARY LOGIC REMOVED FROM HERE
+        // engine.js now perfectly handles it via the queue and config settings.
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('scoreUpdate', {
@@ -346,12 +322,10 @@ const addBall = async (req, res, next) => {
                 bowlingSummary,
             });
         }
-        // Handle innings end — fire TARGET_CARD then INNING_START
         if (result.inningsEnded && !result.matchEnded) {
             const inn1 = match.innings?.[0];
             const targetScore = (inn1?.score ?? 0) + 1;
             if (io) {
-                // 1. Innings summary for completed innings
                 io.to(`match:${match._id}`).emit('inningsEnded', {
                     inningsNumber: match.currentInnings - 1,
                     score: inn1?.score ?? 0,
@@ -361,21 +335,16 @@ const addBall = async (req, res, next) => {
                     battingSummary,
                     bowlingSummary,
                 });
-                // 2. Fire TARGET_CARD trigger so overlay shows it
                 io.to(`match:${match._id}`).emit('overlayTrigger', {
                     type: 'TARGET_CARD',
                     duration: 10,
                     data: {
                         targetScore,
-                        battingTeam: match.innings?.[1]
-                            ? (match.team1Name || 'Team 2')
-                            : '',
+                        battingTeam: match.innings?.[1] ? (match.team1Name || 'Team 2') : '',
                         bowlingTeam: inn1?.teamName || '',
                         inn1Score: inn1?.score ?? 0,
                         inn1Wickets: inn1?.wickets ?? 0,
-                        inn1Overs: inn1?.balls
-                            ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}`
-                            : '0.0',
+                        inn1Overs: inn1?.balls ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}` : '0.0',
                     }
                 });
             }
@@ -427,7 +396,7 @@ const undoLastBall = async (req, res, next) => {
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
         await match.undoLastBall();
-        await match.populate(teamPopulateOptions); // FIX: Ensure players are included for UI updates
+        await match.populate(teamPopulateOptions);
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
@@ -497,7 +466,6 @@ const endMatch = async (req, res, next) => {
         if (playerOfMatch)
             match.playerOfMatch = playerOfMatch;
         await match.save();
-        // Update team win/loss stats
         if (winnerId) {
             await Team_1.default.findByIdAndUpdate(winnerId, {
                 $inc: { 'stats.matchesWon': 1, 'stats.matchesPlayed': 1, 'tournamentStats.matchesWon': 1, 'tournamentStats.matchesPlayed': 1 }
@@ -547,10 +515,9 @@ const getLiveMatches = async (req, res, next) => {
             .populate('team2', 'name shortName logo')
             .populate('tournamentId', 'name')
             .sort({ updatedAt: -1 });
-        // ✅ Filter out orphaned matches (tournament was deleted but match wasn't)
         const valid = matches.filter(m => {
             if (!m.tournamentId)
-                return true; // standalone match, keep it
+                return true;
             return m.tournamentId !== null && typeof m.tournamentId === 'object';
         });
         res.json({ success: true, data: valid });
