@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v7 — PERFECT QUEUE & CHAINING
+ * ScoreX Overlay Engine v8 — PRIORITY QUEUE & LOCK FIXES
  */
 (function () {
   'use strict';
@@ -48,7 +48,7 @@
   var socket            = null;
   var state             = 'BOOTING';
   
-  // Strict Animation Queue
+  // Priority Animation Queue
   var animQueue         = [];
   var isPlayingAnim     = false;
   var decisionPending   = false;
@@ -68,23 +68,41 @@
     
     dispatch(nextAnim.type, nextAnim.data, nextAnim.duration);
     
-    setTimeout(function() {
-      dispatch('RESTORE', {});
-      isPlayingAnim = false;
-      if (nextAnim.then) nextAnim.then();
-      processQueue(); 
-    }, (nextAnim.duration || 6) * 1000);
+    // Duration '0' means infinite lock (until RESTORE is called)
+    if (nextAnim.duration > 0) {
+      setTimeout(function() {
+        dispatch('RESTORE', {});
+        isPlayingAnim = false;
+        if (nextAnim.then) nextAnim.then();
+        processQueue(); 
+      }, nextAnim.duration * 1000);
+    }
   }
 
   function queueAnimation(type, data, duration, then) {
+    // 🔥 PRIORITY JUMP: Ensure Bowler/Player Change ALWAYS plays before Summary Cards
+    if (type === 'BOWLER_CHANGE' || type === 'PLAYER_CHANGE') {
+      var summaryIdx = animQueue.findIndex(function(a) { return a.type.indexOf('SUMMARY') !== -1; });
+      if (summaryIdx !== -1) {
+        animQueue.splice(summaryIdx, 0, { type: type, data: data, duration: duration, then: then });
+        if (!isPlayingAnim) processQueue();
+        return;
+      }
+    }
+    
     animQueue.push({ type: type, data: data, duration: duration, then: then });
-    processQueue();
+    if (!isPlayingAnim) processQueue();
   }
 
   function onData(raw) {
     try {
       if (!raw) return;
       var flat = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(raw) : raw;
+      
+      // Inject rich summary data so HTML cards render properly
+      if (raw.battingSummary) flat.batsmen = raw.battingSummary;
+      if (raw.bowlingSummary) flat.bowlers = raw.bowlingSummary;
+
       matchData = flat;
       window.postMessage({ type: 'UPDATE_SCORE', data: flat, raw: raw.match || raw, _engineSelf: true }, '*');
       if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(flat.thisOver || []);
@@ -112,8 +130,14 @@
       case 'DECISION_PENDING': 
         if (!cfg.showDecision) return; 
         decisionPending = data.active; 
-        if(decisionPending) { isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); }
-        else { dispatch('RESTORE', {}); isPlayingAnim = false; processQueue(); }
+        if(decisionPending) { 
+          isPlayingAnim = true; 
+          dispatch('DECISION_PENDING', richData, 0); // Lock animation indefinitely
+        } else { 
+          isPlayingAnim = false; 
+          dispatch('RESTORE', {}); 
+          processQueue(); // Unlock and play queued items
+        }
         break;
 
       case 'OVER_COMPLETE':
@@ -141,14 +165,12 @@
       case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
       case 'SHOW_VS_SCREEN':   queueAnimation('VS_SCREEN', richData, cfg.vsDuration); break;
 
-      // Automatically chain Toss -> Inning Start
       case 'SHOW_TOSS':        
         queueAnimation('TOSS', richData, cfg.tossDuration, function() {
           if (cfg.showInningIntro) queueAnimation('INNING_START', richData, cfg.introDuration);
         }); 
         break;
 
-      // Automatically chain Target Card -> Inning Start
       case 'TARGET_CARD':      
         if (!cfg.showTargetCard) return; 
         queueAnimation('TARGET_CARD', richData, cfg.targetCardDuration, function() {
@@ -158,7 +180,6 @@
 
       case 'INNING_START':     queueAnimation('INNING_START', richData, cfg.introDuration); break;
 
-      // Automatically chain Match Win -> Full Match Summary
       case 'MATCH_WIN':        
         if (!cfg.showMatchEnd) return;
         queueAnimation('MATCH_WIN', richData, cfg.matchSummaryDuration, function() {
@@ -167,7 +188,11 @@
         break;
 
       case 'RESTORE':          
-        decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); 
+        // Flush queue and reset everything to normal
+        decisionPending = false; 
+        isPlayingAnim = false; 
+        animQueue = []; 
+        dispatch('RESTORE', {}); 
         break;
 
       default:                 dispatch(t, richData, dur);

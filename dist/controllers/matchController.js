@@ -113,7 +113,7 @@ const selectPlayers = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
-            // Ensure Bowler Change fires first, then Player Change
+            // Emitting directly so engine.js catches it for the Priority Queue
             if (req.body.bowler && req.body.bowler !== prevBowler) {
                 io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' } });
             }
@@ -135,10 +135,30 @@ const addBall = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         const result = await match.addBall(req.body);
         await match.populate(teamPopulateOptions);
-        // BRAIN: Compute Active Trigger for OBS auto-animations
+        const currentInningsData = match.innings?.[match.currentInnings - 1];
+        const allBatsmen = currentInningsData?.batsmen || [];
+        const allBowlers = currentInningsData?.bowlers || [];
+        const battingSummary = allBatsmen.map((b) => ({
+            name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0, fours: b.fours ?? 0, sixes: b.sixes ?? 0, strikeRate: b.strikeRate ?? 0, isOut: b.isOut ?? false, outType: b.outType ?? ''
+        }));
+        const bowlingSummary = allBowlers.map((b) => ({
+            name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
+        }));
         let activeTrigger = null;
+        // Ensure Wicket carries ALL outgoing stats so player cards populate correctly
         if (result.isWicket || req.body.wicket) {
-            activeTrigger = { type: 'WICKET', data: { playerName: result.outBatsmanName || req.body.outBatsmanName, outType: result.outType || req.body.outType } };
+            const outBatsman = allBatsmen.find((b) => b.name === (result.outBatsmanName || req.body.outBatsmanName));
+            activeTrigger = {
+                type: 'WICKET',
+                data: {
+                    playerName: result.outBatsmanName || req.body.outBatsmanName,
+                    outType: result.outType || req.body.outType,
+                    runs: outBatsman?.runs || result.strikerMatchRuns || 0,
+                    balls: outBatsman?.balls || result.strikerMatchBalls || 0,
+                    fours: outBatsman?.fours || 0,
+                    sixes: outBatsman?.sixes || 0
+                }
+            };
         }
         else if (result.isSix) {
             activeTrigger = { type: 'SIX', data: { playerName: match.strikerName } };
@@ -155,11 +175,13 @@ const addBall = async (req, res, next) => {
                 match: match.toObject(),
                 result,
                 overSummary: match.getOverSummary(),
-                activeTrigger // Sent directly to OBS
+                activeTrigger, // Sent directly to OBS
+                battingSummary, // Provided for over-end cards
+                bowlingSummary
             });
             if (result.inningsEnded && !result.matchEnded) {
                 io.to(`match:${match._id}`).emit('inningsEnded', { match: match.toObject(), result });
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} }); // Automatically chains to INNING_START in engine.js
+                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} });
             }
             if (result.matchEnded) {
                 io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
