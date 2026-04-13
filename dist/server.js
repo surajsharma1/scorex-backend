@@ -61,6 +61,7 @@ const payments_1 = __importDefault(require("./routes/payments"));
 const users_1 = __importDefault(require("./routes/users"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const stats_1 = __importDefault(require("./routes/stats"));
+const scheduler_1 = require("./utils/scheduler");
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = [
@@ -86,14 +87,12 @@ app.use((0, cors_1.default)({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Set-Cookie']
 }));
-/* Static overlays moved after API routes to allow /api/v1/overlays/public/:id */
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use('/uploads', express_1.default.static('public/uploads'));
-// ✅ DB readiness guard — returns 503 during cold start instead of crashing
+// ✅ DB readiness guard
 app.use('/api/v1', (req, res, next) => {
     if (mongoose_1.default.connection.readyState !== 1) {
-        // readyState 1 = connected; 0 = disconnected, 2 = connecting, 3 = disconnecting
         return res.status(503).json({
             message: 'Service temporarily unavailable, DB connecting. Retry in a moment.',
             retryAfter: 5
@@ -109,9 +108,7 @@ if (process.env.RENDER || !process.env.MONGODB_URI) {
 }
 else {
     try {
-        sessionStore = connect_mongo_1.default.create({
-            mongoUrl: process.env.MONGODB_URI
-        });
+        sessionStore = connect_mongo_1.default.create({ mongoUrl: process.env.MONGODB_URI });
         console.log('🗄️ Using MongoStore');
     }
     catch (e) {
@@ -131,14 +128,13 @@ app.use((0, express_session_1.default)({
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
-console.log('Passport session middleware initialized');
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
-// ─── Socket.IO ────────────────────────────────────────────────────────────────
+// ─── Socket.IO (FIXED FOR OBS CORS) ───────────────────────────────────────────
 const io = new socket_io_1.Server(httpServer, {
     cors: {
-        origin: allowedOrigins,
-        methods: ['GET', 'POST'],
+        origin: true, // 🔥 THIS FIXES THE OBS BUG: Allows dynamic origins like OBS Browser Source to connect safely
+        methods: ['GET', 'POST', 'OPTIONS'],
         credentials: true
     }
 });
@@ -146,7 +142,6 @@ app.set('io', io);
 io.on('connection', (socket) => {
     socket.on('joinMatch', async (matchId) => {
         socket.join(`match:${matchId}`);
-        // Send current match state immediately on join so overlay refresh restores all data
         try {
             const MatchModel = mongoose_1.default.models.Match;
             const match = await MatchModel.findById(matchId)
@@ -171,23 +166,14 @@ io.on('connection', (socket) => {
             console.error(`Failed to send initial match ${matchId}:`, err);
         }
     });
-    socket.on('leaveMatch', (matchId) => {
-        socket.leave(`match:${matchId}`);
-    });
-    socket.on('joinTournament', (tournamentId) => {
-        socket.join(`tournament:${tournamentId}`);
-    });
-    socket.on('leaveTournament', (tournamentId) => {
-        socket.leave(`tournament:${tournamentId}`);
-    });
-    // ── updateScore: scorer → server → all overlay/viewer clients on that match ──
+    socket.on('leaveMatch', (matchId) => { socket.leave(`match:${matchId}`); });
+    socket.on('joinTournament', (tournamentId) => { socket.join(`tournament:${tournamentId}`); });
+    socket.on('leaveTournament', (tournamentId) => { socket.leave(`tournament:${tournamentId}`); });
     socket.on('updateScore', (payload) => {
         if (!payload?.matchId)
             return;
-        // Relay to all clients watching this match (overlays, live viewers, etc.)
         io.to(`match:${payload.matchId}`).emit('scoreUpdate', { match: payload.match });
     });
-    // ── updateMatchState: decision pending etc. ────────────────────────────────
     socket.on('updateMatchState', (payload) => {
         if (!payload?.match?._id)
             return;
@@ -196,16 +182,10 @@ io.on('connection', (socket) => {
     socket.on('manualOverlayTrigger', (payload) => {
         if (!payload?.matchId)
             return;
-        // Emit on scoreUpdate (for engine's activeTrigger path)
-        io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
-            activeTrigger: payload.trigger,
-        });
-        // Also emit directly on overlayTrigger channel for direct listeners
+        io.to(`match:${payload.matchId}`).emit('scoreUpdate', { activeTrigger: payload.trigger });
         io.to(`match:${payload.matchId}`).emit('overlayTrigger', payload.trigger);
     });
-    socket.on('disconnect', () => {
-        // silent disconnect
-    });
+    socket.on('disconnect', () => { });
 });
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
 let hasGoogleStrategy = false;
@@ -262,7 +242,7 @@ app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
 app.use('/api/v1/stats', stats_1.default);
-// Serve static overlays with CORS (MOVED: after API routes so /api/v1/overlays/public/:id works)
+// Serve static overlays
 app.use('/overlays', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET');
@@ -270,38 +250,21 @@ app.use('/overlays', (req, res, next) => {
 }, express_1.default.static('public/overlays'));
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
-// Simplified Google OAuth health check - always OK if strategy loaded (for CORS)
-app.get('/api/health/google', async (_req, res) => {
-    res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
-});
-// Simplified alias for wrong path /api/v1/api/health/google
-app.get('/api/v1/api/health/google', async (_req, res) => {
-    res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
+app.get('/api/health/google', async (_req, res) => { res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() }); });
+app.get('/api/v1/api/health/google', async (_req, res) => { res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() }); });
+app.get('/api/health/db', (req, res) => {
+    const dbStatus = (0, database_1.getDbStatus)();
+    res.json({ status: dbStatus.status, readyState: mongoose_1.default.connection.readyState, modelsCount: Object.keys(mongoose_1.default.models).length });
 });
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
     console.error('Error:', err.message);
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || 'Internal server error'
-    });
+    res.status(err.status || 500).json({ success: false, message: err.message || 'Internal server error' });
 });
-// ─── Start Server ──────────────────────────────────────────────────────────────
-const PORT = Number(process.env.PORT) || 5000;
-// Enhanced health check
-app.get('/api/health/db', (req, res) => {
-    const dbStatus = (0, database_1.getDbStatus)();
-    res.json({
-        status: dbStatus.status,
-        readyState: mongoose_1.default.connection.readyState,
-        modelsCount: Object.keys(mongoose_1.default.models).length
-    });
-});
-const scheduler_1 = require("./utils/scheduler");
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 // ─── Graceful Startup ──────────────────────────────────────────────────────────
 const startup = async () => {
     const dbResult = await (0, database_1.default)();
-    // connectDB returns { success: false } on failure, or the mongoose instance on success
     const dbFailed = typeof dbResult === 'object' && 'success' in dbResult && !dbResult.success;
     if (!dbFailed) {
         console.log('✅ Full startup complete - DB ready');
@@ -310,15 +273,9 @@ const startup = async () => {
     else {
         console.warn('⚠️ Server starting WITHOUT DB - API will return 503 until DB reconnects');
     }
-    // Always start the HTTP server so Render health checks pass
     httpServer.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`📊 Health: http://localhost:${PORT}/api/health`);
-        console.log(`📊 DB Health: http://localhost:${PORT}/api/health/db`);
     });
 };
-startup().catch(err => {
-    // Log but don't exit — keeps Render from triggering 521
-    console.error('💥 Fatal startup error (server still listening):', err);
-});
+startup().catch(err => { console.error('💥 Fatal startup error (server still listening):', err); });
 exports.default = app;

@@ -12,6 +12,7 @@
  * 8. Progress param parsing fixed (was broken regex with escaped backslash)
  * 9. Preview data dispatched after window load to ensure overlay is ready
  * 10. Search paths hardened for Render deployment
+ * 11. 🔥 GLOBAL OVERLAY AUTO-MATCH FIX: Automatically connects OBS overlays to live matches!
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -72,7 +73,6 @@ const membershipExpiredHtml = (frontendUrl, title, body) => `
   <a href="${frontendUrl}/membership">Renew Membership</a>
   </div></body></html>
 `;
-// ─── regenerateOverlayUrl ──────────────────────────────────────────────────────
 const regenerateOverlayUrl = async (req, res) => {
     try {
         const newPublicId = (0, uuid_1.v4)();
@@ -90,7 +90,6 @@ const regenerateOverlayUrl = async (req, res) => {
     }
 };
 exports.regenerateOverlayUrl = regenerateOverlayUrl;
-// ─── createOverlay ─────────────────────────────────────────────────────────────
 const createOverlay = async (req, res) => {
     try {
         if (!req.user?.id) {
@@ -115,11 +114,9 @@ const createOverlay = async (req, res) => {
             res.status(400).json({ message: 'Template is required' });
             return;
         }
-        // ✅ FIX 1: Derive template level from name if client didn't send it
         const templateStr = template.trim();
         const templateLevel = templateStr.startsWith('lvl2') ? 2 : 1;
         const membershipLevel = requiredMembershipLevel ?? templateLevel;
-        // ✅ FIX 2: Block level 1 users from creating level 2 overlays
         if (templateLevel > membership.level && !membership.isAdmin) {
             res.status(403).json({
                 message: `This template requires Enterprise membership (Level 2). You are on Level ${membership.level}.`,
@@ -129,7 +126,7 @@ const createOverlay = async (req, res) => {
             });
             return;
         }
-        const placeholderHtml = `<!-- ScoreX Overlay: ${name} | Template: ${templateStr} -->\n<div class="scorex-overlay" data-template="${templateStr}"></div>`;
+        const placeholderHtml = `\n<div class="scorex-overlay" data-template="${templateStr}"></div>`;
         const overlayData = {
             name: name.trim(),
             template: templateStr,
@@ -139,7 +136,7 @@ const createOverlay = async (req, res) => {
             publicId: (0, uuid_1.v4)(),
             createdBy: req.user.id,
             requiredMembershipLevel: membershipLevel,
-            membershipAtCreation: membership.level, // ✅ FIX 3: was hardcoded 0
+            membershipAtCreation: membership.level,
             urlExpiresAt: new Date(Date.now() + URL_EXPIRY_MS),
             level: templateLevel,
             category: 'broadcast',
@@ -152,7 +149,6 @@ const createOverlay = async (req, res) => {
             overlayData.match = new mongoose_1.default.Types.ObjectId(match);
         }
         const overlay = await Overlay_1.default.create(overlayData);
-        // ✅ FIX 4: Update match AFTER overlay is created so overlay._id exists
         if (match && mongoose_1.default.Types.ObjectId.isValid(match)) {
             try {
                 await Match_1.default.findByIdAndUpdate(match, { overlayId: overlay._id });
@@ -168,14 +164,12 @@ const createOverlay = async (req, res) => {
     }
 };
 exports.createOverlay = createOverlay;
-// ─── getOverlays ───────────────────────────────────────────────────────────────
 const getOverlays = async (req, res) => {
     try {
         if (!req.user?.id) {
             res.json([]);
             return;
         }
-        // ✅ FIX 5: Only delete CURRENT USER's expired overlays, and only where field is set
         await Overlay_1.default.deleteMany({
             createdBy: req.user.id,
             urlExpiresAt: { $lt: new Date(), $ne: null }
@@ -185,7 +179,6 @@ const getOverlays = async (req, res) => {
             query.tournament = new mongoose_1.default.Types.ObjectId(req.query.tournamentId);
         }
         const overlays = await Overlay_1.default.find(query)
-            // ✅ FIX 6: strictPopulate false so dangling refs don't crash
             .populate({ path: 'match', select: 'name team1Name team2Name status', options: { strictPopulate: false } })
             .populate({ path: 'tournament', select: 'name', options: { strictPopulate: false } })
             .sort({ createdAt: -1 })
@@ -202,7 +195,6 @@ const getOverlays = async (req, res) => {
     }
 };
 exports.getOverlays = getOverlays;
-// ─── getOverlay ────────────────────────────────────────────────────────────────
 const getOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOne({ _id: req.params.id, createdBy: req.user?.id });
@@ -218,7 +210,6 @@ const getOverlay = async (req, res) => {
     }
 };
 exports.getOverlay = getOverlay;
-// ─── updateOverlay ─────────────────────────────────────────────────────────────
 const updateOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOneAndUpdate({ _id: req.params.id, createdBy: req.user?.id }, req.body, { new: true, runValidators: true });
@@ -233,7 +224,6 @@ const updateOverlay = async (req, res) => {
     }
 };
 exports.updateOverlay = updateOverlay;
-// ─── deleteOverlay ─────────────────────────────────────────────────────────────
 const deleteOverlay = async (req, res) => {
     try {
         const overlay = await Overlay_1.default.findOneAndDelete({ _id: req.params.id, createdBy: req.user?.id });
@@ -248,14 +238,12 @@ const deleteOverlay = async (req, res) => {
     }
 };
 exports.deleteOverlay = deleteOverlay;
-// ─── getOverlayTemplates ───────────────────────────────────────────────────────
 const getOverlayTemplates = async (req, res) => {
     try {
         let membership = { level: 0, isAdmin: false };
         if (req.user?.id) {
             membership = await checkUserMembership(new mongoose_1.default.Types.ObjectId(req.user.id));
         }
-        // Search for templates.json alongside resolveTemplatePath logic
         const templateJsonPaths = [
             path_1.default.join(process.cwd(), 'public/templates.json'),
             path_1.default.join(process.cwd(), '../public/templates.json'),
@@ -280,7 +268,6 @@ const getOverlayTemplates = async (req, res) => {
                     url: `/overlays/${t.file}`,
                     level: t.id.startsWith('lvl2') ? 2 : 1,
                 }))
-                    // ✅ Only return templates the user's membership level can access
                     .filter(t => membership.isAdmin || t.level <= membership.level);
             }
             catch (err) {
@@ -298,7 +285,6 @@ const getOverlayTemplates = async (req, res) => {
     }
 };
 exports.getOverlayTemplates = getOverlayTemplates;
-// ─── getMembershipStatus ───────────────────────────────────────────────────────
 const getMembershipStatus = async (req, res) => {
     try {
         if (!req.user?.id) {
@@ -313,7 +299,6 @@ const getMembershipStatus = async (req, res) => {
     }
 };
 exports.getMembershipStatus = getMembershipStatus;
-// ─── serveOverlay ──────────────────────────────────────────────────────────────
 const serveOverlay = async (req, res) => {
     try {
         const isDemo = req.query.demo === 'true';
@@ -327,9 +312,6 @@ const serveOverlay = async (req, res) => {
                 res.status(404).send('Overlay not found');
                 return;
             }
-            // ✅ FIX 7: Check CREATOR's membership, not the anonymous iframe viewer
-            // Iframes never send Authorization headers, so checking req.headers.authorization
-            // on an iframe src always gives hasMembership=false → causes wrongful 403 every time.
             if (overlay.membershipAtCreation > 0) {
                 const creatorId = overlay.createdBy?._id || overlay.createdBy;
                 if (creatorId) {
@@ -339,7 +321,6 @@ const serveOverlay = async (req, res) => {
                         res.status(403).send(membershipExpiredHtml(frontendUrl, '🔒 Membership Expired', "The creator's membership has expired. This overlay is currently inactive."));
                         return;
                     }
-                    // ✅ FIX 8: Also enforce template level matches creator's current level
                     const templateStr = req.query.template || overlay.template || '';
                     const templateLevel = templateStr.startsWith('lvl2') ? 2 : 1;
                     if (templateLevel > creatorMembership.level && !creatorMembership.isAdmin) {
@@ -359,7 +340,6 @@ const serveOverlay = async (req, res) => {
         }
         const isPreviewMode = req.query.preview === 'true' || isDemo;
         if (isPreviewMode) {
-            // ✅ FIX 9: Parse progress correctly (was broken regex with escaped backslash)
             const progressStr = req.query.progress || '69';
             const progress = Math.max(0, Math.min(100, parseInt(progressStr) || 69));
             const demoData = {
@@ -386,7 +366,6 @@ const serveOverlay = async (req, res) => {
                 status: 'live',
             };
             let html = fs_1.default.readFileSync(templatePath, 'utf8');
-            // ✅ FIX 10: Dispatch AFTER window load so the overlay's listeners are ready
             html = html.replace('</head>', `
         <script src="/overlays/overlay-utils.js"></script>
         <script>
@@ -417,17 +396,29 @@ const serveOverlay = async (req, res) => {
             overlay?.match?._id?.toString() || null;
         let tournamentId = req.query.tournamentId ||
             overlay?.tournament?._id?.toString() || null;
-        // Auto-find a live match for the tournament if no matchId given
-        if (!matchId && tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
-            console.log('[serveOverlay] Auto-finding live match for tournament:', tournamentId);
-            const liveMatch = await Match_1.default.findOne({
-                tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
-                status: { $in: ['live', 'ongoing'] },
-                date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-            }).sort({ date: 1 }).select('_id').lean();
-            if (liveMatch) {
-                matchId = liveMatch._id.toString();
-                console.log('[serveOverlay] Auto-selected live match:', matchId);
+        // 🔥 FIX 11: Auto-find a live match for the tournament OR the user if no matchId given
+        if (!matchId) {
+            if (tournamentId && mongoose_1.default.Types.ObjectId.isValid(tournamentId)) {
+                console.log('[serveOverlay] Auto-finding live match for tournament:', tournamentId);
+                const liveMatch = await Match_1.default.findOne({
+                    tournamentId: new mongoose_1.default.Types.ObjectId(tournamentId),
+                    status: { $in: ['live', 'ongoing'] },
+                    date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                }).sort({ date: 1 }).select('_id').lean();
+                if (liveMatch)
+                    matchId = liveMatch._id.toString();
+            }
+            else if (overlay?.createdBy) {
+                console.log('[serveOverlay] Auto-finding global live match for creator:', overlay.createdBy);
+                const globalLiveMatch = await Match_1.default.findOne({
+                    scorerId: overlay.createdBy,
+                    status: { $in: ['live', 'ongoing'] },
+                    date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                }).sort({ updatedAt: -1 }).select('_id').lean();
+                if (globalLiveMatch) {
+                    matchId = globalLiveMatch._id.toString();
+                    console.log('[serveOverlay] Auto-selected Global live match:', matchId);
+                }
             }
         }
         const apiBaseUrl = getBaseUrl();
@@ -452,7 +443,6 @@ const serveOverlay = async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        // 🔥 ADD THIS LINE: Completely bypass CSP for OBS and Overlays
         res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';");
         res.send(html);
     }

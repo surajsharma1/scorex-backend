@@ -19,13 +19,12 @@ import tournamentRoutes from './routes/tournaments';
 import matchRoutes from './routes/matches';
 import teamRoutes from './routes/teams';
 import overlayRoutes from './routes/overlays';
-
-
 import messageRoutes from './routes/messages';
 import paymentRoutes from './routes/payments';
 import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
 import statsRoutes from './routes/stats';
+import { startScheduler } from './utils/scheduler';
 
 const app = express();
 const httpServer = createServer(app);
@@ -54,17 +53,13 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-/* Static overlays moved after API routes to allow /api/v1/overlays/public/:id */
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-
 app.use('/uploads', express.static('public/uploads'));
 
-// ✅ DB readiness guard — returns 503 during cold start instead of crashing
+// ✅ DB readiness guard
 app.use('/api/v1', (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
-    // readyState 1 = connected; 0 = disconnected, 2 = connecting, 3 = disconnecting
     return res.status(503).json({ 
       message: 'Service temporarily unavailable, DB connecting. Retry in a moment.',
       retryAfter: 5
@@ -80,9 +75,7 @@ if (process.env.RENDER || !process.env.MONGODB_URI) {
   sessionStore = new MemoryStore();
 } else {
   try {
-    sessionStore = MongoStore.create({ 
-      mongoUrl: process.env.MONGODB_URI!
-    });
+    sessionStore = MongoStore.create({ mongoUrl: process.env.MONGODB_URI! });
     console.log('🗄️ Using MongoStore');
   } catch (e) {
     console.warn('❌ MongoStore failed → MemoryStore:', e);
@@ -103,16 +96,14 @@ app.use(session({
   }
 })); 
 
-console.log('Passport session middleware initialized');
-
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ─── Socket.IO ────────────────────────────────────────────────────────────────
+// ─── Socket.IO (FIXED FOR OBS CORS) ───────────────────────────────────────────
 const io = new SocketIO(httpServer, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    origin: true, // 🔥 THIS FIXES THE OBS BUG: Allows dynamic origins like OBS Browser Source to connect safely
+    methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true
   }
 });
@@ -122,7 +113,6 @@ app.set('io', io);
 io.on('connection', (socket) => {
   socket.on('joinMatch', async (matchId: string) => {
     socket.join(`match:${matchId}`);
-    // Send current match state immediately on join so overlay refresh restores all data
     try {
       const MatchModel = (mongoose.models.Match as any);
       const match = await MatchModel.findById(matchId)
@@ -132,11 +122,11 @@ io.on('connection', (socket) => {
         .lean();
       if (match) {
         const currentInn = match.innings?.[match.currentInnings - 1];
-        const battingSummary = (currentInn?.batsmen || []).map((b) => ({
+        const battingSummary = (currentInn?.batsmen || []).map((b: any) => ({
           name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0,
           fours: b.fours ?? 0, sixes: b.sixes ?? 0, isOut: b.isOut ?? false,
         }));
-        const bowlingSummary = (currentInn?.bowlers || []).map((b) => ({
+        const bowlingSummary = (currentInn?.bowlers || []).map((b: any) => ({
           name: b.name, overs: b.balls ? `${Math.floor(b.balls/6)}.${b.balls%6}` : '0.0',
           runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0,
         }));
@@ -147,26 +137,15 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leaveMatch', (matchId: string) => {
-    socket.leave(`match:${matchId}`);
-  });
+  socket.on('leaveMatch', (matchId: string) => { socket.leave(`match:${matchId}`); });
+  socket.on('joinTournament', (tournamentId: string) => { socket.join(`tournament:${tournamentId}`); });
+  socket.on('leaveTournament', (tournamentId: string) => { socket.leave(`tournament:${tournamentId}`); });
 
-  socket.on('joinTournament', (tournamentId: string) => {
-    socket.join(`tournament:${tournamentId}`);
-  });
-
-  socket.on('leaveTournament', (tournamentId: string) => {
-    socket.leave(`tournament:${tournamentId}`);
-  });
-
-  // ── updateScore: scorer → server → all overlay/viewer clients on that match ──
   socket.on('updateScore', (payload: { matchId: string; match: any }) => {
     if (!payload?.matchId) return;
-    // Relay to all clients watching this match (overlays, live viewers, etc.)
     io.to(`match:${payload.matchId}`).emit('scoreUpdate', { match: payload.match });
   });
 
-  // ── updateMatchState: decision pending etc. ────────────────────────────────
   socket.on('updateMatchState', (payload: any) => {
     if (!payload?.match?._id) return;
     io.to(`match:${payload.match._id}`).emit('scoreUpdate', payload);
@@ -174,19 +153,12 @@ io.on('connection', (socket) => {
 
   socket.on('manualOverlayTrigger', (payload: { matchId: string; trigger: any }) => {
     if (!payload?.matchId) return;
-    // Emit on scoreUpdate (for engine's activeTrigger path)
-    io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
-      activeTrigger: payload.trigger,
-    });
-    // Also emit directly on overlayTrigger channel for direct listeners
+    io.to(`match:${payload.matchId}`).emit('scoreUpdate', { activeTrigger: payload.trigger });
     io.to(`match:${payload.matchId}`).emit('overlayTrigger', payload.trigger);
   });
 
-  socket.on('disconnect', () => {
-    // silent disconnect
-  });
+  socket.on('disconnect', () => {});
 });
-
 
 // ─── Passport Google OAuth ────────────────────────────────────────────────────
 let hasGoogleStrategy = false;
@@ -219,7 +191,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       done(err, null);
     }
   }));
-
   hasGoogleStrategy = true;
 }
 
@@ -235,14 +206,13 @@ app.use('/api/v1/matches', matchRoutes);
 app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/overlays', overlayRoutes);
 
-
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/stats', statsRoutes);
 
-// Serve static overlays with CORS (MOVED: after API routes so /api/v1/overlays/public/:id works)
+// Serve static overlays
 app.use('/overlays', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
@@ -251,45 +221,23 @@ app.use('/overlays', (req, res, next) => {
 
 // Health checks
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date() }));
-
-// Simplified Google OAuth health check - always OK if strategy loaded (for CORS)
-app.get('/api/health/google', async (_req, res) => {
-  res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
-});
-
-// Simplified alias for wrong path /api/v1/api/health/google
-app.get('/api/v1/api/health/google', async (_req, res) => {
-  res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() });
+app.get('/api/health/google', async (_req, res) => { res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() }); });
+app.get('/api/v1/api/health/google', async (_req, res) => { res.json({ status: hasGoogleStrategy ? 'ok' : 'error', message: hasGoogleStrategy ? 'Google OAuth ready' : 'Missing env vars', ts: new Date() }); });
+app.get('/api/health/db', (req, res) => {
+  const dbStatus = getDbStatus();
+  res.json({ status: dbStatus.status, readyState: mongoose.connection.readyState, modelsCount: Object.keys(mongoose.models).length });
 });
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Error:', err.message);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error'
-  });
-});
+  res.status(err.status || 500).json({ success: false, message: err.message || 'Internal server error' });
+})
 
-// ─── Start Server ──────────────────────────────────────────────────────────────
-const PORT = Number(process.env.PORT) || 5000;
-
-// Enhanced health check
-app.get('/api/health/db', (req, res) => {
-  const dbStatus = getDbStatus();
-  res.json({ 
-    status: dbStatus.status,
-    readyState: mongoose.connection.readyState,
-    modelsCount: Object.keys(mongoose.models).length 
-  });
-});
-
-import { startScheduler } from './utils/scheduler';
-
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 // ─── Graceful Startup ──────────────────────────────────────────────────────────
 const startup = async () => {
   const dbResult = await connectDB();
-  // connectDB returns { success: false } on failure, or the mongoose instance on success
   const dbFailed = typeof dbResult === 'object' && 'success' in dbResult && !dbResult.success;
   if (!dbFailed) {
     console.log('✅ Full startup complete - DB ready');
@@ -298,17 +246,11 @@ const startup = async () => {
     console.warn('⚠️ Server starting WITHOUT DB - API will return 503 until DB reconnects');
   }
 
-  // Always start the HTTP server so Render health checks pass
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Health: http://localhost:${PORT}/api/health`);
-    console.log(`📊 DB Health: http://localhost:${PORT}/api/health/db`);
   });
 };
 
-startup().catch(err => {
-  // Log but don't exit — keeps Render from triggering 521
-  console.error('💥 Fatal startup error (server still listening):', err);
-});
+startup().catch(err => { console.error('💥 Fatal startup error (server still listening):', err); });
 
 export default app;
