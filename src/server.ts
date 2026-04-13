@@ -102,8 +102,9 @@ app.use(passport.session());
 // ─── Socket.IO (FIXED FOR OBS CORS) ───────────────────────────────────────────
 const io = new SocketIO(httpServer, {
   cors: {
-    origin: true, // 🔥 THIS FIXES THE OBS BUG: Allows dynamic origins like OBS Browser Source to connect safely
-    methods: ['GET', 'POST', 'OPTIONS'],
+    // 🔥 THIS FIXES OBS: Dynamically allows any origin to connect to the socket
+    origin: (origin, callback) => callback(null, true), 
+    methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
     credentials: true
   }
 });
