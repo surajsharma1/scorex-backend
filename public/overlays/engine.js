@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v13 — SQUAD DATA & ALL OUT FIX
+ * ScoreX Overlay Engine v14 — UNCONDITIONAL MANUAL OVERRIDES
  */
 (function () {
   'use strict';
@@ -67,12 +67,15 @@
     
     dispatch(nextAnim.type, nextAnim.data, dur);
     
-    setTimeout(function() {
-      dispatch('RESTORE', {});
-      isPlayingAnim = false;
-      if (nextAnim.then) nextAnim.then();
-      processQueue(); 
-    }, dur * 1000);
+    // Duration 0 means lock indefinitely (e.g. Decision Pending)
+    if (nextAnim.duration !== 0) {
+      setTimeout(function() {
+        dispatch('RESTORE', {});
+        isPlayingAnim = false;
+        if (nextAnim.then) nextAnim.then();
+        processQueue(); 
+      }, dur * 1000);
+    }
   }
 
   function queueAnimation(type, data, duration, then) {
@@ -90,17 +93,13 @@
   }
 
   function _doTossSequence(flat, matchObj) {
-    // FIX: Extracts the actual populated player arrays securely so names aren't undefined
     var t1p = (matchObj.team1 && matchObj.team1.players) ? matchObj.team1.players : (flat.team1Players || []);
     var t2p = (matchObj.team2 && matchObj.team2.players) ? matchObj.team2.players : (flat.team2Players || []);
     var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
     var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
 
     state = 'TOSS';
-    dispatch('SHOW_TOSS', {
-      text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + " WON TOSS",
-      team1Players: t1p, team2Players: t2p
-    });
+    dispatch('SHOW_TOSS', { text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + " WON TOSS", team1Players: t1p, team2Players: t2p });
     
     setTimeout(function() {
       if (cfg.showSquads) {
@@ -162,18 +161,19 @@
     var data = trigger.data  || trigger.payload || {};
     var dur  = trigger.duration || 6;
     var richData = Object.assign({}, flat, data); 
+    var isManual = richData.isManual === true; // CRITICAL: Bypasses config if true
 
     switch (t) {
-      case 'FOUR':             if (!cfg.showFour) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
-      case 'SIX':              if (!cfg.showSix) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
-      case 'WICKET':           if (!cfg.showWicket) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
-      case 'WICKET_SWITCH':    if (!cfg.showWicket) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
-      case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
-      case 'NEW_BOWLER':       if (!cfg.showBowlerChange) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
+      case 'FOUR':             if (!cfg.showFour && !isManual) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
+      case 'SIX':              if (!cfg.showSix && !isManual) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
+      case 'WICKET':           if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
+      case 'WICKET_SWITCH':    if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
+      case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange && !isManual) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
+      case 'NEW_BOWLER':       if (!cfg.showBowlerChange && !isManual) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
       
-      case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, cfg.summaryDuration); break;
-      case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration); break;
-      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration); break; 
+      case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, dur); break;
+      case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, dur); break;
+      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, dur); break; 
 
       case 'OVER_COMPLETE':
         var over = data.overNumber || 0;
@@ -186,10 +186,10 @@
         break;
 
       case 'DECISION_PENDING': 
-        if (!cfg.showDecision) return; 
+        if (!cfg.showDecision && !isManual) return; 
         decisionPending = data.active; 
         if(decisionPending) { 
-          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); 
+          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); // Indefinite lock
         } else { 
           isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); 
         }
@@ -198,20 +198,20 @@
       case 'BATSMAN_PROFILE':  queueAnimation('BATSMAN_PROFILE', richData, dur); break;
       case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
       
-      case 'VS_SCREEN':        queueAnimation('VS_SCREEN', richData, cfg.vsDuration); break;
-      case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, cfg.tossDuration); break;
-      case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, cfg.squadDuration); break;
+      case 'VS_SCREEN':        queueAnimation('VS_SCREEN', richData, dur); break;
+      case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, dur); break;
+      case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, dur); break;
 
       case 'INNINGS_BREAK':      
-        if (!cfg.showTargetCard) return; 
+        if (!cfg.showTargetCard && !isManual) return; 
         queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
           if (cfg.showInningIntro) queueAnimation('START_INNINGS_INTRO', richData, cfg.introDuration);
         }); break;
 
-      case 'START_INNINGS_INTRO': queueAnimation('START_INNINGS_INTRO', richData, cfg.introDuration); break;
+      case 'START_INNINGS_INTRO': queueAnimation('START_INNINGS_INTRO', richData, dur); break;
 
       case 'MATCH_END':        
-        if (!cfg.showMatchEnd) return;
+        if (!cfg.showMatchEnd && !isManual) return;
         queueAnimation('MATCH_END', richData, cfg.matchSummaryDuration); break;
 
       case 'RESTORE':          

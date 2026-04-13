@@ -123,6 +123,7 @@ const selectPlayers = async (req, res, next) => {
                 const inName = req.body.striker !== prevStriker ? req.body.striker : req.body.nonStriker;
                 const outBatsman = allBatsmen.find((b) => b.name === outName);
                 if (outBatsman?.isOut) {
+                    // CRITICAL: Perfectly formats the out card for Wickets ONLY AFTER the player is selected
                     io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: { outName: outName, howOut: outBatsman.outType || "OUT", outRuns: outBatsman.runs || 0, outBalls: outBatsman.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: false } });
                 }
                 else if (outName) {
@@ -146,10 +147,9 @@ const addBall = async (req, res, next) => {
         await match.populate(teamPopulateOptions);
         let inningsEnded = result.inningsEnded;
         let matchEnded = result.matchEnded;
-        // 🔥 AUTOMATIC "ALL OUT" CHECK
+        // Automatic "All Out" check
         const currentInningsData = match.innings?.[match.currentInnings - 1];
         const battingTeam = match.currentInnings === 1 ? match.team1 : match.team2;
-        // Team size defaults to 11 if not populated. 10 wickets = All Out.
         const maxWickets = (battingTeam?.players?.length > 1 ? battingTeam.players.length : 11) - 1;
         if (!inningsEnded && currentInningsData && currentInningsData.wickets >= maxWickets) {
             await match.endInnings();
@@ -182,8 +182,9 @@ const addBall = async (req, res, next) => {
             name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', maidens: 0, runs: b.runs ?? 0, wkts: b.wickets ?? 0, econ: b.economy ?? 0
         }));
         let activeTrigger = null;
+        // CRITICAL: We DO NOT trigger the wicket animation here anymore. 
+        // It waits for selectPlayers (unless the innings/match is instantly over).
         if (result.isWicket || req.body.wicket) {
-            activeTrigger = { type: 'WICKET', data: {} };
             if (inningsEnded || matchEnded) {
                 const outName = result.outBatsmanName || req.body.outBatsmanName;
                 const outBatsman = allBatsmen.find((b) => b.name === outName);
