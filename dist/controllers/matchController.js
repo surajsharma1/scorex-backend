@@ -113,12 +113,12 @@ const selectPlayers = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
-            // Emitted directly so the priority queue picks them up
+            // Emit exact names required by HTML
             if (req.body.bowler && req.body.bowler !== prevBowler) {
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', duration: 8, data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' } });
+                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'NEW_BOWLER', duration: 8, data: { bowler: req.body.bowler, overs: "0.0", maidens: 0, runs: 0, wickets: 0 } });
             }
             if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'PLAYER_CHANGE', duration: 8, data: { newBatsmanName: req.body.striker || req.body.nonStriker } });
+                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: { inName: req.body.striker || req.body.nonStriker, isSub: false, outName: prevStriker, howOut: "Replaced", outRuns: 0, outBalls: 0 } });
             }
         }
         res.json({ success: true, message: 'Players selected' });
@@ -139,25 +139,24 @@ const addBall = async (req, res, next) => {
         const allBatsmen = currentInningsData?.batsmen || [];
         const allBowlers = currentInningsData?.bowlers || [];
         const battingSummary = allBatsmen.map((b) => ({
-            name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0, fours: b.fours ?? 0, sixes: b.sixes ?? 0, strikeRate: b.strikeRate ?? 0, isOut: b.isOut ?? false, outType: b.outType ?? ''
+            name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0, fours: b.fours ?? 0, sixes: b.sixes ?? 0, sr: b.strikeRate ?? 0, outStatus: b.isOut ? 'out' : 'not_out'
         }));
         const bowlingSummary = allBowlers.map((b) => ({
-            name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
+            name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', maidens: 0, runs: b.runs ?? 0, wkts: b.wickets ?? 0, econ: b.economy ?? 0
         }));
         let activeTrigger = null;
-        // CRITICAL: Packages outgoing stats so the out-card displays their final run tally correctly
+        // WICKET_SWITCH mapping
         if (result.isWicket || req.body.wicket) {
             const outName = result.outBatsmanName || req.body.outBatsmanName;
             const outBatsman = allBatsmen.find((b) => b.name === outName);
             activeTrigger = {
-                type: 'WICKET',
+                type: 'WICKET_SWITCH',
                 data: {
-                    playerName: outName,
-                    outType: result.outType || req.body.outType,
-                    runs: outBatsman?.runs || result.strikerMatchRuns || 0,
-                    balls: outBatsman?.balls || result.strikerMatchBalls || 0,
-                    fours: outBatsman?.fours || 0,
-                    sixes: outBatsman?.sixes || 0
+                    outName: outName,
+                    howOut: result.outType || req.body.outType,
+                    outRuns: outBatsman?.runs || result.strikerMatchRuns || 0,
+                    outBalls: outBatsman?.balls || result.strikerMatchBalls || 0,
+                    isSub: false
                 }
             };
         }
@@ -182,11 +181,12 @@ const addBall = async (req, res, next) => {
             });
             if (result.inningsEnded && !result.matchEnded) {
                 io.to(`match:${match._id}`).emit('inningsEnded', { match: match.toObject(), result });
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', duration: 10, data: {} });
+                const target = (match.innings?.[0]?.score || 0) + 1;
+                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'INNINGS_BREAK', duration: 10, data: { chasingTeam: match.team2Name || "TEAM 2", targetScore: target } });
             }
             if (result.matchEnded) {
                 io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
-                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_WIN', data: { winnerName: match.winnerName, resultSummary: match.resultSummary } });
+                io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_END', data: { winnerTeam: match.winnerName, winMargin: match.resultSummary } });
             }
         }
         res.json({ success: true, data: result, match: match.toObject() });
@@ -222,7 +222,8 @@ const endInnings = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
-            io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', duration: 10, data: {} });
+            const target = (match.innings?.[0]?.score || 0) + 1;
+            io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'INNINGS_BREAK', duration: 10, data: { chasingTeam: match.team2Name, targetScore: target } });
         }
         res.json({ success: true, message: 'Innings ended', data: match });
     }
@@ -242,7 +243,7 @@ const endMatch = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
-            io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_WIN', data: { winnerName: match.winnerName, resultSummary: match.resultSummary } });
+            io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_END', data: { winnerTeam: match.winnerName, winMargin: match.resultSummary } });
         }
         res.json({ success: true, message: 'Match ended', data: match });
     }
