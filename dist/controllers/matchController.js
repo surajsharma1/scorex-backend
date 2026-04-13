@@ -113,7 +113,6 @@ const selectPlayers = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
-            // Emitting directly so engine.js catches it for the Priority Queue
             if (req.body.bowler && req.body.bowler !== prevBowler) {
                 io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' } });
             }
@@ -145,13 +144,14 @@ const addBall = async (req, res, next) => {
             name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0', runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
         }));
         let activeTrigger = null;
-        // Ensure Wicket carries ALL outgoing stats so player cards populate correctly
         if (result.isWicket || req.body.wicket) {
-            const outBatsman = allBatsmen.find((b) => b.name === (result.outBatsmanName || req.body.outBatsmanName));
+            const outName = result.outBatsmanName || req.body.outBatsmanName;
+            const outBatsman = allBatsmen.find((b) => b.name === outName);
             activeTrigger = {
                 type: 'WICKET',
                 data: {
-                    playerName: result.outBatsmanName || req.body.outBatsmanName,
+                    playerName: outName,
+                    player: outName, // Fallback safety
                     outType: result.outType || req.body.outType,
                     runs: outBatsman?.runs || result.strikerMatchRuns || 0,
                     balls: outBatsman?.balls || result.strikerMatchBalls || 0,
@@ -175,8 +175,8 @@ const addBall = async (req, res, next) => {
                 match: match.toObject(),
                 result,
                 overSummary: match.getOverSummary(),
-                activeTrigger, // Sent directly to OBS
-                battingSummary, // Provided for over-end cards
+                activeTrigger,
+                battingSummary,
                 bowlingSummary
             });
             if (result.inningsEnded && !result.matchEnded) {

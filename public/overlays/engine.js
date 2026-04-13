@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v8 — PRIORITY QUEUE & LOCK FIXES
+ * ScoreX Overlay Engine v9 — BULLETPROOF QUEUE & NAMING FIX
  */
 (function () {
   'use strict';
@@ -11,7 +11,6 @@
   var apiBaseUrl  = baseConfig.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
   var socketUrl   = apiBaseUrl.replace('/api/v1', '');
 
-  // Pull settings from Overlay Manager (fallback to defaults)
   var cfg = {
     vsDuration:           userCfg.vsDuration           || 10,
     tossDuration:         userCfg.tossDuration          || 8,
@@ -48,7 +47,6 @@
   var socket            = null;
   var state             = 'BOOTING';
   
-  // Priority Animation Queue
   var animQueue         = [];
   var isPlayingAnim     = false;
   var decisionPending   = false;
@@ -66,21 +64,21 @@
     var nextAnim = animQueue.shift();
     isPlayingAnim = true;
     
-    dispatch(nextAnim.type, nextAnim.data, nextAnim.duration);
+    // Safety check: if an animation gets queued without a duration, default to 8 seconds so it doesn't freeze the overlay forever.
+    var dur = nextAnim.duration > 0 ? nextAnim.duration : 8;
     
-    // Duration '0' means infinite lock (until RESTORE is called)
-    if (nextAnim.duration > 0) {
-      setTimeout(function() {
-        dispatch('RESTORE', {});
-        isPlayingAnim = false;
-        if (nextAnim.then) nextAnim.then();
-        processQueue(); 
-      }, nextAnim.duration * 1000);
-    }
+    dispatch(nextAnim.type, nextAnim.data, dur);
+    
+    setTimeout(function() {
+      dispatch('RESTORE', {});
+      isPlayingAnim = false;
+      if (nextAnim.then) nextAnim.then();
+      processQueue(); 
+    }, dur * 1000);
   }
 
   function queueAnimation(type, data, duration, then) {
-    // 🔥 PRIORITY JUMP: Ensure Bowler/Player Change ALWAYS plays before Summary Cards
+    // Priority Override: Player and Bowler changes jump the queue ahead of Summary cards
     if (type === 'BOWLER_CHANGE' || type === 'PLAYER_CHANGE') {
       var summaryIdx = animQueue.findIndex(function(a) { return a.type.indexOf('SUMMARY') !== -1; });
       if (summaryIdx !== -1) {
@@ -125,18 +123,18 @@
       case 'FOUR':             if (!cfg.showFour) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
       case 'SIX':              if (!cfg.showSix) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
       case 'WICKET':           if (!cfg.showWicket) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
-      case 'RETIRED_PLAYER':   queueAnimation('RETIRED', richData, cfg.playerChangeDuration); break;
+      case 'RETIRED_PLAYER':   queueAnimation('PLAYER_CHANGE', Object.assign({status: 'Retired'}, richData), cfg.playerChangeDuration); break;
       
       case 'DECISION_PENDING': 
         if (!cfg.showDecision) return; 
-        decisionPending = data.active; 
+        decisionPending = richData.active; 
         if(decisionPending) { 
           isPlayingAnim = true; 
-          dispatch('DECISION_PENDING', richData, 0); // Lock animation indefinitely
+          dispatch('DECISION_PENDING', richData, 0); // Indefinite lock overlay
         } else { 
           isPlayingAnim = false; 
           dispatch('RESTORE', {}); 
-          processQueue(); // Unlock and play queued items
+          processQueue(); // Unlock and resume
         }
         break;
 
@@ -163,10 +161,11 @@
 
       case 'BATSMAN_PROFILE':  queueAnimation('BATSMAN_PROFILE', richData, dur); break;
       case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
-      case 'SHOW_VS_SCREEN':   queueAnimation('VS_SCREEN', richData, cfg.vsDuration); break;
-
+      
+      // Kept exact original names so HTML files capture them perfectly
+      case 'SHOW_VS_SCREEN':   queueAnimation('SHOW_VS_SCREEN', richData, cfg.vsDuration); break;
       case 'SHOW_TOSS':        
-        queueAnimation('TOSS', richData, cfg.tossDuration, function() {
+        queueAnimation('SHOW_TOSS', richData, cfg.tossDuration, function() {
           if (cfg.showInningIntro) queueAnimation('INNING_START', richData, cfg.introDuration);
         }); 
         break;
@@ -188,11 +187,7 @@
         break;
 
       case 'RESTORE':          
-        // Flush queue and reset everything to normal
-        decisionPending = false; 
-        isPlayingAnim = false; 
-        animQueue = []; 
-        dispatch('RESTORE', {}); 
+        decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); 
         break;
 
       default:                 dispatch(t, richData, dur);

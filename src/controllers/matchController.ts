@@ -88,7 +88,6 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
     if (io) {
       io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
       
-      // Emitting directly so engine.js catches it for the Priority Queue
       if (req.body.bowler && req.body.bowler !== prevBowler) {
         io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' }});
       }
@@ -122,13 +121,14 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
 
     let activeTrigger: any = null;
     
-    // Ensure Wicket carries ALL outgoing stats so player cards populate correctly
     if (result.isWicket || req.body.wicket) {
-      const outBatsman = allBatsmen.find((b:any) => b.name === (result.outBatsmanName || req.body.outBatsmanName));
+      const outName = result.outBatsmanName || req.body.outBatsmanName;
+      const outBatsman = allBatsmen.find((b:any) => b.name === outName);
       activeTrigger = { 
         type: 'WICKET', 
         data: { 
-          playerName: result.outBatsmanName || req.body.outBatsmanName, 
+          playerName: outName, 
+          player: outName, // Fallback safety
           outType: result.outType || req.body.outType,
           runs: outBatsman?.runs || result.strikerMatchRuns || 0,
           balls: outBatsman?.balls || result.strikerMatchBalls || 0,
@@ -150,8 +150,8 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
         match: match.toObject(),
         result,
         overSummary: match.getOverSummary(),
-        activeTrigger, // Sent directly to OBS
-        battingSummary, // Provided for over-end cards
+        activeTrigger, 
+        battingSummary, 
         bowlingSummary
       });
 
