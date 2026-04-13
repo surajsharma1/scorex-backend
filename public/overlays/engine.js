@@ -1,49 +1,47 @@
 /**
- * ScoreX Overlay Engine v6.2 — STRICT QUEUE SYSTEM
+ * ScoreX Overlay Engine v7 — PERFECT QUEUE & CHAINING
  */
 (function () {
   'use strict';
 
-  var config      = window.OVERLAY_CONFIG || {};
+  var baseConfig  = window.OVERLAY_CONFIG || {};
+  var userCfg     = baseConfig.config || {}; 
   var urlParams   = new URLSearchParams(window.location.search);
-  var matchId     = urlParams.get('matchId') || config.matchId;
-  var apiBaseUrl  = config.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
+  var matchId     = urlParams.get('matchId') || baseConfig.matchId;
+  var apiBaseUrl  = baseConfig.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
   var socketUrl   = apiBaseUrl.replace('/api/v1', '');
 
-  var globalCfg = {};
-  try {
-    var cfgParam = urlParams.get('cfg');
-    if (cfgParam) globalCfg = JSON.parse(decodeURIComponent(cfgParam));
-  } catch (e) {}
-
+  // Pull settings from Overlay Manager (fallback to defaults)
   var cfg = {
-    vsDuration:           globalCfg.vsDuration           || 10,
-    tossDuration:         globalCfg.tossDuration          || 8,
-    squadDuration:        globalCfg.squadDuration         || 8,
-    introDuration:        globalCfg.introDuration         || 8,
-    fourDuration:         globalCfg.fourDuration          || 4,
-    sixDuration:          globalCfg.sixDuration           || 5,
-    wicketDuration:       globalCfg.wicketDuration        || 8,
-    playerChangeDuration: globalCfg.playerChangeDuration  || 8,
-    bowlerChangeDuration: globalCfg.bowlerChangeDuration  || 8,
-    targetCardDuration:   globalCfg.targetCardDuration    || 10,
-    matchSummaryDuration: globalCfg.matchSummaryDuration  || 20,
-    summaryDuration:      globalCfg.summaryDuration       || 12,
-    pollInterval:         globalCfg.pollInterval          || 5000,
+    vsDuration:           userCfg.vsDuration           || 10,
+    tossDuration:         userCfg.tossDuration          || 8,
+    squadDuration:        userCfg.squadDuration         || 8,
+    introDuration:        userCfg.introDuration         || 8,
+    fourDuration:         userCfg.fourDuration          || 4,
+    sixDuration:          userCfg.sixDuration           || 5,
+    wicketDuration:       userCfg.wicketDuration        || 8,
+    playerChangeDuration: userCfg.playerChangeDuration  || 8,
+    bowlerChangeDuration: userCfg.bowlerChangeDuration  || 8,
+    targetCardDuration:   userCfg.targetCardDuration    || 10,
+    matchSummaryDuration: userCfg.matchSummaryDuration  || 20,
+    summaryDuration:      userCfg.summaryDuration       || 12,
+    pollInterval:         userCfg.pollInterval          || 5000,
 
-    showVS:             globalCfg.showVS             !== false,
-    showToss:           globalCfg.showToss            !== false,
-    showInningIntro:    globalCfg.showInningIntro     !== false,
-    showFour:           globalCfg.showFour            !== false,
-    showSix:            globalCfg.showSix             !== false,
-    showWicket:         globalCfg.showWicket          !== false,
-    showDecision:       globalCfg.showDecision        !== false,
-    showPlayerChange:   globalCfg.showPlayerChange    !== false,
-    showBowlerChange:   globalCfg.showBowlerChange    !== false,
-    showBattingSummary: globalCfg.showBattingSummary  !== false,
-    showBowlingSummary: globalCfg.showBowlingSummary  !== false,
-    showTargetCard:     globalCfg.showTargetCard      !== false,
-    showMatchEnd:       globalCfg.showMatchEnd        !== false,
+    showVS:             userCfg.showVS             !== false,
+    showToss:           userCfg.showToss            !== false,
+    showInningIntro:    userCfg.showInningIntro     !== false,
+    showFour:           userCfg.showFour            !== false,
+    showSix:            userCfg.showSix             !== false,
+    showWicket:         userCfg.showWicket          !== false,
+    showDecision:       userCfg.showDecision        !== false,
+    showPlayerChange:   userCfg.showPlayerChange    !== false,
+    showBowlerChange:   userCfg.showBowlerChange    !== false,
+    showBattingSummary: userCfg.showBattingSummary  !== false,
+    showBowlingSummary: userCfg.showBowlingSummary  !== false,
+    showTargetCard:     userCfg.showTargetCard      !== false,
+    showMatchEnd:       userCfg.showMatchEnd        !== false,
+    autoBattingOvers:   userCfg.autoBattingOvers    || 0,
+    autoBowlingOvers:   userCfg.autoBowlingOvers    || 0,
   };
 
   var matchData         = null;
@@ -53,11 +51,8 @@
   // Strict Animation Queue
   var animQueue         = [];
   var isPlayingAnim     = false;
-
-  var matchEndFired     = false;
   var decisionPending   = false;
   var pollTimer         = null;
-  var lastPollSig       = null;
 
   function dispatch(type, data, duration) {
     var payload = { type: type, data: data || {}, duration: duration || 0 };
@@ -78,7 +73,7 @@
       isPlayingAnim = false;
       if (nextAnim.then) nextAnim.then();
       processQueue(); 
-    }, nextAnim.duration * 1000);
+    }, (nextAnim.duration || 6) * 1000);
   }
 
   function queueAnimation(type, data, duration, then) {
@@ -94,7 +89,7 @@
       window.postMessage({ type: 'UPDATE_SCORE', data: flat, raw: raw.match || raw, _engineSelf: true }, '*');
       if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(flat.thisOver || []);
 
-      if (raw.activeTrigger && state === 'LIVE') {
+      if (raw.activeTrigger) {
         handleTrigger(raw.activeTrigger, flat);
       }
     } catch (err) {
@@ -108,36 +103,73 @@
     var dur  = trigger.duration || 6;
     var richData = Object.assign({}, flat, data);
 
-    // Completely mapped sequential routing
     switch (t) {
-      case 'FOUR':             if (!cfg.showFour)          return; queueAnimation('FOUR', richData, dur); break;
-      case 'SIX':              if (!cfg.showSix)           return; queueAnimation('SIX', richData, dur); break;
-      case 'WICKET':           if (!cfg.showWicket)        return; queueAnimation('WICKET', richData, dur); break;
-      case 'RETIRED_PLAYER':   queueAnimation('RETIRED', richData, dur); break;
+      case 'FOUR':             if (!cfg.showFour) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
+      case 'SIX':              if (!cfg.showSix) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
+      case 'WICKET':           if (!cfg.showWicket) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
+      case 'RETIRED_PLAYER':   queueAnimation('RETIRED', richData, cfg.playerChangeDuration); break;
+      
       case 'DECISION_PENDING': 
         if (!cfg.showDecision) return; 
         decisionPending = data.active; 
         if(decisionPending) { isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); }
         else { dispatch('RESTORE', {}); isPlayingAnim = false; processQueue(); }
         break;
-      case 'PLAYER_CHANGE':    if (!cfg.showPlayerChange)  return; queueAnimation('PLAYER_CHANGE', richData, dur); break;
-      case 'BOWLER_CHANGE':    if (!cfg.showBowlerChange)  return; queueAnimation('BOWLER_CHANGE', richData, dur); break;
-      case 'BATTING_SUMMARY':  if (!cfg.showBattingSummary) return; queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration); break;
-      case 'BOWLING_SUMMARY':  if (!cfg.showBowlingSummary) return; queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration); break;
+
+      case 'OVER_COMPLETE':
+        var over = data.overNumber || 0;
+        if (cfg.autoBattingOvers > 0 && over % cfg.autoBattingOvers === 0 && cfg.showBattingSummary) {
+          queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration);
+        }
+        if (cfg.autoBowlingOvers > 0 && over % cfg.autoBowlingOvers === 0 && cfg.showBowlingSummary) {
+          queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration);
+        }
+        break;
+
+      case 'PLAYER_CHANGE':    if (!cfg.showPlayerChange) return; queueAnimation('PLAYER_CHANGE', richData, cfg.playerChangeDuration); break;
+      case 'BOWLER_CHANGE':    if (!cfg.showBowlerChange) return; queueAnimation('BOWLER_CHANGE', richData, cfg.bowlerChangeDuration); break;
+      case 'BATTING_SUMMARY':  queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration); break;
+      case 'BOWLING_SUMMARY':  queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration); break;
+      
       case 'BOTH_CARDS':
         queueAnimation('BATTING_SUMMARY', richData, cfg.summaryDuration, function() {
           queueAnimation('BOWLING_SUMMARY', richData, cfg.summaryDuration);
         });
         break;
+
       case 'BATSMAN_PROFILE':  queueAnimation('BATSMAN_PROFILE', richData, dur); break;
       case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
-      case 'TARGET_CARD':      if (!cfg.showTargetCard) return; queueAnimation('TARGET_CARD', richData, cfg.targetCardDuration); break;
-      case 'INNING_START':     queueAnimation('INNING_START', richData, cfg.introDuration); break;
       case 'SHOW_VS_SCREEN':   queueAnimation('VS_SCREEN', richData, cfg.vsDuration); break;
-      case 'SHOW_TOSS':        queueAnimation('TOSS', richData, cfg.tossDuration); break;
-      case 'MATCH_WIN':        queueAnimation('MATCH_WIN', richData, cfg.matchSummaryDuration); break;
-      case 'MATCH_SUMMARY':    queueAnimation('MATCH_SUMMARY', richData, cfg.matchSummaryDuration); break;
-      case 'RESTORE':          decisionPending = false; isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); break;
+
+      // Automatically chain Toss -> Inning Start
+      case 'SHOW_TOSS':        
+        queueAnimation('TOSS', richData, cfg.tossDuration, function() {
+          if (cfg.showInningIntro) queueAnimation('INNING_START', richData, cfg.introDuration);
+        }); 
+        break;
+
+      // Automatically chain Target Card -> Inning Start
+      case 'TARGET_CARD':      
+        if (!cfg.showTargetCard) return; 
+        queueAnimation('TARGET_CARD', richData, cfg.targetCardDuration, function() {
+          if (cfg.showInningIntro) queueAnimation('INNING_START', richData, cfg.introDuration);
+        }); 
+        break;
+
+      case 'INNING_START':     queueAnimation('INNING_START', richData, cfg.introDuration); break;
+
+      // Automatically chain Match Win -> Full Match Summary
+      case 'MATCH_WIN':        
+        if (!cfg.showMatchEnd) return;
+        queueAnimation('MATCH_WIN', richData, cfg.matchSummaryDuration, function() {
+          queueAnimation('MATCH_SUMMARY', richData, cfg.matchSummaryDuration);
+        }); 
+        break;
+
+      case 'RESTORE':          
+        decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); 
+        break;
+
       default:                 dispatch(t, richData, dur);
     }
   }
@@ -158,9 +190,7 @@
         .then(function(json) {
           if (!json) return;
           var data = json.data || json;
-          var matchObj = data.match || data;
-          var sig = JSON.stringify({ st: matchObj.status, s: matchObj.innings ? matchObj.innings.map(function(i) { return i.score + '/' + i.wickets + ':' + i.balls; }) : [] });
-          if (sig !== lastPollSig) { lastPollSig = sig; onData(data); }
+          onData(data);
         })
         .catch(function() {});
     }, cfg.pollInterval);

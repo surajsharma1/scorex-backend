@@ -77,10 +77,26 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
   try {
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    
+    const prevBowler = match.currentBowlerName;
+    const prevStriker = match.strikerName;
+    const prevNonStriker = match.nonStrikerName;
+
     await match.selectPlayers(req.body);
+    
     const io = req.app.get('io');
-    if (io) io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
-    res.json({ success: true, message: 'Players selected', data: { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName } });
+    if (io) {
+      io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
+      
+      // Ensure Bowler Change fires first, then Player Change
+      if (req.body.bowler && req.body.bowler !== prevBowler) {
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' }});
+      }
+      if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'PLAYER_CHANGE', data: { newBatsmanName: req.body.striker || req.body.nonStriker }});
+      }
+    }
+    res.json({ success: true, message: 'Players selected' });
   } catch (error) { next(error); }
 };
 
@@ -92,18 +108,34 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     const result = await match.addBall(req.body);
     await match.populate(teamPopulateOptions); 
 
+    // BRAIN: Compute Active Trigger for OBS auto-animations
+    let activeTrigger: any = null;
+    if (result.isWicket || req.body.wicket) {
+      activeTrigger = { type: 'WICKET', data: { playerName: result.outBatsmanName || req.body.outBatsmanName, outType: result.outType || req.body.outType } };
+    } else if (result.isSix) {
+      activeTrigger = { type: 'SIX', data: { playerName: match.strikerName } };
+    } else if (result.isFour) {
+      activeTrigger = { type: 'FOUR', data: { playerName: match.strikerName } };
+    } else if (result.overChanged) {
+      activeTrigger = { type: 'OVER_COMPLETE', data: { overNumber: result.completedOverNumber } };
+    }
+
     const io = req.app.get('io');
     if (io) {
       io.to(`match:${match._id}`).emit('scoreUpdate', {
         match: match.toObject(),
         result,
         overSummary: match.getOverSummary(),
+        activeTrigger // Sent directly to OBS
       });
+
       if (result.inningsEnded && !result.matchEnded) {
         io.to(`match:${match._id}`).emit('inningsEnded', { match: match.toObject(), result });
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} }); // Automatically chains to INNING_START in engine.js
       }
       if (result.matchEnded) {
         io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_WIN', data: { winnerName: match.winnerName, resultSummary: match.resultSummary } });
       }
     }
     res.json({ success: true, data: result, match: match.toObject() });
@@ -128,7 +160,10 @@ export const endInnings = async (req: AuthRequest, res: Response, next: NextFunc
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     await match.endInnings();
     const io = req.app.get('io');
-    if (io) io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
+    if (io) {
+        io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} });
+    }
     res.json({ success: true, message: 'Innings ended', data: match });
   } catch (error) { next(error); }
 };
@@ -141,7 +176,10 @@ export const endMatch = async (req: AuthRequest, res: Response, next: NextFuncti
     await match.endMatch(winnerId, winnerName, resultSummary);
     await match.save();
     const io = req.app.get('io');
-    if (io) io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
+    if (io) {
+        io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_WIN', data: { winnerName: match.winnerName, resultSummary: match.resultSummary } });
+    }
     res.json({ success: true, message: 'Match ended', data: match });
   } catch (error) { next(error); }
 };
