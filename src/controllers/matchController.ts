@@ -102,10 +102,8 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
         const outBatsman = allBatsmen.find((b:any) => b.name === outName);
 
         if (outBatsman?.isOut) {
-          // Player is OUT: trigger the RED Wicket Switch card with both names
           io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: { outName: outName, howOut: outBatsman.outType || "OUT", outRuns: outBatsman.runs || 0, outBalls: outBatsman.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: false }});
         } else if (outName) {
-          // Player RETIRED: trigger the GREY Batsman Change card
           io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: { outName: outName, howOut: "Retired", outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: true }});
         }
       }
@@ -122,7 +120,37 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     const result = await match.addBall(req.body);
     await match.populate(teamPopulateOptions); 
 
+    let inningsEnded = result.inningsEnded;
+    let matchEnded = result.matchEnded;
+
+    // 🔥 AUTOMATIC "ALL OUT" CHECK
     const currentInningsData = match.innings?.[match.currentInnings - 1];
+    const battingTeam = match.currentInnings === 1 ? match.team1 : match.team2;
+    // Team size defaults to 11 if not populated. 10 wickets = All Out.
+    const maxWickets = (battingTeam?.players?.length > 1 ? battingTeam.players.length : 11) - 1;
+
+    if (!inningsEnded && currentInningsData && currentInningsData.wickets >= maxWickets) {
+        await match.endInnings();
+        inningsEnded = true;
+        result.inningsEnded = true;
+        result.ballDescription += ' (All Out)';
+        
+        if (match.currentInnings === 2) {
+            matchEnded = true;
+            result.matchEnded = true;
+            const inn1Score = match.innings[0].score;
+            const inn2Score = match.innings[1].score;
+            if (inn1Score > inn2Score) {
+                await match.endMatch(match.team1._id, match.team1.name, `${match.team1.name} won by ${inn1Score - inn2Score} runs`);
+            } else if (inn2Score > inn1Score) {
+                await match.endMatch(match.team2._id, match.team2.name, `${match.team2.name} won by ${maxWickets - match.innings[1].wickets + 1} wickets`);
+            } else {
+                await match.endMatch(null, 'DRAW', 'Match Tied');
+            }
+        }
+        await match.save();
+    }
+
     const allBatsmen = currentInningsData?.batsmen || [];
     const allBowlers = currentInningsData?.bowlers || [];
 
@@ -137,11 +165,9 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     let activeTrigger: any = null;
     
     if (result.isWicket || req.body.wicket) {
-      // Just flashes the "OUT!" animation on screen. The Card will pop up when the new player is selected above.
       activeTrigger = { type: 'WICKET', data: {} };
       
-      // Fallback: If innings ends on a wicket, selectPlayers won't trigger, so we pass the WICKET_SWITCH here.
-      if (result.inningsEnded || result.matchEnded) {
+      if (inningsEnded || matchEnded) {
         const outName = result.outBatsmanName || req.body.outBatsmanName;
         const outBatsman = allBatsmen.find((b:any) => b.name === outName);
         activeTrigger = { type: 'WICKET_SWITCH', data: { outName: outName, howOut: result.outType || req.body.outType, outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0, isSub: false } };
@@ -150,7 +176,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
       activeTrigger = { type: 'SIX', data: { playerName: match.strikerName } };
     } else if (result.isFour) {
       activeTrigger = { type: 'FOUR', data: { playerName: match.strikerName } };
-    } else if (result.overChanged) {
+    } else if (result.overChanged && !inningsEnded) {
       activeTrigger = { type: 'OVER_COMPLETE', data: { overNumber: result.completedOverNumber } };
     }
 
@@ -165,12 +191,12 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
         bowlingSummary
       });
 
-      if (result.inningsEnded && !result.matchEnded) {
+      if (inningsEnded && !matchEnded) {
         io.to(`match:${match._id}`).emit('inningsEnded', { match: match.toObject(), result });
         const target = (match.innings?.[0]?.score || 0) + 1;
         io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'INNINGS_BREAK', duration: 10, data: { chasingTeam: match.team2Name || "TEAM 2", targetScore: target } }); 
       }
-      if (result.matchEnded) {
+      if (matchEnded) {
         io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
         io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_END', data: { winnerTeam: match.winnerName, winMargin: match.resultSummary } });
       }

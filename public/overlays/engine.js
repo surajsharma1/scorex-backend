@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v12 — PERFECT TEST.HTML EVENT SYNC
+ * ScoreX Overlay Engine v13 — SQUAD DATA & ALL OUT FIX
  */
 (function () {
   'use strict';
@@ -76,7 +76,6 @@
   }
 
   function queueAnimation(type, data, duration, then) {
-    // Priority Override: Player changes and Bowler changes jump ahead of Summary cards
     if (type === 'NEW_BOWLER' || type === 'BATSMAN_CHANGE' || type === 'WICKET_SWITCH') {
       var summaryIdx = animQueue.findIndex(function(a) { return a.type.indexOf('CARD') !== -1; });
       if (summaryIdx !== -1) {
@@ -91,15 +90,23 @@
   }
 
   function _doTossSequence(flat, matchObj) {
+    // FIX: Extracts the actual populated player arrays securely so names aren't undefined
+    var t1p = (matchObj.team1 && matchObj.team1.players) ? matchObj.team1.players : (flat.team1Players || []);
+    var t2p = (matchObj.team2 && matchObj.team2.players) ? matchObj.team2.players : (flat.team2Players || []);
+    var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
+    var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
+
     state = 'TOSS';
     dispatch('SHOW_TOSS', {
       text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + " WON TOSS",
-      team1Players: flat.team1Players, team2Players: flat.team2Players
+      team1Players: t1p, team2Players: t2p
     });
+    
     setTimeout(function() {
       if (cfg.showSquads) {
         state = 'SQUADS';
-        dispatch('SHOW_SQUADS', { team1Name: flat.team1Name, team2Name: flat.team2Name, team1Players: flat.team1Players, team2Players: flat.team2Players });
+        dispatch('SHOW_SQUADS', { team1Name: t1n, team2Name: t2n, team1Players: t1p, team2Players: t2p });
+        
         setTimeout(function() { 
           state = 'LIVE'; dispatch('RESTORE', {}); 
           if (cfg.showInningIntro) queueAnimation('START_INNINGS_INTRO', { striker: flat.strikerName, nonStriker: flat.nonStrikerName, bowler: flat.currentBowlerName }, cfg.introDuration);
@@ -132,7 +139,9 @@
         if (isMatchDone) { state = 'LIVE'; dispatch('RESTORE', {}); return; }
         if (!tossDone && cfg.showVS) {
           state = 'VS_SCREEN';
-          dispatch('VS_SCREEN', { team1: flat.team1Name, team2: flat.team2Name });
+          var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
+          var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
+          dispatch('VS_SCREEN', { team1: t1n, team2: t2n });
           return;
         }
         if (tossDone && !hasPlayers && cfg.showToss) { _doTossSequence(flat, matchObj); return; }
@@ -164,7 +173,7 @@
       
       case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, cfg.summaryDuration); break;
       case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration); break;
-      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration); break; // Handled natively by HTML
+      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration); break; 
 
       case 'OVER_COMPLETE':
         var over = data.overNumber || 0;
@@ -180,7 +189,7 @@
         if (!cfg.showDecision) return; 
         decisionPending = data.active; 
         if(decisionPending) { 
-          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); // Infinite Lock
+          isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); 
         } else { 
           isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); 
         }
@@ -190,10 +199,8 @@
       case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
       
       case 'VS_SCREEN':        queueAnimation('VS_SCREEN', richData, cfg.vsDuration); break;
-      case 'SHOW_TOSS':        
-        queueAnimation('SHOW_TOSS', richData, cfg.tossDuration, function() {
-          if (cfg.showInningIntro) queueAnimation('START_INNINGS_INTRO', richData, cfg.introDuration);
-        }); break;
+      case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, cfg.tossDuration); break;
+      case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, cfg.squadDuration); break;
 
       case 'INNINGS_BREAK':      
         if (!cfg.showTargetCard) return; 
