@@ -88,11 +88,12 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
     if (io) {
       io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
       
+      // Emitted directly so the priority queue picks them up
       if (req.body.bowler && req.body.bowler !== prevBowler) {
-        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' }});
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BOWLER_CHANGE', duration: 8, data: { newBowlerName: req.body.bowler, prevBowlerName: prevBowler || '' }});
       }
       if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
-        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'PLAYER_CHANGE', data: { newBatsmanName: req.body.striker || req.body.nonStriker }});
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'PLAYER_CHANGE', duration: 8, data: { newBatsmanName: req.body.striker || req.body.nonStriker }});
       }
     }
     res.json({ success: true, message: 'Players selected' });
@@ -121,6 +122,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
 
     let activeTrigger: any = null;
     
+    // CRITICAL: Packages outgoing stats so the out-card displays their final run tally correctly
     if (result.isWicket || req.body.wicket) {
       const outName = result.outBatsmanName || req.body.outBatsmanName;
       const outBatsman = allBatsmen.find((b:any) => b.name === outName);
@@ -128,7 +130,6 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
         type: 'WICKET', 
         data: { 
           playerName: outName, 
-          player: outName, // Fallback safety
           outType: result.outType || req.body.outType,
           runs: outBatsman?.runs || result.strikerMatchRuns || 0,
           balls: outBatsman?.balls || result.strikerMatchBalls || 0,
@@ -157,7 +158,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
 
       if (result.inningsEnded && !result.matchEnded) {
         io.to(`match:${match._id}`).emit('inningsEnded', { match: match.toObject(), result });
-        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} }); 
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', duration: 10, data: {} }); 
       }
       if (result.matchEnded) {
         io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
@@ -188,7 +189,7 @@ export const endInnings = async (req: AuthRequest, res: Response, next: NextFunc
     const io = req.app.get('io');
     if (io) {
         io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
-        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', data: {} });
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'TARGET_CARD', duration: 10, data: {} });
     }
     res.json({ success: true, message: 'Innings ended', data: match });
   } catch (error) { next(error); }
