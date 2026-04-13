@@ -123,6 +123,7 @@ MatchSchema.methods.addBall = async function (data) {
         const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
         const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
         return {
+            outType: '',
             score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6),
             runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate,
             targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`,
@@ -309,6 +310,7 @@ MatchSchema.methods.addBall = async function (data) {
     const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
     const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
     return {
+        outType: isWicket ? (data.outType || '') : '',
         score: innings.score,
         wickets: innings.wickets,
         overs: formatOvers(innings.overs, innings.balls % 6),

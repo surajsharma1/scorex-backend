@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoreX - Premium Blue & Yellow Broadcast</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,700;0,900;1,700&family=Montserrat:wght@500;700;800;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
+    
+    html, body { 
+      width: 100vw; height: 100vh; background: transparent; overflow: hidden; 
+      font-family: 'Montserrat', sans-serif; color: #0f172a;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; }
+    ::-webkit-scrollbar-thumb { background: #0284c7; }
+
+    /* Standard Visibility Logic */
+    .layer-hide { opacity: 0; visibility: hidden; transition: all 0.5s ease-in-out; transform: translateY(30px); pointer-events: none;}
+    .layer-show { opacity: 1; visibility: visible; transition: all 0.5s ease-in-out; transform: translateY(0); z-index: 300; pointer-events: auto;}
+    .tab-hide { display: none !important; }
+    .tab-show { display: flex !important; flex-direction: column;}
+    .base-ui-hide { opacity: 0 !important; transform: translateY(100px) !important; pointer-events: none !important; }
+
+    .fit-container { width: 100%; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    :root {
+      /* SOLID BLUE & YELLOW PALETTE */
+      --c-blue: #0284c7;        /* Strong Royal/Sky Blue */
+      --c-navy: #0f172a;        /* Deep Navy (Almost Black) */
+      --c-yellow: #facc15;      /* Vibrant Gold/Yellow */
+      --c-gray: #f1f5f9;        /* Off-White/Stone */
+      --c-white: #ffffff;
+      
+      --c-red: #dc2626;         /* Solid Crimson for Wickets */
+      --c-slate: #64748b;       /* Slate for inactive/sub states */
+      
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-data: 'Montserrat', sans-serif;
+      
+      /* Hard, realistic drop shadows for physical card separation */
+      --shadow-panel: 0 10px 30px rgba(0,0,0,0.15);
+      --shadow-pod: 0 -5px 20px rgba(0,0,0,0.25);
+    }
+
+    /* =========================================
+       1. TOP BROADCAST RIBBON
+       ========================================= */
+    #sponsor-bar {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 35px; z-index: 100; 
+      display: flex; align-items: center; background: var(--c-navy); color: var(--c-white);
+      transition: all 0.5s ease; border-bottom: 3px solid var(--c-yellow);
+    }
+    .sponsor-label { 
+      background: var(--c-blue); font-family: var(--font-display); font-size: 18px; font-weight: 700; 
+      padding: 0 30px; height: 100%; display: flex; align-items: center; letter-spacing: 2px;
+      color: #fff;
+    }
+    .sponsor-track-container { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; padding-left: 20px;}
+    .sponsor-track { display: flex; white-space: nowrap; animation: marquee 30s linear infinite; font-size: 13px; font-weight: 700; gap: 50px; padding-left: 100vw; color: #fff;}
+    .sponsor-item { display: inline-flex; align-items: center; gap: 10px; }
+    .sponsor-item::before { content: ''; width: 4px; height: 4px; background: var(--c-yellow); border-radius: 50%;}
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    #target-bar { 
+      position: absolute; top: 35px; right: 5vw; height: 50px; padding: 0 30px; display: none; gap: 20px; align-items: center; 
+      background: var(--c-white); border-left: 6px solid var(--c-yellow); border-bottom: 1px solid var(--c-gray); border-right: 1px solid var(--c-gray);
+      z-index: 49; transition: all 0.5s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-radius: 0 0 8px 8px;
+    }
+    .tb-content { color: var(--c-navy); font-weight: 700; font-size: 14px; display: flex; gap: 15px; align-items: center;}
+    #equation-text { color: var(--c-blue); font-family: var(--font-display); font-size: 28px; font-weight: 900; line-height: 1; letter-spacing: 1px;}
+
+    /* =========================================
+       2. CINEMATIC SHUTTER ANIMATIONS
+       ========================================= */
+    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 250; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+    
+    .shutter-anim {
+      position: absolute; width: 100vw; height: 100vh; display: flex; flex-direction: column;
+      opacity: 0; visibility: hidden; transition: opacity 0.2s;
+    }
+    .shutter-anim.fire { opacity: 1; visibility: visible; }
+    
+    .shutter-top, .shutter-bot {
+      width: 100vw; height: 50vh; background: var(--c-navy); position: absolute; left: 0;
+      transition: transform 0.5s cubic-bezier(0.8, 0, 0.2, 1);
+    }
+    .shutter-top { top: 0; transform: translateY(-100%); border-bottom: 8px solid var(--c-blue); }
+    .shutter-bot { bottom: 0; transform: translateY(100%); border-top: 8px solid var(--c-blue); }
+    
+    .shutter-anim.fire .shutter-top { transform: translateY(-30%); }
+    .shutter-anim.fire .shutter-bot { transform: translateY(30%); }
+
+    .shutter-txt {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      font-family: var(--font-display); font-size: 250px; font-weight: 900; color: var(--c-white);
+      letter-spacing: 10px; opacity: 0; transition: all 0.4s 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .shutter-anim.fire .shutter-txt { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    #anim-six .shutter-top { border-color: var(--c-yellow); } #anim-six .shutter-bot { border-color: var(--c-yellow); }
+    #anim-six .shutter-txt { color: var(--c-yellow); font-size: 300px;}
+    
+    #anim-wicket .shutter-top { border-color: var(--c-red); } #anim-wicket .shutter-bot { border-color: var(--c-red); }
+    #anim-wicket .shutter-txt { color: var(--c-red); }
+
+    /* Standard Pop-ups */
+    #anim-milestone { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(30px); opacity: 0; transition: all 0.5s ease; z-index: 45; padding: 20px 60px; background: var(--c-white); border-top: 8px solid var(--c-blue); box-shadow: var(--shadow-panel); border-radius: 8px;}
+    #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .ms-content { font-family: var(--font-display); font-size: 80px; font-weight: 900; color: var(--c-navy); line-height: 0.9;}
+
+    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); padding: 25px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; background: var(--c-white); border: 2px solid var(--c-gray); border-bottom: 8px solid var(--c-navy); border-radius: 8px;}
+    #anim-decision.fire { opacity: 1; animation: flashDecision 1.2s infinite alternate ease-in-out; }
+    #anim-decision .d-title { font-size: 16px; color: var(--c-blue); letter-spacing: 6px; margin-bottom: 5px; font-weight: 800;}
+    #anim-decision .d-text { font-family: var(--font-display); font-size: 85px; color: var(--c-navy); line-height: 1; font-weight: 900;}
+    @keyframes flashDecision { 0% { transform: translateX(-50%) scale(0.98); } 100% { transform: translateX(-50%) scale(1.02); } }
+
+    /* =========================================
+       3. RIBBON & POD SCOREBOARD
+       ========================================= */
+    #scoreboard-container {
+      position: absolute; bottom: 0; left: 0; width: 100vw; height: 110px; display: flex; justify-content: center; z-index: 50;
+      transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .sb-view { display: flex; justify-content: center; align-items: flex-end; width: 100%; transition: all 0.5s ease; position: absolute; bottom: 0; height: 100%;}
+    .state-vs #panel-live { opacity: 0; transform: translateY(110px); pointer-events: none; }
+    .state-vs #panel-vs { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .state-live #panel-vs { opacity: 0; transform: translateY(110px); pointer-events: none; }
+    .state-live #panel-live { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    /* VS Screen */
+    #panel-vs .vs-block { width: 100vw; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--c-navy); color: var(--c-white); border-top: 4px solid var(--c-yellow); position: relative;}
+    #toss-msg-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s; background: var(--c-white); z-index: 2;}
+    #toss-msg-vs { font-size: 40px; color: var(--c-blue); font-weight: 900; font-family: var(--font-display); letter-spacing: 2px;}
+    #svt-text { font-family: var(--font-display); font-size: 80px; font-weight: 900; letter-spacing: 4px; line-height: 1;}
+
+    /* Ribbon Architecture */
+    .ribbon-track { width: 100vw; height: 90px; background: var(--c-white); display: flex; align-items: stretch; border-top: 1px solid var(--c-gray); box-shadow: var(--shadow-panel);}
+    
+    .c-team { flex: 0 0 12%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 65px; font-weight: 900; line-height: 1; letter-spacing: 1px;}
+    .t-bat { background: var(--c-blue); color: var(--c-white); }
+    .t-bowl { background: var(--c-yellow); color: var(--c-navy); }
+
+    .c-data { flex: 0 0 28%; display: flex; flex-direction: column; justify-content: center; padding: 0 3vw;}
+    .c-data.left { border-right: 1px solid var(--c-gray); }
+    .c-data.right { border-left: 1px solid var(--c-gray); }
+
+    /* The Overlapping Center Pod */
+    .c-score-pod { 
+      flex: 0 0 20%; background: var(--c-navy); height: 120px; align-self: flex-end;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      border-radius: 12px 12px 0 0; box-shadow: var(--shadow-pod); z-index: 10;
+      border: 2px solid var(--c-white); border-bottom: none;
+    }
+    .runs-wkts { font-family: var(--font-display); font-size: 85px; line-height: 0.8; font-weight: 900; color: var(--c-white); display: flex; align-items: baseline;}
+    .runs-wkts .slash { color: var(--c-slate); font-size: 60px; margin: 0 6px; font-weight: 500;}
+    .overs-text { font-size: 14px; font-weight: 800; color: var(--c-white); opacity: 0.9; display: flex; align-items: center; gap: 8px; letter-spacing: 2px; margin-top: 8px;}
+    .overs-text span { color: var(--c-yellow); font-size: 26px; font-family: var(--font-display); line-height: 1; opacity: 1;}
+
+    /* Data Rows */
+    .p-row { display: flex; justify-content: space-between; align-items: center; width: 100%; white-space: nowrap; margin-bottom: 2px;}
+    .p-name { color: var(--c-navy); font-size: 18px; font-weight: 600; display: flex; align-items: center; flex: 1; min-width: 0; padding-right: 10px; opacity: 0.7;} 
+    .p-name.active { font-weight: 800; opacity: 1;}
+    .p-stats { color: var(--c-navy); font-family: var(--font-display); font-size: 40px; line-height: 0.8; font-weight: 800; flex-shrink: 0;}
+    .p-sub { font-size: 15px; color: var(--c-navy); opacity: 0.7; font-weight: 600; font-family: var(--font-data); display: inline-block; min-width: 40px; text-align: right;}
+
+    .this-over-row { display: flex; gap: 10px; align-items: center; width: 100%; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--c-gray);}
+    .this-over-lbl { font-size: 12px; font-weight: 800; color: var(--c-navy); opacity: 0.6; margin-right: 5px; flex-shrink: 0;}
+    .ball-container { display: flex; gap: 6px; overflow: hidden; flex: 1; justify-content: flex-end; }
+    .ball-dot { width: 22px; height: 22px; background: var(--c-gray); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--c-navy); flex-shrink: 0;}
+    .ball-w { background: var(--c-red); color: #fff;} 
+    .ball-b { background: var(--c-navy); color: #fff;} 
+    .ball-6 { background: var(--c-blue); color: #fff;}
+
+    /* =========================================
+       4. AUX SCREENS (Slide-in Cards)
+       ========================================= */
+    #intro-cards-wrapper { 
+      position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; 
+      opacity: 0; visibility: hidden; transition: all 0.5s ease; z-index: 260; /* Raised z-index */
+      width: 95%; max-width: 1200px; justify-content: center;
+    }
+    #intro-cards-wrapper.active-intro { opacity: 1; visibility: visible; }
+    .intro-card { padding: 20px 30px; background: var(--c-white); border-top: 6px solid var(--c-navy); flex: 1; max-width: 350px; box-shadow: var(--shadow-panel); border-radius: 8px;}
+    .intro-lbl { font-size: 12px; color: var(--c-navy); opacity: 0.6; font-weight: 800; letter-spacing: 2px;}
+    .intro-val { font-family: var(--font-display); font-size: 45px; font-weight: 800; color: var(--c-navy); line-height: 0.9; margin-top: 5px; width: 100%;}
+
+    #side-card-wrapper { 
+      position: absolute; bottom: 140px; left: 2vw; width: 400px; 
+      opacity: 0; visibility: hidden; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+      z-index: 260; /* Critical Fix: Raised above event-layer (250) */
+      transform: translateX(-100%);
+    }
+    #side-card-wrapper.active-side { transform: translateX(0); opacity: 1; visibility: visible; }
+    
+    .profile-card { display: none; padding: 0; overflow: hidden; background: var(--c-white); border-radius: 8px; box-shadow: var(--shadow-panel);}
+    .profile-card.active { display: block; }
+    .ppc-title { font-family: var(--font-display); font-size: 45px; font-weight: 800; color: var(--c-white); line-height: 1; padding: 20px 30px; background: var(--c-blue); display: flex; align-items: center;}
+    .ppc-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; padding: 15px 30px; border-bottom: 1px solid var(--c-gray); align-items: center;}
+    .ppc-lbl { color: var(--c-navy); opacity: 0.7; font-weight: 800;} .ppc-val { color: var(--c-navy); font-family: var(--font-display); font-size: 32px; font-weight: 800; line-height: 0.8;}
+
+    .switch-card { display: none; flex-direction: column; gap: 10px; width: 100%; }
+    .switch-card.active { display: flex; }
+    .switch-block { padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; background: var(--c-white); border-radius: 8px; box-shadow: var(--shadow-panel); transition: all 0.3s ease;}
+    .sw-content { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .sw-badge { color: #fff; font-weight: 800; font-size: 12px; padding: 6px 15px; border-radius: 4px; display: inline-block; margin-bottom: 5px; letter-spacing: 1px;}
+    .sw-name { font-family: var(--font-display); font-size: 40px; font-weight: 800; color: var(--c-navy); line-height: 1;}
+    .sw-score { font-size: 26px; font-weight: 800; color: var(--c-navy); opacity: 0.8; font-family: var(--font-display); flex-shrink: 0; margin-left: 15px;}
+
+    /* =========================================
+       5. ASYMMETRICAL FULLSCREEN MODALS
+       ========================================= */
+    #fullscreen-layer { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 4vh 4vw; overflow: hidden;}
+    
+    .fs-card { width: 100%; height: 100%; display: flex; flex-direction: column;}
+    .fs-header { font-family: var(--font-display); font-size: 7vh; font-weight: 800; color: var(--c-white); text-align: center; margin-bottom: 3vh; line-height: 1; letter-spacing: 2px; flex-shrink: 0;}
+    
+    #target-tab, #winner-tab { display: flex; flex-direction: column; align-items: center; justify-content: center;}
+    .target-box { padding: 6vh 10vw; display: flex; flex-direction: column; align-items: center; border-top: 8px solid var(--c-blue); margin: auto; background: var(--c-white); border-radius: 12px; box-shadow: var(--shadow-panel);}
+    #target-score { font-family: var(--font-display); font-size: 25vh; font-weight: 800; color: var(--c-navy); line-height: 0.8;}
+
+    /* MATHEMATICALLY PERFECT FLEX TABLES (Asymmetrical) */
+    .teams-split-container { display: flex; gap: 3vw; width: 100%; height: 100%; flex: 1; overflow: hidden;}
+    
+    .team-col-fs { flex: 1; display: flex; overflow: hidden; background: var(--c-white); border-radius: 12px; box-shadow: var(--shadow-panel);} 
+    
+    .vertical-banner { width: 80px; display: flex; align-items: center; justify-content: center; background: var(--c-blue); color: var(--c-white); writing-mode: vertical-rl; text-orientation: mixed; font-family: var(--font-display); font-size: 4.5vh; font-weight: 800; letter-spacing: 4px; flex-shrink: 0;}
+    .vertical-banner.yellow-bg { background: var(--c-yellow); color: var(--c-navy); }
+
+    .table-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .data-table { display: flex; flex-direction: column; width: 100%; height: 100%; }
+    .data-table thead { display: flex; width: 100%; flex-shrink: 0; background: var(--c-gray); border-bottom: 1px solid var(--c-gray); }
+    .data-table tbody { display: flex; flex-direction: column; flex: 1; justify-content: space-evenly; background: var(--c-white); padding: 1vh 0;}
+    .data-table tr { display: flex; width: 100%; flex: 1;}
+    .data-table th, .data-table td { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 2.2vh; font-weight: 700; color: var(--c-navy); padding: 0 1vw; overflow: hidden; border-bottom: 1px solid var(--c-gray);}
+    .data-table th { font-size: 1.4vh; color: var(--c-navy); opacity: 0.6; font-weight: 800;}
+    .data-table td { font-family: var(--font-display); font-size: 3.5vh; font-weight: 700;}
+    .data-table th:first-child, .data-table td:first-child { flex: 3; justify-content: flex-start; font-family: var(--font-data); font-weight: 700;}
+    .data-table tr.active-row { background: rgba(2, 132, 199, 0.08) !important; border-left: 4px solid var(--c-blue); }
+    #sum-bowl-col .data-table tr.active-row { background: rgba(250, 204, 21, 0.2) !important; border-left: 4px solid var(--c-yellow); }
+    .hl-text { color: var(--c-navy) !important; font-weight: 800 !important; font-size: 2vh !important;}
+
+    /* MATCH END BANNER */
+    .winner-team { font-family: var(--font-display); font-size: 14vh; color: var(--c-blue); line-height: 1; font-weight: 800;}
+    .winner-margin { font-size: 3vh; color: var(--c-navy); opacity: 0.7; font-weight: 800; letter-spacing: 5px; margin-top: 1vh;}
+
+  </style>
+</head>
+<body>
+
+  <div id="sponsor-bar">
+    <div class="sponsor-label">BROADCAST</div>
+    <div class="sponsor-track-container"><div class="sponsor-track" id="sponsor-track">
+       <span class="sponsor-item">SCOREX.LIVE</span><span class="sponsor-item">BLUE & YELLOW NETWORK</span>
+    </div></div>
+  </div>
+
+  <div id="target-bar">
+    <div class="tb-content">
+      <span>2ND INNINGS</span>
+      <span id="equation-text">NEED 45 FROM 24</span>
+    </div>
+  </div>
+
+  <div class="event-layer">
+    <div id="anim-four" class="shutter-anim">
+      <div class="shutter-top"></div><div class="shutter-bot"></div><div class="shutter-txt">FOUR</div>
+    </div>
+    <div id="anim-six" class="shutter-anim">
+      <div class="shutter-top"></div><div class="shutter-bot"></div><div class="shutter-txt">SIX!</div>
+    </div>
+    <div id="anim-wicket" class="shutter-anim">
+      <div class="shutter-top"></div><div class="shutter-bot"></div><div class="shutter-txt">OUT!</div>
+    </div>
+    
+    <div id="anim-milestone"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div>
+    <div id="anim-decision"><div class="d-title">THIRD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
+  </div>
+
+  <div id="intro-cards-wrapper">
+    <div class="intro-card" style="border-top-color: var(--c-blue);">
+      <div class="intro-lbl">STRIKER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-striker">BATSMAN</div></div>
+    </div>
+    <div class="intro-card" style="border-top-color: var(--c-slate); opacity:0.9;">
+      <div class="intro-lbl">NON-STRIKER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-nonstriker">BATSMAN</div></div>
+    </div>
+    <div class="intro-card" style="border-top-color: var(--c-yellow);">
+      <div class="intro-lbl">BOWLER</div><div class="fit-container"><div class="intro-val fit-text" id="intro-bowler">BOWLER</div></div>
+    </div>
+  </div>
+
+  <div id="side-card-wrapper">
+    <div id="profile-card" class="profile-card">
+      <div class="ppc-title"><span class="sw-badge" style="background: var(--c-blue); color:#fff; margin-right: 15px; margin-bottom: 0; padding: 4px 12px; border-radius: 4px; font-family: var(--font-data); font-size: 12px; font-weight: 800;" id="pc-badge">PROFILE</span><div class="fit-container"><span class="fit-text" id="pc-name">PLAYER NAME</span></div></div>
+      <div id="pc-stats-container"></div>
+    </div>
+    
+    <div id="switch-card" class="switch-card">
+      <div class="switch-block switch-out" id="sw-out-block" style="border-left: 6px solid var(--c-red);">
+        <div class="sw-content">
+          <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 65%;">
+             <span class="sw-badge" style="background: var(--c-red);" id="sw-out-badge">OUT</span>
+             <div class="fit-container"><span class="sw-name fit-text" id="sw-out-name">PLAYER 1</span></div>
+             <div style="font-size: 13px; color: var(--c-navy); opacity: 0.7; font-weight: 700; margin-top: 5px;" class="fit-text" id="sw-out-desc"></div>
+          </div>
+          <div class="sw-score" id="sw-out-score">0 (0)</div>
+        </div>
+      </div>
+      <div class="switch-block switch-in" id="sw-in-block" style="border-left: 6px solid var(--c-blue);">
+        <div class="sw-content">
+          <div style="display:flex; flex-direction:column; align-items: flex-start; max-width: 100%;">
+             <span class="sw-badge" style="background: var(--c-blue);" id="sw-in-badge">IN</span>
+             <div class="fit-container"><span class="sw-name fit-text" id="sw-in-name">PLAYER 2</span></div>
+          </div>
+          <div class="sw-score hide" id="sw-in-stats-row">
+            <span id="sw-in-r">0</span> (<span id="sw-in-b">0</span>)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scoreboard-container" class="state-live">
+    
+    <div class="sb-view" id="panel-vs">
+       <div class="vs-block">
+         <div id="toss-msg-container"><div class="fit-container" style="justify-content: center;"><span id="toss-msg-vs" class="fit-text"></span></div></div>
+         <span id="svt-text"><span id="vs-t1">TEAM 1</span> <span style="color:var(--c-blue); margin:0 30px; font-family:var(--font-data); font-size:40px; font-weight:800; vertical-align:middle;">VS</span> <span id="vs-t2">TEAM 2</span></span>
+       </div>
+    </div>
+
+    <div class="sb-view" id="panel-live">
+      
+      <div class="ribbon-track">
+        <div class="c-team t-bat">
+           <div class="fit-container" style="justify-content: center;"><span class="fit-text" id="bat-team">IND</span></div>
+        </div>
+        
+        <div class="c-data left">
+          <div class="p-row">
+            <span class="p-name active"><span style="color:var(--c-blue); margin-right:10px;">▶</span><div class="fit-container" style="width: 140px;"><span id="striker" class="name-txt fit-text">Striker</span></div></span> 
+            <span class="p-stats"><span id="s-runs">0</span> <span class="p-sub">(<span id="s-balls">0</span>)</span></span>
+          </div>
+          <div class="p-row">
+            <span class="p-name"><div class="fit-container" style="width: 140px; margin-left: 20px;"><span id="nonstriker" class="name-txt fit-text">Non-Striker</span></div></span> 
+            <span class="p-stats" style="opacity: 0.6;"><span id="ns-runs">0</span> <span class="p-sub">(<span id="ns-balls">0</span>)</span></span>
+          </div>
+        </div>
+
+        <div class="c-score-pod">
+            <div class="runs-wkts"><span id="score">0</span><span class="slash">/</span><span id="wickets">0</span></div>
+            <div class="overs-text">OVERS <span><span id="overs">0.0</span></span></div>
+        </div>
+
+        <div class="c-data right">
+          <div class="p-row">
+            <span class="p-name active">BOWL: <div class="fit-container" style="width: 130px; margin-left: 8px;"><span id="bowler" class="name-txt fit-text" style="color:var(--c-navy);">Bowler</span></div></span>
+            <span class="p-stats" style="color:var(--c-red);"><span id="b-wkts">0</span>-<span id="b-runs">0</span> <span class="p-sub" style="margin-left:8px;">(<span id="b-ov">0.0</span>)</span></span>
+          </div>
+          <div class="this-over-row">
+            <span class="this-over-lbl">OVER:</span>
+            <div class="ball-container" id="this-over-balls"></div>
+          </div>
+        </div>
+
+        <div class="c-team t-bowl">
+           <div class="fit-container" style="justify-content: center;"><span class="fit-text" id="bowl-team">AUS</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="fullscreen-layer" class="layer-hide">
+    
+    <div id="target-tab" class="fs-card tab-hide" style="background:transparent; border:none; box-shadow:none;">
+      <div class="fs-header" style="border:none;">INNINGS BREAK</div>
+      <div class="target-box">
+        <div id="target-score">201</div>
+        <div style="font-size: 3.5vh; color: var(--c-navy); opacity: 0.7; font-weight: 800; margin-top: 1vh; letter-spacing: 2px;">TARGET FOR <span id="target-team" style="color:var(--c-blue); opacity: 1;">TEAM 2</span></div>
+      </div>
+    </div>
+
+    <div id="squads-tab" class="fs-card tab-hide" style="background:transparent; border:none; box-shadow:none;">
+      <div class="fs-header" id="squads-toss-header">PLAYING XI</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs">
+          <div class="vertical-banner" id="sq-t1-name">TEAM 1</div>
+          <div class="squad-list" id="sq-t1-list"></div>
+        </div>
+        <div class="team-col-fs">
+          <div class="vertical-banner yellow-bg" id="sq-t2-name">TEAM 2</div>
+          <div class="squad-list" id="sq-t2-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="winner-tab" class="fs-card tab-hide" style="background:transparent; border:none; box-shadow:none;">
+      <div class="fs-header" style="border:none;">MATCH CONCLUDED</div>
+      <div class="target-box" style="border-top-color: var(--c-navy);">
+        <div class="winner-team fit-container"><span id="win-team" class="fit-text">TEAM WON</span></div>
+        <div class="winner-margin" id="win-margin">BY 10 RUNS</div>
+      </div>
+    </div>
+
+    <div id="summary-tab" class="fs-card tab-hide" style="background:transparent; border:none; box-shadow:none;">
+      <div class="fs-header" id="sum-header">INNINGS SUMMARY</div>
+      <div class="teams-split-container">
+        <div class="team-col-fs" id="sum-bat-col">
+          <div class="vertical-banner">BATTING</div>
+          <div class="table-wrapper">
+             <table class="data-table">
+               <thead><tr><th>BATSMAN</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+               <tbody id="sum-bat-body"></tbody>
+             </table>
+          </div>
+        </div>
+        <div class="team-col-fs" id="sum-bowl-col">
+          <div class="vertical-banner yellow-bg">BOWLING</div>
+          <div class="table-wrapper">
+             <table class="data-table">
+               <thead><tr><th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECO</th></tr></thead>
+               <tbody id="sum-bowl-body"></tbody>
+             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/overlays/overlay-utils.js"></script>
+<script src="/overlays/engine.js"></script>
+<script>
+(function() {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  let cfg = {};
+  try { const p = urlParams.get('cfg'); if (p) cfg = JSON.parse(decodeURIComponent(p)); } catch(e) {}
+  
+  const getDur = (val, base, max) => Math.min((val !== undefined ? val : base), max) * 1000;
+  
+  const DURATIONS = {
+    event: getDur(cfg.eventDuration, 6, 12),
+    milestone: getDur(cfg.milestoneDuration, 6, 12),
+    toss: getDur(cfg.tossDuration, 15, 35),
+    intro: getDur(cfg.introDuration, 8, 18),
+    matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
+    inningsBreak: 12000 
+  };
+
+  let decisionPendingState = false;
+  let endMatchInterval = null;
+  let actionTimer = null;
+  let breakTimer = null;
+  let curStriker = '', curNonStriker = '', curBowler = '';
+
+  const safeSet = (id, val, fallback) => { const el = $(id); if (el) el.innerText = String((val != null && val !== '') ? val : (fallback !== undefined ? fallback : '')); };
+  const addCls  = (id, cls) => { const e=$(id); if(e) e.classList.add(cls); };
+  const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
+
+  const triggerAutoShrink = () => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.fit-text').forEach(el => {
+        el.style.fontSize = ''; 
+        let style = window.getComputedStyle(el);
+        let fontSize = parseFloat(style.fontSize);
+        const parent = el.parentElement;
+        
+        while (el.scrollWidth > parent.clientWidth && fontSize > 10) {
+          fontSize -= 0.5;
+          el.style.fontSize = fontSize + 'px';
+        }
+      });
+    });
+  };
+
+  function processData(d) {
+    if (!d) return;
+    const t1 = d.team1ShortName || (d.team1Name || 'T1').substring(0,4).toUpperCase();
+    const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
+    
+    safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
+    safeSet('bat-team', t1); safeSet('bowl-team', t2);
+    
+    safeSet('score', d.team1Score ?? d.teamScore, 0);
+    safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
+    safeSet('overs', d.team1Overs ?? d.teamOvers, '0.0');
+
+    curBowler = d.bowlerName || 'Bowler';
+    safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0); safeSet('b-ov', d.bowlerOvers, '0.0');
+
+    curStriker = d.strikerName || 'Striker';
+    safeSet('striker', curStriker); safeSet('s-runs', d.strikerRuns, 0); safeSet('s-balls', d.strikerBalls, 0);
+
+    curNonStriker = d.nonStrikerName || 'Non-Striker';
+    safeSet('nonstriker', curNonStriker); safeSet('ns-runs', d.nonStrikerRuns, 0); safeSet('ns-balls', d.nonStrikerBalls, 0);
+
+    if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(d.thisOver || []);
+    triggerAutoShrink();
+  }
+
+  // Inject Sponsors dynamically to ticker
+  (function initSponsors() {
+    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: 'BLUE & YELLOW NETWORK'}];
+    const track = $('sponsor-track');
+    if (!track) return;
+    track.innerHTML = sponsors.map(sp => `<span style="margin-right:40px;">${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}</span>`).join('');
+  })();
+
+  const renderBat = (batsmen) => {
+    const el = $('sum-bat-body');
+    if (!el || !batsmen) return;
+    el.innerHTML = batsmen.map(b => {
+      const isAct = (b.name === curStriker || b.name === curNonStriker) && b.outStatus !== 'out';
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.runs}</td><td>${b.balls}</td><td>${b.fours||0}</td><td>${b.sixes||0}</td><td>${b.sr||b.strikeRate||0}</td></tr>`;
+    }).join('');
+  };
+
+  const renderBowl = (bowlers) => {
+    const el = $('sum-bowl-body');
+    if (!el || !bowlers) return;
+    el.innerHTML = bowlers.map(b => {
+      const isAct = (b.name === curBowler);
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--c-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
+    }).join('');
+  };
+
+  const hideBaseUI = () => {
+    if($('scoreboard-container')) $('scoreboard-container').classList.add('base-ui-hide');
+    if($('sponsor-bar')) $('sponsor-bar').classList.add('base-ui-hide');
+    if($('target-bar')) $('target-bar').classList.add('base-ui-hide');
+    if($('intro-cards-wrapper')) $('intro-cards-wrapper').classList.add('base-ui-hide');
+    if($('side-card-wrapper')) $('side-card-wrapper').classList.add('base-ui-hide');
+  };
+
+  const showBaseUI = () => {
+    if($('scoreboard-container')) $('scoreboard-container').classList.remove('base-ui-hide');
+    if($('sponsor-bar')) $('sponsor-bar').classList.remove('base-ui-hide');
+    if($('target-bar')) $('target-bar').classList.remove('base-ui-hide');
+    if($('intro-cards-wrapper')) $('intro-cards-wrapper').classList.remove('base-ui-hide');
+    if($('side-card-wrapper')) $('side-card-wrapper').classList.remove('base-ui-hide');
+  };
+
+  function showActionAnim(id, duration) {
+    remCls('anim-four','fire'); remCls('anim-six','fire'); remCls('anim-wicket','fire');
+    clearTimeout(actionTimer);
+    addCls(id, 'fire');
+    actionTimer = setTimeout(() => {
+        remCls(id, 'fire');
+    }, duration);
+  }
+
+  function restoreToLive() {
+    clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    
+    const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
+    ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
+    
+    remCls('intro-cards-wrapper', 'active-intro');
+    remCls('side-card-wrapper', 'active-side');
+    ['switch-card','profile-card'].forEach(id => remCls(id, 'active'));
+
+    const sb = $('scoreboard-container');
+    if (sb) { sb.classList.remove('state-vs'); sb.classList.add('state-live'); }
+    if($('toss-msg-container')) $('toss-msg-container').style.opacity = '0';
+    showBaseUI();
+  }
+
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'UPDATE_SCORE' && e.data.data) { processData(e.data.data); return; }
+    if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
+    
+    const t = e.data.payload;
+    const data = t.data || {};
+    const fl = $('fullscreen-layer');
+
+    switch (t.type) {
+      case 'FOUR': showActionAnim('anim-four', DURATIONS.event); break;
+      case 'SIX': showActionAnim('anim-six', DURATIONS.event); break;
+      
+      case 'WICKET':
+      case 'WICKET_SWITCH':
+        showActionAnim('anim-wicket', DURATIONS.event);
+        if (data.outName) {
+          if($('switch-card')) $('switch-card').classList.add('active'); 
+          if($('profile-card')) $('profile-card').classList.remove('active');
+          
+          if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-red)';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-red)';
+          
+          safeSet('sw-out-name', data.outName);
+          safeSet('sw-out-desc', data.howOut || 'Substitution');
+          safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
+          
+          if (data.inName) {
+            safeSet('sw-in-name', data.inName); 
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if (data.inRuns !== undefined) { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
+                safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
+            } else { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.add('hide'); 
+            }
+            if($('sw-in-block')) $('sw-in-block').style.display = 'flex';
+          } else { 
+            if($('sw-in-block')) $('sw-in-block').style.display = 'none'; 
+          }
+          addCls('side-card-wrapper', 'active-side');
+          triggerAutoShrink();
+          setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+        }
+        break;
+
+      case 'BATSMAN_CHANGE':
+        if (data.outName) {
+          if($('switch-card')) $('switch-card').classList.add('active'); 
+          if($('profile-card')) $('profile-card').classList.remove('active');
+          
+          if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-slate)';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-slate)';
+          
+          safeSet('sw-out-name', data.outName);
+          safeSet('sw-out-desc', data.howOut || 'Retired');
+          safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
+          
+          if (data.inName) {
+            safeSet('sw-in-name', data.inName); 
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if (data.inRuns !== undefined) { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
+                safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
+            } else { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.add('hide'); 
+            }
+            if($('sw-in-block')) $('sw-in-block').style.display = 'flex';
+          } else { 
+            if($('sw-in-block')) $('sw-in-block').style.display = 'none'; 
+          }
+          
+          addCls('side-card-wrapper', 'active-side');
+          triggerAutoShrink();
+          setTimeout(() => {
+              remCls('side-card-wrapper', 'active-side');
+              setTimeout(() => {
+                  if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-red)';
+                  if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-red)';
+              }, 500);
+          }, DURATIONS.event);
+        }
+        break;
+
+      case 'NEW_BOWLER':
+      case 'BOWLER_PROFILE':
+      case 'BATSMAN_PROFILE': {
+        if($('profile-card')) $('profile-card').classList.add('active'); 
+        if($('switch-card')) $('switch-card').classList.remove('active');
+        
+        const isBat = t.type === 'BATSMAN_PROFILE';
+        const badgeColor = isBat ? 'var(--c-blue)' : 'var(--c-yellow)';
+        const textColor = isBat ? '#fff' : '#000';
+        
+        if($('pc-badge')) {
+            $('pc-badge').style.background = badgeColor;
+            $('pc-badge').style.color = textColor;
+            $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
+            $('profile-card').style.borderTopColor = badgeColor;
+        }
+        
+        if (data.stats && data.stats.length > 0) {
+            const nameStat = data.stats.find(s => s.label === 'BATSMAN' || s.label === 'BOWLER');
+            safeSet('pc-name', nameStat ? nameStat.value : (data.bowler || data.name || 'PROFILE'));
+            const otherStats = data.stats.filter(s => s.label !== 'BATSMAN' && s.label !== 'BOWLER');
+            if($('pc-stats-container')) {
+                $('pc-stats-container').innerHTML = otherStats.map(s => 
+                    `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:${badgeColor};">${s.value}</span></div>`
+                ).join('');
+            }
+        } else {
+            safeSet('pc-name', data.bowler || data.name || 'BOWLER');
+            if($('pc-stats-container')) {
+                $('pc-stats-container').innerHTML = `
+                    <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val" style="color:${badgeColor};">${data.overs||'0.0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val" style="color:${badgeColor};">${data.maidens||'0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val" style="color:${badgeColor};">${data.runs||'0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val" style="color:${badgeColor};">${data.wickets||'0'}</span></div>
+                `;
+            }
+        }
+        
+        addCls('side-card-wrapper', 'active-side');
+        triggerAutoShrink();
+        setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+        break;
+      }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = !decisionPendingState;
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
+        break;
+
+      case 'VS_SCREEN':
+      case 'SHOW_VS_SCREEN':
+        restoreToLive();
+        if(data.team1) safeSet('vs-t1', data.team1);
+        if(data.team2) safeSet('vs-t2', data.team2);
+        if($('scoreboard-container')) {
+            $('scoreboard-container').classList.remove('state-live'); 
+            $('scoreboard-container').classList.add('state-vs');
+        }
+        if($('toss-msg-container')) $('toss-msg-container').style.opacity = '0';
+        break;
+
+      case 'SHOW_SQUADS':
+      case 'SHOW_TOSS':
+        restoreToLive();
+        hideBaseUI(); 
+        safeSet('squads-toss-header', data.text || (t.type === 'SHOW_TOSS' ? 'TOSS COMPLETED' : 'PLAYING XI')); 
+        
+        if (data.team1Players && $('sq-t1-list')) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--c-blue); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team2Players && $('sq-t2-list')) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--c-yellow); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        
+        if(fl) { fl.classList.remove('layer-hide'); fl.classList.add('layer-show'); }
+        if($('squads-tab')) { $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show'); }
+        triggerAutoShrink();
+        setTimeout(() => restoreToLive(), t.type === 'SHOW_TOSS' ? DURATIONS.toss : (DURATIONS.squad || 12000));
+        break;
+
+      case 'START_INNINGS_INTRO':
+        safeSet('intro-striker', data.striker); safeSet('intro-nonstriker', data.nonStriker); safeSet('intro-bowler', data.bowler);
+        addCls('intro-cards-wrapper', 'active-intro');
+        triggerAutoShrink();
+        setTimeout(() => remCls('intro-cards-wrapper', 'active-intro'), DURATIONS.intro);
+        break;
+
+      case '50_RUNS': case '100_RUNS':
+        safeSet('ms-text', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`);
+        addCls('anim-milestone', 'fire');
+        triggerAutoShrink();
+        setTimeout(() => remCls('anim-milestone', 'fire'), DURATIONS.milestone);
+        break;
+
+      case 'BATTING_CARD': case 'BOWLING_CARD': case 'BOTH_CARDS':
+        restoreToLive(); 
+        hideBaseUI();
+        if(fl) { fl.classList.remove('layer-hide'); fl.classList.add('layer-show'); }
+        if($('summary-tab')) { $('summary-tab').classList.remove('tab-hide'); $('summary-tab').classList.add('tab-show'); }
+        safeSet('sum-header', 'CURRENT SUMMARY');
+        
+        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') { if($('sum-bat-col')) $('sum-bat-col').style.display = 'flex'; if (data.batsmen) renderBat(data.batsmen); } else { if($('sum-bat-col')) $('sum-bat-col').style.display = 'none'; }
+        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') { if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'flex'; if (data.bowlers) renderBowl(data.bowlers); } else { if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'none'; }
+        triggerAutoShrink();
+        break;
+
+      case 'INNINGS_BREAK':
+        restoreToLive(); 
+        hideBaseUI();
+        if(fl) { fl.classList.remove('layer-hide'); fl.classList.add('layer-show'); }
+        if($('target-tab')) { $('target-tab').classList.remove('tab-hide'); $('target-tab').classList.add('tab-show'); }
+        safeSet('target-score', data.targetScore || data.target || 0); safeSet('target-team', data.chasingTeam || 'TEAM 2');
+        breakTimer = setTimeout(() => restoreToLive(), DURATIONS.inningsBreak);
+        break;
+
+      case 'MATCH_END':
+        restoreToLive(); 
+        hideBaseUI();
+        if(fl) { fl.classList.remove('layer-hide'); fl.classList.add('layer-show'); }
+        const winTab = $('winner-tab'); 
+        if(winTab) { winTab.classList.remove('tab-hide'); winTab.classList.add('tab-show'); }
+        safeSet('win-team', data.winnerTeam || 'MATCH CONCLUDED'); safeSet('win-margin', data.winMargin || '');
+        triggerAutoShrink();
+        
+        setTimeout(() => {
+          if(winTab) { winTab.classList.remove('tab-show'); winTab.classList.add('tab-hide'); }
+          const sumTab = $('summary-tab'); 
+          if(sumTab) { sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show'); }
+          
+          let currentTeamIdx = 1;
+          clearInterval(endMatchInterval);
+          
+          const flip = () => {
+             const tm = currentTeamIdx === 1 ? data.team1 : data.team2;
+             if (tm) {
+                 safeSet('sum-header', (tm.name||'') + ' INNINGS');
+                 if($('sum-bat-col')) $('sum-bat-col').style.display = 'flex'; 
+                 if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'flex';
+                 renderBat(tm.batsmen); renderBowl(tm.bowlers);
+                 triggerAutoShrink();
+             }
+             currentTeamIdx = currentTeamIdx === 1 ? 2 : 1;
+          };
+          
+          if(data.team1) flip();
+          
+          endMatchInterval = setInterval(() => {
+             if(sumTab) sumTab.style.opacity = '0';
+             setTimeout(() => { flip(); if(sumTab) sumTab.style.opacity = '1'; }, 400);
+          }, DURATIONS.matchEndSwitch);
+
+        }, DURATIONS.matchEndSwitch);
+        break;
+
+      case 'RESTORE': restoreToLive(); break;
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

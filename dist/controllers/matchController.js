@@ -7,7 +7,6 @@ exports.getLiveMatches = exports.updateMatchStatus = exports.endMatch = exports.
 const Match_1 = __importDefault(require("../models/Match"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
-const Player_1 = __importDefault(require("../models/Player"));
 // ─── REUSABLE POPULATE OPTIONS (FIX FOR PLAYER NAMES MISSING) ───────────────
 const teamPopulateOptions = [
     {
@@ -192,14 +191,37 @@ const selectPlayers = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
+        const prevBowler = match.currentBowlerName;
         await match.selectPlayers({ striker, nonStriker, bowler });
         const io = req.app.get('io');
-        if (io)
+        // Determine which change card to show
+        const bowlerChanged = bowler && bowler !== prevBowler;
+        let changeTrigger = null;
+        if (bowlerChanged) {
+            changeTrigger = {
+                type: 'BOWLER_CHANGE',
+                duration: 8,
+                data: { newBowlerName: bowler, prevBowlerName: prevBowler || '' }
+            };
+        }
+        else if (striker || nonStriker) {
+            changeTrigger = {
+                type: 'PLAYER_CHANGE',
+                duration: 8,
+                data: { newBatsmanName: striker || nonStriker, striker, nonStriker }
+            };
+        }
+        if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', {
                 striker: match.strikerName,
                 nonStriker: match.nonStrikerName,
-                bowler: match.currentBowlerName
+                bowler: match.currentBowlerName,
+                changeTrigger,
             });
+            if (changeTrigger) {
+                io.to(`match:${match._id}`).emit('overlayTrigger', changeTrigger);
+            }
+        }
         res.json({
             success: true,
             message: 'Players selected',
@@ -238,47 +260,79 @@ const addBall = async (req, res, next) => {
         // 🧠 THE BRAIN: OVERLAY TRIGGER LOGIC
         // ==========================================
         let activeTrigger = null;
-        if (result.isWicket && result.outBatsmanName) {
-            // Fetch career stats for the out player
-            const outPlayer = await Player_1.default.findOne({ name: result.outBatsmanName });
+        const currentInningsData = match.innings?.[match.currentInnings - 1];
+        const allBatsmen = currentInningsData?.batsmen || [];
+        const allBowlers = currentInningsData?.bowlers || [];
+        // Build rich batting summary (all batsmen who batted)
+        const battingSummary = allBatsmen.map((b) => ({
+            name: b.name,
+            runs: b.runs ?? 0,
+            balls: b.balls ?? 0,
+            fours: b.fours ?? 0,
+            sixes: b.sixes ?? 0,
+            strikeRate: b.strikeRate ?? 0,
+            isOut: b.isOut ?? false,
+            outType: b.outType ?? '',
+        }));
+        // Build rich bowling summary
+        const bowlingSummary = allBowlers.map((b) => ({
+            name: b.name,
+            overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
+            runs: b.runs ?? 0,
+            wickets: b.wickets ?? 0,
+            economy: b.economy ?? 0,
+        }));
+        if (result.isWicket) {
             activeTrigger = {
-                type: 'WICKET_FALLEN',
-                duration: 15, // Display for 15 seconds
-                payload: {
-                    playerName: result.outBatsmanName,
-                    careerStats: outPlayer ? outPlayer.battingStats : null
+                type: 'WICKET',
+                duration: 8,
+                data: {
+                    playerName: result.outBatsmanName || '',
+                    outType: result.outType || 'out',
+                    runs: result.strikerMatchRuns ?? 0,
+                    balls: result.strikerMatchBalls ?? 0,
+                    newBatsmanName: '', // will be filled once player select done
                 }
             };
         }
         else if (result.isSix) {
             activeTrigger = {
-                type: 'BOUNDARY_SIX',
-                duration: 8,
-                payload: {
+                type: 'SIX',
+                duration: 5,
+                data: {
                     playerName: match.strikerName,
-                    matchRuns: result.strikerMatchRuns,
-                    matchBalls: result.strikerMatchBalls
+                    runs: result.strikerMatchRuns ?? 0,
+                    balls: result.strikerMatchBalls ?? 0,
                 }
             };
         }
         else if (result.isFour) {
             activeTrigger = {
-                type: 'BOUNDARY_FOUR',
-                duration: 6,
-                payload: {
+                type: 'FOUR',
+                duration: 4,
+                data: {
                     playerName: match.strikerName,
-                    matchRuns: result.strikerMatchRuns,
-                    matchBalls: result.strikerMatchBalls
+                    runs: result.strikerMatchRuns ?? 0,
+                    balls: result.strikerMatchBalls ?? 0,
                 }
             };
         }
         else if (result.overChanged && result.completedOverNumber) {
-            // Dynamic Logic: Show Batsman card on Even overs, Bowler card on Odd overs
-            if (result.completedOverNumber % 2 === 0) {
-                activeTrigger = { type: 'BATSMAN_CARD', duration: 12, payload: {} };
+            // Auto-stats: alternate batting/bowling card each over
+            const overNum = result.completedOverNumber;
+            if (overNum % 2 === 0) {
+                activeTrigger = {
+                    type: 'BATTING_SUMMARY',
+                    duration: 12,
+                    data: { batsmen: battingSummary, teamName: currentInningsData?.teamName || '', innings: match.currentInnings }
+                };
             }
             else {
-                activeTrigger = { type: 'BOWLER_CARD', duration: 12, payload: {} };
+                activeTrigger = {
+                    type: 'BOWLING_SUMMARY',
+                    duration: 12,
+                    data: { bowlers: bowlingSummary, teamName: '', innings: match.currentInnings }
+                };
             }
         }
         const io = req.app.get('io');
@@ -287,21 +341,75 @@ const addBall = async (req, res, next) => {
                 match: match.toObject(),
                 result,
                 overSummary: match.getOverSummary(),
-                activeTrigger // <--- New payload attached here
+                activeTrigger,
+                battingSummary,
+                bowlingSummary,
             });
         }
-        // Handle innings end
+        // Handle innings end — fire TARGET_CARD then INNING_START
         if (result.inningsEnded && !result.matchEnded) {
-            if (io)
+            const inn1 = match.innings?.[0];
+            const targetScore = (inn1?.score ?? 0) + 1;
+            if (io) {
+                // 1. Innings summary for completed innings
                 io.to(`match:${match._id}`).emit('inningsEnded', {
                     inningsNumber: match.currentInnings - 1,
-                    score: result.score,
-                    wickets: result.wickets
+                    score: inn1?.score ?? 0,
+                    wickets: inn1?.wickets ?? 0,
+                    teamName: inn1?.teamName ?? '',
+                    targetScore,
+                    battingSummary,
+                    bowlingSummary,
                 });
+                // 2. Fire TARGET_CARD trigger so overlay shows it
+                io.to(`match:${match._id}`).emit('overlayTrigger', {
+                    type: 'TARGET_CARD',
+                    duration: 10,
+                    data: {
+                        targetScore,
+                        battingTeam: match.innings?.[1]
+                            ? (match.team1Name || 'Team 2')
+                            : '',
+                        bowlingTeam: inn1?.teamName || '',
+                        inn1Score: inn1?.score ?? 0,
+                        inn1Wickets: inn1?.wickets ?? 0,
+                        inn1Overs: inn1?.balls
+                            ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}`
+                            : '0.0',
+                    }
+                });
+            }
         }
         if (result.matchEnded) {
-            if (io)
-                io.to(`match:${match._id}`).emit('matchEnded', match.toObject());
+            const inn1 = match.innings?.[0];
+            const inn2 = match.innings?.[1];
+            const fullBatting1 = (inn1?.batsmen || []).map((b) => ({
+                name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0,
+                fours: b.fours ?? 0, sixes: b.sixes ?? 0, isOut: b.isOut ?? false, outType: b.outType ?? ''
+            }));
+            const fullBowling1 = (inn1?.bowlers || []).map((b) => ({
+                name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
+                runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
+            }));
+            const fullBatting2 = (inn2?.batsmen || []).map((b) => ({
+                name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0,
+                fours: b.fours ?? 0, sixes: b.sixes ?? 0, isOut: b.isOut ?? false, outType: b.outType ?? ''
+            }));
+            const fullBowling2 = (inn2?.bowlers || []).map((b) => ({
+                name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
+                runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
+            }));
+            if (io) {
+                io.to(`match:${match._id}`).emit('matchEnded', {
+                    ...match.toObject(),
+                    matchSummary: {
+                        winner: match.winnerName || '',
+                        resultSummary: match.resultSummary || '',
+                        inn1: { teamName: inn1?.teamName || '', score: inn1?.score ?? 0, wickets: inn1?.wickets ?? 0, overs: inn1?.balls ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}` : '0.0', batting: fullBatting1, bowling: fullBowling1 },
+                        inn2: { teamName: inn2?.teamName || '', score: inn2?.score ?? 0, wickets: inn2?.wickets ?? 0, overs: inn2?.balls ? `${Math.floor(inn2.balls / 6)}.${inn2.balls % 6}` : '0.0', batting: fullBatting2, bowling: fullBowling2 },
+                    }
+                });
+            }
         }
         res.json({ success: true, data: result, match: match.toObject() });
     }
@@ -339,10 +447,38 @@ const endInnings = async (req, res, next) => {
         if (match.status !== 'live')
             return res.status(400).json({ success: false, message: 'Match is not live' });
         await match.endInnings();
-        await match.populate(teamPopulateOptions); // FIX: Deep populate for next innings
+        const inn1 = match.innings?.[0];
+        const targetScore = (inn1?.score ?? 0) + 1;
+        const inn1Batting = (inn1?.batsmen || []).map((b) => ({
+            name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0,
+            fours: b.fours ?? 0, sixes: b.sixes ?? 0, isOut: b.isOut ?? false, outType: b.outType ?? ''
+        }));
+        const inn1Bowling = (inn1?.bowlers || []).map((b) => ({
+            name: b.name, overs: b.balls ? `${Math.floor(b.balls / 6)}.${b.balls % 6}` : '0.0',
+            runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0
+        }));
         const io = req.app.get('io');
-        if (io)
-            io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
+        if (io) {
+            io.to(`match:${match._id}`).emit('inningsEnded', {
+                ...match.toObject(),
+                targetScore,
+                inn1Batting,
+                inn1Bowling,
+            });
+            io.to(`match:${match._id}`).emit('overlayTrigger', {
+                type: 'TARGET_CARD',
+                duration: 10,
+                data: {
+                    targetScore,
+                    inn1Score: inn1?.score ?? 0,
+                    inn1Wickets: inn1?.wickets ?? 0,
+                    inn1Overs: inn1?.balls ? `${Math.floor(inn1.balls / 6)}.${inn1.balls % 6}` : '0.0',
+                    inn1TeamName: inn1?.teamName || '',
+                    battingSummary: inn1Batting,
+                    bowlingSummary: inn1Bowling,
+                }
+            });
+        }
         res.json({ success: true, message: 'Innings ended', data: match });
     }
     catch (error) {

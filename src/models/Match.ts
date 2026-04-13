@@ -23,7 +23,8 @@ export interface IMatch extends Document {
 export interface AddBallData { runs?: number; wide?: boolean; noBall?: boolean; bye?: number; legBye?: number; wicket?: boolean; outType?: string; outBatsmanName?: string; outFielder?: string; retired?: boolean; penalty?: number; }
 export interface StartMatchData { tossWinnerId: string; tossWinnerName: string; tossDecision: TossDecision; battingTeamId: string; battingTeamName: string; bowlingTeamId: string; bowlingTeamName: string; striker: string; nonStriker: string; bowler: string; }
 export interface SelectPlayersData { striker?: string; nonStriker?: string; bowler?: string; }
-export interface ScoreUpdateResult { 
+export interface ScoreUpdateResult {
+  outType: string; 
   score: number; 
   wickets: number; 
   overs: string; 
@@ -93,6 +94,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
 
   return { 
+    outType: '',
     score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
     runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
     targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, 
@@ -203,6 +205,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
 
   return { 
+    outType: isWicket ? (data.outType || '') : '',
     score: innings.score, 
     wickets: innings.wickets, 
     overs: formatOvers(innings.overs, innings.balls % 6), 

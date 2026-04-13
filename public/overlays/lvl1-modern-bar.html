@@ -234,71 +234,255 @@
 
   function processData(d) {
     if (!d) return;
-
     const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
-    safeSet('teamName',      tName);
-    safeSet('teamScore',     d.team1Score    ?? d.teamScore,    0);
-    safeSet('teamWickets',   d.team1Wickets  ?? d.teamWickets,  0);
-    safeSet('teamOvers',     d.team1Overs    ?? d.teamOvers,    '0.0');
-
-    safeSet('strikerName',   d.strikerName,    'Striker');
-    safeSet('strikerRuns',   d.strikerRuns,    0);
-    safeSet('strikerBalls',  d.strikerBalls,   0);
-
-    safeSet('nonStrikerName',  d.nonStrikerName,  'Non-Striker');
-    safeSet('nonStrikerRuns',  d.nonStrikerRuns,  0);
-    safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
-
-    safeSet('bowlerName',    d.bowlerName,    'Bowler');
-    safeSet('bowlerRuns',    d.bowlerRuns,    0);
-    safeSet('bowlerWickets', d.bowlerWickets, 0);
-    safeSet('bowlerOvers',   d.bowlerOvers,   '0.0');
-
-    // Ball renderer
+    safeSet('teamName',       tName);
+    safeSet('teamScore',      d.teamScore    ?? d.team1Score,    0);
+    safeSet('teamWickets',    d.teamWickets  ?? d.team1Wickets,  0);
+    safeSet('teamOvers',      d.teamOvers    ?? d.team1Overs,    '0.0');
+    safeSet('strikerName',    d.strikerName,    'Striker');
+    safeSet('strikerRuns',    d.strikerRuns,    0);
+    safeSet('strikerBalls',   d.strikerBalls,   0);
+    safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
+    safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+    safeSet('nonStrikerBalls',d.nonStrikerBalls,0);
+    safeSet('bowlerName',     d.bowlerName,    'Bowler');
+    safeSet('bowlerRuns',     d.bowlerRuns,    0);
+    safeSet('bowlerWickets',  d.bowlerWickets, 0);
+    safeSet('bowlerOvers',    d.bowlerOvers,   '0.0');
     if (typeof window.renderCurrentOver === 'function') {
       window.renderCurrentOver(d.thisOver || []);
     }
   }
 
+  // ─── Fullscreen overlay panels (inning intro, player cards, match end) ──────
+  function showPanel(html, durationMs) {
+    let panel = document.getElementById('__overlay-panel__');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = '__overlay-panel__';
+      panel.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);animation:__panelIn 0.4s ease forwards;';
+      const style = document.createElement('style');
+      style.textContent = '@keyframes __panelIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}@keyframes __panelOut{from{opacity:1}to{opacity:0;transform:scale(1.05)}}';
+      document.head.appendChild(style);
+      document.body.appendChild(panel);
+    }
+    panel.innerHTML = html;
+    panel.style.display = 'flex';
+    panel.style.animation = '__panelIn 0.4s ease forwards';
+    if (durationMs > 0) {
+      clearTimeout(panel._timer);
+      panel._timer = setTimeout(() => hidePanel(), durationMs);
+    }
+  }
+
+  function hidePanel() {
+    const panel = document.getElementById('__overlay-panel__');
+    if (panel) {
+      panel.style.animation = '__panelOut 0.4s ease forwards';
+      setTimeout(() => { panel.style.display = 'none'; panel.innerHTML = ''; }, 400);
+    }
+  }
+
+  function playerRow(p) {
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <span style="color:#e5e7eb;font-size:13px;">${p.name||'–'}</span>
+      <span style="color:#d4af37;font-weight:700;font-size:13px;">${p.runs??0} <small style="color:#9ca3af;">(${p.balls??0})</small>${p.isOut?'<span style="color:#ef4444;font-size:11px;margin-left:6px;">'+((p.outType||'out').replace(/_/g,' ').toUpperCase())+'</span>':'<span style="color:#10b981;font-size:11px;margin-left:6px;">NOT OUT</span>'}</span>
+    </div>`;
+  }
+  function bowlerRow(b) {
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <span style="color:#e5e7eb;font-size:13px;">${b.name||'–'}</span>
+      <span style="color:#a5f3fc;font-weight:700;font-size:13px;">${b.wickets||0}-${b.runs||0} <small style="color:#9ca3af;">(${b.overs||'0.0'})</small></span>
+    </div>`;
+  }
+
   function handleTrigger(t) {
+    const type = t.type;
+    const data = t.data || t.payload || {};
     const evFour     = $('ev-four');
     const evSix      = $('ev-six');
     const evOut      = $('ev-out');
     const evDecision = $('ev-decision');
-    if (!evFour || !evSix || !evOut || !evDecision) return;
 
-    // Clear all active animations first
-    evFour.classList.remove('fire');
-    evSix.classList.remove('fire');
-    evOut.classList.remove('fire');
+    // Clear shot animations
+    if (evFour) evFour.classList.remove('fire');
+    if (evSix)  evSix.classList.remove('fire');
+    if (evOut)  evOut.classList.remove('fire');
     clearTimeout(eventTimer);
 
-    if (t.type === 'FOUR') {
-      evFour.classList.add('fire');
-      eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
-    } else if (t.type === 'SIX') {
-      evSix.classList.add('fire');
-      eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
-    } else if (t.type === 'WICKET') {
-      evOut.classList.add('fire');
-      eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-    } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = !decisionPendingState;
-      evDecision.classList.toggle('fire', decisionPendingState);
-    } else if (t.type === 'RESTORE') {
+    const shotDur = (t.duration || 4) * 1000;
+
+    if (type === 'FOUR') {
+      if (evFour) { evFour.classList.add('fire'); eventTimer = setTimeout(() => evFour.classList.remove('fire'), shotDur); }
+    }
+    else if (type === 'SIX') {
+      if (evSix) { evSix.classList.add('fire'); eventTimer = setTimeout(() => evSix.classList.remove('fire'), shotDur); }
+    }
+    else if (type === 'WICKET') {
+      if (evOut) { evOut.classList.add('fire'); eventTimer = setTimeout(() => evOut.classList.remove('fire'), shotDur); }
+      // Also show player change card
+      const dur = (t.duration || 8) * 1000;
+      showPanel(`
+        <div style="text-align:center;padding:40px 60px;background:linear-gradient(135deg,#1a0a0a,#2d0a0a);border:2px solid #b91c1c;border-radius:20px;max-width:480px;">
+          <div style="color:#ef4444;font-size:60px;margin-bottom:8px;">🎯</div>
+          <div style="color:#ef4444;font-size:48px;font-weight:900;letter-spacing:4px;">OUT!</div>
+          <div style="color:#fde047;font-size:22px;font-weight:700;margin-top:12px;">${data.playerName||''}</div>
+          <div style="color:#9ca3af;font-size:16px;margin-top:4px;">${data.runs??0} (${data.balls??0}) · ${(data.outType||'out').replace(/_/g,' ')}</div>
+          ${data.newBatsmanName ? `<div style="color:#10b981;font-size:15px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">Next: ${data.newBatsmanName}</div>` : ''}
+        </div>`, dur);
+    }
+    else if (type === 'DECISION_PENDING') {
+      decisionPendingState = !!(data.active !== undefined ? data.active : !decisionPendingState);
+      if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
+    }
+    else if (type === 'PLAYER_CHANGE') {
+      const dur = (t.duration || 8) * 1000;
+      showPanel(`
+        <div style="text-align:center;padding:40px 60px;background:linear-gradient(135deg,#0a1a0a,#0a2d0a);border:2px solid #16a34a;border-radius:20px;max-width:480px;">
+          <div style="color:#4ade80;font-size:48px;margin-bottom:8px;">🏏</div>
+          <div style="color:#4ade80;font-size:28px;font-weight:900;letter-spacing:2px;">NEW BATSMAN</div>
+          <div style="color:#fde047;font-size:24px;font-weight:700;margin-top:16px;">${data.newBatsmanName||data.striker||''}</div>
+        </div>`, dur);
+    }
+    else if (type === 'BOWLER_CHANGE') {
+      const dur = (t.duration || 8) * 1000;
+      showPanel(`
+        <div style="text-align:center;padding:40px 60px;background:linear-gradient(135deg,#0a0a1a,#0a0a2d);border:2px solid #6366f1;border-radius:20px;max-width:480px;">
+          <div style="color:#818cf8;font-size:48px;margin-bottom:8px;">🎳</div>
+          <div style="color:#818cf8;font-size:28px;font-weight:900;letter-spacing:2px;">NEW BOWLER</div>
+          <div style="color:#fde047;font-size:24px;font-weight:700;margin-top:16px;">${data.newBowlerName||''}</div>
+          ${data.prevBowlerName ? `<div style="color:#9ca3af;font-size:14px;margin-top:8px;">replacing ${data.prevBowlerName}</div>` : ''}
+        </div>`, dur);
+    }
+    else if (type === 'INNING_START' || type === 'START_INNINGS_INTRO') {
+      const dur = (t.duration || 8) * 1000;
+      const players = data.players || [];
+      showPanel(`
+        <div style="padding:32px 48px;background:linear-gradient(135deg,#0a0a1a,#1a1a0a);border:2px solid #d4af37;border-radius:20px;max-width:540px;width:100%;">
+          <div style="text-align:center;color:#d4af37;font-size:13px;letter-spacing:6px;margin-bottom:4px;">INNINGS ${data.innings||1}</div>
+          <div style="text-align:center;color:#fafafa;font-size:28px;font-weight:900;margin-bottom:4px;">${data.battingTeamName||''}</div>
+          ${data.target ? `<div style="text-align:center;color:#60a5fa;font-size:15px;margin-bottom:16px;">Target: ${data.target}</div>` : '<div style="margin-bottom:16px;"></div>'}
+          <div style="max-height:300px;overflow-y:auto;">${players.slice(0,11).map(p => `<div style="padding:5px 0;border-bottom:1px solid rgba(212,175,55,0.15);color:#e5e7eb;font-size:13px;">♦ ${p}</div>`).join('')}</div>
+        </div>`, dur);
+    }
+    else if (type === 'SHOW_VS_SCREEN') {
+      showPanel(`
+        <div style="text-align:center;padding:60px 80px;background:linear-gradient(135deg,#050505,#1a1a1a);border:2px solid #d4af37;border-radius:20px;max-width:600px;">
+          <div style="color:#9ca3af;font-size:12px;letter-spacing:6px;margin-bottom:20px;">UPCOMING MATCH</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:40px;">
+            <div style="color:#fafafa;font-size:36px;font-weight:900;">${data.team1Name||'Team 1'}</div>
+            <div style="color:#d4af37;font-size:28px;font-weight:900;padding:8px 20px;border:2px solid #d4af37;border-radius:8px;">VS</div>
+            <div style="color:#fafafa;font-size:36px;font-weight:900;">${data.team2Name||'Team 2'}</div>
+          </div>
+          <div style="color:#6b7280;font-size:13px;margin-top:20px;letter-spacing:2px;">TOSS AWAITED</div>
+        </div>`, 0);
+    }
+    else if (type === 'SHOW_TOSS') {
+      showPanel(`
+        <div style="text-align:center;padding:48px 64px;background:linear-gradient(135deg,#0a0a05,#1a1a05);border:2px solid #d4af37;border-radius:20px;max-width:520px;">
+          <div style="font-size:48px;margin-bottom:12px;">🪙</div>
+          <div style="color:#d4af37;font-size:32px;font-weight:900;margin-bottom:16px;">TOSS</div>
+          <div style="color:#fafafa;font-size:22px;font-weight:700;">${data.tossWinnerName||''} won the toss</div>
+          <div style="color:#60a5fa;font-size:18px;margin-top:12px;font-weight:600;">elected to ${data.tossDecision||'bat'}</div>
+        </div>`, (t.duration||8)*1000);
+    }
+    else if (type === 'SHOW_SQUADS') {
+      const t1p = data.team1Players || [];
+      const t2p = data.team2Players || [];
+      showPanel(`
+        <div style="padding:28px 36px;background:linear-gradient(135deg,#050510,#10100a);border:2px solid #d4af37;border-radius:20px;max-width:680px;width:100%;">
+          <div style="text-align:center;color:#d4af37;font-size:12px;letter-spacing:6px;margin-bottom:20px;">PLAYING XI</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+            <div>
+              <div style="color:#fde047;font-weight:700;margin-bottom:10px;font-size:14px;text-transform:uppercase;letter-spacing:2px;">${data.team1Name||'Team 1'}</div>
+              ${t1p.slice(0,11).map((p,i)=>`<div style="padding:4px 0;border-bottom:1px solid rgba(212,175,55,0.1);color:#e5e7eb;font-size:12px;"><span style="color:#6b7280;margin-right:8px;">${i+1}.</span>${p}</div>`).join('')}
+            </div>
+            <div>
+              <div style="color:#60a5fa;font-weight:700;margin-bottom:10px;font-size:14px;text-transform:uppercase;letter-spacing:2px;">${data.team2Name||'Team 2'}</div>
+              ${t2p.slice(0,11).map((p,i)=>`<div style="padding:4px 0;border-bottom:1px solid rgba(212,175,55,0.1);color:#e5e7eb;font-size:12px;"><span style="color:#6b7280;margin-right:8px;">${i+1}.</span>${p}</div>`).join('')}
+            </div>
+          </div>
+        </div>`, (t.duration||8)*1000);
+    }
+    else if (type === 'TARGET_CARD') {
+      showPanel(`
+        <div style="padding:36px 56px;background:linear-gradient(135deg,#0a0a1a,#0a1a2a);border:2px solid #3b82f6;border-radius:20px;max-width:500px;text-align:center;">
+          <div style="color:#93c5fd;font-size:13px;letter-spacing:4px;margin-bottom:8px;">INNINGS BREAK</div>
+          <div style="color:#fafafa;font-size:20px;font-weight:700;margin-bottom:4px;">${data.inn1TeamName||''}</div>
+          <div style="color:#fde047;font-size:52px;font-weight:900;line-height:1;">${data.inn1Score||0}<span style="font-size:28px;color:#9ca3af;"> /${data.inn1Wickets||0}</span></div>
+          <div style="color:#9ca3af;font-size:14px;margin-bottom:24px;">${data.inn1Overs||'0.0'} overs</div>
+          <div style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px 24px;">
+            <div style="color:#93c5fd;font-size:13px;letter-spacing:3px;margin-bottom:4px;">TARGET</div>
+            <div style="color:#60a5fa;font-size:56px;font-weight:900;">${data.targetScore||''}</div>
+          </div>
+        </div>`, (t.duration||10)*1000);
+    }
+    else if (type === 'BATTING_SUMMARY') {
+      const rows = (data.batsmen||data.battingSummary||[]).map(playerRow).join('');
+      showPanel(`
+        <div style="padding:28px 40px;background:linear-gradient(135deg,#0a1a0a,#050505);border:2px solid #16a34a;border-radius:20px;max-width:520px;width:100%;">
+          <div style="text-align:center;color:#4ade80;font-size:12px;letter-spacing:5px;margin-bottom:4px;">BATTING SUMMARY</div>
+          <div style="text-align:center;color:#fafafa;font-size:18px;font-weight:700;margin-bottom:16px;">Innings ${data.innings||''} · ${data.teamName||data.battingTeamName||''}</div>
+          ${rows || '<div style="color:#6b7280;text-align:center;">No data</div>'}
+        </div>`, (t.duration||12)*1000);
+    }
+    else if (type === 'BOWLING_SUMMARY') {
+      const rows = (data.bowlers||data.bowlingSummary||[]).map(bowlerRow).join('');
+      showPanel(`
+        <div style="padding:28px 40px;background:linear-gradient(135deg,#0a0a1a,#050505);border:2px solid #6366f1;border-radius:20px;max-width:520px;width:100%;">
+          <div style="text-align:center;color:#818cf8;font-size:12px;letter-spacing:5px;margin-bottom:4px;">BOWLING SUMMARY</div>
+          <div style="text-align:center;color:#fafafa;font-size:18px;font-weight:700;margin-bottom:16px;">Innings ${data.innings||''}</div>
+          ${rows || '<div style="color:#6b7280;text-align:center;">No data</div>'}
+        </div>`, (t.duration||12)*1000);
+    }
+    else if (type === 'MATCH_WIN') {
+      showPanel(`
+        <div style="text-align:center;padding:60px 80px;background:linear-gradient(135deg,#0a0a05,#1a1a05);border:2px solid #d4af37;border-radius:20px;max-width:600px;">
+          <div style="font-size:64px;margin-bottom:16px;">🏆</div>
+          <div style="color:#d4af37;font-size:14px;letter-spacing:6px;margin-bottom:12px;">MATCH RESULT</div>
+          <div style="color:#fafafa;font-size:30px;font-weight:900;">${data.winnerName||''}</div>
+          <div style="color:#4ade80;font-size:18px;font-weight:700;margin-top:8px;">WON!</div>
+          <div style="color:#9ca3af;font-size:15px;margin-top:16px;">${data.resultSummary||''}</div>
+        </div>`, (t.duration||15)*1000);
+    }
+    else if (type === 'MATCH_SUMMARY') {
+      const s = data.summary || {};
+      const i1 = s.inn1 || {};
+      const i2 = s.inn2 || {};
+      const bat1 = (i1.batting||[]).map(playerRow).join('');
+      const bowl1 = (i1.bowling||[]).map(bowlerRow).join('');
+      const bat2 = (i2.batting||[]).map(playerRow).join('');
+      const bowl2 = (i2.bowling||[]).map(bowlerRow).join('');
+      showPanel(`
+        <div style="padding:24px 32px;background:linear-gradient(135deg,#080808,#181818);border:2px solid #d4af37;border-radius:20px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;">
+          <div style="text-align:center;color:#d4af37;font-size:13px;letter-spacing:5px;margin-bottom:20px;">MATCH SUMMARY</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <div>
+              <div style="color:#4ade80;font-size:11px;letter-spacing:3px;margin-bottom:8px;">INN 1 · ${i1.teamName||''} · ${i1.score||0}/${i1.wickets||0} (${i1.overs||'0.0'})</div>
+              ${bat1}
+              <div style="color:#818cf8;font-size:11px;letter-spacing:3px;margin:12px 0 8px;">BOWLING</div>
+              ${bowl1}
+            </div>
+            <div>
+              <div style="color:#60a5fa;font-size:11px;letter-spacing:3px;margin-bottom:8px;">INN 2 · ${i2.teamName||''} · ${i2.score||0}/${i2.wickets||0} (${i2.overs||'0.0'})</div>
+              ${bat2}
+              <div style="color:#818cf8;font-size:11px;letter-spacing:3px;margin:12px 0 8px;">BOWLING</div>
+              ${bowl2}
+            </div>
+          </div>
+        </div>`, (t.duration||20)*1000);
+    }
+    else if (type === 'RESTORE') {
       decisionPendingState = false;
-      evDecision.classList.remove('fire');
+      if (evDecision) evDecision.classList.remove('fire');
+      hidePanel();
     }
   }
 
   window.addEventListener('message', function(e) {
     if (!e.data) return;
-    if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
-      processData(e.data.data);
-    }
-    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
-      handleTrigger(e.data.payload);
-    }
+    if (e.data.type === 'UPDATE_SCORE' && e.data.data) processData(e.data.data);
+    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) handleTrigger(e.data.payload);
   });
 })();
 </script>

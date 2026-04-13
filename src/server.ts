@@ -122,14 +122,25 @@ app.set('io', io);
 io.on('connection', (socket) => {
   socket.on('joinMatch', async (matchId: string) => {
     socket.join(`match:${matchId}`);
-        // ✅ FIX: Send current match state immediately on join
+    // Send current match state immediately on join so overlay refresh restores all data
     try {
-      const Match = (mongoose.models.Match as any);
-      const match = await Match.findById(matchId)
-        .populate('team1 team2 tournamentId')
+      const MatchModel = (mongoose.models.Match as any);
+      const match = await MatchModel.findById(matchId)
+        .populate({ path: 'team1', select: 'name shortName logo players', populate: { path: 'players', select: 'name role' } })
+        .populate({ path: 'team2', select: 'name shortName logo players', populate: { path: 'players', select: 'name role' } })
+        .populate('tournamentId', 'name sponsors')
         .lean();
       if (match) {
-        socket.emit('scoreUpdate', { match });
+        const currentInn = match.innings?.[match.currentInnings - 1];
+        const battingSummary = (currentInn?.batsmen || []).map((b) => ({
+          name: b.name, runs: b.runs ?? 0, balls: b.balls ?? 0,
+          fours: b.fours ?? 0, sixes: b.sixes ?? 0, isOut: b.isOut ?? false,
+        }));
+        const bowlingSummary = (currentInn?.bowlers || []).map((b) => ({
+          name: b.name, overs: b.balls ? `${Math.floor(b.balls/6)}.${b.balls%6}` : '0.0',
+          runs: b.runs ?? 0, wickets: b.wickets ?? 0, economy: b.economy ?? 0,
+        }));
+        socket.emit('scoreUpdate', { match, battingSummary, bowlingSummary });
       }
     } catch (err) {
       console.error(`Failed to send initial match ${matchId}:`, err);
@@ -163,9 +174,12 @@ io.on('connection', (socket) => {
 
   socket.on('manualOverlayTrigger', (payload: { matchId: string; trigger: any }) => {
     if (!payload?.matchId) return;
+    // Emit on scoreUpdate (for engine's activeTrigger path)
     io.to(`match:${payload.matchId}`).emit('scoreUpdate', {
       activeTrigger: payload.trigger,
     });
+    // Also emit directly on overlayTrigger channel for direct listeners
+    io.to(`match:${payload.matchId}`).emit('overlayTrigger', payload.trigger);
   });
 
   socket.on('disconnect', () => {
