@@ -109,30 +109,49 @@
         setTimeout(function() { 
           state = 'LIVE'; dispatch('RESTORE', {}); 
           if (cfg.showInningIntro) {
-            // Poll until currentBowlerName is known (player selection may not be done yet)
-            var attempts = 0;
-            var waitForBowler = setInterval(function() {
-              var d = matchData || flat;
-              attempts++;
-              if ((d.strikerName && d.currentBowlerName) || attempts >= 15) {
-                clearInterval(waitForBowler);
-                queueAnimation('START_INNINGS_INTRO', { striker: d.strikerName || flat.strikerName || '', nonStriker: d.nonStrikerName || flat.nonStrikerName || '', bowler: d.currentBowlerName || flat.currentBowlerName || '' }, cfg.introDuration);
-              }
-            }, 1000);
+            var d0 = matchData || flat;
+            if (d0.strikerName && d0.currentBowlerName) {
+              queueAnimation('START_INNINGS_INTRO', { striker: d0.strikerName, nonStriker: d0.nonStrikerName || '', bowler: d0.currentBowlerName }, cfg.introDuration);
+            } else {
+              var introQueued = false;
+              var attempts = 0;
+              var waitForBowler = setInterval(function() {
+                if (introQueued) { clearInterval(waitForBowler); return; }
+                var d = matchData || flat;
+                attempts++;
+                if ((d.strikerName && d.currentBowlerName) || attempts >= 15) {
+                  clearInterval(waitForBowler);
+                  if (!introQueued && (d.strikerName || d.currentBowlerName)) {
+                    introQueued = true;
+                    queueAnimation('START_INNINGS_INTRO', { striker: d.strikerName || '', nonStriker: d.nonStrikerName || '', bowler: d.currentBowlerName || '' }, cfg.introDuration);
+                  }
+                }
+              }, 1000);
+            }
           }
         }, cfg.squadDuration * 1000);
       } else { 
         state = 'LIVE'; dispatch('RESTORE', {}); 
         if (cfg.showInningIntro) {
-          var attempts2 = 0;
-          var waitForBowler2 = setInterval(function() {
-            var d2 = matchData || flat;
-            attempts2++;
-            if ((d2.strikerName && d2.currentBowlerName) || attempts2 >= 15) {
-              clearInterval(waitForBowler2);
-              queueAnimation('START_INNINGS_INTRO', { striker: d2.strikerName || flat.strikerName || '', nonStriker: d2.nonStrikerName || flat.nonStrikerName || '', bowler: d2.currentBowlerName || flat.currentBowlerName || '' }, cfg.introDuration);
-            }
-          }, 1000);
+          var d1 = matchData || flat;
+          if (d1.strikerName && d1.currentBowlerName) {
+            queueAnimation('START_INNINGS_INTRO', { striker: d1.strikerName, nonStriker: d1.nonStrikerName || '', bowler: d1.currentBowlerName }, cfg.introDuration);
+          } else {
+            var introQueued2 = false;
+            var attempts2 = 0;
+            var waitForBowler2 = setInterval(function() {
+              if (introQueued2) { clearInterval(waitForBowler2); return; }
+              var d2 = matchData || flat;
+              attempts2++;
+              if ((d2.strikerName && d2.currentBowlerName) || attempts2 >= 15) {
+                clearInterval(waitForBowler2);
+                if (!introQueued2 && (d2.strikerName || d2.currentBowlerName)) {
+                  introQueued2 = true;
+                  queueAnimation('START_INNINGS_INTRO', { striker: d2.strikerName || '', nonStriker: d2.nonStrikerName || '', bowler: d2.currentBowlerName || '' }, cfg.introDuration);
+                }
+              }
+            }, 1000);
+          }
         }
       }
     }, cfg.tossDuration * 1000);

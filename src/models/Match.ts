@@ -83,7 +83,12 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   if (data.retired || data.penalty) {
     if (data.retired) {
       const outBatsman = innings.batsmen.find((b: IBatsman) => b.name === data.outBatsmanName && !b.isOut);
-      if (outBatsman) { outBatsman.isOut = true; outBatsman.outType = 'retired_hurt'; outBatsman.isStriker = false; innings.wickets += 1; innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName }); }
+      if (outBatsman) {
+        // Retired hurt: mark as isOut with retired_hurt outType but do NOT count as a batting wicket
+        // (overlay-utils displays retired_hurt as not_out; player can return if needed)
+        outBatsman.isOut = true; outBatsman.outType = 'retired_hurt'; outBatsman.isStriker = false;
+        // Note: we do NOT increment innings.wickets — retired hurt is not a dismissal wicket
+      }
     }
     if (data.penalty) { innings.score += data.penalty; innings.extras.total += data.penalty; }
     this._updateSummary(innings); this.markModified('innings'); await this.save();
@@ -94,12 +99,12 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
 
   return { 
-    outType: '',
+    outType: data.retired ? 'retired_hurt' : '',
     score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
     runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
-    targetScore: innings.targetScore, ballDescription: data.retired ? 'Retired' : `+${data.penalty} Penalty`, 
+    targetScore: innings.targetScore, ballDescription: data.retired ? `Retired Hurt (${data.outBatsmanName})` : `+${data.penalty} Penalty`, 
     overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired,
-    isFour: false, isSix: false, isWicket: !!data.retired, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
+    isFour: false, isSix: false, isWicket: false, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
     completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
     totalFours,
     totalSixes
@@ -113,7 +118,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   const striker = innings.batsmen[strikerIdx]; const bowler = bowlerIdx >= 0 ? innings.bowlers[bowlerIdx] : null;
 
   let isLegalDelivery = !isWide && !isNoBall; let extrasRuns = 0; let ballDesc = '';
-  const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets };
+  const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', outBatsmanName: data.outBatsmanName || (isWicket ? striker.name : ''), batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets };
   innings.ballHistory.push(historyEntry);
 
   if (isWide) { extrasRuns = 1 + runs + byeRuns + legByeRuns; innings.extras.wides += 1; innings.extras.total += extrasRuns; innings.score += extrasRuns; if (bowler) { bowler.runs += extrasRuns; bowler.wides += 1; } ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`; isLegalDelivery = false;
@@ -282,10 +287,10 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
   if (!last.extras.includes('wide') && !last.extras.includes('nb')) { if (innings.balls > 0) innings.balls -= 1; }
   innings.overs = Math.floor(innings.balls / 6);
 
-  if (last.wicket) {
-    innings.fallOfWickets.pop();
+  if (last.wicket || last.outType === 'retired_hurt') {
+    if (last.wicket) innings.fallOfWickets.pop();
     const outBatsman = innings.batsmen.find((b: IBatsman) => b.name === last.batsmanName && b.isOut);
-    if (outBatsman) { outBatsman.isOut = false; outBatsman.outType = undefined; outBatsman.outTo = undefined; }
+    if (outBatsman) { outBatsman.isOut = false; outBatsman.outType = undefined; outBatsman.outTo = undefined; outBatsman.outFielder = undefined; }
   }
 
   const batsman = innings.batsmen.find((b: IBatsman) => b.name === last.batsmanName);
@@ -327,7 +332,11 @@ MatchSchema.methods.selectPlayers = async function(data: SelectPlayersData): Pro
     this.nonStrikerName = data.nonStriker;
     const existing = innings.batsmen.find((b: IBatsman) => b.name === data.nonStriker);
     if (!existing) { innings.batsmen.push({ name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls }); } 
-    else { existing.isStriker = false; existing.isOut = false; }
+    else { 
+      existing.isStriker = false; 
+      // Only restore if retired hurt (can return to bat)
+      if (existing.outType === 'retired_hurt' || existing.outType === 'retired') { existing.isOut = false; existing.outType = undefined; }
+    }
   }
 
   innings.batsmen.forEach((b: IBatsman) => {
