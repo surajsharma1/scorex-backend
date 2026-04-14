@@ -245,23 +245,34 @@
         if (!cfg.showMatchEnd && !isManual) return;
         // Build team1/team2 from innings data so template flip() has batsmen & bowlers
         (function() {
-          var rawMatch = (data.match || flat.match || flat);
+          // flat._raw is the original raw payload stored by overlay-utils; use it to get innings arrays
+          var rawMatch = (data.match) || (flat._raw && (flat._raw.match || flat._raw)) || flat;
           var inn1 = (rawMatch.innings && rawMatch.innings[0]) || {};
           var inn2 = (rawMatch.innings && rawMatch.innings[1]) || {};
-          var buildTeam = function(inn) {
+          // Also try overlay-utils pre-built arrays as fallback
+          var inn1Bat  = inn1.batsmen  || flat.inn1Batting  || [];
+          var inn1Bowl = inn1.bowlers  || flat.inn1Bowling  || [];
+          var inn2Bat  = inn2.batsmen  || flat.inn2Batting  || [];
+          var inn2Bowl = inn2.bowlers  || flat.inn2Bowling  || [];
+          var buildTeam = function(name, bats, bowls) {
             return {
-              name: inn.teamName || '',
-              batsmen: (inn.batsmen || []).map(function(b) {
-                return { name: b.name, runs: b.runs||0, balls: b.balls||0, fours: b.fours||0, sixes: b.sixes||0, sr: b.strikeRate||0, isOut: b.isOut||false };
+              name: name || '',
+              batsmen: bats.map(function(b) {
+                return { name: b.name, runs: b.runs||0, balls: b.balls||0, fours: b.fours||0, sixes: b.sixes||0, sr: b.strikeRate||b.sr||0, isOut: b.isOut||false };
               }),
-              bowlers: (inn.bowlers || []).map(function(b) {
-                return { name: b.name, overs: b.balls ? (Math.floor(b.balls/6) + '.' + (b.balls%6)) : '0.0', maidens: b.maidens||0, runs: b.runs||0, wickets: b.wickets||0, economy: b.economy||0 };
+              bowlers: bowls.map(function(b) {
+                return { name: b.name, overs: b.overs || (b.balls ? (Math.floor(b.balls/6)+'.'+b.balls%6) : '0.0'), maidens: b.maidens||0, runs: b.runs||0, wickets: b.wickets||0, economy: b.economy||0 };
               })
             };
           };
+          var t1Name = inn1.teamName || flat.inn1TeamName || flat.team1Name || '';
+          var t2Name = inn2.teamName || flat.inn2TeamName || flat.team2Name || '';
           var matchEndData = Object.assign({}, richData, {
-            team1: richData.team1 || buildTeam(inn1),
-            team2: richData.team2 || buildTeam(inn2)
+            // Map winnerName/resultSummary (from overlay-utils) to what the template reads
+            winnerTeam: data.winnerTeam || richData.winnerTeam || flat.winnerName || '',
+            winMargin:  data.winMargin  || richData.winMargin  || flat.resultSummary || '',
+            team1: richData.team1 || buildTeam(t1Name, inn1Bat, inn1Bowl),
+            team2: richData.team2 || buildTeam(t2Name, inn2Bat, inn2Bowl)
           });
           queueAnimation('MATCH_END', matchEndData, cfg.matchSummaryDuration);
         })();

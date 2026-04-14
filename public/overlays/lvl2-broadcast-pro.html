@@ -433,9 +433,10 @@
     safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
     safeSet('bat-team', t1); safeSet('bowl-team', t2);
     
-    safeSet('score', d.team1Score ?? d.teamScore, 0);
-    safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
-    safeSet('overs', d.team1Overs ?? d.teamOvers, '0.0');
+    // Use battingTeam context-aware fields from overlay-utils (handles inn1/inn2 correctly)
+    safeSet('score', d.teamScore ?? d.team1Score, 0);
+    safeSet('wickets', d.teamWickets ?? d.team1Wickets, 0);
+    safeSet('overs', d.teamOvers ?? d.team1Overs, '0.0');
 
     curBowler = d.bowlerName || 'Bowler';
     safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0); safeSet('b-ov', d.bowlerOvers, '0.0');
@@ -628,7 +629,9 @@
       case 'SHOW_TOSS':
         restoreToLive();
         hideBaseUI(); 
-        safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
+        safeSet('squads-toss-header', data.text || 'TOSS COMPLETED');
+        safeSet('sq-t1-name', data.team1Name || (data.team1ShortName || 'TEAM 1'));
+        safeSet('sq-t2-name', data.team2Name || (data.team2ShortName || 'TEAM 2'));
         
         if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--gold-solid); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
         if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--gold-solid); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');

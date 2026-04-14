@@ -91,15 +91,16 @@ window.normalizeScoreData = function(data) {
 
   // ── Summary arrays ────────────────────────────────────────────────────────
   var battingSummary = data.battingSummary || batsmen.map(function(b){
-    return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut:b.isOut||false, outType:b.outType||'' };
+    var isRetired = b.outType === 'retired_hurt' || b.outType === 'retired';
+    return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut: isRetired ? false : (b.isOut||false), outType:b.outType||'' };
   });
   var bowlingSummary = data.bowlingSummary || bowlers.map(function(b){
     return { name:b.name, overs:b.balls?(Math.floor(b.balls/6)+'.'+b.balls%6):'0.0', runs:b.runs||0, wickets:b.wickets||0, economy:b.economy||0 };
   });
 
-  var inn1Batting = (inn1.batsmen||[]).map(function(b){ return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut:b.isOut||false, outType:b.outType||'' }; });
+  var inn1Batting = (inn1.batsmen||[]).map(function(b){ var isRetired = b.outType==='retired_hurt'||b.outType==='retired'; return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut: isRetired ? false : (b.isOut||false), outType:b.outType||'' }; });
   var inn1Bowling = (inn1.bowlers||[]).map(function(b){ return { name:b.name, overs:b.balls?(Math.floor(b.balls/6)+'.'+b.balls%6):'0.0', runs:b.runs||0, wickets:b.wickets||0, economy:b.economy||0 }; });
-  var inn2Batting = (inn2.batsmen||[]).map(function(b){ return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut:b.isOut||false, outType:b.outType||'' }; });
+  var inn2Batting = (inn2.batsmen||[]).map(function(b){ var isRetired = b.outType==='retired_hurt'||b.outType==='retired'; return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut: isRetired ? false : (b.isOut||false), outType:b.outType||'' }; });
   var inn2Bowling = (inn2.bowlers||[]).map(function(b){ return { name:b.name, overs:b.balls?(Math.floor(b.balls/6)+'.'+b.balls%6):'0.0', runs:b.runs||0, wickets:b.wickets||0, economy:b.economy||0 }; });
 
   var team1Players = (matchObj.team1&&matchObj.team1.players ? matchObj.team1.players : []).map(function(p){ return p.name||p; });
