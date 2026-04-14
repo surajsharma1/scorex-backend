@@ -247,7 +247,7 @@ const startup = async () => {
     console.warn('⚠️ Server starting WITHOUT DB - API will return 503 until DB reconnects');
   }
 
-  httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
 };
