@@ -150,7 +150,9 @@ MatchSchema.methods.addBall = async function (data) {
     let isLegalDelivery = !isWide && !isNoBall;
     let extrasRuns = 0;
     let ballDesc = '';
-    const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', outBatsmanName: data.outBatsmanName || (isWicket ? striker.name : ''), batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets };
+    const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', outBatsmanName: data.outBatsmanName || (isWicket ? striker.name : ''), batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets,
+        // Snapshot positions BEFORE this ball so undo can restore exactly
+        strikerBefore: this.strikerName, nonStrikerBefore: this.nonStrikerName, bowlerBefore: this.currentBowlerName };
     innings.ballHistory.push(historyEntry);
     if (isWide) {
         extrasRuns = 1 + runs + byeRuns + legByeRuns;
@@ -405,17 +407,21 @@ MatchSchema.methods.undoLastBall = async function () {
     const last = innings.ballHistory.pop();
     if (!last)
         throw new Error('No history to undo');
+    // Restore score and wickets to exactly what they were before this ball
     innings.score = last.totalBefore;
     innings.wickets = last.wicketsBefore;
-    if (!last.extras.includes('wide') && !last.extras.includes('nb')) {
+    // Restore ball count (wides and no-balls don't count as legal deliveries)
+    if (last.extras !== 'wide' && last.extras !== 'nb') {
         if (innings.balls > 0)
             innings.balls -= 1;
     }
     innings.overs = Math.floor(innings.balls / 6);
+    // Restore dismissed batsman to active (wicket or retired hurt)
     if (last.wicket || last.outType === 'retired_hurt') {
         if (last.wicket)
             innings.fallOfWickets.pop();
-        const outBatsman = innings.batsmen.find((b) => b.name === last.batsmanName && b.isOut);
+        const outName = last.outBatsmanName || last.batsmanName;
+        const outBatsman = innings.batsmen.find((b) => b.name === outName && b.isOut);
         if (outBatsman) {
             outBatsman.isOut = false;
             outBatsman.outType = undefined;
@@ -423,8 +429,9 @@ MatchSchema.methods.undoLastBall = async function () {
             outBatsman.outFielder = undefined;
         }
     }
+    // Restore batsman stats
     const batsman = innings.batsmen.find((b) => b.name === last.batsmanName);
-    if (batsman && !last.extras.includes('wide')) {
+    if (batsman && last.extras !== 'wide') {
         if (batsman.balls > 0)
             batsman.balls -= 1;
         batsman.runs -= last.runs;
@@ -434,9 +441,10 @@ MatchSchema.methods.undoLastBall = async function () {
             batsman.sixes -= 1;
         batsman.strikeRate = batsman.balls > 0 ? parseFloat(((batsman.runs / batsman.balls) * 100).toFixed(1)) : 0;
     }
+    // Restore bowler stats
     const bowler = innings.bowlers.find((b) => b.name === last.bowlerName);
     if (bowler) {
-        if (!last.extras.includes('wide') && !last.extras.includes('nb')) {
+        if (last.extras !== 'wide' && last.extras !== 'nb') {
             if (bowler.balls > 0)
                 bowler.balls -= 1;
             bowler.overs = Math.floor(bowler.balls / 6);
@@ -446,6 +454,7 @@ MatchSchema.methods.undoLastBall = async function () {
         bowler.runs -= last.runs;
         bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
     }
+    // Restore extras
     if (last.extras === 'wide' && innings.extras.wides > 0)
         innings.extras.wides -= 1;
     if (last.extras === 'nb' && innings.extras.noBalls > 0)
@@ -455,6 +464,18 @@ MatchSchema.methods.undoLastBall = async function () {
     if (last.extras === 'lb' && innings.extras.legByes > 0)
         innings.extras.legByes -= last.runs;
     innings.extras.total = innings.extras.wides + innings.extras.noBalls + innings.extras.byes + innings.extras.legByes;
+    // ── CRITICAL: restore striker/nonStriker/bowler to their state BEFORE this ball ──
+    if (last.strikerBefore) {
+        this.strikerName = last.strikerBefore;
+        this.nonStrikerName = last.nonStrikerBefore || '';
+    }
+    if (last.bowlerBefore) {
+        this.currentBowlerName = last.bowlerBefore;
+    }
+    // Sync isStriker flags on batsmen array to match restored names
+    innings.batsmen.forEach((b) => {
+        b.isStriker = (b.name === this.strikerName);
+    });
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
     this._updateSummary(innings);
     this.markModified('innings');
@@ -472,7 +493,11 @@ MatchSchema.methods.selectPlayers = async function (data) {
         }
         else {
             existing.isStriker = true;
-            existing.isOut = false;
+            // Only clear isOut for retired hurt — dismissed players stay out
+            if (existing.outType === 'retired_hurt' || existing.outType === 'retired') {
+                existing.isOut = false;
+                existing.outType = undefined;
+            }
         }
     }
     if (data.nonStriker) {
