@@ -205,7 +205,7 @@
       case 'WICKET_SWITCH':    if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
       case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange && !isManual) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
       case 'NEW_BOWLER':       if (!cfg.showBowlerChange && !isManual) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
-      
+      case 'DECISION_PENDING':  if (!cfg.decisionPending && !isManual) return; queueAnimation('DECISION_PENDING'); break;
       case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, dur); break;
       case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, dur); break;
       case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, dur); break; 
@@ -228,7 +228,7 @@
         // Use explicit active flag if provided, otherwise toggle current state
         decisionPending = (typeof data.active !== 'undefined') ? !!data.active : !decisionPending;
         if (decisionPending) { 
-          animQueue = []; isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0); // Indefinite lock
+          animQueue = ['DECISION_PENDING']; isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0);
         } else { 
           isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); 
         }
