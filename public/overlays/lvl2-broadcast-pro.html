@@ -510,6 +510,19 @@
   window.addEventListener('message', function(e) {
     if (!e.data) return;
     if (e.data.type === 'UPDATE_SCORE' && e.data.data) { processData(e.data.data); return; }
+    if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
+      const track = $('sponsor-track');
+      if (track) {
+        const spons = e.data.sponsors.filter(s => s && s.name);
+        if (spons.length === 0) { track.innerHTML = ''; return; }
+        // Duplicate items for seamless infinite loop
+        const items = [...spons, ...spons].map(s =>
+          `<span class="sponsor-item"><span>${s.name}</span>${s.tagline ? `<span style="opacity:0.7;font-weight:400"> — ${s.tagline}</span>` : ''}</span>`
+        ).join('');
+        track.innerHTML = items;
+      }
+      return;
+    }
     if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
     
     const t = e.data.payload;
@@ -683,35 +696,34 @@
         fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
         const winTab = $('winner-tab'); 
         winTab.classList.remove('tab-hide'); winTab.classList.add('tab-show');
-        safeSet('win-team', data.winnerTeam || 'MATCH CONCLUDED'); safeSet('win-margin', data.winMargin || '');
+        safeSet('win-team', data.winnerTeam || data.winnerName || data.winner || 'MATCH CONCLUDED'); safeSet('win-margin', data.winMargin || data.resultSummary || data.result || '');
         triggerAutoShrink();
         
-        setTimeout(() => {
-          winTab.classList.remove('tab-show'); winTab.classList.add('tab-hide');
-          const sumTab = $('summary-tab'); 
-          sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show');
-          
-          let currentTeamIdx = 1;
-          clearInterval(endMatchInterval);
-          
-          const flip = () => {
-             const tm = currentTeamIdx === 1 ? data.team1 : data.team2;
-             if (tm) {
-                 safeSet('sum-header', (tm.name||'') + ' INNINGS');
-                 $('sum-bat-col').style.display = 'flex'; $('sum-bowl-col').style.display = 'flex';
-                 renderBat(tm.batsmen); renderBowl(tm.bowlers);
-                 triggerAutoShrink();
-             }
-             currentTeamIdx = currentTeamIdx === 1 ? 2 : 1;
-          };
-          
-          if(data.team1) flip();
-          
-          endMatchInterval = setInterval(() => {
-             sumTab.style.opacity = '0';
-             setTimeout(() => { flip(); sumTab.style.opacity = '1'; }, 400);
-          }, DURATIONS.matchEndSwitch);
+        // Show winner result, then flip between team innings summaries forever
+        const sumTab = $('summary-tab');
+        let currentTeamIdx = 1;
+        clearInterval(endMatchInterval);
 
+        const flip = () => {
+          const tm = currentTeamIdx === 1 ? data.team1 : data.team2;
+          if (tm) {
+            winTab.classList.remove('tab-show'); winTab.classList.add('tab-hide');
+            sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show');
+            safeSet('sum-header', (tm.name||'') + ' INNINGS');
+            $('sum-bat-col').style.display = 'flex'; $('sum-bowl-col').style.display = 'flex';
+            renderBat(tm.batsmen); renderBowl(tm.bowlers);
+            triggerAutoShrink();
+          }
+          currentTeamIdx = currentTeamIdx === 1 ? 2 : 1;
+        };
+
+        // Show winner card for matchEndSwitch ms, then start flipping innings summaries
+        setTimeout(() => {
+          if(data.team1) flip();
+          endMatchInterval = setInterval(() => {
+            sumTab.style.opacity = '0';
+            setTimeout(() => { flip(); sumTab.style.opacity = '1'; }, 400);
+          }, DURATIONS.matchEndSwitch);
         }, DURATIONS.matchEndSwitch);
         break;
 

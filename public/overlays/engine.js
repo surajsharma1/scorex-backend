@@ -92,6 +92,27 @@
     if (!isPlayingAnim) processQueue();
   }
 
+  // Called by _doTossSequence after toss/squad animations complete.
+  // Waits for the first data update that has BOTH strikerName AND currentBowlerName
+  // before queuing START_INNINGS_INTRO — avoids blank bowler name.
+  var _pendingInningIntro = false;
+  function _waitAndQueueInningIntro() {
+    if (_pendingInningIntro) return; // already waiting
+    var d = matchData || {};
+    if (d.strikerName && d.currentBowlerName) {
+      // Players already confirmed — queue now
+      queueAnimation('START_INNINGS_INTRO', {
+        striker:    d.strikerName,
+        nonStriker: d.nonStrikerName || '',
+        bowler:     d.currentBowlerName
+      }, cfg.introDuration);
+      return;
+    }
+    // Not yet — set flag so next onData call will queue it
+    _pendingInningIntro = true;
+  }
+
+
   function _doTossSequence(flat, matchObj) {
     var t1p = (matchObj.team1 && matchObj.team1.players) ? matchObj.team1.players : (flat.team1Players || []);
     var t2p = (matchObj.team2 && matchObj.team2.players) ? matchObj.team2.players : (flat.team2Players || []);
@@ -108,51 +129,11 @@
         
         setTimeout(function() { 
           state = 'LIVE'; dispatch('RESTORE', {}); 
-          if (cfg.showInningIntro) {
-            var d0 = matchData || flat;
-            if (d0.strikerName && d0.currentBowlerName) {
-              queueAnimation('START_INNINGS_INTRO', { striker: d0.strikerName, nonStriker: d0.nonStrikerName || '', bowler: d0.currentBowlerName }, cfg.introDuration);
-            } else {
-              var introQueued = false;
-              var attempts = 0;
-              var waitForBowler = setInterval(function() {
-                if (introQueued) { clearInterval(waitForBowler); return; }
-                var d = matchData || flat;
-                attempts++;
-                if ((d.strikerName && d.currentBowlerName) || attempts >= 15) {
-                  clearInterval(waitForBowler);
-                  if (!introQueued && (d.strikerName || d.currentBowlerName)) {
-                    introQueued = true;
-                    queueAnimation('START_INNINGS_INTRO', { striker: d.strikerName || '', nonStriker: d.nonStrikerName || '', bowler: d.currentBowlerName || '' }, cfg.introDuration);
-                  }
-                }
-              }, 1000);
-            }
-          }
+          if (cfg.showInningIntro) _waitAndQueueInningIntro();
         }, cfg.squadDuration * 1000);
       } else { 
         state = 'LIVE'; dispatch('RESTORE', {}); 
-        if (cfg.showInningIntro) {
-          var d1 = matchData || flat;
-          if (d1.strikerName && d1.currentBowlerName) {
-            queueAnimation('START_INNINGS_INTRO', { striker: d1.strikerName, nonStriker: d1.nonStrikerName || '', bowler: d1.currentBowlerName }, cfg.introDuration);
-          } else {
-            var introQueued2 = false;
-            var attempts2 = 0;
-            var waitForBowler2 = setInterval(function() {
-              if (introQueued2) { clearInterval(waitForBowler2); return; }
-              var d2 = matchData || flat;
-              attempts2++;
-              if ((d2.strikerName && d2.currentBowlerName) || attempts2 >= 15) {
-                clearInterval(waitForBowler2);
-                if (!introQueued2 && (d2.strikerName || d2.currentBowlerName)) {
-                  introQueued2 = true;
-                  queueAnimation('START_INNINGS_INTRO', { striker: d2.strikerName || '', nonStriker: d2.nonStrikerName || '', bowler: d2.currentBowlerName || '' }, cfg.introDuration);
-                }
-              }
-            }, 1000);
-          }
-        }
+        if (cfg.showInningIntro) _waitAndQueueInningIntro();
       }
     }, cfg.tossDuration * 1000);
   }
@@ -167,7 +148,21 @@
 
       matchData = flat;
       window.postMessage({ type: 'UPDATE_SCORE', data: flat, raw: raw.match || raw, _engineSelf: true }, '*');
+      // Push sponsors so the carousel in the template auto-populates
+      if (flat.sponsors && flat.sponsors.length > 0) {
+        window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: flat.sponsors, _engineSelf: true }, '*');
+      }
       if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(flat.thisOver || []);
+
+      // If we're waiting for players to be confirmed after toss, check now
+      if (_pendingInningIntro && flat.strikerName && flat.currentBowlerName) {
+        _pendingInningIntro = false;
+        queueAnimation('START_INNINGS_INTRO', {
+          striker:    flat.strikerName,
+          nonStriker: flat.nonStrikerName || '',
+          bowler:     flat.currentBowlerName
+        }, cfg.introDuration);
+      }
 
       var matchObj    = raw.match || raw;
       var tossDone    = !!(matchObj.tossWinnerName || matchObj.tossDecision);
@@ -248,9 +243,11 @@
 
       case 'INNINGS_BREAK':      
         if (!cfg.showTargetCard && !isManual) return; 
-        queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
-          if (cfg.showInningIntro) queueAnimation('START_INNINGS_INTRO', richData, cfg.introDuration);
-        }); break;
+        queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration);
+        // NOTE: Do NOT auto-queue START_INNINGS_INTRO here — players haven't been selected yet.
+        // The inning intro will be triggered when the next innings actually starts via _doTossSequence
+        // or manually once players are confirmed.
+        break;
 
       case 'START_INNINGS_INTRO':
         // Ensure striker/nonStriker/bowler are populated from flat match data if not in trigger payload
@@ -298,6 +295,7 @@
         break;
 
       case 'RESTORE':          
+        _pendingInningIntro = false;
         decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); break;
 
       default:                 dispatch(t, richData, dur);
@@ -340,6 +338,10 @@
   window.addEventListener('message', function(e) {
     if (!e.data || e.data._engineSelf) return;
     if (e.data.type === 'UPDATE_SCORE' && e.data.data) { matchData = e.data.data; }
+    if (e.data.type === 'UPDATE_SPONSORS' && e.data.sponsors) {
+      // Relay to template's own listener
+      window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: e.data.sponsors, _engineSelf: true }, '*');
+    }
     if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) { handleTrigger(e.data.payload, matchData || {}); }
   });
 
