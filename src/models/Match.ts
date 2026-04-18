@@ -64,7 +64,9 @@ function calcRequiredRunRate(required: number, remainingOvers: number, remaining
 
 MatchSchema.methods.startMatch = async function(data: StartMatchData): Promise<void> {
   this.tossWinner = new mongoose.Types.ObjectId(data.tossWinnerId); this.tossWinnerName = data.tossWinnerName; this.tossDecision = data.tossDecision; this.status = MatchStatus.LIVE;
-  const oversMap: Record<string, number> = { T10: 10, T20: 20, ODI: 50, Test: 90 }; if (this.format !== 'Custom') this.maxOvers = oversMap[this.format] || 20;
+  // FIX #13: Do NOT override maxOvers if format is Custom — respect the user-set value
+  const oversMap: Record<string, number> = { T10: 10, T20: 20, ODI: 50, Test: 90 };
+  if (this.format !== 'Custom') this.maxOvers = oversMap[this.format] || this.maxOvers || 20;
   this.innings = [{
     teamId: new mongoose.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress', score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
     extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },

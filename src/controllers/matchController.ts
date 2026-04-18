@@ -82,6 +82,11 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
     const prevStriker = match.strikerName;
     const prevNonStriker = match.nonStrikerName;
 
+    // Snapshot batsmen BEFORE selectPlayers mutates their isOut/outType state
+    const prevInn = match.innings?.[match.currentInnings - 1];
+    const prevBatsmen: any[] = JSON.parse(JSON.stringify(prevInn?.batsmen || []));
+    const prevBowlers: any[] = JSON.parse(JSON.stringify(prevInn?.bowlers || []));
+
     await match.selectPlayers(req.body);
     
     const io = req.app.get('io');
@@ -89,23 +94,41 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
       io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
       
       const inn = match.innings?.[match.currentInnings - 1];
-      const allBatsmen = inn?.batsmen || [];
 
       if (req.body.bowler && req.body.bowler !== prevBowler) {
-        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'NEW_BOWLER', duration: 8, data: { bowler: req.body.bowler, overs: "0.0", maidens: 0, runs: 0, wickets: 0 }});
+        // Use incoming bowler's existing stats (if they bowled before in this innings)
+        const bowlerObj = prevBowlers.find((b: any) => b.name === req.body.bowler);
+        const bowlerBalls = bowlerObj?.balls || 0;
+        io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'NEW_BOWLER', duration: 8, data: {
+          bowler: req.body.bowler, playerName: req.body.bowler,
+          overs: `${Math.floor(bowlerBalls / 6)}.${bowlerBalls % 6}`,
+          maidens: 0, runs: bowlerObj?.runs || 0, wickets: bowlerObj?.wickets || 0, economy: bowlerObj?.economy || 0
+        }});
       }
 
       if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
         const outName = req.body.striker !== prevStriker ? prevStriker : prevNonStriker;
         const inName = req.body.striker !== prevStriker ? req.body.striker : req.body.nonStriker;
         
-        const outBatsman = allBatsmen.find((b:any) => b.name === outName);
+        // Use the PRE-selectPlayers snapshot so isOut/outType are accurate
+        const outBatsman = prevBatsmen.find((b: any) => b.name === outName);
+        const isRetired = outBatsman?.outType === 'retired_hurt' || outBatsman?.outType === 'retired';
+        const isActualWicket = outBatsman?.isOut && !isRetired;
 
-        if (outBatsman?.isOut) {
-          // CRITICAL: Perfectly formats the out card for Wickets ONLY AFTER the player is selected
-          io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: { outName: outName, howOut: outBatsman.outType || "OUT", outRuns: outBatsman.runs || 0, outBalls: outBatsman.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: false }});
+        if (outName && isActualWicket) {
+          // WICKET_SWITCH: dismissed batsman — shows OUT card with how-out, then incoming batter
+          io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: {
+            outName, howOut: (outBatsman?.outType || 'out').replace(/_/g, ' ').toUpperCase(),
+            outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0,
+            inName, inRuns: 0, inBalls: 0, isSub: false
+          }});
         } else if (outName) {
-          io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: { outName: outName, howOut: "Retired", outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0, inName: inName, inRuns: 0, inBalls: 0, isSub: true }});
+          // BATSMAN_CHANGE: retired hurt or voluntary change — NOT an OUT animation
+          io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: {
+            outName, howOut: isRetired ? 'Retired Hurt' : 'Substitution',
+            outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0,
+            inName, inRuns: 0, inBalls: 0, isSub: true
+          }});
         }
       }
     }

@@ -205,7 +205,7 @@
       case 'WICKET_SWITCH':    if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
       case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange && !isManual) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
       case 'NEW_BOWLER':       if (!cfg.showBowlerChange && !isManual) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
-      case 'DECISION_PENDING':  if (!cfg.decisionPending && !isManual) return; queueAnimation('DECISION_PENDING'); break;
+      // DECISION_PENDING full handler is below — do not add a stub here
       case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, dur); break;
       case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, dur); break;
       case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, dur); break; 
