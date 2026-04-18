@@ -637,7 +637,7 @@
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = !decisionPendingState;
+        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) addCls('anim-decision', 'layer-show'); 
         else remCls('anim-decision', 'layer-show');
         break;

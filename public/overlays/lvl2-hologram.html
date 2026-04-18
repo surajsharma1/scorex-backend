@@ -726,7 +726,7 @@
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = !decisionPendingState;
+        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) { 
             $('event-layer').classList.add('decision-blur'); 
             addCls('anim-decision', 'layer-show'); 

@@ -672,7 +672,7 @@
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = !decisionPendingState;
+        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
         break;
 

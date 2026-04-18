@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>ScoreX - Lvl 1 Super Flare (Edge-to-Edge Slant)</title>
@@ -18,126 +19,409 @@
       --unskew-deg: 18deg;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
-    
-    body { 
-      background: transparent; 
-      overflow: hidden; 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      text-transform: uppercase;
+    }
+
+    body {
+      background: transparent;
+      overflow: hidden;
       color: var(--cs-white);
       font-family: 'Roboto Condensed', sans-serif;
     }
 
     /* Animations */
-    @keyframes slideUp { 0% { transform: translateY(150px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes slideUp {
+      0% {
+        transform: translateY(150px);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
 
     /* Static Top Island */
     #cs-island {
-      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-      background: var(--cs-navy); border-bottom: 3px solid var(--cs-yellow);
-      color: var(--cs-white); font-family: 'Teko', sans-serif; font-size: 22px; 
-      font-weight: 600; letter-spacing: 3px; padding: 4px 50px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.8); animation: slideUp 0.5s ease-out forwards;
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--cs-navy);
+      border-bottom: 3px solid var(--cs-yellow);
+      color: var(--cs-white);
+      font-family: 'Teko', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      padding: 4px 50px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+      animation: slideUp 0.5s ease-out forwards;
     }
 
     /* Edge to Edge Bottom Bar Wrapper */
     #cs-bottom {
-      position: absolute; bottom: 0; left: 0; width: 100vw; height: 85px;
-      display: flex; filter: drop-shadow(0 -10px 25px rgba(0,0,0,0.7));
-      background: var(--cs-navy); border-top: 3px solid var(--cs-yellow);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 85px;
+      display: flex;
+      filter: drop-shadow(0 -10px 25px rgba(0, 0, 0, 0.7));
+      background: var(--cs-navy);
+      border-top: 3px solid var(--cs-yellow);
       animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
       overflow: hidden;
     }
 
     /* Geometry Engine: Slanted Blocks */
-    .skew-block { transform: skewX(var(--skew-deg)); height: 100%; border-right: 4px solid var(--cs-navy); display: flex; }
-    .unskew-content { transform: skewX(var(--unskew-deg)); width: 100%; display: flex; align-items: center; }
+    .skew-block {
+      transform: skewX(var(--skew-deg));
+      height: 100%;
+      border-right: 4px solid var(--cs-navy);
+      display: flex;
+    }
+
+    .unskew-content {
+      transform: skewX(var(--unskew-deg));
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
 
     /* 1. Score Block (Bright Yellow) */
     .cs-score-zone {
-      flex: 0 0 450px; background: linear-gradient(90deg, var(--cs-yellow), var(--cs-yellow-light));
-      margin-left: -30px; /* Offset the slant gap on the left edge */
-      padding-left: 30px; color: var(--cs-navy);
+      flex: 0 0 450px;
+      background: linear-gradient(90deg, var(--cs-yellow), var(--cs-yellow-light));
+      margin-left: -30px;
+      /* Offset the slant gap on the left edge */
+      padding-left: 30px;
+      color: var(--cs-navy);
     }
-    
-    .team-badge { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.8; padding: 0 20px; border-right: 2px solid rgba(0,0,0,0.1); }
-    .score-txt { font-family: 'Teko', sans-serif; font-size: 75px; font-weight: 700; line-height: 0.8; padding: 0 20px; }
-    .score-txt span { font-size: 40px; color: #52525b; margin: 0 4px; }
-    .ov-txt { font-size: 18px; font-weight: 900; color: var(--cs-navy); display: flex; flex-direction: column; line-height: 1; }
+
+    .team-badge {
+      font-family: 'Teko', sans-serif;
+      font-size: 55px;
+      font-weight: 700;
+      line-height: 0.8;
+      padding: 0 20px;
+      border-right: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .score-txt {
+      font-family: 'Teko', sans-serif;
+      font-size: 75px;
+      font-weight: 700;
+      line-height: 0.8;
+      padding: 0 20px;
+    }
+
+    .score-txt span {
+      font-size: 40px;
+      color: #52525b;
+      margin: 0 4px;
+    }
+
+    .ov-txt {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--cs-navy);
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
 
     /* 2. Batting Block (Navy/Dark Blue) */
-    .cs-bat-zone { flex: 1; background: var(--cs-navy); position: relative; }
-    .bat-grid { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 40px; }
-    .bat-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
-    
-    .b-name-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
-    .b-ind { color: var(--cs-yellow); font-size: 14px; animation: pulse 1.5s infinite; }
-    .b-name { font-size: 22px; font-weight: 700; color: #fff; }
-    .b-runs { font-family: 'Teko', sans-serif; font-size: 42px; font-weight: 700; color: var(--cs-yellow); line-height: 1; width: 50px; text-align: right;}
-    .b-balls { font-size: 16px; color: var(--cs-gray); width: 50px; text-align: right; font-weight: 700;}
-    
-    .bat-row.inactive .b-ind { opacity: 0; }
-    .bat-row.inactive .b-name, .bat-row.inactive .b-runs { color: var(--cs-gray); font-size: 20px; }
-    .bat-row.inactive .b-runs { font-size: 32px; }
+    .cs-bat-zone {
+      flex: 1;
+      background: var(--cs-navy);
+      position: relative;
+    }
+
+    .bat-grid {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+      padding: 0 40px;
+    }
+
+    .bat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+
+    .b-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .b-ind {
+      color: var(--cs-yellow);
+      font-size: 14px;
+      animation: pulse 1.5s infinite;
+    }
+
+    .b-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .b-runs {
+      font-family: 'Teko', sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--cs-yellow);
+      line-height: 1;
+      width: 50px;
+      text-align: right;
+    }
+
+    .b-balls {
+      font-size: 16px;
+      color: var(--cs-gray);
+      width: 50px;
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .bat-row.inactive .b-ind {
+      opacity: 0;
+    }
+
+    .bat-row.inactive .b-name,
+    .bat-row.inactive .b-runs {
+      color: var(--cs-gray);
+      font-size: 20px;
+    }
+
+    .bat-row.inactive .b-runs {
+      font-size: 32px;
+    }
 
     /* 3. Bowling Block (Blue) */
-    .cs-bowl-zone { flex: 0 0 500px; background: var(--cs-blue); margin-right: -30px; /* Offset right gap */ padding-right: 30px;}
-    .bowl-flex { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 40px; }
-    
-    .bw-main { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 2px;}
-    .bw-name { font-size: 22px; font-weight: 700; flex: 1; }
-    .bw-fig { font-family: 'Teko', sans-serif; font-size: 45px; font-weight: 700; color: var(--cs-yellow); line-height: 0.8; }
-    .bw-ov { font-size: 16px; color: var(--cs-white); font-weight: 700; margin-left: 20px; }
+    .cs-bowl-zone {
+      flex: 0 0 500px;
+      background: var(--cs-blue);
+      margin-right: -30px;
+      /* Offset right gap */
+      padding-right: 30px;
+    }
 
-    .this-over-row { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
-    .this-over-row span { font-size: 14px; color: var(--cs-gray); font-weight: 900; }
-    .ball-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--cs-white); background: transparent; }
-    .ball-dot.fill { background: var(--cs-yellow); border-color: var(--cs-yellow); }
+    .bowl-flex {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+      padding: 0 40px;
+    }
+
+    .bw-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 2px;
+    }
+
+    .bw-name {
+      font-size: 22px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .bw-fig {
+      font-family: 'Teko', sans-serif;
+      font-size: 45px;
+      font-weight: 700;
+      color: var(--cs-yellow);
+      line-height: 0.8;
+    }
+
+    .bw-ov {
+      font-size: 16px;
+      color: var(--cs-white);
+      font-weight: 700;
+      margin-left: 20px;
+    }
+
+    .this-over-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 6px;
+    }
+
+    .this-over-row span {
+      font-size: 14px;
+      color: var(--cs-gray);
+      font-weight: 900;
+    }
+
+    .ball-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--cs-white);
+      background: transparent;
+    }
+
+    .ball-dot.fill {
+      background: var(--cs-yellow);
+      border-color: var(--cs-yellow);
+    }
 
 
     /* =========================================
        4. EVENT ANIMATIONS (4, 6, OUT, DECISION)
        ========================================= */
-    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 200; overflow: hidden;}
-    
-    .anim-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
-      font-family: 'Teko', sans-serif; font-size: 200px; font-weight: 700; line-height: 1;
-      text-align: center; opacity: 0; text-shadow: 6px 6px 0 #000, 0 20px 50px rgba(0,0,0,0.8); font-style: italic;
+    .event-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 200;
+      overflow: hidden;
     }
-    
-    .anim-event.fire { animation: smashIn 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    
-    #ev-four { color: #38bdf8; -webkit-text-stroke: 5px var(--cs-blue); }
-    #ev-six { color: var(--cs-yellow); -webkit-text-stroke: 5px #b45309; font-size: 240px; }
-    #ev-out { color: var(--cs-red); -webkit-text-stroke: 5px #fff; }
+
+    .anim-event {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-family: 'Teko', sans-serif;
+      font-size: 200px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      opacity: 0;
+      text-shadow: 6px 6px 0 #000, 0 20px 50px rgba(0, 0, 0, 0.8);
+      font-style: italic;
+    }
+
+    .anim-event.fire {
+      animation: smashIn 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    #ev-four {
+      color: #38bdf8;
+      -webkit-text-stroke: 5px var(--cs-blue);
+    }
+
+    #ev-six {
+      color: var(--cs-yellow);
+      -webkit-text-stroke: 5px #b45309;
+      font-size: 240px;
+    }
+
+    #ev-out {
+      color: var(--cs-red);
+      -webkit-text-stroke: 5px #fff;
+    }
 
     /* Decision Pending Radar */
     #ev-decision {
-      position: absolute; top: 15%; left: 50%; transform: translate(-50%, 0);
-      background: rgba(15, 23, 42, 0.95); border: 4px solid var(--cs-yellow); border-radius: 4px;
-      padding: 20px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; pointer-events: none;
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      background: rgba(15, 23, 42, 0.95);
+      border: 4px solid var(--cs-yellow);
+      border-radius: 4px;
+      padding: 20px 80px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+      pointer-events: none;
     }
-    #ev-decision.fire { opacity: 1; animation: radarPulse 1.5s infinite; }
-    .d-title { font-size: 20px; color: #cbd5e1; letter-spacing: 10px; margin-bottom: 5px; font-weight: 900;}
-    .d-text { font-family: 'Teko', sans-serif; font-size: 90px; color: var(--cs-yellow); line-height: 1; white-space: nowrap;}
+
+    #ev-decision.fire {
+      opacity: 1;
+      animation: radarPulse 1.5s infinite;
+    }
+
+    .d-title {
+      font-size: 20px;
+      color: #cbd5e1;
+      letter-spacing: 10px;
+      margin-bottom: 5px;
+      font-weight: 900;
+    }
+
+    .d-text {
+      font-family: 'Teko', sans-serif;
+      font-size: 90px;
+      color: var(--cs-yellow);
+      line-height: 1;
+      white-space: nowrap;
+    }
 
     @keyframes smashIn {
-      0% { transform: translate(-50%, -50%) scale(0) rotate(-15deg); opacity: 0; }
-      15% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); opacity: 1; }
-      25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-      80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1.5) translateY(-50px); opacity: 0; }
+      0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-15deg);
+        opacity: 0;
+      }
+
+      15% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+        opacity: 1;
+      }
+
+      25% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+
+      80% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1.5) translateY(-50px);
+        opacity: 0;
+      }
     }
 
-    @keyframes radarPulse { 
-      0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 
-      70% { box-shadow: 0 0 0 50px rgba(234, 179, 8, 0); } 
-      100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); } 
-    }
+    @keyframes radarPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+      }
 
+      70% {
+        box-shadow: 0 0 0 50px rgba(234, 179, 8, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+      }
+    }
   </style>
 </head>
+
 <body>
 
   <div class="event-layer">
@@ -153,11 +437,12 @@
   <div id="cs-island">LIVE MATCH BROADCAST</div>
 
   <div id="cs-bottom">
-      
+
     <div class="skew-block cs-score-zone">
       <div class="unskew-content">
         <div class="team-badge" id="teamName">TM</div>
-        <div class="score-txt"><span id="teamScore" style="color:var(--cs-navy); margin:0;">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="score-txt"><span id="teamScore" style="color:var(--cs-navy); margin:0;">0</span><span>/</span><span
+            id="teamWickets">0</span></div>
         <div class="ov-txt">OVERS <span id="teamOvers" style="font-size:24px;">0.0</span></div>
       </div>
     </div>
@@ -165,12 +450,18 @@
     <div class="skew-block cs-bat-zone">
       <div class="unskew-content bat-grid">
         <div class="bat-row">
-          <div class="b-name-wrap"><div class="b-ind">▶</div><div class="b-name" id="strikerName">Striker Name</div></div>
+          <div class="b-name-wrap">
+            <div class="b-ind">▶</div>
+            <div class="b-name" id="strikerName">Striker Name</div>
+          </div>
           <div class="b-runs" id="strikerRuns">0</div>
           <div class="b-balls">(<span id="strikerBalls">0</span>)</div>
         </div>
         <div class="bat-row inactive">
-          <div class="b-name-wrap"><div class="b-ind">▶</div><div class="b-name" id="nonStrikerName">Non-Striker</div></div>
+          <div class="b-name-wrap">
+            <div class="b-ind">▶</div>
+            <div class="b-name" id="nonStrikerName">Non-Striker</div>
+          </div>
           <div class="b-runs" id="nonStrikerRuns">0</div>
           <div class="b-balls">(<span id="nonStrikerBalls">0</span>)</div>
         </div>
@@ -180,9 +471,11 @@
     <div class="skew-block cs-bowl-zone">
       <div class="unskew-content bowl-flex">
         <div class="bw-main">
-          <div class="bw-name">BOWL: <span id="bowlerName" style="color:var(--cs-yellow); margin-left: 8px;">Bowler Name</span></div>
+          <div class="bw-name">BOWL: <span id="bowlerName" style="color:var(--cs-yellow); margin-left: 8px;">Bowler
+              Name</span></div>
           <div style="display:flex; align-items:baseline;">
-            <div class="bw-fig"><span id="bowlerWickets">0</span><span style="color:#fff; font-size:30px; margin:0 4px;">-</span><span id="bowlerRuns">0</span></div>
+            <div class="bw-fig"><span id="bowlerWickets">0</span><span
+                style="color:#fff; font-size:30px; margin:0 4px;">-</span><span id="bowlerRuns">0</span></div>
             <div class="bw-ov">OV <span id="bowlerOvers">0.0</span></div>
           </div>
         </div>
@@ -195,92 +488,93 @@
 
   </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="/overlays/overlay-utils.js"></script>
-<script src="/overlays/engine.js"></script>
-<script>
-(function() {
-  'use strict';
-  const $ = id => document.getElementById(id);
-  let eventTimer = null;
-  let decisionPendingState = false;
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/overlays/overlay-utils.js"></script>
+  <script src="/overlays/engine.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      let eventTimer = null;
+      let decisionPendingState = false;
 
-  const safeSet = (id, val, fallback) => {
-    const el = $(id);
-    if (!el) return;
-    const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
-    el.innerText = String(v);
-  };
+      const safeSet = (id, val, fallback) => {
+        const el = $(id);
+        if (!el) return;
+        const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
+        el.innerText = String(v);
+      };
 
-  function processData(d) {
-    if (!d) return;
+      function processData(d) {
+        if (!d) return;
 
-    const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
-    safeSet('teamName',      tName);
-    safeSet('teamScore',     d.team1Score    ?? d.teamScore,    0);
-    safeSet('teamWickets',   d.team1Wickets  ?? d.teamWickets,  0);
-    safeSet('teamOvers',     d.team1Overs    ?? d.teamOvers,    '0.0');
+        const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
+        safeSet('teamName', tName);
+        safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
+        safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
+        safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
 
-    safeSet('strikerName',   d.strikerName,    'Striker');
-    safeSet('strikerRuns',   d.strikerRuns,    0);
-    safeSet('strikerBalls',  d.strikerBalls,   0);
+        safeSet('strikerName', d.strikerName, 'Striker');
+        safeSet('strikerRuns', d.strikerRuns, 0);
+        safeSet('strikerBalls', d.strikerBalls, 0);
 
-    safeSet('nonStrikerName',  d.nonStrikerName,  'Non-Striker');
-    safeSet('nonStrikerRuns',  d.nonStrikerRuns,  0);
-    safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+        safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
+        safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+        safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
 
-    safeSet('bowlerName',    d.bowlerName,    'Bowler');
-    safeSet('bowlerRuns',    d.bowlerRuns,    0);
-    safeSet('bowlerWickets', d.bowlerWickets, 0);
-    safeSet('bowlerOvers',   d.bowlerOvers,   '0.0');
+        safeSet('bowlerName', d.bowlerName, 'Bowler');
+        safeSet('bowlerRuns', d.bowlerRuns, 0);
+        safeSet('bowlerWickets', d.bowlerWickets, 0);
+        safeSet('bowlerOvers', d.bowlerOvers, '0.0');
 
-    // Ball renderer
-    if (typeof window.renderCurrentOver === 'function') {
-      window.renderCurrentOver(d.thisOver || []);
-    }
-  }
+        // Ball renderer
+        if (typeof window.renderCurrentOver === 'function') {
+          window.renderCurrentOver(d.thisOver || []);
+        }
+      }
 
-  function handleTrigger(t) {
-    const evFour     = $('ev-four');
-    const evSix      = $('ev-six');
-    const evOut      = $('ev-out');
-    const evDecision = $('ev-decision');
-    if (!evFour || !evSix || !evOut || !evDecision) return;
+      function handleTrigger(t) {
+        const evFour = $('ev-four');
+        const evSix = $('ev-six');
+        const evOut = $('ev-out');
+        const evDecision = $('ev-decision');
+        if (!evFour || !evSix || !evOut || !evDecision) return;
 
-    // Clear all active animations first
-    evFour.classList.remove('fire');
-    evSix.classList.remove('fire');
-    evOut.classList.remove('fire');
-    clearTimeout(eventTimer);
+        // Clear all active animations first
+        evFour.classList.remove('fire');
+        evSix.classList.remove('fire');
+        evOut.classList.remove('fire');
+        clearTimeout(eventTimer);
 
-    if (t.type === 'FOUR') {
-      evFour.classList.add('fire');
-      eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
-    } else if (t.type === 'SIX') {
-      evSix.classList.add('fire');
-      eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
-    } else if (t.type === 'WICKET') {
-      evOut.classList.add('fire');
-      eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-    } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = !decisionPendingState;
-      evDecision.classList.toggle('fire', decisionPendingState);
-    } else if (t.type === 'RESTORE') {
-      decisionPendingState = false;
-      evDecision.classList.remove('fire');
-    }
-  }
+        if (t.type === 'FOUR') {
+          evFour.classList.add('fire');
+          eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
+        } else if (t.type === 'SIX') {
+          evSix.classList.add('fire');
+          eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
+        } else if (t.type === 'WICKET') {
+          evOut.classList.add('fire');
+          eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
+        } else if (t.type === 'DECISION_PENDING') {
+          decisionPendingState = (t.data && t.data.active !== undefined) ? !!t.data.active : !decisionPendingState;
+          evDecision.classList.toggle('fire', decisionPendingState);
+        } else if (t.type === 'RESTORE') {
+          decisionPendingState = false;
+          evDecision.classList.remove('fire');
+        }
+      }
 
-  window.addEventListener('message', function(e) {
-    if (!e.data) return;
-    if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
-      processData(e.data.data);
-    }
-    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
-      handleTrigger(e.data.payload);
-    }
-  });
-})();
-</script>
+      window.addEventListener('message', function (e) {
+        if (!e.data) return;
+        if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
+          processData(e.data.data);
+        }
+        if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
+          handleTrigger(e.data.payload);
+        }
+      });
+    })();
+  </script>
 </body>
+
 </html>

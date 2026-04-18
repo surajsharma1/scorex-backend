@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>ScoreX - Lvl 1 Royal Magenta (Curved Shield)</title>
@@ -16,28 +17,61 @@
       --rm-gray: #94a3b8;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; text-transform: uppercase; }
-    
-    body { 
-      background: transparent; 
-      overflow: hidden; 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      text-transform: uppercase;
+    }
+
+    body {
+      background: transparent;
+      overflow: hidden;
       color: var(--rm-white);
       font-family: 'Poppins', sans-serif;
     }
 
     /* Animations */
-    @keyframes slideUpCurve { 
-      0% { transform: translateY(150px) scaleY(1.2); opacity: 0; } 
-      100% { transform: translateY(0) scaleY(1); opacity: 1; } 
+    @keyframes slideUpCurve {
+      0% {
+        transform: translateY(150px) scaleY(1.2);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateY(0) scaleY(1);
+        opacity: 1;
+      }
     }
-    @keyframes pulseActive { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.8); opacity: 0.5; } }
+
+    @keyframes pulseActive {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+    }
 
     /* Static Top Island */
     #rm-island {
-      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-      background: var(--rm-navy); color: var(--rm-magenta-light);
-      font-size: 16px; font-weight: 800; letter-spacing: 4px; padding: 6px 40px;
-      border-radius: 30px 0 30px 0; /* Asymmetric curve */
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--rm-navy);
+      color: var(--rm-magenta-light);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 4px;
+      padding: 6px 40px;
+      border-radius: 30px 0 30px 0;
+      /* Asymmetric curve */
       border: 2px solid var(--rm-magenta);
       box-shadow: 0 8px 25px rgba(219, 39, 119, 0.4);
       animation: slideUpCurve 0.5s ease-out forwards;
@@ -45,115 +79,363 @@
 
     /* Edge to Edge Bottom Bar Wrapper */
     #rm-bottom {
-      position: absolute; bottom: 0; left: 0; width: 100vw; height: 90px;
-      display: flex; filter: drop-shadow(0 -10px 20px rgba(0,0,0,0.6));
-      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 90px;
+      display: flex;
+      filter: drop-shadow(0 -10px 20px rgba(0, 0, 0, 0.6));
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
       border-top: 2px solid var(--rm-magenta);
       animation: slideUpCurve 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-      padding: 10px 2vw 0 2vw; /* Inner padding for floating shields */
+      padding: 10px 2vw 0 2vw;
+      /* Inner padding for floating shields */
       gap: 15px;
     }
 
     /* Geometry Engine: Curved Shields */
     .shield-block {
-      height: 70px; border-radius: 20px 0 20px 0; /* Signature shape */
-      display: flex; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      height: 70px;
+      border-radius: 20px 0 20px 0;
+      /* Signature shape */
+      display: flex;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
     }
 
     /* 1. Score Block (Magenta Gradient) */
     .rm-score-zone {
-      flex: 0 0 380px; background: linear-gradient(135deg, #be185d, var(--rm-magenta));
-      display: flex; border: 1px solid #fbcfe8; border-bottom: none; border-right: none;
+      flex: 0 0 380px;
+      background: linear-gradient(135deg, #be185d, var(--rm-magenta));
+      display: flex;
+      border: 1px solid #fbcfe8;
+      border-bottom: none;
+      border-right: none;
     }
-    
-    .team-badge { 
-      background: var(--rm-navy); color: var(--rm-gold); font-family: 'Teko', sans-serif; 
-      font-size: 45px; font-weight: 700; padding: 0 25px; display: flex; align-items: center; 
-      border-radius: 20px 0 30px 0; border-right: 2px solid var(--rm-magenta-light);
+
+    .team-badge {
+      background: var(--rm-navy);
+      color: var(--rm-gold);
+      font-family: 'Teko', sans-serif;
+      font-size: 45px;
+      font-weight: 700;
+      padding: 0 25px;
+      display: flex;
+      align-items: center;
+      border-radius: 20px 0 30px 0;
+      border-right: 2px solid var(--rm-magenta-light);
     }
-    
-    .score-txt-wrap { display: flex; flex-direction: column; justify-content: center; padding-left: 20px; }
-    .score-txt { font-family: 'Teko', sans-serif; font-size: 55px; font-weight: 700; line-height: 0.8; }
-    .score-txt span { font-size: 30px; color: #fbcfe8; margin: 0 4px; }
-    .ov-txt { font-size: 14px; font-weight: 800; color: #fdf2f8; letter-spacing: 1px; }
+
+    .score-txt-wrap {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-left: 20px;
+    }
+
+    .score-txt {
+      font-family: 'Teko', sans-serif;
+      font-size: 55px;
+      font-weight: 700;
+      line-height: 0.8;
+    }
+
+    .score-txt span {
+      font-size: 30px;
+      color: #fbcfe8;
+      margin: 0 4px;
+    }
+
+    .ov-txt {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fdf2f8;
+      letter-spacing: 1px;
+    }
 
     /* 2. Batting Block (Dark Navy / Flat) */
-    .rm-bat-zone { 
-      flex: 1; background: var(--rm-navy); border: 1px solid var(--rm-blue); border-bottom: none;
+    .rm-bat-zone {
+      flex: 1;
+      background: var(--rm-navy);
+      border: 1px solid var(--rm-blue);
+      border-bottom: none;
     }
-    .bat-grid { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 30px; }
-    .bat-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
-    
-    .b-name-wrap { display: flex; align-items: center; gap: 12px; flex: 1; }
-    .b-ind { width: 10px; height: 10px; border-radius: 50%; background: var(--rm-magenta); box-shadow: 0 0 10px var(--rm-magenta); animation: pulseActive 1.5s infinite; }
-    .b-name { font-size: 20px; font-weight: 800; color: #fff; }
-    .b-runs { font-family: 'Teko', sans-serif; font-size: 38px; font-weight: 700; color: var(--rm-magenta-light); line-height: 1; width: 50px; text-align: right;}
-    .b-balls { font-size: 15px; color: var(--rm-gray); width: 50px; text-align: right; font-weight: 700;}
-    
-    .bat-row.inactive .b-ind { opacity: 0; }
-    .bat-row.inactive .b-name, .bat-row.inactive .b-runs { color: var(--rm-gray); font-size: 18px; }
-    .bat-row.inactive .b-runs { font-size: 28px; color: var(--rm-gray); }
+
+    .bat-grid {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+      padding: 0 30px;
+    }
+
+    .bat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+
+    .b-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .b-ind {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--rm-magenta);
+      box-shadow: 0 0 10px var(--rm-magenta);
+      animation: pulseActive 1.5s infinite;
+    }
+
+    .b-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .b-runs {
+      font-family: 'Teko', sans-serif;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--rm-magenta-light);
+      line-height: 1;
+      width: 50px;
+      text-align: right;
+    }
+
+    .b-balls {
+      font-size: 15px;
+      color: var(--rm-gray);
+      width: 50px;
+      text-align: right;
+      font-weight: 700;
+    }
+
+    .bat-row.inactive .b-ind {
+      opacity: 0;
+    }
+
+    .bat-row.inactive .b-name,
+    .bat-row.inactive .b-runs {
+      color: var(--rm-gray);
+      font-size: 18px;
+    }
+
+    .bat-row.inactive .b-runs {
+      font-size: 28px;
+      color: var(--rm-gray);
+    }
 
     /* 3. Bowling Block (Blue) */
-    .rm-bowl-zone { 
-      flex: 0 0 450px; background: var(--rm-blue); border: 1px solid #60a5fa; border-bottom: none;
+    .rm-bowl-zone {
+      flex: 0 0 450px;
+      background: var(--rm-blue);
+      border: 1px solid #60a5fa;
+      border-bottom: none;
     }
-    .bowl-flex { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; padding: 0 30px; }
-    
-    .bw-main { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;}
-    .bw-name { font-size: 20px; font-weight: 800; flex: 1; }
-    .bw-fig { font-family: 'Teko', sans-serif; font-size: 40px; font-weight: 700; color: var(--rm-gold); line-height: 0.8; }
-    .bw-ov { font-size: 15px; color: var(--rm-white); font-weight: 700; margin-left: 20px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px;}
 
-    .this-over-row { display: flex; align-items: center; gap: 8px; padding-top: 6px; }
-    .this-over-row span { font-size: 12px; color: #bfdbfe; font-weight: 900; letter-spacing: 1px; }
-    .ball-dot { width: 14px; height: 14px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #93c5fd; }
-    .ball-dot.fill { background: var(--rm-gold); border-color: var(--rm-gold); }
+    .bowl-flex {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      justify-content: center;
+      padding: 0 30px;
+    }
+
+    .bw-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 2px;
+    }
+
+    .bw-name {
+      font-size: 20px;
+      font-weight: 800;
+      flex: 1;
+    }
+
+    .bw-fig {
+      font-family: 'Teko', sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--rm-gold);
+      line-height: 0.8;
+    }
+
+    .bw-ov {
+      font-size: 15px;
+      color: var(--rm-white);
+      font-weight: 700;
+      margin-left: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .this-over-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 6px;
+    }
+
+    .this-over-row span {
+      font-size: 12px;
+      color: #bfdbfe;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .ball-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid #93c5fd;
+    }
+
+    .ball-dot.fill {
+      background: var(--rm-gold);
+      border-color: var(--rm-gold);
+    }
 
 
     /* =========================================
        4. EVENT ANIMATIONS (4, 6, OUT, DECISION)
        ========================================= */
-    .event-layer { position: absolute; inset: 0; pointer-events: none; z-index: 200; overflow: hidden;}
-    
-    .anim-event {
-      position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0);
-      font-family: 'Teko', sans-serif; font-size: 180px; font-weight: 700; line-height: 1;
-      text-align: center; opacity: 0; text-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    .event-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 200;
+      overflow: hidden;
     }
-    
-    .anim-event.fire { animation: smashCurve 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    
-    #ev-four { color: #38bdf8; -webkit-text-stroke: 4px var(--rm-navy); }
-    #ev-six { color: var(--rm-magenta-light); -webkit-text-stroke: 4px var(--rm-magenta); font-size: 220px; }
-    #ev-out { color: #ef4444; -webkit-text-stroke: 4px #fff; }
+
+    .anim-event {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-family: 'Teko', sans-serif;
+      font-size: 180px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      opacity: 0;
+      text-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .anim-event.fire {
+      animation: smashCurve 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    #ev-four {
+      color: #38bdf8;
+      -webkit-text-stroke: 4px var(--rm-navy);
+    }
+
+    #ev-six {
+      color: var(--rm-magenta-light);
+      -webkit-text-stroke: 4px var(--rm-magenta);
+      font-size: 220px;
+    }
+
+    #ev-out {
+      color: #ef4444;
+      -webkit-text-stroke: 4px #fff;
+    }
 
     /* Decision Pending Radar */
     #ev-decision {
-      position: absolute; top: 15%; left: 50%; transform: translate(-50%, 0);
-      background: var(--rm-navy); border: 3px solid var(--rm-magenta); border-radius: 30px 0 30px 0;
-      padding: 20px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; pointer-events: none;
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      background: var(--rm-navy);
+      border: 3px solid var(--rm-magenta);
+      border-radius: 30px 0 30px 0;
+      padding: 20px 80px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+      pointer-events: none;
     }
-    #ev-decision.fire { opacity: 1; animation: radarPulse 1.5s infinite; }
-    .d-title { font-size: 18px; color: var(--rm-gray); letter-spacing: 6px; margin-bottom: 5px; font-weight: 800;}
-    .d-text { font-family: 'Teko', sans-serif; font-size: 80px; color: var(--rm-magenta-light); line-height: 1; white-space: nowrap;}
+
+    #ev-decision.fire {
+      opacity: 1;
+      animation: radarPulse 1.5s infinite;
+    }
+
+    .d-title {
+      font-size: 18px;
+      color: var(--rm-gray);
+      letter-spacing: 6px;
+      margin-bottom: 5px;
+      font-weight: 800;
+    }
+
+    .d-text {
+      font-family: 'Teko', sans-serif;
+      font-size: 80px;
+      color: var(--rm-magenta-light);
+      line-height: 1;
+      white-space: nowrap;
+    }
 
     @keyframes smashCurve {
-      0% { transform: translate(-50%, -50%) scale(0) skewX(-20deg); opacity: 0; }
-      15% { transform: translate(-50%, -50%) scale(1.1) skewX(10deg); opacity: 1; }
-      25% { transform: translate(-50%, -50%) scale(1) skewX(0deg); opacity: 1; }
-      80% { transform: translate(-50%, -50%) scale(1) skewX(0deg); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1.5) translateY(-50px); opacity: 0; }
+      0% {
+        transform: translate(-50%, -50%) scale(0) skewX(-20deg);
+        opacity: 0;
+      }
+
+      15% {
+        transform: translate(-50%, -50%) scale(1.1) skewX(10deg);
+        opacity: 1;
+      }
+
+      25% {
+        transform: translate(-50%, -50%) scale(1) skewX(0deg);
+        opacity: 1;
+      }
+
+      80% {
+        transform: translate(-50%, -50%) scale(1) skewX(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1.5) translateY(-50px);
+        opacity: 0;
+      }
     }
 
-    @keyframes radarPulse { 
-      0% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.7); } 
-      70% { box-shadow: 0 0 0 50px rgba(219, 39, 119, 0); } 
-      100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0); } 
-    }
+    @keyframes radarPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.7);
+      }
 
+      70% {
+        box-shadow: 0 0 0 50px rgba(219, 39, 119, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(219, 39, 119, 0);
+      }
+    }
   </style>
 </head>
+
 <body>
 
   <div class="event-layer">
@@ -169,11 +451,12 @@
   <div id="rm-island">LIVE MATCH CENTER</div>
 
   <div id="rm-bottom">
-      
+
     <div class="shield-block rm-score-zone">
       <div class="team-badge" id="teamName">TM</div>
       <div class="score-txt-wrap">
-        <div class="score-txt"><span id="teamScore" style="color:#fff; margin:0;">0</span><span>/</span><span id="teamWickets">0</span></div>
+        <div class="score-txt"><span id="teamScore" style="color:#fff; margin:0;">0</span><span>/</span><span
+            id="teamWickets">0</span></div>
         <div class="ov-txt">OVERS <span id="teamOvers" style="font-size:20px; margin-left: 5px;">0.0</span></div>
       </div>
     </div>
@@ -181,12 +464,18 @@
     <div class="shield-block rm-bat-zone">
       <div class="bat-grid">
         <div class="bat-row">
-          <div class="b-name-wrap"><div class="b-ind"></div><div class="b-name" id="strikerName">Striker Name</div></div>
+          <div class="b-name-wrap">
+            <div class="b-ind"></div>
+            <div class="b-name" id="strikerName">Striker Name</div>
+          </div>
           <div class="b-runs" id="strikerRuns">0</div>
           <div class="b-balls">(<span id="strikerBalls">0</span>)</div>
         </div>
         <div class="bat-row inactive">
-          <div class="b-name-wrap"><div class="b-ind"></div><div class="b-name" id="nonStrikerName">Non-Striker</div></div>
+          <div class="b-name-wrap">
+            <div class="b-ind"></div>
+            <div class="b-name" id="nonStrikerName">Non-Striker</div>
+          </div>
           <div class="b-runs" id="nonStrikerRuns">0</div>
           <div class="b-balls">(<span id="nonStrikerBalls">0</span>)</div>
         </div>
@@ -196,9 +485,11 @@
     <div class="shield-block rm-bowl-zone">
       <div class="bowl-flex">
         <div class="bw-main">
-          <div class="bw-name">BOWLER: <span id="bowlerName" style="color:var(--rm-gold); margin-left: 8px;">Name</span></div>
+          <div class="bw-name">BOWLER: <span id="bowlerName" style="color:var(--rm-gold); margin-left: 8px;">Name</span>
+          </div>
           <div style="display:flex; align-items:baseline;">
-            <div class="bw-fig"><span id="bowlerWickets">0</span><span style="color:#fff; font-size:26px; margin:0 4px;">-</span><span id="bowlerRuns">0</span></div>
+            <div class="bw-fig"><span id="bowlerWickets">0</span><span
+                style="color:#fff; font-size:26px; margin:0 4px;">-</span><span id="bowlerRuns">0</span></div>
             <div class="bw-ov">OV <span id="bowlerOvers">0.0</span></div>
           </div>
         </div>
@@ -212,91 +503,92 @@
   </div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="/overlays/overlay-utils.js"></script>
-<script src="/overlays/engine.js"></script>
-<script>
-(function() {
-  'use strict';
-  const $ = id => document.getElementById(id);
-  let eventTimer = null;
-  let decisionPendingState = false;
+  <script src="/overlays/overlay-utils.js"></script>
+  <script src="/overlays/engine.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      let eventTimer = null;
+      let decisionPendingState = false;
 
-  const safeSet = (id, val, fallback) => {
-    const el = $(id);
-    if (!el) return;
-    const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
-    el.innerText = String(v);
-  };
+      const safeSet = (id, val, fallback) => {
+        const el = $(id);
+        if (!el) return;
+        const v = (val != null && val !== '') ? val : (fallback !== undefined ? fallback : '');
+        el.innerText = String(v);
+      };
 
-  function processData(d) {
-    if (!d) return;
+      function processData(d) {
+        if (!d) return;
 
-    const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
-    safeSet('teamName',      tName);
-    safeSet('teamScore',     d.team1Score    ?? d.teamScore,    0);
-    safeSet('teamWickets',   d.team1Wickets  ?? d.teamWickets,  0);
-    safeSet('teamOvers',     d.team1Overs    ?? d.teamOvers,    '0.0');
+        const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
+        safeSet('teamName', tName);
+        safeSet('teamScore', d.team1Score ?? d.teamScore, 0);
+        safeSet('teamWickets', d.team1Wickets ?? d.teamWickets, 0);
+        safeSet('teamOvers', d.team1Overs ?? d.teamOvers, '0.0');
 
-    safeSet('strikerName',   d.strikerName,    'Striker');
-    safeSet('strikerRuns',   d.strikerRuns,    0);
-    safeSet('strikerBalls',  d.strikerBalls,   0);
+        safeSet('strikerName', d.strikerName, 'Striker');
+        safeSet('strikerRuns', d.strikerRuns, 0);
+        safeSet('strikerBalls', d.strikerBalls, 0);
 
-    safeSet('nonStrikerName',  d.nonStrikerName,  'Non-Striker');
-    safeSet('nonStrikerRuns',  d.nonStrikerRuns,  0);
-    safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
+        safeSet('nonStrikerName', d.nonStrikerName, 'Non-Striker');
+        safeSet('nonStrikerRuns', d.nonStrikerRuns, 0);
+        safeSet('nonStrikerBalls', d.nonStrikerBalls, 0);
 
-    safeSet('bowlerName',    d.bowlerName,    'Bowler');
-    safeSet('bowlerRuns',    d.bowlerRuns,    0);
-    safeSet('bowlerWickets', d.bowlerWickets, 0);
-    safeSet('bowlerOvers',   d.bowlerOvers,   '0.0');
+        safeSet('bowlerName', d.bowlerName, 'Bowler');
+        safeSet('bowlerRuns', d.bowlerRuns, 0);
+        safeSet('bowlerWickets', d.bowlerWickets, 0);
+        safeSet('bowlerOvers', d.bowlerOvers, '0.0');
 
-    // Ball renderer
-    if (typeof window.renderCurrentOver === 'function') {
-      window.renderCurrentOver(d.thisOver || []);
-    }
-  }
+        // Ball renderer
+        if (typeof window.renderCurrentOver === 'function') {
+          window.renderCurrentOver(d.thisOver || []);
+        }
+      }
 
-  function handleTrigger(t) {
-    const evFour     = $('ev-four');
-    const evSix      = $('ev-six');
-    const evOut      = $('ev-out');
-    const evDecision = $('ev-decision');
-    if (!evFour || !evSix || !evOut || !evDecision) return;
+      function handleTrigger(t) {
+        const evFour = $('ev-four');
+        const evSix = $('ev-six');
+        const evOut = $('ev-out');
+        const evDecision = $('ev-decision');
+        if (!evFour || !evSix || !evOut || !evDecision) return;
 
-    // Clear all active animations first
-    evFour.classList.remove('fire');
-    evSix.classList.remove('fire');
-    evOut.classList.remove('fire');
-    clearTimeout(eventTimer);
+        // Clear all active animations first
+        evFour.classList.remove('fire');
+        evSix.classList.remove('fire');
+        evOut.classList.remove('fire');
+        clearTimeout(eventTimer);
 
-    if (t.type === 'FOUR') {
-      evFour.classList.add('fire');
-      eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
-    } else if (t.type === 'SIX') {
-      evSix.classList.add('fire');
-      eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
-    } else if (t.type === 'WICKET') {
-      evOut.classList.add('fire');
-      eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-    } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = !decisionPendingState;
-      evDecision.classList.toggle('fire', decisionPendingState);
-    } else if (t.type === 'RESTORE') {
-      decisionPendingState = false;
-      evDecision.classList.remove('fire');
-    }
-  }
+        if (t.type === 'FOUR') {
+          evFour.classList.add('fire');
+          eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
+        } else if (t.type === 'SIX') {
+          evSix.classList.add('fire');
+          eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
+        } else if (t.type === 'WICKET') {
+          evOut.classList.add('fire');
+          eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
+        } else if (t.type === 'DECISION_PENDING') {
+          decisionPendingState = (t.data && t.data.active !== undefined) ? !!t.data.active : !decisionPendingState;
+          evDecision.classList.toggle('fire', decisionPendingState);
+        } else if (t.type === 'RESTORE') {
+          decisionPendingState = false;
+          evDecision.classList.remove('fire');
+        }
+      }
 
-  window.addEventListener('message', function(e) {
-    if (!e.data) return;
-    if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
-      processData(e.data.data);
-    }
-    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
-      handleTrigger(e.data.payload);
-    }
-  });
-})();
-</script>
+      window.addEventListener('message', function (e) {
+        if (!e.data) return;
+        if (e.data.type === 'UPDATE_SCORE' && e.data.data) {
+          processData(e.data.data);
+        }
+        if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
+          handleTrigger(e.data.payload);
+        }
+      });
+    })();
+  </script>
 </body>
+
 </html>

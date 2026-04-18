@@ -649,7 +649,7 @@ const triggerAutoShrink = () => {
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = !decisionPendingState;
+        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) { fireIslandEvent('THIRD UMPIRE', 'PENDING...', 999999); }
         else { restoreToLive(); }
         break;

@@ -698,7 +698,7 @@
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = !decisionPendingState;
+        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) {
             if($('anim-decision')) { $('anim-decision').classList.remove('stage-hide'); $('anim-decision').classList.add('stage-show'); addCls('anim-decision', 'fire'); }
         } else {

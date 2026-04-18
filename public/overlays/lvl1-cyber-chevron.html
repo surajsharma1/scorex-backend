@@ -282,7 +282,7 @@
       evOut.classList.add('fire');
       eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
     } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = !decisionPendingState;
+      decisionPendingState = (t.data && t.data.active !== undefined) ? !!t.data.active : !decisionPendingState;
       evDecision.classList.toggle('fire', decisionPendingState);
     } else if (t.type === 'RESTORE') {
       decisionPendingState = false;
