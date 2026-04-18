@@ -1,2 +1,0 @@
-# scorex-backend
-
