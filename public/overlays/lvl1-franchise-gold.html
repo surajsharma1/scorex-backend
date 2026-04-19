@@ -218,6 +218,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
+<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -284,10 +285,15 @@
       eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
     } else if (t.type === 'DECISION_PENDING') {
       decisionPendingState = (t.data && t.data.active !== undefined) ? !!t.data.active : !decisionPendingState;
-      evDecision.classList.toggle('fire', decisionPendingState);
+      if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', t.data || {}, 0);
     } else if (t.type === 'RESTORE') {
       decisionPendingState = false;
-      evDecision.classList.remove('fire');
+      if (evDecision) evDecision.classList.remove('fire');
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('RESTORE', {}, 0);
+    } else {
+      // Delegate all other animation types to the shared handler
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger(t.type, t.data || {}, t.duration || 8);
     }
   }
 
