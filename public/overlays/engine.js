@@ -228,9 +228,12 @@
         // Use explicit active flag if provided, otherwise toggle current state
         decisionPending = (typeof data.active !== 'undefined') ? !!data.active : !decisionPending;
         if (decisionPending) { 
-          animQueue = ['DECISION_PENDING']; isPlayingAnim = true; dispatch('DECISION_PENDING', richData, 0);
+          animQueue = []; isPlayingAnim = true;
+          dispatch('DECISION_PENDING', richData, 0);
         } else { 
-          isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); 
+          animQueue = []; isPlayingAnim = false;
+          dispatch('RESTORE', {});
+          setTimeout(processQueue, 100);
         }
         break;
 

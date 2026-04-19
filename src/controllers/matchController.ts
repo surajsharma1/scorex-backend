@@ -95,7 +95,7 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
       
       const inn = match.innings?.[match.currentInnings - 1];
 
-      if (req.body.bowler && req.body.bowler !== prevBowler) {
+      if (req.body.bowler && req.body.bowler !== prevBowler && prevBowler) {
         // Use incoming bowler's existing stats (if they bowled before in this innings)
         const bowlerObj = prevBowlers.find((b: any) => b.name === req.body.bowler);
         const bowlerBalls = bowlerObj?.balls || 0;
@@ -106,31 +106,32 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
         }});
       }
 
-      if ((req.body.striker && req.body.striker !== prevStriker) || (req.body.nonStriker && req.body.nonStriker !== prevNonStriker)) {
-        const outName = req.body.striker !== prevStriker ? prevStriker : prevNonStriker;
-        const inName = req.body.striker !== prevStriker ? req.body.striker : req.body.nonStriker;
-        
-        // Use the PRE-selectPlayers snapshot so isOut/outType are accurate
+      // Check each position separately so non-striker changes are handled correctly
+      const strikerChanged = req.body.striker && req.body.striker !== prevStriker && prevStriker;
+      const nonStrikerChanged = req.body.nonStriker && req.body.nonStriker !== prevNonStriker && prevNonStriker;
+
+      const emitBatsmanAnim = (outName: string, inName: string) => {
+        if (!outName) return;
         const outBatsman = prevBatsmen.find((b: any) => b.name === outName);
         const isRetired = outBatsman?.outType === 'retired_hurt' || outBatsman?.outType === 'retired';
         const isActualWicket = outBatsman?.isOut && !isRetired;
-
-        if (outName && isActualWicket) {
-          // WICKET_SWITCH: dismissed batsman — shows OUT card with how-out, then incoming batter
+        if (isActualWicket) {
           io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'WICKET_SWITCH', duration: 8, data: {
             outName, howOut: (outBatsman?.outType || 'out').replace(/_/g, ' ').toUpperCase(),
             outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0,
             inName, inRuns: 0, inBalls: 0, isSub: false
           }});
-        } else if (outName) {
-          // BATSMAN_CHANGE: retired hurt or voluntary change — NOT an OUT animation
+        } else {
           io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'BATSMAN_CHANGE', duration: 8, data: {
             outName, howOut: isRetired ? 'Retired Hurt' : 'Substitution',
             outRuns: outBatsman?.runs || 0, outBalls: outBatsman?.balls || 0,
-            inName, inRuns: 0, inBalls: 0, isSub: true
+            inName, inRuns: 0, inBalls: 0, isSub: !isActualWicket
           }});
         }
-      }
+      };
+
+      if (strikerChanged) emitBatsmanAnim(prevStriker, req.body.striker);
+      if (nonStrikerChanged) emitBatsmanAnim(prevNonStriker, req.body.nonStriker);
     }
     res.json({ success: true, message: 'Players selected' });
   } catch (error) { next(error); }
