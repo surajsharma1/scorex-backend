@@ -238,9 +238,9 @@
 
     const tName = d.team1ShortName || (d.team1Name || d.teamName || 'TEAM').substring(0, 4).toUpperCase();
     safeSet('teamName',      tName);
-    safeSet('teamScore',     d.team1Score    ?? d.teamScore,    0);
-    safeSet('teamWickets',   d.team1Wickets  ?? d.teamWickets,  0);
-    safeSet('teamOvers',     d.team1Overs    ?? d.teamOvers,    '0.0');
+    safeSet('teamScore',     d.teamScore    ?? d.team1Score,    0);
+    safeSet('teamWickets',   d.teamWickets  ?? d.team1Wickets,  0);
+    safeSet('teamOvers',     d.teamOvers    ?? d.team1Overs,    '0.0');
 
     safeSet('strikerName',   d.strikerName,    'Striker');
     safeSet('strikerRuns',   d.strikerRuns,    0);
@@ -262,38 +262,38 @@
   }
 
   function handleTrigger(t) {
-    const evFour     = $('ev-four');
-    const evSix      = $('ev-six');
-    const evOut      = $('ev-out');
-    const evDecision = $('ev-decision');
-    if (!evFour || !evSix || !evOut || !evDecision) return;
+    var type = t.type || '';
+    var data = t.data || t.payload || {};
+    var evFour = $('ev-four');
+    var evSix = $('ev-six');
+    var evOut = $('ev-out');
+    var evDecision = $('ev-decision');
 
-    // Clear all active animations first
-    evFour.classList.remove('fire');
-    evSix.classList.remove('fire');
-    evOut.classList.remove('fire');
+    // Clear shot animations on every trigger
+    if (evFour) evFour.classList.remove('fire');
+    if (evSix) evSix.classList.remove('fire');
+    if (evOut) evOut.classList.remove('fire');
     clearTimeout(eventTimer);
 
-    if (t.type === 'FOUR') {
-      evFour.classList.add('fire');
-      eventTimer = setTimeout(() => evFour.classList.remove('fire'), 3000);
-    } else if (t.type === 'SIX') {
-      evSix.classList.add('fire');
-      eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
-    } else if (t.type === 'WICKET') {
-      evOut.classList.add('fire');
-      eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-    } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = (t.data && t.data.active !== undefined) ? !!t.data.active : !decisionPendingState;
+    if (type === 'FOUR') {
+      if (evFour) { evFour.classList.add('fire'); eventTimer = setTimeout(function() { evFour.classList.remove('fire'); }, 3500); }
+    } else if (type === 'SIX') {
+      if (evSix) { evSix.classList.add('fire'); eventTimer = setTimeout(function() { evSix.classList.remove('fire'); }, 3500); }
+    } else if (type === 'WICKET') {
+      if (evOut) { evOut.classList.add('fire'); eventTimer = setTimeout(function() { evOut.classList.remove('fire'); }, 3500); }
+    } else if (type === 'DECISION_PENDING') {
+      decisionPendingState = (data.active !== undefined) ? !!data.active : !decisionPendingState;
+      // Native element
       if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', t.data || {}, 0);
-    } else if (t.type === 'RESTORE') {
+      // Shared handler (guaranteed fullscreen overlay)
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', data, 0);
+    } else if (type === 'RESTORE') {
       decisionPendingState = false;
       if (evDecision) evDecision.classList.remove('fire');
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('RESTORE', {}, 0);
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('RESTORE', data, 0);
     } else {
-      // Delegate all other animation types to the shared handler
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger(t.type, t.data || {}, t.duration || 8);
+      // All other animation types: delegate to shared handler
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger(type, data, t.duration || 8);
     }
   }
 

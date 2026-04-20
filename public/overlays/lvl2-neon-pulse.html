@@ -457,9 +457,9 @@
     safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
     safeSet('bat-team', t1); safeSet('bowl-team', t2);
     
-    safeSet('score', d.team1Score ?? d.teamScore, 0);
-    safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
-    safeSet('overs', d.team1Overs ?? d.teamOvers, '0.0');
+    safeSet('score', d.teamScore ?? d.team1Score, 0);
+    safeSet('wickets', d.teamWickets ?? d.team1Wickets, 0);
+    safeSet('overs', d.teamOvers ?? d.team1Overs, '0.0');
 
     curBowler = d.bowlerName || 'Bowler';
     safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0); safeSet('b-ov', d.bowlerOvers, '0.0');
@@ -469,6 +469,23 @@
 
     curNonStriker = d.nonStrikerName || 'Non-Striker';
     safeSet('nonstriker', curNonStriker); safeSet('ns-runs', d.nonStrikerRuns, 0); safeSet('ns-balls', d.nonStrikerBalls, 0);
+
+    
+    // Show/hide target bar based on innings
+    var tb = document.getElementById('target-bar');
+    if (tb) {
+      if (d.currentInnings === 2 && (d.requiredRuns > 0 || d.target > 0)) {
+        tb.style.display = 'flex';
+        var eqEl = document.getElementById('equation-text');
+        if (eqEl) {
+          var need = d.requiredRuns || (d.target - (d.teamScore ?? d.team1Score));
+          var rem = d.ballsRemaining || 0;
+          eqEl.innerText = 'NEED ' + Math.max(0, need) + (rem > 0 ? ' FROM ' + rem : '');
+        }
+      } else {
+        tb.style.display = 'none';
+      }
+    }
 
     if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(d.thisOver || []);
     triggerAutoShrink();
@@ -535,6 +552,20 @@
 
   window.addEventListener('message', function(e) {
     if (!e.data) return;
+
+    // ── Auto-populate sponsor ticker from overlay config ──
+    if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
+      const track = document.getElementById('sponsor-track');
+      if (track) {
+        const spons = e.data.sponsors.filter(function(s) { return s && s.name; });
+        if (spons.length === 0) return;
+        var doubled = spons.concat(spons);
+        track.innerHTML = doubled.map(function(s) {
+          return '<span class="sponsor-item">' + s.name + (s.tagline ? ' <span style="opacity:0.6;font-weight:400">— ' + s.tagline + '</span>' : '') + '</span>';
+        }).join('');
+      }
+      return;
+    }
     if (e.data.type === 'UPDATE_SCORE' && e.data.data) { processData(e.data.data); return; }
     if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
     
@@ -638,6 +669,7 @@
       }
 
       case 'DECISION_PENDING':
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', data, 0);
         decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) addCls('anim-decision', 'layer-show'); 
         else remCls('anim-decision', 'layer-show');
