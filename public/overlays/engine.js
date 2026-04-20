@@ -223,17 +223,19 @@
         }
         break;
 
-      case 'DECISION_PENDING': 
-        if (!cfg.showDecision && !isManual) return; 
-        // Use explicit active flag if provided, otherwise toggle current state
+      case 'DECISION_PENDING':
+        if (!cfg.showDecision && !isManual) return;
+        // Toggle: explicit active flag takes priority; otherwise toggle from current state
         decisionPending = (typeof data.active !== 'undefined') ? !!data.active : !decisionPending;
-        if (decisionPending) { 
-          animQueue = []; isPlayingAnim = true;
-          dispatch('DECISION_PENDING', richData, 0);
-        } else { 
-          animQueue = []; isPlayingAnim = false;
-          dispatch('RESTORE', {});
-          setTimeout(processQueue, 100);
+        // Always clear queue regardless of state
+        animQueue = [];
+        // Always dispatch with the CURRENT explicit state so overlay always gets it right
+        dispatch('DECISION_PENDING', { active: decisionPending, isManual: true }, 0);
+        if (decisionPending) {
+          isPlayingAnim = true; // lock other animations while reviewing
+        } else {
+          isPlayingAnim = false; // release lock
+          setTimeout(function() { dispatch('RESTORE', {}); setTimeout(processQueue, 50); }, 80);
         }
         break;
 
@@ -253,12 +255,27 @@
         break;
 
       case 'START_INNINGS_INTRO':
-        // Ensure striker/nonStriker/bowler are populated from flat match data if not in trigger payload
+        // Build intro data: explicit trigger data takes highest priority, fallback to flat match data
         var introData = Object.assign(
           { striker: flat.strikerName || '', nonStriker: flat.nonStrikerName || '', bowler: flat.currentBowlerName || '' },
-          richData
+          richData  // richData includes data.striker etc from the explicit trigger payload
         );
-        queueAnimation('START_INNINGS_INTRO', introData, dur); break;
+        // If fired manually (from scorer app), bypass queue and dispatch immediately
+        // to guarantee it shows even if another animation is in the queue
+        if (isManual) {
+          animQueue = [];
+          isPlayingAnim = true;
+          dispatch('START_INNINGS_INTRO', introData, dur || cfg.introDuration);
+          var introDur = (dur || cfg.introDuration) * 1000;
+          setTimeout(function() {
+            isPlayingAnim = false;
+            dispatch('RESTORE', {});
+            processQueue();
+          }, introDur);
+        } else {
+          queueAnimation('START_INNINGS_INTRO', introData, dur || cfg.introDuration);
+        }
+        break;
 
       case 'MATCH_END':        
         if (!cfg.showMatchEnd && !isManual) return;
