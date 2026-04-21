@@ -80,10 +80,7 @@ MatchSchema.methods.startMatch = async function (data) {
     this.tossWinnerName = data.tossWinnerName;
     this.tossDecision = data.tossDecision;
     this.status = MatchStatus.LIVE;
-    // FIX #13: Do NOT override maxOvers if format is Custom — respect the user-set value
-    const oversMap = { T10: 10, T20: 20, ODI: 50, Test: 90 };
-    if (this.format !== 'Custom')
-        this.maxOvers = oversMap[this.format] || this.maxOvers || 20;
+    // maxOvers was set correctly at match creation — do NOT override it here
     this.innings = [{
             teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress', score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
             extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
@@ -288,6 +285,37 @@ MatchSchema.methods.addBall = async function (data) {
         if (this.currentInnings === 2 || chaseComplete) {
             matchEnded = true;
             this.status = MatchStatus.COMPLETED;
+            // Calculate and store result summary automatically
+            const inn1 = this.innings[0];
+            const inn2 = this.innings[this.currentInnings - 1];
+            const inn1Score = inn1?.score || 0;
+            const inn2Score = inn2?.score || 0;
+            const inn2Wickets = inn2?.wickets || 0;
+            const battingTeamName = inn2?.teamName || this.team2Name;
+            const bowlingTeamName = inn1?.teamName || this.team1Name;
+            if (chaseComplete) {
+                // Team 2 wins by wickets remaining
+                const wicketsLeft = 10 - inn2Wickets;
+                const winnerName = battingTeamName;
+                this.winnerName = winnerName;
+                this.resultSummary = `${winnerName} won by ${wicketsLeft} wicket${wicketsLeft !== 1 ? 's' : ''}`;
+            }
+            else if (inn1Score > inn2Score) {
+                // Team 1 wins by runs
+                const winnerName = bowlingTeamName;
+                this.winnerName = winnerName;
+                this.resultSummary = `${winnerName} won by ${inn1Score - inn2Score} run${(inn1Score - inn2Score) !== 1 ? 's' : ''}`;
+            }
+            else if (inn2Score > inn1Score) {
+                // Team 2 wins (all out but scored more — unusual but possible)
+                const winnerName = battingTeamName;
+                this.winnerName = winnerName;
+                this.resultSummary = `${winnerName} won by ${inn2Score - inn1Score} run${(inn2Score - inn1Score) !== 1 ? 's' : ''}`;
+            }
+            else {
+                this.winnerName = 'TIED';
+                this.resultSummary = 'Match Tied';
+            }
         }
         // --- BUG FIX: AUTO CREATE 2ND INNINGS TO UNFREEZE OVERLAYS ---
         if (inningsEnded && !matchEnded && this.currentInnings === 1) {
