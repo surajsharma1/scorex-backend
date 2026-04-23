@@ -44,5 +44,19 @@ router.put('/:id', protect as any, updateOverlay as any);
 router.delete('/:id', protect as any, deleteOverlay as any);
 router.post('/:id/regenerate-url', protect as any, regenerateOverlayUrl as any);
 
+// ── Broadcast trigger endpoint (called by LiveScoring so it shows in Network tab)
+// The real channel is Socket.IO but this gives HTTP visibility for debugging
+router.post('/trigger', protect as any, (req: any, res: any) => {
+  try {
+    const { matchId, trigger } = req.body;
+    if (!matchId || !trigger) return res.status(400).json({ success: false, message: 'matchId and trigger required' });
+    // The socket server handles the actual broadcast via manualOverlayTrigger event
+    // This endpoint just acknowledges receipt
+    res.json({ success: true, message: 'Trigger acknowledged', matchId, type: trigger.type });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 export default router;
 

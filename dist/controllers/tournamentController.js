@@ -42,6 +42,20 @@ const Team_1 = __importDefault(require("../models/Team"));
 const Match_1 = __importDefault(require("../models/Match"));
 const createTournament = async (req, res, next) => {
     try {
+        const isAdmin = req.user?.role === 'admin';
+        // Non-admin users may only have 1 active tournament at a time
+        if (!isAdmin) {
+            const existing = await Tournament_1.default.countDocuments({
+                organizer: req.user?._id,
+                status: { $in: ['upcoming', 'ongoing'] },
+            });
+            if (existing >= 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'You already have an active tournament. Complete or delete it before creating a new one.',
+                });
+            }
+        }
         const tournament = await Tournament_1.default.create({ ...req.body, organizer: req.user?._id });
         res.status(201).json({ success: true, data: tournament });
     }

@@ -22,9 +22,9 @@ async function deleteExpiredTournaments() {
     const cutoff = new Date(Date.now() - THREE_DAYS_MS);
 
     // Find tournaments whose endDate passed 3+ days ago and are completed
+    // Delete any tournament whose endDate passed 3+ days ago regardless of status
     const expired = await Tournament.find({
       endDate: { $lt: cutoff },
-      status: { $in: ['completed', 'ongoing'] },
     }).select('_id name endDate');
 
     if (expired.length === 0) return;
