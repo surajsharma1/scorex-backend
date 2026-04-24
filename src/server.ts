@@ -154,8 +154,12 @@ io.on('connection', (socket) => {
 
   socket.on('manualOverlayTrigger', (payload: { matchId: string; trigger: any }) => {
     if (!payload?.matchId) return;
+    // 1. scoreUpdate path — for overlays listening via onData → raw.activeTrigger
     io.to(`match:${payload.matchId}`).emit('scoreUpdate', { activeTrigger: payload.trigger });
+    // 2. overlayTrigger path — direct event the engine listens to
     io.to(`match:${payload.matchId}`).emit('overlayTrigger', payload.trigger);
+    // 3. manualOverlayTrigger relay — engine also listens to this directly
+    io.to(`match:${payload.matchId}`).emit('manualOverlayTrigger', payload);
   });
 
   socket.on('disconnect', () => {});

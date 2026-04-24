@@ -72,8 +72,9 @@
       setTimeout(function() {
         dispatch('RESTORE', {});
         isPlayingAnim = false;
-        if (nextAnim.then) nextAnim.then();
-        processQueue(); 
+        // Fire the 'then' callback if provided (e.g. INNINGS_BREAK → inning intro)
+        if (typeof nextAnim.then === 'function') nextAnim.then();
+        processQueue();
       }, dur * 1000);
     }
   }
@@ -118,21 +119,30 @@
     var t2p = (matchObj.team2 && matchObj.team2.players) ? matchObj.team2.players : (flat.team2Players || []);
     var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
     var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
+    // Fallback: if names still generic, try toss winner name
+    if (!t1n || t1n === 'Team 1') t1n = flat.team1Name || matchObj.team1Name || 'Team 1';
+    if (!t2n || t2n === 'Team 2') t2n = flat.team2Name || matchObj.team2Name || 'Team 2';
 
     state = 'TOSS';
-    dispatch('SHOW_TOSS', { text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + " WON TOSS", team1Players: t1p, team2Players: t2p });
-    
+    // Include team names in SHOW_TOSS so the overlay template can render them
+    dispatch('SHOW_TOSS', {
+      text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + ' WON TOSS',
+      tossWinnerName: matchObj.tossWinnerName || flat.tossWinnerName || '',
+      tossDecision: matchObj.tossDecision || flat.tossDecision || '',
+      team1Name: t1n, team2Name: t2n,
+      team1Players: t1p, team2Players: t2p
+    });
+
     setTimeout(function() {
       if (cfg.showSquads) {
         state = 'SQUADS';
         dispatch('SHOW_SQUADS', { team1Name: t1n, team2Name: t2n, team1Players: t1p, team2Players: t2p });
-        
-        setTimeout(function() { 
-          state = 'LIVE'; dispatch('RESTORE', {}); 
+        setTimeout(function() {
+          state = 'LIVE'; dispatch('RESTORE', {});
           if (cfg.showInningIntro) _waitAndQueueInningIntro();
         }, cfg.squadDuration * 1000);
-      } else { 
-        state = 'LIVE'; dispatch('RESTORE', {}); 
+      } else {
+        state = 'LIVE'; dispatch('RESTORE', {});
         if (cfg.showInningIntro) _waitAndQueueInningIntro();
       }
     }, cfg.tossDuration * 1000);
@@ -206,8 +216,26 @@
       case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange && !isManual) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
       case 'NEW_BOWLER':       if (!cfg.showBowlerChange && !isManual) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
       // DECISION_PENDING full handler is below — do not add a stub here
-      case 'BATTING_CARD':     queueAnimation('BATTING_CARD', richData, dur); break;
-      case 'BOWLING_CARD':     queueAnimation('BOWLING_CARD', richData, dur); break;
+      case 'BATTING_CARD':
+        if (isManual) {
+          animQueue = [];
+          isPlayingAnim = true;
+          dispatch('BATTING_CARD', richData, dur || 12);
+          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 12) * 1000);
+        } else {
+          queueAnimation('BATTING_CARD', richData, dur);
+        }
+        break;
+      case 'BOWLING_CARD':
+        if (isManual) {
+          animQueue = [];
+          isPlayingAnim = true;
+          dispatch('BOWLING_CARD', richData, dur || 12);
+          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 12) * 1000);
+        } else {
+          queueAnimation('BOWLING_CARD', richData, dur);
+        }
+        break;
       case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, dur); break; 
 
       case 'OVER_COMPLETE':
@@ -225,33 +253,47 @@
 
       case 'DECISION_PENDING':
         if (!cfg.showDecision && !isManual) return;
-        // Toggle: explicit active flag takes priority; otherwise toggle from current state
-        decisionPending = (typeof data.active !== 'undefined') ? !!data.active : !decisionPending;
-        // Always clear queue regardless of state
+        // LiveScoring always sends explicit active state — ON fires DECISION_PENDING, OFF fires RESTORE separately
+        // So here active is always true (OFF is sent as RESTORE trigger instead)
+        decisionPending = true;
         animQueue = [];
-        // Always dispatch with the CURRENT explicit state so overlay always gets it right
-        dispatch('DECISION_PENDING', { active: decisionPending, isManual: true }, 0);
-        if (decisionPending) {
-          isPlayingAnim = true; // lock other animations while reviewing
-        } else {
-          isPlayingAnim = false; // release lock
-          setTimeout(function() { dispatch('RESTORE', {}); setTimeout(processQueue, 50); }, 80);
-        }
+        isPlayingAnim = true;
+        dispatch('DECISION_PENDING', { active: true, isManual: true }, 0);
         break;
 
-      case 'BATSMAN_PROFILE':  queueAnimation('BATSMAN_PROFILE', richData, dur); break;
-      case 'BOWLER_PROFILE':   queueAnimation('BOWLER_PROFILE', richData, dur); break;
+      case 'BATSMAN_PROFILE':
+        // Manual triggers bypass queue so they show immediately even if animation is playing
+        if (isManual) {
+          animQueue = [];
+          isPlayingAnim = true;
+          dispatch('BATSMAN_PROFILE', richData, dur || 8);
+          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 8) * 1000);
+        } else {
+          queueAnimation('BATSMAN_PROFILE', richData, dur);
+        }
+        break;
+      case 'BOWLER_PROFILE':
+        if (isManual) {
+          animQueue = [];
+          isPlayingAnim = true;
+          dispatch('BOWLER_PROFILE', richData, dur || 8);
+          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 8) * 1000);
+        } else {
+          queueAnimation('BOWLER_PROFILE', richData, dur);
+        }
+        break;
       
       case 'VS_SCREEN':        queueAnimation('VS_SCREEN', richData, dur); break;
       case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, dur); break;
       case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, dur); break;
 
-      case 'INNINGS_BREAK':      
-        if (!cfg.showTargetCard && !isManual) return; 
-        queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration);
-        // NOTE: Do NOT auto-queue START_INNINGS_INTRO here — players haven't been selected yet.
-        // The inning intro will be triggered when the next innings actually starts via _doTossSequence
-        // or manually once players are confirmed.
+      case 'INNINGS_BREAK':
+        if (!cfg.showTargetCard && !isManual) return;
+        // After the target card finishes, auto-queue the 2nd innings intro
+        // Uses queueAnimation with a `then` callback so it fires after the card is restored
+        queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
+          if (cfg.showInningIntro) _waitAndQueueInningIntro();
+        });
         break;
 
       case 'START_INNINGS_INTRO':
@@ -316,7 +358,12 @@
 
       case 'RESTORE':          
         _pendingInningIntro = false;
-        decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); break;
+        decisionPending = false; 
+        isPlayingAnim = false; 
+        animQueue = []; 
+        dispatch('RESTORE', {}); 
+        setTimeout(processQueue, 50);
+        break;
 
       default:                 dispatch(t, richData, dur);
     }
