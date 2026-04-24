@@ -649,7 +649,8 @@ const triggerAutoShrink = () => {
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
+        decisionPendingState = (data && data.active !== false);
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
         if (decisionPendingState) { fireIslandEvent('THIRD UMPIRE', 'PENDING...', 999999); }
         else { restoreToLive(); }
         break;

@@ -333,8 +333,9 @@
         </div>`, dur);
     }
     else if (type === 'DECISION_PENDING') {
-      decisionPendingState = !!(data.active !== undefined ? data.active : !decisionPendingState);
+      decisionPendingState = data.active !== false;
       if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
     }
     else if (type === 'PLAYER_CHANGE') {
       const dur = (t.duration || 8) * 1000;

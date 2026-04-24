@@ -282,11 +282,11 @@
     } else if (type === 'WICKET') {
       if (evOut) { evOut.classList.add('fire'); eventTimer = setTimeout(function() { evOut.classList.remove('fire'); }, 3500); }
     } else if (type === 'DECISION_PENDING') {
-      decisionPendingState = (data.active !== undefined) ? !!data.active : !decisionPendingState;
+      decisionPendingState = (data.active !== false);
       // Native element
       if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
       // Shared handler (guaranteed fullscreen overlay)
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', data, 0);
+      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
     } else if (type === 'RESTORE') {
       decisionPendingState = false;
       if (evDecision) evDecision.classList.remove('fire');

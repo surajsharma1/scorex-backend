@@ -605,8 +605,9 @@
       }
 
       case 'DECISION_PENDING':
-        decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
+        decisionPendingState = (data && data.active !== false);
         if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
         break;
 
       case 'VS_SCREEN':
