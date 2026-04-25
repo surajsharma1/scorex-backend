@@ -1,5 +1,5 @@
 /**
- * ScoreX Overlay Engine v14 — UNCONDITIONAL MANUAL OVERRIDES
+ * ScoreX Overlay Engine v15 — DIRECT SHARED PANEL FOR MANUAL TRIGGERS
  */
 (function () {
   'use strict';
@@ -28,6 +28,7 @@
 
     showVS:             userCfg.showVS             !== false,
     showToss:           userCfg.showToss            !== false,
+    showSquads:         userCfg.showSquads          !== false,
     showInningIntro:    userCfg.showInningIntro     !== false,
     showFour:           userCfg.showFour            !== false,
     showSix:            userCfg.showSix             !== false,
@@ -43,36 +44,46 @@
     autoBowlingOvers:   userCfg.autoBowlingOvers    || 0,
   };
 
-  var matchData         = null;
-  var socket            = null;
-  var state             = 'BOOTING'; 
-  
-  var animQueue         = [];
-  var isPlayingAnim     = false;
-  var decisionPending   = false;
-  var pollTimer         = null;
+  var matchData     = null;
+  var socket        = null;
+  var state         = 'BOOTING'; 
+  var animQueue     = [];
+  var isPlayingAnim = false;
+  var pollTimer     = null;
+  // Decision pending state — tracked separately, not in animQueue
+  var decisionActive = false;
 
+  // ─── dispatch: postMessage to overlay template's own handler ─────────────────
   function dispatch(type, data, duration) {
     var payload = { type: type, data: data || {}, duration: duration || 0 };
     console.log('[Engine] DISPATCH:', type);
     window.postMessage({ type: 'OVERLAY_TRIGGER', payload: payload, _engineSelf: true }, '*');
   }
 
+  // ─── shared: directly call sharedHandleTrigger if available ──────────────────
+  // This bypasses the overlay's own broken native handlers and goes straight to
+  // the __shared-panel__ which always works.
+  function shared(type, data, durationSec) {
+    var dur = durationSec || 0;
+    // Also dispatch so overlay's own scoreboard elements update
+    dispatch(type, data, dur);
+    // Call shared handler directly if available (loaded from overlay-handlers.js)
+    if (typeof window.sharedHandleTrigger === 'function') {
+      window.sharedHandleTrigger(type, data || {}, dur);
+    }
+  }
+
+  // ─── processQueue ─────────────────────────────────────────────────────────────
   function processQueue() {
     if (isPlayingAnim || animQueue.length === 0) return;
-    
     var nextAnim = animQueue.shift();
     isPlayingAnim = true;
     var dur = nextAnim.duration > 0 ? nextAnim.duration : 8;
-    
     dispatch(nextAnim.type, nextAnim.data, dur);
-    
-    // Duration 0 means lock indefinitely (e.g. Decision Pending)
     if (nextAnim.duration !== 0) {
       setTimeout(function() {
         dispatch('RESTORE', {});
         isPlayingAnim = false;
-        // Fire the 'then' callback if provided (e.g. INNINGS_BREAK → inning intro)
         if (typeof nextAnim.then === 'function') nextAnim.then();
         processQueue();
       }, dur * 1000);
@@ -88,104 +99,138 @@
         return;
       }
     }
-    
     animQueue.push({ type: type, data: data, duration: duration, then: then });
     if (!isPlayingAnim) processQueue();
   }
 
-  // Called by _doTossSequence after toss/squad animations complete.
-  // Waits for the first data update that has BOTH strikerName AND currentBowlerName
-  // before queuing START_INNINGS_INTRO — avoids blank bowler name.
+  // ─── Inning intro sequencing ──────────────────────────────────────────────────
+  // Uses setInterval polling so it works regardless of whether player data arrives
+  // before or after the toss/target-card animation finishes.
   var _pendingInningIntro = false;
-  function _waitAndQueueInningIntro() {
-    if (_pendingInningIntro) return; // already waiting
-    var d = matchData || {};
-    if (d.strikerName && d.currentBowlerName) {
-      // Players already confirmed — queue now
-      queueAnimation('START_INNINGS_INTRO', {
-        striker:    d.strikerName,
-        nonStriker: d.nonStrikerName || '',
-        bowler:     d.currentBowlerName
-      }, cfg.introDuration);
-      return;
-    }
-    // Not yet — set flag so next onData call will queue it
-    _pendingInningIntro = true;
+  var _introInterval = null;
+
+  function _fireInningIntro(flat) {
+    var d = flat || matchData || {};
+    // Use shared() so it goes through sharedHandleTrigger → showPanel directly
+    shared('START_INNINGS_INTRO', {
+      striker:    d.strikerName    || '',
+      nonStriker: d.nonStrikerName || '',
+      bowler:     d.currentBowlerName || ''
+    }, cfg.introDuration);
   }
 
+  function _waitAndQueueInningIntro() {
+    // Already waiting — don't start a second poll
+    if (_pendingInningIntro) return;
+    _pendingInningIntro = true;
+    clearInterval(_introInterval);
 
+    // Check immediately first
+    var d = matchData || {};
+    if (d.strikerName && d.currentBowlerName && !isPlayingAnim) {
+      _pendingInningIntro = false;
+      _fireInningIntro(d);
+      return;
+    }
+
+    // Poll every 600ms until:
+    // (a) player names available in matchData AND
+    // (b) no animation currently playing
+    _introInterval = setInterval(function() {
+      var d2 = matchData || {};
+      if (d2.strikerName && d2.currentBowlerName && !isPlayingAnim) {
+        clearInterval(_introInterval);
+        _pendingInningIntro = false;
+        _fireInningIntro(d2);
+      }
+    }, 600);
+
+    // Give up after 5 minutes
+    setTimeout(function() {
+      if (_pendingInningIntro) {
+        clearInterval(_introInterval);
+        _pendingInningIntro = false;
+      }
+    }, 300000);
+  }
+
+  // ─── Toss sequence ────────────────────────────────────────────────────────────
   function _doTossSequence(flat, matchObj) {
     var t1p = (matchObj.team1 && matchObj.team1.players) ? matchObj.team1.players : (flat.team1Players || []);
     var t2p = (matchObj.team2 && matchObj.team2.players) ? matchObj.team2.players : (flat.team2Players || []);
-    var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
-    var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
-    // Fallback: if names still generic, try toss winner name
-    if (!t1n || t1n === 'Team 1') t1n = flat.team1Name || matchObj.team1Name || 'Team 1';
-    if (!t2n || t2n === 'Team 2') t2n = flat.team2Name || matchObj.team2Name || 'Team 2';
+    var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name
+            : (flat.team1Name || matchObj.team1Name || 'Team 1');
+    var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name
+            : (flat.team2Name || matchObj.team2Name || 'Team 2');
+    var winnerName   = matchObj.tossWinnerName || flat.tossWinnerName || '';
+    var tossDecision = matchObj.tossDecision   || flat.tossDecision   || '';
 
     state = 'TOSS';
-    // Include team names in SHOW_TOSS so the overlay template can render them
-    dispatch('SHOW_TOSS', {
-      text: (matchObj.tossWinnerName || flat.tossWinnerName || '') + ' WON TOSS',
-      tossWinnerName: matchObj.tossWinnerName || flat.tossWinnerName || '',
-      tossDecision: matchObj.tossDecision || flat.tossDecision || '',
+
+    // Step 1: Show toss result
+    shared('SHOW_TOSS', {
+      text:          winnerName + ' WON THE TOSS',
+      tossWinnerName: winnerName,
+      tossDecision:   tossDecision,
       team1Name: t1n, team2Name: t2n,
       team1Players: t1p, team2Players: t2p
-    });
+    }, cfg.tossDuration);
 
+    // Step 2: After toss, show squads (if enabled), then inning intro
     setTimeout(function() {
       if (cfg.showSquads) {
         state = 'SQUADS';
-        dispatch('SHOW_SQUADS', { team1Name: t1n, team2Name: t2n, team1Players: t1p, team2Players: t2p });
+        shared('SHOW_SQUADS', {
+          team1Name: t1n, team2Name: t2n,
+          team1Players: t1p, team2Players: t2p
+        }, cfg.squadDuration);
+
         setTimeout(function() {
-          state = 'LIVE'; dispatch('RESTORE', {});
+          state = 'LIVE';
+          shared('RESTORE', {}, 0);
+          // Step 3: Inning intro after squads
           if (cfg.showInningIntro) _waitAndQueueInningIntro();
         }, cfg.squadDuration * 1000);
       } else {
-        state = 'LIVE'; dispatch('RESTORE', {});
+        state = 'LIVE';
+        shared('RESTORE', {}, 0);
+        // Step 3: Inning intro directly after toss
         if (cfg.showInningIntro) _waitAndQueueInningIntro();
       }
     }, cfg.tossDuration * 1000);
   }
 
+  // ─── onData ───────────────────────────────────────────────────────────────────
   function onData(raw) {
     try {
       if (!raw) return;
-      var flat = typeof window.normalizeScoreData === 'function' ? window.normalizeScoreData(raw) : raw;
-      
+      var flat = typeof window.normalizeScoreData === 'function'
+        ? window.normalizeScoreData(raw) : raw;
+
       if (raw.battingSummary) flat.batsmen = raw.battingSummary;
       if (raw.bowlingSummary) flat.bowlers = raw.bowlingSummary;
 
       matchData = flat;
+
+      // Push score to overlay template
       window.postMessage({ type: 'UPDATE_SCORE', data: flat, raw: raw.match || raw, _engineSelf: true }, '*');
-      // Push sponsors so the carousel in the template auto-populates
       if (flat.sponsors && flat.sponsors.length > 0) {
         window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: flat.sponsors, _engineSelf: true }, '*');
       }
       if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(flat.thisOver || []);
 
-      // If we're waiting for players to be confirmed after toss, check now
-      if (_pendingInningIntro && flat.strikerName && flat.currentBowlerName) {
-        _pendingInningIntro = false;
-        queueAnimation('START_INNINGS_INTRO', {
-          striker:    flat.strikerName,
-          nonStriker: flat.nonStrikerName || '',
-          bowler:     flat.currentBowlerName
-        }, cfg.introDuration);
-      }
-
-      var matchObj    = raw.match || raw;
-      var tossDone    = !!(matchObj.tossWinnerName || matchObj.tossDecision);
-      var hasPlayers  = !!(flat.strikerName);
+      var matchObj   = raw.match || raw;
+      var tossDone   = !!(matchObj.tossWinnerName || matchObj.tossDecision);
+      var hasPlayers = !!(flat.strikerName);
       var isMatchDone = matchObj.status === 'completed' || matchObj.status === 'ended';
 
       if (state === 'BOOTING') {
         if (isMatchDone) { state = 'LIVE'; dispatch('RESTORE', {}); return; }
         if (!tossDone && cfg.showVS) {
           state = 'VS_SCREEN';
-          var t1n = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
-          var t2n = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
-          dispatch('VS_SCREEN', { team1: t1n, team2: t2n });
+          var t1n2 = (matchObj.team1 && matchObj.team1.name) ? matchObj.team1.name : flat.team1Name;
+          var t2n2 = (matchObj.team2 && matchObj.team2.name) ? matchObj.team2.name : flat.team2Name;
+          shared('VS_SCREEN', { team1: t1n2, team2: t2n2 }, cfg.vsDuration);
           return;
         }
         if (tossDone && !hasPlayers && cfg.showToss) { _doTossSequence(flat, matchObj); return; }
@@ -193,188 +238,201 @@
       }
 
       if (state === 'VS_SCREEN') {
-        if (tossDone) { if (cfg.showToss) { _doTossSequence(flat, matchObj); } else { state = 'LIVE'; dispatch('RESTORE', {}); } }
+        if (tossDone) {
+          if (cfg.showToss) { _doTossSequence(flat, matchObj); }
+          else { state = 'LIVE'; dispatch('RESTORE', {}); }
+        }
         return;
       }
 
-      if (raw.activeTrigger && state === 'LIVE') { handleTrigger(raw.activeTrigger, flat); }
-    } catch (err) { console.error('[Engine] Error in onData:', err); }
+      // Normal live scoring — check for auto-triggers from activeTrigger
+      if (raw.activeTrigger && state === 'LIVE') {
+        handleAutoTrigger(raw.activeTrigger, flat);
+      }
+    } catch (err) { console.error('[Engine] onData error:', err); }
   }
 
-  function handleTrigger(trigger, flat) {
-    var t    = trigger.type  || trigger;
-    var data = trigger.data  || trigger.payload || {};
+  // ─── handleAutoTrigger — for score-update-driven animations (FOUR, SIX, WICKET etc)
+  // These go through the overlay's OWN handler (dispatch) since those animations
+  // are designed in the overlay template (border flash, text pop etc).
+  function handleAutoTrigger(trigger, flat) {
+    var t    = trigger.type || trigger;
+    var data = trigger.data || trigger.payload || {};
     var dur  = trigger.duration || 6;
-    var richData = Object.assign({}, flat, data); 
-    var isManual = richData.isManual === true; // CRITICAL: Bypasses config if true
+    var richData = Object.assign({}, flat, data);
 
     switch (t) {
-      case 'FOUR':             if (!cfg.showFour && !isManual) return; queueAnimation('FOUR', richData, cfg.fourDuration); break;
-      case 'SIX':              if (!cfg.showSix && !isManual) return; queueAnimation('SIX', richData, cfg.sixDuration); break;
-      case 'WICKET':           if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET', richData, cfg.wicketDuration); break;
-      case 'WICKET_SWITCH':    if (!cfg.showWicket && !isManual) return; queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
-      case 'BATSMAN_CHANGE':   if (!cfg.showPlayerChange && !isManual) return; queueAnimation('BATSMAN_CHANGE', richData, cfg.playerChangeDuration); break;
-      case 'NEW_BOWLER':       if (!cfg.showBowlerChange && !isManual) return; queueAnimation('NEW_BOWLER', richData, cfg.bowlerChangeDuration); break;
-      // DECISION_PENDING full handler is below — do not add a stub here
-      case 'BATTING_CARD':
-        if (isManual) {
-          animQueue = [];
-          isPlayingAnim = true;
-          dispatch('BATTING_CARD', richData, dur || 12);
-          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 12) * 1000);
-        } else {
-          queueAnimation('BATTING_CARD', richData, dur);
-        }
-        break;
-      case 'BOWLING_CARD':
-        if (isManual) {
-          animQueue = [];
-          isPlayingAnim = true;
-          dispatch('BOWLING_CARD', richData, dur || 12);
-          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 12) * 1000);
-        } else {
-          queueAnimation('BOWLING_CARD', richData, dur);
-        }
-        break;
-      case 'BOTH_CARDS':       queueAnimation('BOTH_CARDS', richData, dur); break; 
-
+      case 'FOUR':          if (cfg.showFour)          queueAnimation('FOUR',          richData, cfg.fourDuration); break;
+      case 'SIX':           if (cfg.showSix)           queueAnimation('SIX',           richData, cfg.sixDuration);  break;
+      case 'WICKET':        if (cfg.showWicket)        queueAnimation('WICKET',        richData, cfg.wicketDuration); break;
+      case 'WICKET_SWITCH': if (cfg.showWicket)        queueAnimation('WICKET_SWITCH', richData, cfg.wicketDuration); break;
+      case 'BATSMAN_CHANGE':if (cfg.showPlayerChange)  queueAnimation('BATSMAN_CHANGE',richData, cfg.playerChangeDuration); break;
+      case 'NEW_BOWLER':    if (cfg.showBowlerChange)  queueAnimation('NEW_BOWLER',    richData, cfg.bowlerChangeDuration); break;
       case 'OVER_COMPLETE':
         var over = data.overNumber || 0;
         var wantBat  = cfg.autoBattingOvers  > 0 && over % cfg.autoBattingOvers  === 0 && cfg.showBattingSummary;
         var wantBowl = cfg.autoBowlingOvers > 0 && over % cfg.autoBowlingOvers === 0 && cfg.showBowlingSummary;
-        if (wantBat && wantBowl) {
-          queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration);
-        } else if (wantBat) {
-          queueAnimation('BATTING_CARD', richData, cfg.summaryDuration);
-        } else if (wantBowl) {
-          queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration);
-        }
+        if (wantBat && wantBowl) queueAnimation('BOTH_CARDS', richData, cfg.summaryDuration);
+        else if (wantBat)        queueAnimation('BATTING_CARD', richData, cfg.summaryDuration);
+        else if (wantBowl)       queueAnimation('BOWLING_CARD', richData, cfg.summaryDuration);
         break;
-
-      case 'DECISION_PENDING':
-        if (!cfg.showDecision && !isManual) return;
-        // LiveScoring always sends explicit active state — ON fires DECISION_PENDING, OFF fires RESTORE separately
-        // So here active is always true (OFF is sent as RESTORE trigger instead)
-        decisionPending = true;
-        animQueue = [];
-        isPlayingAnim = true;
-        dispatch('DECISION_PENDING', { active: true, isManual: true }, 0);
-        break;
-
-      case 'BATSMAN_PROFILE':
-        // Manual triggers bypass queue so they show immediately even if animation is playing
-        if (isManual) {
-          animQueue = [];
-          isPlayingAnim = true;
-          dispatch('BATSMAN_PROFILE', richData, dur || 8);
-          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 8) * 1000);
-        } else {
-          queueAnimation('BATSMAN_PROFILE', richData, dur);
-        }
-        break;
-      case 'BOWLER_PROFILE':
-        if (isManual) {
-          animQueue = [];
-          isPlayingAnim = true;
-          dispatch('BOWLER_PROFILE', richData, dur || 8);
-          setTimeout(function() { isPlayingAnim = false; dispatch('RESTORE', {}); processQueue(); }, (dur || 8) * 1000);
-        } else {
-          queueAnimation('BOWLER_PROFILE', richData, dur);
-        }
-        break;
-      
-      case 'VS_SCREEN':        queueAnimation('VS_SCREEN', richData, dur); break;
-      case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, dur); break;
-      case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, dur); break;
-
       case 'INNINGS_BREAK':
-        if (!cfg.showTargetCard && !isManual) return;
-        // After the target card finishes, auto-queue the 2nd innings intro
-        // Uses queueAnimation with a `then` callback so it fires after the card is restored
-        queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
-          if (cfg.showInningIntro) _waitAndQueueInningIntro();
-        });
-        break;
-
-      case 'START_INNINGS_INTRO':
-        // Build intro data: explicit trigger data takes highest priority, fallback to flat match data
-        var introData = Object.assign(
-          { striker: flat.strikerName || '', nonStriker: flat.nonStrikerName || '', bowler: flat.currentBowlerName || '' },
-          richData  // richData includes data.striker etc from the explicit trigger payload
-        );
-        // If fired manually (from scorer app), bypass queue and dispatch immediately
-        // to guarantee it shows even if another animation is in the queue
-        if (isManual) {
-          animQueue = [];
-          isPlayingAnim = true;
-          dispatch('START_INNINGS_INTRO', introData, dur || cfg.introDuration);
-          var introDur = (dur || cfg.introDuration) * 1000;
-          setTimeout(function() {
-            isPlayingAnim = false;
-            dispatch('RESTORE', {});
-            processQueue();
-          }, introDur);
-        } else {
-          queueAnimation('START_INNINGS_INTRO', introData, dur || cfg.introDuration);
+        if (cfg.showTargetCard) {
+          queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
+            if (cfg.showInningIntro) _waitAndQueueInningIntro();
+          });
         }
         break;
-
-      case 'MATCH_END':        
-        if (!cfg.showMatchEnd && !isManual) return;
-        // Build team1/team2 from innings data so template flip() has batsmen & bowlers
-        (function() {
-          // flat._raw is the original raw payload stored by overlay-utils; use it to get innings arrays
-          var rawMatch = (data.match) || (flat._raw && (flat._raw.match || flat._raw)) || flat;
-          var inn1 = (rawMatch.innings && rawMatch.innings[0]) || {};
-          var inn2 = (rawMatch.innings && rawMatch.innings[1]) || {};
-          // Also try overlay-utils pre-built arrays as fallback
-          var inn1Bat  = inn1.batsmen  || flat.inn1Batting  || [];
-          var inn1Bowl = inn1.bowlers  || flat.inn1Bowling  || [];
-          var inn2Bat  = inn2.batsmen  || flat.inn2Batting  || [];
-          var inn2Bowl = inn2.bowlers  || flat.inn2Bowling  || [];
-          var buildTeam = function(name, bats, bowls) {
-            return {
-              name: name || '',
-              batsmen: bats.map(function(b) {
-                return { name: b.name, runs: b.runs||0, balls: b.balls||0, fours: b.fours||0, sixes: b.sixes||0, sr: b.strikeRate||b.sr||0, isOut: b.isOut||false };
-              }),
-              bowlers: bowls.map(function(b) {
-                return { name: b.name, overs: b.overs || (b.balls ? (Math.floor(b.balls/6)+'.'+b.balls%6) : '0.0'), maidens: b.maidens||0, runs: b.runs||0, wickets: b.wickets||0, economy: b.economy||0 };
-              })
-            };
-          };
-          var t1Name = inn1.teamName || flat.inn1TeamName || flat.team1Name || '';
-          var t2Name = inn2.teamName || flat.inn2TeamName || flat.team2Name || '';
-          var matchEndData = Object.assign({}, richData, {
-            // Map winnerName/resultSummary (from overlay-utils) to what the template reads
-            winnerTeam: data.winnerTeam || richData.winnerTeam || flat.winnerName || '',
-            winMargin:  data.winMargin  || richData.winMargin  || flat.resultSummary || '',
-            team1: richData.team1 || buildTeam(t1Name, inn1Bat, inn1Bowl),
-            team2: richData.team2 || buildTeam(t2Name, inn2Bat, inn2Bowl)
-          });
-          queueAnimation('MATCH_END', matchEndData, cfg.matchSummaryDuration);
-        })();
+      case 'MATCH_END':
+        if (cfg.showMatchEnd) _fireMatchEnd(richData, flat, data);
         break;
-
-      case 'RESTORE':          
-        _pendingInningIntro = false;
-        decisionPending = false; 
-        isPlayingAnim = false; 
-        animQueue = []; 
-        dispatch('RESTORE', {}); 
-        setTimeout(processQueue, 50);
+      default:
+        dispatch(t, richData, dur);
         break;
-
-      default:                 dispatch(t, richData, dur);
     }
   }
 
+  // ─── handleManualTrigger — called from socket manualOverlayTrigger
+  // ALL manual triggers go through sharedHandleTrigger directly.
+  // This guarantees they ALWAYS show — no reliance on overlay-native elements.
+  function handleManualTrigger(trigger) {
+    var t    = trigger.type || trigger;
+    var data = trigger.data || trigger.payload || {};
+    var dur  = trigger.duration;
+    var flat = matchData || {};
+
+    console.log('[Engine] MANUAL TRIGGER:', t, data);
+
+    switch (t) {
+      // ── Decision Pending — fullscreen amber overlay ──────────────────────────
+      case 'DECISION_PENDING':
+        decisionActive = true;
+        // Clear any current animation so decision shows immediately
+        isPlayingAnim = false;
+        animQueue = [];
+        shared('DECISION_PENDING', { active: true }, 0);
+        break;
+
+      // ── Restore — hides decision overlay and shared panel ────────────────────
+      case 'RESTORE':
+        decisionActive = false;
+        isPlayingAnim = false;
+        animQueue = [];
+        shared('RESTORE', {}, 0);
+        break;
+
+      // ── Batsman Profile ──────────────────────────────────────────────────────
+      case 'BATSMAN_PROFILE':
+        var bName = flat.strikerName || data.playerName || '';
+        var bData = Object.assign({
+          playerName: bName,
+          runs:   0, balls: 0, fours: 0, sixes: 0, sr: '0.0'
+        }, _getBatterStats(bName, flat), data);
+        _showManualPanel('BATSMAN_PROFILE', bData, dur || cfg.introDuration);
+        break;
+
+      // ── Bowler Profile ───────────────────────────────────────────────────────
+      case 'BOWLER_PROFILE':
+        var blName = flat.currentBowlerName || data.playerName || '';
+        var blData = Object.assign({
+          playerName: blName,
+          overs: '0.0', wickets: 0, runs: 0, economy: '0.00'
+        }, _getBowlerStats(blName, flat), data);
+        _showManualPanel('BOWLER_PROFILE', blData, dur || cfg.introDuration);
+        break;
+
+      // ── Innings intro ────────────────────────────────────────────────────────
+      case 'START_INNINGS_INTRO':
+        var introData = {
+          striker:    data.striker    || flat.strikerName    || '',
+          nonStriker: data.nonStriker || flat.nonStrikerName || '',
+          bowler:     data.bowler     || flat.currentBowlerName || ''
+        };
+        _showManualPanel('START_INNINGS_INTRO', introData, dur || cfg.introDuration);
+        break;
+
+      // ── Innings break / target card ──────────────────────────────────────────
+      case 'INNINGS_BREAK':
+        _showManualPanel('INNINGS_BREAK', Object.assign({}, flat, data), dur || cfg.targetCardDuration);
+        if (cfg.showInningIntro) {
+          setTimeout(function() { _waitAndQueueInningIntro(); }, (dur || cfg.targetCardDuration) * 1000 + 400);
+        }
+        break;
+
+      // ── Batting / Bowling cards ──────────────────────────────────────────────
+      case 'BATTING_CARD':
+        _showManualPanel('BATTING_CARD', Object.assign({}, flat, data), dur || cfg.summaryDuration);
+        break;
+      case 'BOWLING_CARD':
+        _showManualPanel('BOWLING_CARD', Object.assign({}, flat, data), dur || cfg.summaryDuration);
+        break;
+
+      // ── Match end ────────────────────────────────────────────────────────────
+      case 'MATCH_END':
+        _fireMatchEnd(Object.assign({}, flat, data), flat, data);
+        break;
+
+      // ── Any other manual type — pass to shared ───────────────────────────────
+      default:
+        shared(t, Object.assign({}, flat, data), dur || 6);
+        break;
+    }
+  }
+
+  // Show a panel manually — interrupts current animation, shows panel, restores after dur
+  function _showManualPanel(type, data, durSec) {
+    var dur = durSec || 8;
+    isPlayingAnim = false;
+    animQueue = [];
+    shared(type, data, dur);
+  }
+
+  // Pull live batter stats from matchData innings
+  function _getBatterStats(name, flat) {
+    var innings = flat._innings || flat.innings || [];
+    var currentInn = innings[flat.currentInnings - 1] || {};
+    var batsmen = currentInn.batsmen || flat.batsmen || [];
+    var b = batsmen.find(function(x) { return x.name === name; }) || {};
+    return { runs: b.runs||0, balls: b.balls||0, fours: b.fours||0, sixes: b.sixes||0, sr: b.strikeRate||'0.0' };
+  }
+
+  // Pull live bowler stats from matchData innings
+  function _getBowlerStats(name, flat) {
+    var innings = flat._innings || flat.innings || [];
+    var currentInn = innings[flat.currentInnings - 1] || {};
+    var bowlers = currentInn.bowlers || flat.bowlers || [];
+    var b = bowlers.find(function(x) { return x.name === name; }) || {};
+    var balls = b.balls || 0;
+    return { overs: Math.floor(balls/6)+'.'+balls%6, wickets: b.wickets||0, runs: b.runs||0, economy: b.economy||'0.00' };
+  }
+
+  function _fireMatchEnd(richData, flat, data) {
+    var rawMatch = (data.match) || flat;
+    var inn1 = (rawMatch.innings && rawMatch.innings[0]) || {};
+    var inn2 = (rawMatch.innings && rawMatch.innings[1]) || {};
+    var buildTeam = function(name, bats, bowls) {
+      return {
+        name: name || '',
+        batsmen: (bats||[]).map(function(b) { return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, sr:b.strikeRate||0, isOut:b.isOut||false }; }),
+        bowlers: (bowls||[]).map(function(b) { return { name:b.name, overs:b.overs||(b.balls?(Math.floor(b.balls/6)+'.'+b.balls%6):'0.0'), maidens:b.maidens||0, runs:b.runs||0, wickets:b.wickets||0, economy:b.economy||0 }; })
+      };
+    };
+    var matchEndData = Object.assign({}, richData, {
+      winnerTeam: data.winnerTeam || richData.winnerTeam || flat.winnerName || '',
+      winMargin:  data.winMargin  || richData.winMargin  || flat.resultSummary || '',
+      team1: richData.team1 || buildTeam(inn1.teamName||flat.team1Name||'', inn1.batsmen||[], inn1.bowlers||[]),
+      team2: richData.team2 || buildTeam(inn2.teamName||flat.team2Name||'', inn2.batsmen||[], inn2.bowlers||[])
+    });
+    _showManualPanel('MATCH_END', matchEndData, cfg.matchSummaryDuration);
+  }
+
+  // ─── Socket + polling ─────────────────────────────────────────────────────────
   function fetchMatch(callback) {
     if (!matchId) return;
     fetch(apiBaseUrl + '/matches/' + matchId, { headers: { Accept: 'application/json' }, cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(json) { var d = json.data || json; if (callback) callback(d); else onData(d); })
-      .catch(function(err) {});
+      .catch(function() {});
   }
 
   function startPolling() {
@@ -382,11 +440,7 @@
     pollTimer = setInterval(function() {
       fetch(apiBaseUrl + '/matches/' + matchId, { headers: { Accept: 'application/json' }, cache: 'no-store' })
         .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(json) {
-          if (!json) return;
-          var data = json.data || json;
-          onData(data);
-        })
+        .then(function(json) { if (json) onData(json.data || json); })
         .catch(function() {});
     }, cfg.pollInterval);
   }
@@ -394,22 +448,29 @@
   function connectSocket() {
     if (typeof io === 'undefined') { startPolling(); return; }
     socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true });
-    socket.on('connect', function() { if (matchId) { socket.emit('joinMatch', matchId); socket.emit('join_match', matchId); }});
-    socket.on('scoreUpdate', function(payload) { onData(payload); });
-    socket.on('overlayTrigger', function(trigger) { handleTrigger(trigger, matchData || {}); });
-    socket.on('inningsEnded', function(payload) { onData(payload); });
-    socket.on('matchEnded', function(payload) { onData(payload); });
-    socket.on('manualOverlayTrigger', function(payload) { handleTrigger(payload.trigger || payload, matchData || {}); });
+    socket.on('connect', function() {
+      if (matchId) { socket.emit('joinMatch', matchId); socket.emit('join_match', matchId); }
+    });
+    socket.on('scoreUpdate',          function(payload) { onData(payload); });
+    socket.on('overlayTrigger',       function(trigger) { handleManualTrigger(trigger); });
+    socket.on('inningsEnded',         function(payload) { onData(payload); });
+    socket.on('matchEnded',           function(payload) { onData(payload); });
+    // manualOverlayTrigger is what the server emits when LiveScoring fires fireTrigger()
+    socket.on('manualOverlayTrigger', function(payload) {
+      handleManualTrigger(payload.trigger || payload);
+    });
   }
 
   window.addEventListener('message', function(e) {
     if (!e.data || e.data._engineSelf) return;
     if (e.data.type === 'UPDATE_SCORE' && e.data.data) { matchData = e.data.data; }
-    if (e.data.type === 'UPDATE_SPONSORS' && e.data.sponsors) {
-      // Relay to template's own listener
-      window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: e.data.sponsors, _engineSelf: true }, '*');
+    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) {
+      // Only handle non-manual triggers here (manual already handled by handleManualTrigger)
+      var payload = e.data.payload;
+      if (!payload.data || !payload.data.isManual) {
+        handleAutoTrigger(payload, matchData || {});
+      }
     }
-    if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) { handleTrigger(e.data.payload, matchData || {}); }
   });
 
   function init() { fetchMatch(function(data) { onData(data); }); connectSocket(); startPolling(); }

@@ -319,6 +319,66 @@
     }
   };
 
+  // ── Global message listener — intercepts triggers BEFORE overlay's own handler ──
+  // This guarantees DECISION_PENDING, BATSMAN_PROFILE, BOWLER_PROFILE and
+  // START_INNINGS_INTRO always work on every overlay without touching each file.
+  // NOTE: We intentionally do NOT filter out _engineSelf here — we WANT to receive
+  // the engine's own dispatches so the shared panel renders them reliably.
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
+
+    var payload = e.data.payload;
+    var type    = payload.type;
+    var data    = payload.data || {};
+    var dur     = (payload.duration > 0 ? payload.duration : 8) * 1000;
+
+    switch (type) {
+      case 'DECISION_PENDING': {
+        ensureDecisionElement();
+        var dp = document.getElementById('__decision-overlay__');
+        var active = data.active !== false;
+        if (dp) {
+          if (active) {
+            // Force animation restart every time
+            dp.style.display = 'none';
+            void dp.offsetWidth;
+            dp.style.display = 'flex';
+          } else {
+            dp.style.display = 'none';
+          }
+        }
+        var nat = document.getElementById('ev-decision') || document.getElementById('anim-decision');
+        if (nat) { nat.classList.toggle('fire', active); nat.classList.toggle('layer-show', active); }
+        break;
+      }
+
+      case 'RESTORE': {
+        var dp2 = document.getElementById('__decision-overlay__');
+        if (dp2) dp2.style.display = 'none';
+        var nat2 = document.getElementById('ev-decision') || document.getElementById('anim-decision');
+        if (nat2) { nat2.classList.remove('fire'); nat2.classList.remove('layer-show'); }
+        hidePanel();
+        break;
+      }
+
+      case 'BATSMAN_PROFILE':
+        showPanel(tpl_BATSMAN_PROFILE(data), dur);
+        break;
+
+      case 'BOWLER_PROFILE':
+        showPanel(tpl_BOWLER_PROFILE(data), dur);
+        break;
+
+      case 'START_INNINGS_INTRO':
+        showPanel(tpl_START_INNINGS_INTRO(data), dur);
+        break;
+
+      default:
+        break;
+    }
+  });
+
   // Ensure decision element on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureDecisionElement);
