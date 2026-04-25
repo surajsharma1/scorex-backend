@@ -1,317 +1,476 @@
 /**
- * ScoreX Shared Overlay Handlers v1.0
- * Provides all animation types for both lvl1 and lvl2 overlays.
- * Include AFTER engine.js. Call window.initOverlayHandlers(config) from each overlay's script.
+ * ScoreX Shared Overlay Handlers v2.0
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Architecture:
  *
- * config = {
- *   onUpdate: fn(data) — called on UPDATE_SCORE, receives normalized flat data
- *   onTrigger: fn(type, data, duration) — overlay-specific handler for custom animations
- *   els: { four, six, out, decision, ... } — element IDs for standard events
- * }
+ *  ┌─────────────────┐     postMessage / socket      ┌─────────────────┐
+ *  │   LiveScoring   │ ─── OVERLAY_TRIGGER ──────────▶│   engine.js     │
+ *  │   PreviewStudio │                                │ handleManualTrigger │
+ *  │   test.html     │                                │ _showManualPanel │
+ *  └─────────────────┘                                └────────┬────────┘
+ *                                                              │ window.sharedHandleTrigger()
+ *                                                              ▼
+ *                                               ┌─────────────────────────┐
+ *                                               │  overlay-handlers.js    │
+ *                                               │  showPanel()            │
+ *                                               │  __shared-panel__ DOM   │
+ *                                               └─────────────────────────┘
+ *
+ *  Decision Pending is handled SEPARATELY via ScoreX.decision API:
+ *  - It has its own DOM element (__dp-overlay__)
+ *  - It is a pure toggle — ON shows it, OFF hides it
+ *  - It does NOT go through the animation queue
+ *  - It does NOT block scoring
+ *
+ *  All other animations (BATSMAN_PROFILE, BOWLER_PROFILE, START_INNINGS_INTRO
+ *  etc.) go through showPanel() which renders a centered modal card.
+ *
+ *  The global window.addEventListener('message') here handles ONLY messages
+ *  from sources that do NOT go through engine.js (e.g. test.html direct fire).
+ *  engine.js calls window.sharedHandleTrigger() directly — no message involved.
  */
-(function() {
+(function () {
   'use strict';
 
-  // ── Shared fullscreen panel renderer ─────────────────────────────────────────
-  // Creates a centered modal overlay on the page. All overlays share this.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECTION 1: SHARED PANEL — centered modal card for all non-score animations
+  // ═══════════════════════════════════════════════════════════════════════════
+
   var _panelTimer = null;
+  var PANEL_ID    = '__sp__';
+  var PANEL_STYLE_ID = '__sp_style__';
+
+  function _ensurePanel() {
+    if (document.getElementById(PANEL_ID)) return document.getElementById(PANEL_ID);
+
+    // Inject styles once
+    if (!document.getElementById(PANEL_STYLE_ID)) {
+      var s = document.createElement('style');
+      s.id = PANEL_STYLE_ID;
+      s.textContent =
+        '#' + PANEL_ID + '{' +
+          'position:fixed;inset:0;z-index:99999;' +
+          'display:none;align-items:center;justify-content:center;' +
+          'background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);' +
+        '}' +
+        '#' + PANEL_ID + '.sp-in{display:flex;animation:__spIn .3s ease forwards;}' +
+        '#' + PANEL_ID + '.sp-out{animation:__spOut .3s ease forwards;}' +
+        '@keyframes __spIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}' +
+        '@keyframes __spOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.04)}}';
+      (document.head || document.documentElement).appendChild(s);
+    }
+
+    var el = document.createElement('div');
+    el.id = PANEL_ID;
+    document.body.appendChild(el);
+    return el;
+  }
 
   function showPanel(html, durationMs) {
-    var panel = document.getElementById('__shared-panel__');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = '__shared-panel__';
-      var style = document.createElement('style');
-      style.textContent = [
-        '#__shared-panel__{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;',
-        'justify-content:center;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);',
-        'animation:__pIn .35s ease forwards;}',
-        '@keyframes __pIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}',
-        '@keyframes __pOut{from{opacity:1}to{opacity:0;transform:scale(1.04)}}'
-      ].join('');
-      document.head.appendChild(style);
-      document.body.appendChild(panel);
-    }
-    panel.innerHTML = html;
-    panel.style.display = 'flex';
-    panel.style.animation = '__pIn .35s ease forwards';
+    var panel = _ensurePanel();
     clearTimeout(_panelTimer);
+    panel.className = '';
+    panel.innerHTML = html;
+    // Force reflow so animation always restarts
+    void panel.offsetWidth;
+    panel.className = 'sp-in';
+
     if (durationMs > 0) {
-      _panelTimer = setTimeout(function() { hidePanel(); }, durationMs);
+      _panelTimer = setTimeout(function () { hidePanel(); }, durationMs);
     }
   }
 
   function hidePanel() {
-    var panel = document.getElementById('__shared-panel__');
-    if (!panel) return;
-    panel.style.animation = '__pOut .35s ease forwards';
-    setTimeout(function() {
-      if (panel.parentNode) { panel.style.display = 'none'; panel.innerHTML = ''; }
-    }, 350);
+    var panel = document.getElementById(PANEL_ID);
+    if (!panel || panel.style.display === 'none') return;
+    clearTimeout(_panelTimer);
+    panel.className = 'sp-out';
+    setTimeout(function () {
+      if (panel) { panel.className = ''; panel.innerHTML = ''; }
+    }, 320);
   }
 
-  // ── Panel templates ───────────────────────────────────────────────────────────
-  var C = {
-    accent: '#00ff88', red: '#ff4444', amber: '#f59e0b', blue: '#38bdf8',
-    purple: '#a855f7', bg: 'rgba(7,13,15,0.97)', card: 'rgba(12,20,24,0.98)',
-    border: '#1a2e35', text: '#e8f5f0', muted: '#4a6560'
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECTION 2: DECISION PENDING — standalone toggle, never queued, never blocks
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var DP_ID       = '__dp__';
+  var DP_STYLE_ID = '__dp_style__';
+  var _dpActive   = false;   // current toggle state
+
+  function _ensureDP() {
+    if (document.getElementById(DP_ID)) return document.getElementById(DP_ID);
+
+    if (!document.getElementById(DP_STYLE_ID)) {
+      var s = document.createElement('style');
+      s.id = DP_STYLE_ID;
+      s.textContent =
+        '#' + DP_ID + '{' +
+          'position:fixed;inset:0;z-index:999999;' +   // above everything
+          'display:none;align-items:center;justify-content:center;' +
+          'background:rgba(0,0,0,0.75);' +
+        '}' +
+        '#' + DP_ID + ' .dp-box{' +
+          'text-align:center;padding:52px 80px;' +
+          'background:rgba(15,10,0,0.98);' +
+          'border:3px solid #f59e0b;border-radius:24px;' +
+          'box-shadow:0 0 80px rgba(245,158,11,0.4);' +
+          'animation:__dpPulse 1.4s ease-in-out infinite;' +
+        '}' +
+        '@keyframes __dpPulse{' +
+          '0%,100%{box-shadow:0 0 60px rgba(245,158,11,0.3);}' +
+          '50%{box-shadow:0 0 120px rgba(245,158,11,0.7);}' +
+        '}' +
+        '#' + DP_ID + ' .dp-icon{font-size:64px;margin-bottom:16px;}' +
+        '#' + DP_ID + ' .dp-label{' +
+          'color:#f59e0b;font-size:16px;letter-spacing:6px;' +
+          'font-weight:900;margin-bottom:12px;font-family:"Segoe UI",sans-serif;' +
+        '}' +
+        '#' + DP_ID + ' .dp-title{' +
+          'color:#fff;font-size:52px;font-weight:900;letter-spacing:4px;' +
+          'font-family:"Oswald","Segoe UI",sans-serif;line-height:1;' +
+        '}' +
+        '#' + DP_ID + ' .dp-sub{' +
+          'color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;letter-spacing:3px;' +
+        '}';
+      (document.head || document.documentElement).appendChild(s);
+    }
+
+    var el = document.createElement('div');
+    el.id = DP_ID;
+    el.innerHTML =
+      '<div class="dp-box">' +
+        '<div class="dp-icon">⚖️</div>' +
+        '<div class="dp-label">THIRD UMPIRE REVIEW</div>' +
+        '<div class="dp-title">DECISION<br>PENDING</div>' +
+        '<div class="dp-sub">AWAITING OFFICIAL DECISION</div>' +
+      '</div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  // Public API for Decision Pending
+  // Called by: engine.js handleManualTrigger (via sharedHandleTrigger)
+  //            AND the message listener below (for test.html / direct postMessage)
+  function showDecisionPending() {
+    _dpActive = true;
+    var dp = _ensureDP();
+    // Force animation restart every time
+    dp.style.display = 'none';
+    void dp.offsetWidth;
+    dp.style.display = 'flex';
+  }
+
+  function hideDecisionPending() {
+    _dpActive = false;
+    var dp = document.getElementById(DP_ID);
+    if (dp) dp.style.display = 'none';
+  }
+
+  function toggleDecisionPending() {
+    if (_dpActive) hideDecisionPending();
+    else showDecisionPending();
+  }
+
+  // Expose so engine.js can call directly if needed
+  window.ScoreX = window.ScoreX || {};
+  window.ScoreX.decision = {
+    show:   showDecisionPending,
+    hide:   hideDecisionPending,
+    toggle: toggleDecisionPending,
+    isActive: function () { return _dpActive; }
   };
 
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECTION 3: CARD TEMPLATES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var C = {
+    accent:'#00ff88', red:'#ff4444', amber:'#f59e0b', blue:'#38bdf8',
+    purple:'#a855f7', bg:'rgba(7,13,15,0.97)', card:'rgba(12,20,24,0.98)',
+    border:'#1a2e35', text:'#e8f5f0', muted:'#4a6560'
+  };
+
+  function _s(label, value) {
+    return (
+      '<div style="background:rgba(255,255,255,0.04);border:1px solid ' + C.border + ';' +
+      'border-radius:12px;padding:14px 18px">' +
+        '<div style="color:' + C.muted + ';font-size:11px;letter-spacing:2px;font-weight:700;">' + label + '</div>' +
+        '<div style="color:' + C.text + ';font-size:28px;font-weight:900;margin-top:4px;' +
+        'font-family:\'Oswald\',sans-serif">' + value + '</div>' +
+      '</div>'
+    );
+  }
+
+  function tpl_BATSMAN_PROFILE(data) {
+    var name, rows;
+    if (data.stats && Array.isArray(data.stats)) {
+      var ne = data.stats.find(function(s){return /batsman|player|name/i.test(s.label);});
+      name = ne ? ne.value : (data.title||'');
+      rows = data.stats
+        .filter(function(s){return !/batsman|player|name/i.test(s.label);})
+        .map(function(s){return _s(s.label,s.value);}).join('');
+    } else {
+      name = data.playerName||data.name||'';
+      rows = _s('RUNS',data.runs||0)+_s('BALLS',data.balls||0)+
+             _s('FOURS',data.fours||0)+_s('SIXES',data.sixes||0)+
+             _s('STRIKE RATE',data.sr||data.strikeRate||'0.0');
+    }
+    return (
+      '<div style="padding:40px 52px;background:'+C.bg+';border:2px solid '+C.purple+';' +
+      'border-radius:24px;min-width:420px;box-shadow:0 0 40px rgba(168,85,247,0.15)">' +
+        '<div style="display:inline-block;background:'+C.purple+';color:#fff;font-size:12px;' +
+        'font-weight:900;letter-spacing:3px;padding:4px 18px;border-radius:20px;margin-bottom:16px;">BATSMAN</div>' +
+        '<div style="color:'+C.text+';font-size:34px;font-weight:900;margin-bottom:20px;">'+name+'</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+rows+'</div>' +
+      '</div>'
+    );
+  }
+
+  function tpl_BOWLER_PROFILE(data) {
+    var name, rows;
+    if (data.stats && Array.isArray(data.stats)) {
+      var ne = data.stats.find(function(s){return /bowler|player|name/i.test(s.label);});
+      name = ne ? ne.value : (data.title||'');
+      rows = data.stats
+        .filter(function(s){return !/bowler|player|name/i.test(s.label);})
+        .map(function(s){return _s(s.label,s.value);}).join('');
+    } else {
+      name = data.playerName||data.name||data.bowler||'';
+      rows = _s('OVERS',data.overs||'0.0')+_s('WICKETS',data.wickets||0)+
+             _s('RUNS',data.runs||0)+_s('ECONOMY',data.economy||data.econ||'0.00');
+    }
+    return (
+      '<div style="padding:40px 52px;background:'+C.bg+';border:2px solid '+C.blue+';' +
+      'border-radius:24px;min-width:420px;box-shadow:0 0 40px rgba(56,189,248,0.15)">' +
+        '<div style="display:inline-block;background:'+C.blue+';color:#000;font-size:12px;' +
+        'font-weight:900;letter-spacing:3px;padding:4px 18px;border-radius:20px;margin-bottom:16px;">BOWLER</div>' +
+        '<div style="color:'+C.text+';font-size:34px;font-weight:900;margin-bottom:20px;">'+name+'</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+rows+'</div>' +
+      '</div>'
+    );
+  }
+
+  function _introCard(icon, label, name) {
+    return (
+      '<div style="text-align:center;padding:20px 28px;background:rgba(255,255,255,0.04);' +
+      'border:1px solid '+C.border+';border-radius:16px;min-width:150px">' +
+        '<div style="font-size:28px;margin-bottom:8px;">'+icon+'</div>' +
+        '<div style="color:'+C.muted+';font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:8px;">'+label+'</div>' +
+        '<div style="color:'+C.text+';font-size:20px;font-weight:900;">'+name+'</div>' +
+      '</div>'
+    );
+  }
+
+  function tpl_START_INNINGS_INTRO(data) {
+    return (
+      '<div style="padding:44px 56px;background:'+C.bg+';border:2px solid '+C.accent+';' +
+      'border-radius:24px;min-width:540px;box-shadow:0 0 50px rgba(0,255,136,0.12)">' +
+        '<div style="text-align:center;color:'+C.accent+';font-size:14px;letter-spacing:5px;' +
+        'font-weight:700;margin-bottom:24px;">INNINGS OPENING</div>' +
+        '<div style="display:flex;gap:24px;justify-content:center">' +
+          _introCard('🏏','STRIKER',   data.striker   ||'') +
+          _introCard('⬤', 'NON-STRIKER',data.nonStriker||'') +
+          _introCard('🎳','BOWLER',    data.bowler    ||'') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function tpl_INNINGS_BREAK(data) {
+    var target = data.targetScore||data.target||0;
+    var chaser = (data.chasingTeam||'TEAM 2').toUpperCase();
+    return (
+      '<div style="text-align:center;padding:52px 72px;background:'+C.bg+';border:2px solid '+C.accent+';' +
+      'border-radius:24px;min-width:480px;box-shadow:0 0 60px rgba(0,255,136,0.15)">' +
+        '<div style="font-size:48px;margin-bottom:16px;">🏏</div>' +
+        '<div style="color:'+C.accent+';font-size:20px;font-weight:700;letter-spacing:4px;margin-bottom:24px;">INNINGS BREAK</div>' +
+        '<div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);' +
+        'border-radius:16px;padding:24px 40px">' +
+          '<div style="color:'+C.muted+';font-size:13px;letter-spacing:3px;margin-bottom:8px;">TARGET FOR '+chaser+'</div>' +
+          '<div style="color:'+C.accent+';font-size:80px;font-weight:900;line-height:1;' +
+          'font-family:\'Oswald\',sans-serif;">'+target+'</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   function tpl_WICKET_SWITCH(data) {
-    return '<div style="text-align:center;padding:48px 64px;background:'+C.bg+';border:2px solid '+C.red+';border-radius:24px;min-width:460px;max-width:600px;box-shadow:0 0 60px rgba(255,68,68,0.2)">' +
-      '<div style="font-size:72px;margin-bottom:8px;">🎯</div>' +
-      '<div style="color:'+C.red+';font-size:52px;font-weight:900;letter-spacing:6px;font-family:\'Oswald\',sans-serif">OUT!</div>' +
-      '<div style="color:'+C.text+';font-size:28px;font-weight:700;margin-top:16px;">' + (data.outName||'') + '</div>' +
-      '<div style="color:'+C.muted+';font-size:18px;margin-top:6px;">' + (data.outRuns||0) + ' (' + (data.outBalls||0) + ') · ' + ((data.howOut||'OUT').toUpperCase()) + '</div>' +
-      (data.inName ? '<div style="margin-top:28px;padding-top:24px;border-top:1px solid '+C.border+';color:'+C.accent+';font-size:20px;font-weight:700;">▶ ' + data.inName + ' &nbsp;<span style="color:'+C.muted+';font-size:15px;">COMING IN</span></div>' : '') +
-    '</div>';
+    return (
+      '<div style="text-align:center;padding:48px 64px;background:'+C.bg+';border:2px solid '+C.red+';' +
+      'border-radius:24px;min-width:460px;max-width:600px;box-shadow:0 0 60px rgba(255,68,68,0.2)">' +
+        '<div style="font-size:72px;margin-bottom:8px;">🎯</div>' +
+        '<div style="color:'+C.red+';font-size:52px;font-weight:900;letter-spacing:6px;' +
+        'font-family:\'Oswald\',sans-serif">OUT!</div>' +
+        '<div style="color:'+C.text+';font-size:28px;font-weight:700;margin-top:16px;">'+(data.outName||'')+'</div>' +
+        '<div style="color:'+C.muted+';font-size:18px;margin-top:6px;">'+(data.outRuns||0)+
+        ' ('+(data.outBalls||0)+') · '+((data.howOut||'OUT').toUpperCase())+'</div>' +
+        (data.inName?'<div style="margin-top:28px;padding-top:24px;border-top:1px solid '+C.border+
+        ';color:'+C.accent+';font-size:20px;font-weight:700;">▶ '+data.inName+
+        ' &nbsp;<span style="color:'+C.muted+';font-size:15px;">COMING IN</span></div>':'') +
+      '</div>'
+    );
   }
 
   function tpl_BATSMAN_CHANGE(data) {
     var isRetired = (data.howOut||'').toUpperCase().indexOf('RETIRED') !== -1;
     var badgeColor = isRetired ? C.amber : C.blue;
-    var badge = isRetired ? 'RETIRED HURT' : 'SUBSTITUTION';
-    return '<div style="text-align:center;padding:44px 60px;background:'+C.bg+';border:2px solid '+badgeColor+';border-radius:24px;min-width:440px;max-width:580px;box-shadow:0 0 40px rgba(0,0,0,0.6)">' +
-      '<div style="display:inline-block;background:'+badgeColor+';color:#000;font-size:13px;font-weight:900;letter-spacing:3px;padding:4px 20px;border-radius:20px;margin-bottom:16px;">'+badge+'</div>' +
-      '<div style="color:'+C.text+';font-size:30px;font-weight:700;">' + (data.outName||'') + '</div>' +
-      '<div style="color:'+C.muted+';font-size:18px;margin-top:8px;">' + (data.outRuns||0) + ' (' + (data.outBalls||0) + ')</div>' +
-      (data.inName ? '<div style="margin-top:24px;padding-top:20px;border-top:1px solid '+C.border+';color:'+C.accent+';font-size:20px;font-weight:700;">▶ ' + data.inName + '</div>' : '') +
-    '</div>';
+    var badge      = isRetired ? 'RETIRED HURT' : 'SUBSTITUTION';
+    return (
+      '<div style="text-align:center;padding:44px 60px;background:'+C.bg+';border:2px solid '+badgeColor+';' +
+      'border-radius:24px;min-width:440px;max-width:580px;box-shadow:0 0 40px rgba(0,0,0,0.6)">' +
+        '<div style="display:inline-block;background:'+badgeColor+';color:#000;font-size:13px;' +
+        'font-weight:900;letter-spacing:3px;padding:4px 20px;border-radius:20px;margin-bottom:16px;">'+badge+'</div>' +
+        '<div style="color:'+C.text+';font-size:30px;font-weight:700;">'+(data.outName||'')+'</div>' +
+        '<div style="color:'+C.muted+';font-size:18px;margin-top:8px;">'+(data.outRuns||0)+' ('+(data.outBalls||0)+')</div>' +
+        (data.inName?'<div style="margin-top:24px;padding-top:20px;border-top:1px solid '+C.border+
+        ';color:'+C.accent+';font-size:20px;font-weight:700;">▶ '+data.inName+'</div>':'') +
+      '</div>'
+    );
   }
 
   function tpl_NEW_BOWLER(data) {
-    return '<div style="text-align:center;padding:44px 64px;background:'+C.bg+';border:2px solid '+C.blue+';border-radius:24px;min-width:440px;box-shadow:0 0 40px rgba(56,189,248,0.15)">' +
-      '<div style="color:'+C.muted+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:12px;">NEW BOWLER</div>' +
-      '<div style="color:'+C.text+';font-size:36px;font-weight:900;font-family:\'Oswald\',sans-serif;letter-spacing:2px;">' + (data.bowler||data.playerName||'') + '</div>' +
-      '<div style="display:flex;gap:32px;justify-content:center;margin-top:20px;">' +
-        '<div style="text-align:center"><div style="color:'+C.blue+';font-size:32px;font-weight:900;">' + (data.overs||'0.0') + '</div><div style="color:'+C.muted+';font-size:12px;letter-spacing:2px;">OVERS</div></div>' +
-        '<div style="text-align:center"><div style="color:'+C.text+';font-size:32px;font-weight:900;">' + (data.wickets||0) + '-' + (data.runs||0) + '</div><div style="color:'+C.muted+';font-size:12px;letter-spacing:2px;">FIGURES</div></div>' +
-      '</div>' +
-    '</div>';
+    return (
+      '<div style="text-align:center;padding:44px 64px;background:'+C.bg+';border:2px solid '+C.blue+';' +
+      'border-radius:24px;min-width:440px;box-shadow:0 0 40px rgba(56,189,248,0.15)">' +
+        '<div style="color:'+C.muted+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:12px;">NEW BOWLER</div>' +
+        '<div style="color:'+C.text+';font-size:36px;font-weight:900;font-family:\'Oswald\',sans-serif;' +
+        'letter-spacing:2px;">'+(data.bowler||data.playerName||'')+'</div>' +
+        '<div style="display:flex;gap:32px;justify-content:center;margin-top:20px;">' +
+          '<div style="text-align:center"><div style="color:'+C.blue+';font-size:32px;font-weight:900;">'+(data.overs||'0.0')+'</div>' +
+          '<div style="color:'+C.muted+';font-size:12px;letter-spacing:2px;">OVERS</div></div>' +
+          '<div style="text-align:center"><div style="color:'+C.text+';font-size:32px;font-weight:900;">'+(data.wickets||0)+'-'+(data.runs||0)+'</div>' +
+          '<div style="color:'+C.muted+';font-size:12px;letter-spacing:2px;">FIGURES</div></div>' +
+        '</div>' +
+      '</div>'
+    );
   }
 
-  function tpl_START_INNINGS_INTRO(data) {
-    return '<div style="padding:44px 56px;background:'+C.bg+';border:2px solid '+C.accent+';border-radius:24px;min-width:540px;box-shadow:0 0 50px rgba(0,255,136,0.12)">' +
-      '<div style="text-align:center;color:'+C.accent+';font-size:14px;letter-spacing:5px;font-weight:700;margin-bottom:24px;">INNINGS OPENING</div>' +
-      '<div style="display:flex;gap:24px;justify-content:center">' +
-        card_intro('🏏','STRIKER', data.striker||'') +
-        card_intro('⬤','NON-STRIKER', data.nonStriker||'') +
-        card_intro('🎳','BOWLER', data.bowler||'') +
-      '</div>' +
-    '</div>';
+  function _bRow(b) {
+    var isOut = b.outStatus==='out'||b.isOut;
+    return (
+      '<tr>' +
+      '<td style="color:'+(isOut?C.muted:C.text)+';font-size:16px;padding:10px 8px;border-bottom:1px solid '+C.border+';text-align:left;font-weight:700;">'+
+        (b.name||'')+(isOut?'':' <span style="color:'+C.accent+'">*</span>') +
+      '</td>' +
+      '<td style="color:'+C.accent+';font-size:18px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">'+(b.runs||0)+'</td>' +
+      '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">('+(b.balls||0)+')</td>' +
+      '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(b.fours||0)+'</td>' +
+      '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(b.sixes||0)+'</td>' +
+      '<td style="color:'+(isOut?C.red:C.accent)+';font-size:11px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(isOut?'OUT':'BAT')+'</td>' +
+      '</tr>'
+    );
   }
 
-  function card_intro(icon, label, name) {
-    return '<div style="text-align:center;padding:20px 28px;background:rgba(255,255,255,0.04);border:1px solid '+C.border+';border-radius:16px;min-width:150px">' +
-      '<div style="font-size:28px;margin-bottom:8px;">' + icon + '</div>' +
-      '<div style="color:'+C.muted+';font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:8px;">' + label + '</div>' +
-      '<div style="color:'+C.text+';font-size:20px;font-weight:900;">' + name + '</div>' +
-    '</div>';
+  function _blRow(b) {
+    return (
+      '<tr>' +
+      '<td style="color:'+C.text+';font-size:16px;padding:10px 8px;border-bottom:1px solid '+C.border+';text-align:left;font-weight:700;">'+(b.name||'')+'</td>' +
+      '<td style="color:'+C.blue+';font-size:16px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">'+(b.overs||'0.0')+'</td>' +
+      '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(b.maidens||0)+'</td>' +
+      '<td style="color:'+C.text+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(b.runs||0)+'</td>' +
+      '<td style="color:'+C.accent+';font-size:18px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">'+(b.wickets!==undefined?b.wickets:(b.wkts||0))+'</td>' +
+      '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">'+(b.econ||b.economy||'0.00')+'</td>' +
+      '</tr>'
+    );
   }
 
-  function tpl_INNINGS_BREAK(data) {
-    return '<div style="text-align:center;padding:52px 72px;background:'+C.bg+';border:2px solid '+C.accent+';border-radius:24px;min-width:480px;box-shadow:0 0 60px rgba(0,255,136,0.15)">' +
-      '<div style="font-size:48px;margin-bottom:16px;">🏏</div>' +
-      '<div style="color:'+C.accent+';font-size:20px;font-weight:700;letter-spacing:4px;margin-bottom:24px;">INNINGS BREAK</div>' +
-      '<div style="background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);border-radius:16px;padding:24px 40px;margin-bottom:16px;">' +
-        '<div style="color:'+C.muted+';font-size:13px;letter-spacing:3px;margin-bottom:8px;">TARGET FOR ' + (data.chasingTeam||'TEAM 2').toUpperCase() + '</div>' +
-        '<div style="color:'+C.accent+';font-size:80px;font-weight:900;line-height:1;font-family:\'Oswald\',sans-serif;">' + (data.targetScore||data.target||0) + '</div>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function tpl_BATSMAN_PROFILE(data) {
-    return '<div style="padding:40px 52px;background:'+C.bg+';border:2px solid '+C.purple+';border-radius:24px;min-width:420px;box-shadow:0 0 40px rgba(168,85,247,0.15)">' +
-      '<div style="display:inline-block;background:'+C.purple+';color:#fff;font-size:12px;font-weight:900;letter-spacing:3px;padding:4px 18px;border-radius:20px;margin-bottom:16px;">BATSMAN</div>' +
-      '<div style="color:'+C.text+';font-size:34px;font-weight:900;margin-bottom:20px;">' + (data.playerName||data.name||'') + '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-        stat_row('RUNS', data.runs||0) + stat_row('BALLS', data.balls||0) +
-        stat_row('FOURS', data.fours||0) + stat_row('SIXES', data.sixes||0) +
-        stat_row('STRIKE RATE', data.sr||data.strikeRate||'0.0') +
-      '</div>' +
-    '</div>';
-  }
-
-  function tpl_BOWLER_PROFILE(data) {
-    return '<div style="padding:40px 52px;background:'+C.bg+';border:2px solid '+C.blue+';border-radius:24px;min-width:420px;box-shadow:0 0 40px rgba(56,189,248,0.15)">' +
-      '<div style="display:inline-block;background:'+C.blue+';color:#000;font-size:12px;font-weight:900;letter-spacing:3px;padding:4px 18px;border-radius:20px;margin-bottom:16px;">BOWLER</div>' +
-      '<div style="color:'+C.text+';font-size:34px;font-weight:900;margin-bottom:20px;">' + (data.playerName||data.name||data.bowler||'') + '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-        stat_row('OVERS', data.overs||'0.0') + stat_row('WICKETS', data.wickets||0) +
-        stat_row('RUNS', data.runs||0) + stat_row('ECONOMY', data.economy||data.econ||'0.00') +
-      '</div>' +
-    '</div>';
-  }
-
-  function stat_row(label, value) {
-    return '<div style="background:rgba(255,255,255,0.04);border:1px solid '+C.border+';border-radius:12px;padding:14px 18px">' +
-      '<div style="color:'+C.muted+';font-size:11px;letter-spacing:2px;font-weight:700;">' + label + '</div>' +
-      '<div style="color:'+C.text+';font-size:28px;font-weight:900;margin-top:4px;font-family:\'Oswald\',sans-serif">' + value + '</div>' +
-    '</div>';
+  function _thCell(label) {
+    return '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+';text-align:left;">'+label+'</th>';
   }
 
   function tpl_BATTING_CARD(data) {
-    var rows = (data.batsmen||[]).map(function(b) {
-      var isOut = b.outStatus === 'out' || b.isOut;
-      return '<tr>' +
-        '<td style="color:' + (isOut ? C.muted : C.text) + ';font-size:16px;padding:10px 8px;border-bottom:1px solid '+C.border+';text-align:left;font-weight:700;">' + (b.name||'') + (isOut ? '' : ' <span style="color:'+C.accent+'">*</span>') + '</td>' +
-        '<td style="color:'+C.accent+';font-size:18px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">' + (b.runs||0) + '</td>' +
-        '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">(' + (b.balls||0) + ')</td>' +
-        '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">' + (b.fours||0) + '</td>' +
-        '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">' + (b.sixes||0) + '</td>' +
-        (isOut ? '<td style="color:'+C.red+';font-size:11px;padding:10px 8px;border-bottom:1px solid '+C.border+'">OUT</td>' : '<td style="color:'+C.accent+';font-size:11px;padding:10px 8px;border-bottom:1px solid '+C.border+'">BAT</td>') +
-      '</tr>';
-    }).join('');
-    return '<div style="padding:36px 44px;background:'+C.bg+';border:2px solid '+C.accent+';border-radius:20px;min-width:580px;max-height:80vh;overflow:auto">' +
-      '<div style="color:'+C.accent+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:20px;">BATTING SCORECARD</div>' +
-      '<table style="width:100%;border-collapse:collapse">' +
-        '<thead><tr>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;text-align:left;border-bottom:1px solid '+C.border+'">BATSMAN</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">R</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">B</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">4s</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">6s</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">STATUS</th>' +
-        '</tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-      '</table>' +
-    '</div>';
+    var rows = (data.batsmen||[]).map(_bRow).join('');
+    return (
+      '<div style="padding:36px 44px;background:'+C.bg+';border:2px solid '+C.accent+';' +
+      'border-radius:20px;min-width:580px;max-height:80vh;overflow:auto">' +
+        '<div style="color:'+C.accent+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:20px;">BATTING SCORECARD</div>' +
+        '<table style="width:100%;border-collapse:collapse">' +
+          '<thead><tr>'+_thCell('BATSMAN')+_thCell('R')+_thCell('B')+_thCell('4s')+_thCell('6s')+_thCell('STATUS')+'</tr></thead>' +
+          '<tbody>'+rows+'</tbody>' +
+        '</table>' +
+      '</div>'
+    );
   }
 
   function tpl_BOWLING_CARD(data) {
-    var rows = (data.bowlers||[]).map(function(b) {
-      return '<tr>' +
-        '<td style="color:'+C.text+';font-size:16px;padding:10px 8px;border-bottom:1px solid '+C.border+';text-align:left;font-weight:700;">' + (b.name||'') + '</td>' +
-        '<td style="color:'+C.blue+';font-size:16px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">' + (b.overs||'0.0') + '</td>' +
-        '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">' + (b.maidens||0) + '</td>' +
-        '<td style="color:'+C.text+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">' + (b.runs||0) + '</td>' +
-        '<td style="color:'+C.accent+';font-size:18px;font-weight:900;padding:10px 8px;border-bottom:1px solid '+C.border+';font-family:\'Oswald\',sans-serif">' + (b.wickets !== undefined ? b.wickets : (b.wkts||0)) + '</td>' +
-        '<td style="color:'+C.muted+';font-size:14px;padding:10px 8px;border-bottom:1px solid '+C.border+'">' + (b.econ||b.economy||'0.00') + '</td>' +
-      '</tr>';
-    }).join('');
-    return '<div style="padding:36px 44px;background:'+C.bg+';border:2px solid '+C.blue+';border-radius:20px;min-width:540px;max-height:80vh;overflow:auto">' +
-      '<div style="color:'+C.blue+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:20px;">BOWLING SCORECARD</div>' +
-      '<table style="width:100%;border-collapse:collapse">' +
-        '<thead><tr>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;text-align:left;border-bottom:1px solid '+C.border+'">BOWLER</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">OV</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">M</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">R</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">W</th>' +
-          '<th style="color:'+C.muted+';font-size:11px;letter-spacing:2px;padding:6px 8px;border-bottom:1px solid '+C.border+'">ECO</th>' +
-        '</tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-      '</table>' +
-    '</div>';
-  }
-
-  // ── DECISION PENDING overlay element ─────────────────────────────────────────
-  // Injected into every overlay page to guarantee DECISION_PENDING always works
-  function ensureDecisionElement() {
-    if (document.getElementById('__decision-overlay__')) return;
-    var el = document.createElement('div');
-    el.id = '__decision-overlay__';
-    el.style.cssText = [
-      'position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;',
-      'background:rgba(0,0,0,0.7);backdrop-filter:blur(3px);',
-      'animation:__dpPulse 2s ease-in-out infinite;'
-    ].join('');
-    el.innerHTML = [
-      '<div style="text-align:center;padding:40px 80px;background:rgba(12,20,24,0.98);',
-      'border:2px solid #f59e0b;border-radius:24px;box-shadow:0 0 60px rgba(245,158,11,0.3)">',
-      '<div style="font-size:56px;margin-bottom:12px;">⚠️</div>',
-      '<div style="color:#f59e0b;font-size:48px;font-weight:900;letter-spacing:6px;',
-      'font-family:\'Oswald\',Impact,sans-serif;line-height:1">DECISION</div>',
-      '<div style="color:#f59e0b;font-size:48px;font-weight:900;letter-spacing:6px;',
-      'font-family:\'Oswald\',Impact,sans-serif;line-height:1">PENDING</div>',
-      '<div style="color:#4a6560;font-size:14px;letter-spacing:4px;margin-top:12px;font-weight:700">',
-      '3RD UMPIRE REVIEW</div>',
+    var rows = (data.bowlers||[]).map(_blRow).join('');
+    return (
+      '<div style="padding:36px 44px;background:'+C.bg+';border:2px solid '+C.blue+';' +
+      'border-radius:20px;min-width:540px;max-height:80vh;overflow:auto">' +
+        '<div style="color:'+C.blue+';font-size:14px;letter-spacing:4px;font-weight:700;margin-bottom:20px;">BOWLING SCORECARD</div>' +
+        '<table style="width:100%;border-collapse:collapse">' +
+          '<thead><tr>'+_thCell('BOWLER')+_thCell('OV')+_thCell('M')+_thCell('R')+_thCell('W')+_thCell('ECO')+'</tr></thead>' +
+          '<tbody>'+rows+'</tbody>' +
+        '</table>' +
       '</div>'
-    ].join('');
-    var style = document.createElement('style');
-    style.textContent = '@keyframes __dpPulse{0%,100%{box-shadow:none}50%{box-shadow:inset 0 0 0 3px rgba(245,158,11,0.15)}}';
-    document.head.appendChild(style);
-    document.body.appendChild(el);
+    );
   }
 
-  // ── Global handler — attached to window.message ───────────────────────────────
-  // Every overlay's message listener can call this for any animation type it doesn't
-  // handle natively. Returns true if handled, false if the overlay should handle it.
-  window.sharedHandleTrigger = function(type, data, duration) {
-    ensureDecisionElement();
-    var dp = document.getElementById('__decision-overlay__');
-    var dur = (duration || 8) * 1000;
+  function tpl_MATCH_END(data) {
+    return (
+      '<div style="text-align:center;padding:52px 72px;background:'+C.bg+';border:2px solid '+C.accent+';' +
+      'border-radius:24px;min-width:480px;box-shadow:0 0 60px rgba(0,255,136,0.15)">' +
+        '<div style="font-size:48px;margin-bottom:16px;">🏆</div>' +
+        '<div style="color:'+C.accent+';font-size:20px;font-weight:700;letter-spacing:4px;margin-bottom:16px;">MATCH CONCLUDED</div>' +
+        '<div style="color:'+C.text+';font-size:36px;font-weight:900;">'+(data.winnerTeam||'')+'</div>' +
+        '<div style="color:'+C.muted+';font-size:18px;margin-top:8px;">'+(data.winMargin||data.resultSummary||'')+'</div>' +
+      '</div>'
+    );
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECTION 4: sharedHandleTrigger — called directly by engine.js
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // engine.js calls this DIRECTLY (not via postMessage) so there is no race
+  // condition, no double-render, no missed events.
+  //
+  // Returns true if handled, false if the overlay's own native handler should
+  // also run (e.g. RESTORE lets the overlay clean up its own score elements).
+
+  window.sharedHandleTrigger = function (type, data, durationSec) {
+    var dur = ((durationSec || 8) * 1000);
+    data = data || {};
 
     switch (type) {
+
+      // ── Decision Pending — standalone toggle ─────────────────────────────
       case 'DECISION_PENDING':
-        var active = (data && data.active !== undefined) ? !!data.active : true;
-        if (dp) dp.style.display = active ? 'flex' : 'none';
-        // Also try native element if overlay has one
-        var native = document.getElementById('ev-decision') || document.getElementById('anim-decision');
-        if (native) {
-          if (active) { native.classList.add('fire'); native.classList.add('layer-show'); }
-          else { native.classList.remove('fire'); native.classList.remove('layer-show'); }
-        }
+        // data.active: true = show, false = hide, undefined = toggle
+        if (data.active === true)       showDecisionPending();
+        else if (data.active === false) hideDecisionPending();
+        else                            toggleDecisionPending();
         return true;
 
+      // ── Restore — hide panel + decision pending ──────────────────────────
       case 'RESTORE':
-        if (dp) dp.style.display = 'none';
         hidePanel();
-        var native2 = document.getElementById('ev-decision') || document.getElementById('anim-decision');
-        if (native2) { native2.classList.remove('fire'); native2.classList.remove('layer-show'); }
-        return false; // allow overlay to do its own restore too
+        hideDecisionPending();
+        return false; // overlay handles its own score elements too
 
-      case 'WICKET_SWITCH':
-        showPanel(tpl_WICKET_SWITCH(data), dur);
-        return true;
-
-      case 'BATSMAN_CHANGE':
-        showPanel(tpl_BATSMAN_CHANGE(data), dur);
-        return true;
-
-      case 'NEW_BOWLER':
-        showPanel(tpl_NEW_BOWLER(data), dur);
-        return true;
-
-      case 'START_INNINGS_INTRO':
-        showPanel(tpl_START_INNINGS_INTRO(data), dur);
-        return true;
-
-      case 'INNINGS_BREAK':
-        showPanel(tpl_INNINGS_BREAK(data), dur);
-        return true;
-
-      case 'BATSMAN_PROFILE':
-        showPanel(tpl_BATSMAN_PROFILE(data), dur);
-        return true;
-
-      case 'BOWLER_PROFILE':
-        showPanel(tpl_BOWLER_PROFILE(data), dur);
-        return true;
-
-      case 'BATTING_CARD':
-        showPanel(tpl_BATTING_CARD(data), dur);
-        return true;
-
-      case 'BOWLING_CARD':
-        showPanel(tpl_BOWLING_CARD(data), dur);
-        return true;
+      // ── Panel animations ─────────────────────────────────────────────────
+      case 'BATSMAN_PROFILE':    showPanel(tpl_BATSMAN_PROFILE(data),    dur); return true;
+      case 'BOWLER_PROFILE':     showPanel(tpl_BOWLER_PROFILE(data),     dur); return true;
+      case 'START_INNINGS_INTRO':showPanel(tpl_START_INNINGS_INTRO(data),dur); return true;
+      case 'INNINGS_BREAK':      showPanel(tpl_INNINGS_BREAK(data),      dur); return true;
+      case 'WICKET_SWITCH':      showPanel(tpl_WICKET_SWITCH(data),      dur); return true;
+      case 'BATSMAN_CHANGE':     showPanel(tpl_BATSMAN_CHANGE(data),     dur); return true;
+      case 'NEW_BOWLER':         showPanel(tpl_NEW_BOWLER(data),         dur); return true;
+      case 'BATTING_CARD':       showPanel(tpl_BATTING_CARD(data),       dur); return true;
+      case 'BOWLING_CARD':       showPanel(tpl_BOWLING_CARD(data),       dur); return true;
+      case 'MATCH_END':          showPanel(tpl_MATCH_END(data),          dur); return true;
 
       case 'BOTH_CARDS':
-        // Show batting then bowling
-        var bothHtml = '<div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">' +
-          tpl_BATTING_CARD(data) + tpl_BOWLING_CARD(data) + '</div>';
-        showPanel(bothHtml, dur);
-        return true;
-
-      case 'MATCH_END':
-        var me = '<div style="text-align:center;padding:52px 72px;background:rgba(7,13,15,0.98);border:2px solid #00ff88;border-radius:24px;min-width:480px;box-shadow:0 0 60px rgba(0,255,136,0.15)">' +
-          '<div style="font-size:48px;margin-bottom:16px;">🏆</div>' +
-          '<div style="color:#00ff88;font-size:20px;font-weight:700;letter-spacing:4px;margin-bottom:16px;">MATCH CONCLUDED</div>' +
-          '<div style="color:#e8f5f0;font-size:36px;font-weight:900;">' + (data.winnerTeam||'') + '</div>' +
-          '<div style="color:#4a6560;font-size:18px;margin-top:8px;">' + (data.winMargin||data.resultSummary||'') + '</div>' +
-        '</div>';
-        showPanel(me, dur);
+        showPanel(
+          '<div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">' +
+            tpl_BATTING_CARD(data) + tpl_BOWLING_CARD(data) +
+          '</div>',
+          dur
+        );
         return true;
 
       default:
@@ -319,11 +478,33 @@
     }
   };
 
-  // Ensure decision element on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureDecisionElement);
-  } else {
-    ensureDecisionElement();
-  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECTION 5: Direct postMessage listener
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // Handles OVERLAY_TRIGGER messages from sources that bypass engine.js:
+  //   • test.html (fire() function)
+  //   • PreviewStudio iframe postMessage
+  //   • Any future direct caller
+  //
+  // engine.js messages are tagged _engineSelf:true — we SKIP those here
+  // because engine.js already calls sharedHandleTrigger() directly.
+  // Without this skip we'd get double-render for engine-driven triggers.
+
+  window.addEventListener('message', function (e) {
+    if (!e.data) return;
+    // Skip engine's own dispatches — engine calls sharedHandleTrigger directly
+    if (e.data._engineSelf) return;
+    if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
+
+    var payload = e.data.payload;
+    var type    = payload.type;
+    var data    = payload.data || {};
+    var dur     = payload.duration > 0 ? payload.duration : 8;
+
+    // Route through the same handler — single code path for all sources
+    window.sharedHandleTrigger(type, data, dur);
+  });
 
 })();
