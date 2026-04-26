@@ -302,15 +302,11 @@
 
     console.log('[Engine] MANUAL:', t);
 
-    // ── DECISION PENDING — delegate entirely to ScoreX.decision toggle ──────
-    // No data enrichment needed. No queue. No animation lock.
+    // ── DECISION PENDING — show for 6000s (100 min). RESTORE kills it. ──────
+    // No state tracking needed. Button ON fires this. Button OFF fires RESTORE.
     if (t === 'DECISION_PENDING') {
-      if (window.ScoreX && window.ScoreX.decision) {
-        // Explicit active flag (from engine/LiveScoring): true=show, false=hide
-        // No active flag (from test.html / direct): toggle
-        if (data.active === true)       window.ScoreX.decision.show();
-        else if (data.active === false) window.ScoreX.decision.hide();
-        else                            window.ScoreX.decision.toggle();
+      if (typeof window.sharedHandleTrigger === 'function') {
+        window.sharedHandleTrigger('DECISION_PENDING', {}, 6000);
       }
       return;
     }

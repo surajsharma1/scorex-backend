@@ -92,95 +92,46 @@
 
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 2: DECISION PENDING — standalone toggle, never queued, never blocks
+  // SECTION 2: DECISION PENDING — uses showPanel with 100-min duration
   // ═══════════════════════════════════════════════════════════════════════════
+  // Strategy: fire the animation for 6000 seconds (100 min). No real match
+  // review takes that long. When the scorer presses the button again, RESTORE
+  // is fired which calls hidePanel() immediately — killing it on the spot.
+  // This means:
+  //   Button ON  → sharedHandleTrigger('DECISION_PENDING', {}, 6000)
+  //   Button OFF → sharedHandleTrigger('RESTORE', {}, 0)
+  // No toggle state needed anywhere. Clean, reliable, no edge cases.
 
-  var DP_ID       = '__dp__';
-  var DP_STYLE_ID = '__dp_style__';
-  var _dpActive   = false;   // current toggle state
+  var DP_DURATION_MS = 6000 * 1000; // 100 minutes in ms
 
-  function _ensureDP() {
-    if (document.getElementById(DP_ID)) return document.getElementById(DP_ID);
-
-    if (!document.getElementById(DP_STYLE_ID)) {
-      var s = document.createElement('style');
-      s.id = DP_STYLE_ID;
-      s.textContent =
-        '#' + DP_ID + '{' +
-          'position:fixed;inset:0;z-index:999999;' +   // above everything
-          'display:none;align-items:center;justify-content:center;' +
-          'background:rgba(0,0,0,0.75);' +
-        '}' +
-        '#' + DP_ID + ' .dp-box{' +
-          'text-align:center;padding:52px 80px;' +
-          'background:rgba(15,10,0,0.98);' +
-          'border:3px solid #f59e0b;border-radius:24px;' +
-          'box-shadow:0 0 80px rgba(245,158,11,0.4);' +
-          'animation:__dpPulse 1.4s ease-in-out infinite;' +
-        '}' +
-        '@keyframes __dpPulse{' +
-          '0%,100%{box-shadow:0 0 60px rgba(245,158,11,0.3);}' +
-          '50%{box-shadow:0 0 120px rgba(245,158,11,0.7);}' +
-        '}' +
-        '#' + DP_ID + ' .dp-icon{font-size:64px;margin-bottom:16px;}' +
-        '#' + DP_ID + ' .dp-label{' +
-          'color:#f59e0b;font-size:16px;letter-spacing:6px;' +
-          'font-weight:900;margin-bottom:12px;font-family:"Segoe UI",sans-serif;' +
-        '}' +
-        '#' + DP_ID + ' .dp-title{' +
-          'color:#fff;font-size:52px;font-weight:900;letter-spacing:4px;' +
-          'font-family:"Oswald","Segoe UI",sans-serif;line-height:1;' +
-        '}' +
-        '#' + DP_ID + ' .dp-sub{' +
-          'color:rgba(255,255,255,0.5);font-size:14px;margin-top:12px;letter-spacing:3px;' +
-        '}';
-      (document.head || document.documentElement).appendChild(s);
-    }
-
-    var el = document.createElement('div');
-    el.id = DP_ID;
-    el.innerHTML =
-      '<div class="dp-box">' +
-        '<div class="dp-icon">⚖️</div>' +
-        '<div class="dp-label">THIRD UMPIRE REVIEW</div>' +
-        '<div class="dp-title">DECISION<br>PENDING</div>' +
-        '<div class="dp-sub">AWAITING OFFICIAL DECISION</div>' +
-      '</div>';
-    document.body.appendChild(el);
-    return el;
+  function tpl_DECISION_PENDING() {
+    return (
+      '<div style="text-align:center;padding:52px 80px;' +
+      'background:rgba(15,10,0,0.98);' +
+      'border:3px solid #f59e0b;border-radius:24px;' +
+      'box-shadow:0 0 80px rgba(245,158,11,0.5);' +
+      'animation:__dpPulse 1.4s ease-in-out infinite;">' +
+        '<style>' +
+          '@keyframes __dpPulse{' +
+            '0%,100%{box-shadow:0 0 60px rgba(245,158,11,0.3);}' +
+            '50%{box-shadow:0 0 140px rgba(245,158,11,0.8);}' +
+          '}' +
+        '</style>' +
+        '<div style="font-size:64px;margin-bottom:16px;">⚖️</div>' +
+        '<div style="color:#f59e0b;font-size:16px;letter-spacing:6px;font-weight:900;' +
+        'margin-bottom:12px;font-family:\'Segoe UI\',sans-serif;">' +
+          'THIRD UMPIRE REVIEW' +
+        '</div>' +
+        '<div style="color:#fff;font-size:52px;font-weight:900;letter-spacing:4px;' +
+        'font-family:\'Oswald\',\'Segoe UI\',sans-serif;line-height:1;">' +
+          'DECISION<br>PENDING' +
+        '</div>' +
+        '<div style="color:rgba(255,255,255,0.5);font-size:14px;margin-top:16px;letter-spacing:3px;">' +
+          'AWAITING OFFICIAL DECISION' +
+        '</div>' +
+      '</div>'
+    );
   }
-
-  // Public API for Decision Pending
-  // Called by: engine.js handleManualTrigger (via sharedHandleTrigger)
-  //            AND the message listener below (for test.html / direct postMessage)
-  function showDecisionPending() {
-    _dpActive = true;
-    var dp = _ensureDP();
-    // Force animation restart every time
-    dp.style.display = 'none';
-    void dp.offsetWidth;
-    dp.style.display = 'flex';
-  }
-
-  function hideDecisionPending() {
-    _dpActive = false;
-    var dp = document.getElementById(DP_ID);
-    if (dp) dp.style.display = 'none';
-  }
-
-  function toggleDecisionPending() {
-    if (_dpActive) hideDecisionPending();
-    else showDecisionPending();
-  }
-
-  // Expose so engine.js can call directly if needed
-  window.ScoreX = window.ScoreX || {};
-  window.ScoreX.decision = {
-    show:   showDecisionPending,
-    hide:   hideDecisionPending,
-    toggle: toggleDecisionPending,
-    isActive: function () { return _dpActive; }
-  };
 
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -438,12 +389,9 @@
 
     switch (type) {
 
-      // ── Decision Pending — standalone toggle ─────────────────────────────
+      // ── Decision Pending — show panel for 100 min (kills on RESTORE) ────────
       case 'DECISION_PENDING':
-        // data.active: true = show, false = hide, undefined = toggle
-        if (data.active === true)       showDecisionPending();
-        else if (data.active === false) hideDecisionPending();
-        else                            toggleDecisionPending();
+        showPanel(tpl_DECISION_PENDING(), DP_DURATION_MS);
         return true;
 
       // ── Restore — hide panel + decision pending ──────────────────────────
@@ -501,7 +449,8 @@
     var payload = e.data.payload;
     var type    = payload.type;
     var data    = payload.data || {};
-    var dur     = payload.duration > 0 ? payload.duration : 8;
+    // DECISION_PENDING always uses 6000s (100 min) — RESTORE kills it early
+    var dur = type === 'DECISION_PENDING' ? 6000 : (payload.duration > 0 ? payload.duration : 8);
 
     // Route through the same handler — single code path for all sources
     window.sharedHandleTrigger(type, data, dur);
