@@ -181,14 +181,20 @@ io.on('connection', (socket) => {
         io.to(`match:${payload.match._id}`).emit('scoreUpdate', payload);
     });
     socket.on('manualOverlayTrigger', (payload) => {
-        if (!payload?.matchId)
+        if (!payload?.matchId || !payload?.trigger)
             return;
-        // 1. scoreUpdate path — for overlays listening via onData → raw.activeTrigger
-        io.to(`match:${payload.matchId}`).emit('scoreUpdate', { activeTrigger: payload.trigger });
-        // 2. overlayTrigger path — direct event the engine listens to
-        io.to(`match:${payload.matchId}`).emit('overlayTrigger', payload.trigger);
-        // 3. manualOverlayTrigger relay — engine also listens to this directly
-        io.to(`match:${payload.matchId}`).emit('manualOverlayTrigger', payload);
+        const { matchId: mId, trigger } = payload;
+        // Add a timestamp for de-dup in the engine
+        const stamped = { ...trigger, _ts: Date.now() };
+        // PRIMARY: new clean event — engine.js v16+ listens to this
+        io.to(`match:${mId}`).emit('overlayManual', stamped);
+        // LEGACY: kept for backward compat with older overlay engine versions
+        io.to(`match:${mId}`).emit('overlayTrigger', stamped);
+        // NOTE: we deliberately do NOT emit 'scoreUpdate' with activeTrigger for manual triggers.
+        // That path is for score-driven auto-triggers only. Mixing them caused DECISION_PENDING,
+        // BATSMAN_PROFILE, and BOWLER_PROFILE to be intercepted by handleAutoTrigger which
+        // has no case for them — they fell to the default dispatch() and never reached
+        // sharedHandleTrigger in overlay-handlers.js.
     });
     socket.on('disconnect', () => { });
 });
