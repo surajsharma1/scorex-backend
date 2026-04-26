@@ -441,6 +441,7 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     html = html.replace('</head>', `
       <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
       <script src="/overlays/overlay-utils.js"></script>
+      <script src="/overlays/overlay-handlers.js"></script>
       <script>
         window.OVERLAY_CONFIG = {
           matchId: ${JSON.stringify(matchId)},
