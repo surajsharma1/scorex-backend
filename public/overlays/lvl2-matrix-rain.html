@@ -135,11 +135,6 @@
     #anim-milestone { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(50px); opacity: 0; transition: all 0.4s ease; z-index: 45; padding: 15px 60px; background: var(--c-matte); clip-path: var(--clip-bracket); border-bottom: 4px solid var(--c-silver);}
     #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
     .ms-content { font-family: var(--font-display); font-size: 60px; color: var(--c-silver); line-height: 1; text-shadow: 0 0 10px rgba(192,192,192,0.5);}
-
-    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); padding: 20px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; background: var(--c-matte); clip-path: var(--clip-bracket); border-left: 6px solid var(--c-neon); border-right: 6px solid var(--c-neon);}
-    #anim-decision.fire { opacity: 1; animation: blinkAlert 1s infinite alternate; }
-    #anim-decision .d-title { font-size: 20px; color: var(--c-silver); letter-spacing: 10px; margin-bottom: 5px; font-weight: 700;}
-    #anim-decision .d-text { font-family: var(--font-display); font-size: 80px; color: var(--c-neon); line-height: 1; letter-spacing: 5px;}
     @keyframes blinkAlert { 0% { opacity: 1; } 100% { opacity: 0.7; filter: drop-shadow(0 0 10px var(--c-neon)); } }
 
     /* =========================================
@@ -295,8 +290,7 @@
     <div id="anim-six" class="hud-alert"><div class="alert-sub">MAXIMUM</div><div class="alert-txt">SIX</div></div>
     <div id="anim-wicket" class="hud-alert"><div class="alert-sub">SYSTEM ALERT</div><div class="alert-txt">WICKET</div></div>
     
-    <div id="anim-milestone"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div>
-    <div id="anim-decision"><div class="d-title">SCANNING</div><div class="d-text">DECISION PENDING</div></div>
+    <div id="anim-milestone"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div><div class="d-text">DECISION PENDING</div></div>
   </div>
 
   <div id="intro-cards-wrapper">
@@ -456,6 +450,7 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
+<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -475,8 +470,6 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
-
-  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -588,7 +581,7 @@
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    ['anim-four','anim-six','anim-wicket','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -731,12 +724,6 @@
         setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
         break;
       }
-
-      case 'DECISION_PENDING':
-        decisionPendingState = (data && data.active !== false);
-        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
-        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
-        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':

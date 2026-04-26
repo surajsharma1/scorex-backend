@@ -137,12 +137,6 @@
     #ev-out { color: var(--em-red); -webkit-text-stroke: 4px #fff; }
 
     /* Tech Radar for Decision Pending */
-    #ev-decision {
-      position: absolute; top: 15%; left: 50%; transform: translate(-50%, 0);
-      background: rgba(2, 6, 23, 0.95); border: 2px solid var(--em-green); border-radius: 4px;
-      padding: 20px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; pointer-events: none;
-    }
-    #ev-decision.fire { opacity: 1; animation: techRadarPulse 1.5s infinite; }
     .d-title { font-size: 18px; color: var(--em-gray); letter-spacing: 8px; margin-bottom: 5px; font-weight: 800;}
     .d-text { font-family: 'Chakra Petch', sans-serif; font-size: 85px; color: var(--em-green-glow); line-height: 1; white-space: nowrap;}
 
@@ -168,8 +162,6 @@
     <div id="ev-four" class="anim-event">FOUR!</div>
     <div id="ev-six" class="anim-event">SIX!</div>
     <div id="ev-out" class="anim-event">OUT!</div>
-    <div id="ev-decision">
-      <div class="d-title">THIRD UMPIRE</div>
       <div class="d-text">DECISION PENDING</div>
     </div>
   </div>
@@ -217,12 +209,12 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
+<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
   const $ = id => document.getElementById(id);
   let eventTimer = null;
-  let decisionPendingState = false;
 
   const safeSet = (id, val, fallback) => {
     const el = $(id);
@@ -263,7 +255,6 @@
     const evFour     = $('ev-four');
     const evSix      = $('ev-six');
     const evOut      = $('ev-out');
-    const evDecision = $('ev-decision');
     if (!evFour || !evSix || !evOut || !evDecision) return;
 
     // Clear all active animations first
@@ -281,12 +272,7 @@
     } else if (t.type === 'WICKET') {
       evOut.classList.add('fire');
       eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-    } else if (t.type === 'DECISION_PENDING') {
-      decisionPendingState = (t.data && t.data.active !== false);
-      evDecision.classList.toggle('fire', decisionPendingState);
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
     } else if (t.type === 'RESTORE') {
-      decisionPendingState = false;
       evDecision.classList.remove('fire');
     }
   }

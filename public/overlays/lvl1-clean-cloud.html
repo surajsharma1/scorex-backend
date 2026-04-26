@@ -357,25 +357,6 @@
     }
 
     /* Decision Pending Radar */
-    #ev-decision {
-      position: absolute;
-      top: 15%;
-      left: 50%;
-      transform: translate(-50%, 0);
-      background: var(--rm-navy);
-      border: 3px solid var(--rm-magenta);
-      border-radius: 30px 0 30px 0;
-      padding: 20px 80px;
-      opacity: 0;
-      transition: opacity 0.3s;
-      text-align: center;
-      pointer-events: none;
-    }
-
-    #ev-decision.fire {
-      opacity: 1;
-      animation: radarPulse 1.5s infinite;
-    }
 
     .d-title {
       font-size: 18px;
@@ -442,8 +423,6 @@
     <div id="ev-four" class="anim-event">FOUR!</div>
     <div id="ev-six" class="anim-event">SIX!</div>
     <div id="ev-out" class="anim-event">OUT!</div>
-    <div id="ev-decision">
-      <div class="d-title">THIRD UMPIRE</div>
       <div class="d-text">DECISION PENDING</div>
     </div>
   </div>
@@ -505,12 +484,12 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/overlays/overlay-utils.js"></script>
   <script src="/overlays/engine.js"></script>
+<script src="/overlays/overlay-handlers.js"></script>
   <script>
     (function () {
       'use strict';
       const $ = id => document.getElementById(id);
       let eventTimer = null;
-      let decisionPendingState = false;
 
       const safeSet = (id, val, fallback) => {
         const el = $(id);
@@ -551,7 +530,6 @@
         const evFour = $('ev-four');
         const evSix = $('ev-six');
         const evOut = $('ev-out');
-        const evDecision = $('ev-decision');
         if (!evFour || !evSix || !evOut || !evDecision) return;
 
         // Clear all active animations first
@@ -568,13 +546,7 @@
           eventTimer = setTimeout(() => evSix.classList.remove('fire'), 3000);
         } else if (t.type === 'WICKET') {
           evOut.classList.add('fire');
-          eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);
-        } else if (t.type === 'DECISION_PENDING') {
-          decisionPendingState = (t.data && t.data.active !== false);
-          evDecision.classList.toggle('fire', decisionPendingState);
-          if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
-        } else if (t.type === 'RESTORE') {
-          decisionPendingState = false;
+          eventTimer = setTimeout(() => evOut.classList.remove('fire'), 3000);} else if (t.type === 'RESTORE') {
           evDecision.classList.remove('fire');
         }
       }
