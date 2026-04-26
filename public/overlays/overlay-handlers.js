@@ -397,7 +397,7 @@
       // ── Restore — hide panel + decision pending ──────────────────────────
       case 'RESTORE':
         hidePanel();
-        hideDecisionPending();
+        
         return false; // overlay handles its own score elements too
 
       // ── Panel animations ─────────────────────────────────────────────────
