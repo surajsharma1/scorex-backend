@@ -423,10 +423,20 @@ const serveOverlay = async (req, res) => {
         }
         const apiBaseUrl = getBaseUrl();
         let html = fs_1.default.readFileSync(templatePath, 'utf8');
+        // Check which scripts are already present in the template
+        const hasSocketIO = html.includes('socket.io');
+        const hasUtils = html.includes('overlay-utils.js');
+        const hasHandlers = html.includes('overlay-handlers.js');
+        const hasEngine = html.includes('engine.js');
+        // Build injection: only inject what's missing, always inject OVERLAY_CONFIG first
+        // OVERLAY_CONFIG must be set BEFORE engine.js and overlay-handlers.js load.
+        // We inject into </head> which runs before body scripts.
+        const socketIOTag = hasSocketIO ? '' : '<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>\n      ';
+        const utilsTag = hasUtils ? '' : '<script src="/overlays/overlay-utils.js"></script>\n      ';
+        const handlersTag = hasHandlers ? '' : '<script src="/overlays/overlay-handlers.js"></script>\n      ';
+        const engineTag = hasEngine ? '' : '<script src="/overlays/engine.js"></script>\n      ';
         html = html.replace('</head>', `
-      <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-      <script src="/overlays/overlay-utils.js"></script>
-      <script src="/overlays/overlay-handlers.js"></script>
+      ${socketIOTag}${utilsTag}
       <script>
         window.OVERLAY_CONFIG = {
           matchId: ${JSON.stringify(matchId)},
@@ -436,7 +446,7 @@ const serveOverlay = async (req, res) => {
           config: ${JSON.stringify(overlay?.config || {})},
         };
       </script>
-      <script src="/overlays/engine.js"></script>
+      ${handlersTag}${engineTag}
     </head>`);
         res.setHeader('Content-Type', 'text/html');
         res.setHeader('Cache-Control', 'public, max-age=3600');
