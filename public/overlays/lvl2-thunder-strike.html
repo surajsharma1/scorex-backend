@@ -181,6 +181,11 @@
 
     #anim-milestone { position: absolute; bottom: 40px; left: 50%; transform: translate3d(-50%, 0, 0); z-index: 200; padding: 20px 50px; background: var(--up-white); border-radius: 8px; border: 2px solid var(--up-line); border-bottom: 8px solid var(--up-volt);}
     .ms-content { font-family: var(--font-display); font-size: 90px; font-weight: 700; color: var(--up-navy); line-height: 0.9;}
+
+    #anim-decision { position: absolute; top: 100px; left: 50%; transform: translate3d(-50%, 0, 0); padding: 25px 60px; text-align: center; background: var(--up-white); border-radius: 8px; border: 2px solid var(--up-line); border-top: 8px solid var(--up-navy); z-index: 200;}
+    #anim-decision.fire { animation: blinkVolt 1s infinite alternate; }
+    #anim-decision .d-title { font-size: 16px; color: var(--text-sub); letter-spacing: 6px; margin-bottom: 5px; font-weight: 900;}
+    #anim-decision .d-text { font-family: var(--font-display); font-size: 90px; color: var(--up-blue); line-height: 1; font-weight: 700;}
     @keyframes blinkVolt { 0% { border-color: var(--up-line); } 100% { border-color: var(--up-blue); } }
 
     /* =========================================
@@ -297,7 +302,8 @@
       <div id="anim-six" class="event-drawer"><div class="drawer-txt">SIX!</div></div>
       <div id="anim-wicket" class="event-drawer"><div class="drawer-txt">OUT!</div></div>
       
-      <div id="anim-milestone" class="stage-hide"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div><div class="d-text">DECISION PENDING</div></div>
+      <div id="anim-milestone" class="stage-hide"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div>
+      <div id="anim-decision" class="stage-hide"><div class="d-title">THIRD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
     </div>
 
     <div id="side-card-wrapper" class="stage-hide">
@@ -408,7 +414,6 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
-<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -428,6 +433,8 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
+
+  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -539,12 +546,13 @@
   }
 
   function restoreToLive() {
+    decisionPendingState = false;
     clearInterval(endMatchInterval);
     clearTimeout(actionTimer);
     clearTimeout(breakTimer);
 
     ['anim-four','anim-six','anim-wicket'].forEach(id => remCls(id, 'fire'));
-    ['anim-milestone'].forEach(id => { remCls(id, 'fire'); remCls(id, 'stage-show'); addCls(id, 'stage-hide'); });
+    ['anim-decision','anim-milestone'].forEach(id => { remCls(id, 'fire'); remCls(id, 'stage-show'); addCls(id, 'stage-hide'); });
     
     hideRightStageModals();
     ['switch-card','profile-card'].forEach(id => remCls(id, 'active'));
@@ -693,6 +701,16 @@
         setTimeout(() => { if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-show'); $('side-card-wrapper').classList.add('stage-hide'); } }, DURATIONS.event);
         break;
       }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = (data && data.active !== false);
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+        if (decisionPendingState) {
+            if($('anim-decision')) { $('anim-decision').classList.remove('stage-hide'); $('anim-decision').classList.add('stage-show'); addCls('anim-decision', 'fire'); }
+        } else {
+            if($('anim-decision')) { $('anim-decision').classList.remove('stage-show'); $('anim-decision').classList.add('stage-hide'); remCls('anim-decision', 'fire'); }
+        }
+        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':

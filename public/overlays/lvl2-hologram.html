@@ -217,6 +217,14 @@
     }
 
     /* DECISION PENDING */
+    #anim-decision {
+      position: absolute; left: 50%; top: 35%; transform: translate(-50%, -50%) scale(0.9);
+      background: linear-gradient(180deg, var(--svg-white), var(--svg-silver-dark));
+      padding: 30px 80px; border-radius: 8px; opacity: 0; visibility: hidden;
+      box-shadow: var(--bevel-main), 0 20px 40px rgba(0,0,0,0.8); border: 6px solid var(--svg-blue);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 400;
+    }
+    #anim-decision.layer-show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); animation: radarBlink 0.8s infinite alternate; }
     .d-title { font-size: 20px; color: var(--svg-black); font-weight: 900; letter-spacing: 8px; margin-bottom: 5px; text-align: center;}
     .d-text { font-family: 'Teko', sans-serif; font-size: 100px; color: var(--svg-blue); line-height: 1; font-weight: 700; text-align: center; text-shadow: 2px 2px 0px rgba(255,255,255,1);}
     @keyframes radarBlink { 0% { border-color: var(--svg-blue); box-shadow: 0 0 10px rgba(0,0,0,0.5); } 100% { border-color: var(--svg-yellow); box-shadow: 0 0 40px rgba(255, 240, 0, 0.8); } }
@@ -306,6 +314,9 @@
     <div id="anim-six" class="event-anim"><div class="six-hex"><div class="six-text">SIX!</div></div></div>
     <div id="anim-wicket" class="event-anim"><div class="out-blade">OUT!</div></div>
     <div id="anim-milestone" class="event-anim"><div class="ms-blade fit-container" style="justify-content: center;"><span id="ms-text" class="fit-text">PLAYER - 50</span></div></div>
+    
+    <div id="anim-decision" class="layer-hide">
+      <div class="d-title">THIRD UMPIRE</div>
       <div class="d-text">DECISION PENDING</div>
     </div>
   </div>
@@ -468,7 +479,6 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
-<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -488,6 +498,8 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
+
+  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -593,7 +605,7 @@
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -712,6 +724,18 @@
         setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
         break;
       }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = (data && data.active !== false);
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+        if (decisionPendingState) { 
+            $('event-layer').classList.add('decision-blur'); 
+            addCls('anim-decision', 'layer-show'); 
+        } else { 
+            $('event-layer').classList.remove('decision-blur'); 
+            remCls('anim-decision', 'layer-show'); 
+        }
+        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':

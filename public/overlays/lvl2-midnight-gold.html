@@ -105,6 +105,11 @@
     #anim-milestone { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) translateY(40px); opacity: 0; transition: all 0.4s ease; z-index: 45; padding: 20px 60px; border-bottom: 8px solid var(--sov-gold); }
     #anim-milestone.fire { transform: translateX(-50%) translateY(0); opacity: 1; }
     .ms-content { font-family: var(--font-display); font-size: 80px; font-weight: 800; color: var(--sov-navy); line-height: 0.9;}
+
+    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); padding: 30px 80px; opacity: 0; transition: opacity 0.3s; text-align: center; border-top: 8px solid var(--sov-navy); }
+    #anim-decision.fire { opacity: 1; animation: solidPulse 1s infinite alternate; }
+    #anim-decision .d-title { font-size: 16px; color: var(--text-sub); letter-spacing: 8px; margin-bottom: 5px; font-weight: 800;}
+    #anim-decision .d-text { font-family: var(--font-display); font-size: 90px; color: var(--sov-navy); line-height: 1; font-weight: 800;}
     @keyframes solidPulse { 0% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0.85; transform: translateX(-50%) scale(1.05); } }
 
     /* =========================================
@@ -249,7 +254,8 @@
     <div id="anim-six" class="event-blast"><div class="blast-txt">SIX!</div></div>
     <div id="anim-wicket" class="event-blast"><div class="blast-txt">OUT!</div></div>
     
-    <div id="anim-milestone" class="sov-block"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div><div class="d-text">DECISION PENDING</div></div>
+    <div id="anim-milestone" class="sov-block"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">PLAYER - 50</span></div></div>
+    <div id="anim-decision" class="sov-block"><div class="d-title">THIRD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
   </div>
 
   <div id="intro-cards-wrapper">
@@ -407,7 +413,6 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
-<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -427,6 +432,8 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
+
+  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -538,7 +545,7 @@
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -679,6 +686,12 @@
         setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
         break;
       }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = (data && data.active !== false);
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':

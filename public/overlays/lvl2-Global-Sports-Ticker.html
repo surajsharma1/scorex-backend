@@ -99,6 +99,10 @@
     .ms-content { font-family: var(--font-cinematic); font-size: 65px; font-weight: 900; color: var(--ax-gold-light); line-height: 1; white-space: nowrap; letter-spacing: 2px;}
 
     /* DECISION PENDING */
+    #anim-decision { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); padding: 30px 100px; opacity: 0; transition: opacity 0.3s; text-align: center; background: rgba(17, 8, 31, 0.95); border: 1px solid var(--ax-gold-main); border-radius: 4px;}
+    #anim-decision.fire { opacity: 1; animation: goldPulse 2s infinite alternate; }
+    #anim-decision .d-title { font-size: 18px; color: var(--ax-white); letter-spacing: 10px; margin-bottom: 10px; font-weight: 600;}
+    #anim-decision .d-text { font-family: var(--font-cinematic); font-size: 80px; font-weight: 900; color: var(--ax-gold-light); line-height: 1; white-space: nowrap;}
     
     @keyframes cinematicFade { 0% { opacity: 0; transform: scale(0.9); } 20% { opacity: 1; transform: scale(1); } 80% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(1.1); } }
     @keyframes goldPulse { 0% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.1); } 100% { box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); } }
@@ -268,7 +272,9 @@
       <div class="cine-bars"></div><div class="cine-txt">WICKET</div><div class="cine-bars"></div>
     </div>
 
-    <div id="anim-milestone"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">V. KOHLI - 50</span></div></div><div class="d-text">DECISION PENDING</div></div>
+    <div id="anim-milestone"><div class="ms-content fit-container"><span class="fit-text" id="ms-text">V. KOHLI - 50</span></div></div>
+    
+    <div id="anim-decision"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
   </div>
 
   <div id="intro-cards-wrapper">
@@ -422,7 +428,6 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
-<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -442,6 +447,8 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
+
+  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -543,7 +550,7 @@
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -663,6 +670,12 @@
         setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
         break;
       }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = (data && data.active !== false);
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':

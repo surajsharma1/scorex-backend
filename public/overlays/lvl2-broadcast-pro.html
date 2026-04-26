@@ -78,6 +78,11 @@
     #anim-wicket.fire { top: 0; opacity: 1; animation: flashRed 0.4s infinite alternate;}
     #anim-wicket .unskew-text { font-family: 'Chakra Petch'; font-size: 140px; color: #fff; line-height: 1; letter-spacing: 5px; justify-content: center;}
     @keyframes flashRed { from { background: #991b1b; } to { background: #ef4444; box-shadow: 0 0 80px rgba(239, 68, 68, 0.9); } }
+
+    #anim-decision { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); background: rgba(11, 17, 32, 0.95); border: 2px solid var(--gold-solid); padding: 20px 60px; opacity: 0; transition: opacity 0.3s; text-align: center; }
+    #anim-decision.fire { opacity: 1; animation: radarPulse 1.5s infinite; }
+    #anim-decision .d-title { font-size: 20px; color: #cbd5e1; letter-spacing: 8px; margin-bottom: 5px;}
+    #anim-decision .d-text { font-family: 'Chakra Petch'; font-size: 80px; color: var(--gold-solid); line-height: 1; white-space: nowrap;}
     @keyframes radarPulse { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); } 70% { box-shadow: 0 0 0 40px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); } }
 
     #anim-milestone { position: absolute; inset: 0; background: rgba(11, 17, 32, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.5s; z-index: 300; }
@@ -202,7 +207,8 @@
   <div class="event-layer">
     <div id="anim-four" class="skew-box"><div class="unskew-text">BOUNDARY <span style="margin-left:20px;">FOUR</span></div></div>
     <div id="anim-six"><span>SIX!</span></div>
-    <div id="anim-wicket" class="skew-box"><div class="unskew-text">OUT!</div></div><div class="d-text">DECISION PENDING</div></div>
+    <div id="anim-wicket" class="skew-box"><div class="unskew-text">OUT!</div></div>
+    <div id="anim-decision"><div class="d-title">3RD UMPIRE</div><div class="d-text">DECISION PENDING</div></div>
   </div>
 
   <div id="anim-milestone">
@@ -365,7 +371,6 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/engine.js"></script>
-<script src="/overlays/overlay-handlers.js"></script>
 <script>
 (function() {
   'use strict';
@@ -385,6 +390,8 @@
     matchEndSwitch: getDur(cfg.matchEndSwitchDuration, 6, 20),
     inningsBreak: 12000 
   };
+
+  let decisionPendingState = false;
   let endMatchInterval = null;
   let actionTimer = null;
   let breakTimer = null;
@@ -485,7 +492,7 @@
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -617,6 +624,12 @@
         setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
         break;
       }
+
+      case 'DECISION_PENDING':
+        decisionPendingState = (data && data.active !== false);
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
+        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+        break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':
