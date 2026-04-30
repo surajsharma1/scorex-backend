@@ -669,7 +669,7 @@
       }
 
       case 'DECISION_PENDING':
-        if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', data, 0);
+        // sharedHandleTrigger NOT called here — dispatch() already fires anim-decision natively
         decisionPendingState = (data && data.active !== undefined) ? !!data.active : !decisionPendingState;
         if (decisionPendingState) addCls('anim-decision', 'layer-show'); 
         else remCls('anim-decision', 'layer-show');

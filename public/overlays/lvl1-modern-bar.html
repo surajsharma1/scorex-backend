@@ -335,7 +335,7 @@
     else if (type === 'DECISION_PENDING') {
       decisionPendingState = data.active !== false;
       if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', { active: decisionPendingState }, 0);
+      // sharedHandleTrigger NOT called — evDecision handles DECISION_PENDING natively
     }
     else if (type === 'PLAYER_CHANGE') {
       const dur = (t.duration || 8) * 1000;

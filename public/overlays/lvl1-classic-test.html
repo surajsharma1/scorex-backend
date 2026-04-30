@@ -559,7 +559,7 @@
       // Native element
       if (evDecision) evDecision.classList.toggle('fire', decisionPendingState);
       // Shared handler (guaranteed fullscreen overlay)
-      if (window.sharedHandleTrigger) window.sharedHandleTrigger('DECISION_PENDING', data, 0);
+      // sharedHandleTrigger NOT called — evDecision handles DECISION_PENDING natively
     } else if (type === 'RESTORE') {
       decisionPendingState = false;
       if (evDecision) evDecision.classList.remove('fire');
