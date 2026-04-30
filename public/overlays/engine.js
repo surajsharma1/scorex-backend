@@ -170,7 +170,13 @@
       // If this is a sparse activeTrigger-only payload (no real match data), handle the
       // trigger directly without corrupting matchData with garbage from normalizeScoreData.
       if (raw.activeTrigger && !raw.match && !raw.innings && !raw._id) {
-        if (state === 'LIVE') handleTrigger(raw.activeTrigger, matchData || {});
+        var trig = raw.activeTrigger;
+        var trigData = trig.data || trig.payload || {};
+        // Manual triggers (button presses) always fire regardless of current state.
+        // Auto triggers (from score events) only fire when LIVE.
+        if (trigData.isManual || state === 'LIVE') {
+          handleTrigger(trig, matchData || {});
+        }
         return;
       }
 
@@ -254,11 +260,27 @@
       case 'SHOW_TOSS':        queueAnimation('SHOW_TOSS', richData, dur); break;
       case 'SHOW_SQUADS':      queueAnimation('SHOW_SQUADS', richData, dur); break;
 
-      case 'INNINGS_BREAK':      
-        if (!cfg.showTargetCard && !isManual) return; 
+      case 'INNINGS_BREAK':
+        if (!cfg.showTargetCard && !isManual) return;
         queueAnimation('INNINGS_BREAK', richData, cfg.targetCardDuration, function() {
-          if (cfg.showInningIntro) queueAnimation('START_INNINGS_INTRO', richData, cfg.introDuration);
-        }); break;
+          if (!cfg.showInningIntro) return;
+          // Wait for inning 2 players to be selected before firing intro.
+          // matchData updates when selectPlayers is called for inning 2.
+          var inn2Attempts = 0;
+          var waitInn2 = setInterval(function() {
+            inn2Attempts++;
+            var d = matchData || {};
+            if ((d.strikerName && (d.currentBowlerName || d.bowlerName)) || inn2Attempts >= 30) {
+              clearInterval(waitInn2);
+              dispatch('START_INNINGS_INTRO', {
+                striker:    d.strikerName        || '',
+                nonStriker: d.nonStrikerName     || '',
+                bowler:     d.currentBowlerName  || d.bowlerName || ''
+              }, cfg.introDuration);
+            }
+          }, 1000);
+        });
+        break;
 
       case 'START_INNINGS_INTRO':
         // dispatch() directly — overlay manages its own show/hide timing via setTimeout
