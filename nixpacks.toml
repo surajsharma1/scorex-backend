@@ -1,1 +1,11 @@
-[phases.setup]\nnixPkgs = [\"nodejs_22\", \"typescript\"]\n\n[phases.build]\ncmds = [\"npm install\", \"npm run prebuild\", \"npm run build\"]\n\n[start]\ncmd = \"npm start\"\n
+[phases.setup]
+nixPkgs = ["nodejs_22", "typescript"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run prebuild", "npm run build"]
+
+[start]
+cmd = "npm start"
