@@ -40,7 +40,6 @@ require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const express_session_1 = __importDefault(require("express-session"));
-const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -108,7 +107,10 @@ if (process.env.RENDER || !process.env.MONGODB_URI) {
 }
 else {
     try {
-        sessionStore = connect_mongo_1.default.create({ mongoUrl: process.env.MONGODB_URI });
+        // Lazy-load to avoid import-time crash if package is broken
+        const MongoStore = require('connect-mongo');
+        const MongoStoreClass = MongoStore.default ?? MongoStore;
+        sessionStore = MongoStoreClass.create({ mongoUrl: process.env.MONGODB_URI });
         console.log('🗄️ Using MongoStore');
     }
     catch (e) {

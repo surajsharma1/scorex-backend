@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
-import MongoStore from 'connect-mongo';
+
 import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
 import mongoose from 'mongoose';
@@ -75,7 +75,10 @@ if (process.env.RENDER || !process.env.MONGODB_URI) {
   sessionStore = new MemoryStore();
 } else {
   try {
-    sessionStore = MongoStore.create({ mongoUrl: process.env.MONGODB_URI! });
+    // Lazy-load to avoid import-time crash if package is broken
+    const MongoStore = require('connect-mongo');
+    const MongoStoreClass = MongoStore.default ?? MongoStore;
+    sessionStore = MongoStoreClass.create({ mongoUrl: process.env.MONGODB_URI! });
     console.log('🗄️ Using MongoStore');
   } catch (e) {
     console.warn('❌ MongoStore failed → MemoryStore:', e);
