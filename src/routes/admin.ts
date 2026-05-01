@@ -62,6 +62,10 @@ router.get('/payments', protect, isAdmin, async (req, res) => {
   }
 });
 
+// ── Admin broadcast notifications ──
+router.post('/notifications/broadcast', protect, isAdmin, adminController.broadcastNotification);
+router.delete('/notifications/:id', protect, isAdmin, adminController.deleteNotification);
+
 // ── Logs ── Uses the controller which gracefully handles missing log directory
 // FIX: was using an inline handler that crash-threw 500 when /logs dir missing on Render
 router.get('/logs', protect, isAdmin, adminController.getLogs);

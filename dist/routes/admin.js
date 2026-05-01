@@ -91,6 +91,9 @@ router.get('/payments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+// ── Admin broadcast notifications ──
+router.post('/notifications/broadcast', auth_1.protect, auth_1.isAdmin, adminController.broadcastNotification);
+router.delete('/notifications/:id', auth_1.protect, auth_1.isAdmin, adminController.deleteNotification);
 // ── Logs ── Uses the controller which gracefully handles missing log directory
 // FIX: was using an inline handler that crash-threw 500 when /logs dir missing on Render
 router.get('/logs', auth_1.protect, auth_1.isAdmin, adminController.getLogs);

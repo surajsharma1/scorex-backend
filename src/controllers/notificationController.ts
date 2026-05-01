@@ -45,3 +45,13 @@ export const markAllAsRead = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+export const deleteNotification = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const result = await Notification.findOneAndDelete({ _id: req.params.id, user: req.user?.id });
+    if (!result) { res.status(404).json({ success: false, message: 'Notification not found' }); return; }
+    res.json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

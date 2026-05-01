@@ -10,7 +10,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
+exports.deleteNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
 const Notification_1 = __importDefault(require("../models/Notification"));
 const getNotifications = async (req, res) => {
     try {
@@ -50,3 +50,17 @@ const markAllAsRead = async (req, res) => {
     }
 };
 exports.markAllAsRead = markAllAsRead;
+const deleteNotification = async (req, res) => {
+    try {
+        const result = await Notification_1.default.findOneAndDelete({ _id: req.params.id, user: req.user?.id });
+        if (!result) {
+            res.status(404).json({ success: false, message: 'Notification not found' });
+            return;
+        }
+        res.json({ success: true, message: 'Notification deleted' });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+exports.deleteNotification = deleteNotification;

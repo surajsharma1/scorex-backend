@@ -8,8 +8,22 @@ import Match from '../models/Match';
 const PRICES_FILE = path.join(process.cwd(), 'public', 'membership-prices.json');
 
 const DEFAULT_MEMBERSHIP_PLANS = {
-  1: { '1day': 149, '1week': 499, '1month': 1499 },
-  2: { '1day': 249, '1week': 999, '1month': 2499 }
+  1: {
+    '1day':   { price: 149,   discount: 0 },
+    '1week':  { price: 499,   discount: 0 },
+    '1month': { price: 1499,  discount: 0 },
+    '3month': { price: 3999,  discount: 0 },
+    '6month': { price: 6999,  discount: 0 },
+    '1year':  { price: 11999, discount: 0 },
+  },
+  2: {
+    '1day':   { price: 249,   discount: 0 },
+    '1week':  { price: 999,   discount: 0 },
+    '1month': { price: 2499,  discount: 0 },
+    '3month': { price: 6999,  discount: 0 },
+    '6month': { price: 11999, discount: 0 },
+    '1year':  { price: 19999, discount: 0 },
+  },
 };
 
 async function loadPrices() {
@@ -107,5 +121,48 @@ export const getLogs = async (req: Request, res: Response, next: NextFunction) =
   } catch (error) { next(error); }
 };
 
-export default { getMembershipPrices, updateMembershipPrices, getStats, getLogs };
+
+/**
+ * POST /api/v1/admin/notifications/broadcast
+ * Admin sends a notification to ALL users
+ */
+export const broadcastNotification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { title, message, link } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message are required' });
+    }
+    // Get all user IDs
+    const users = await User.find({}, '_id');
+    const Notification = (await import('../models/Notification')).default;
+    const docs = users.map(u => ({
+      user: u._id,
+      type: 'system' as const,
+      title,
+      message,
+      link: link || undefined,
+      isRead: false,
+    }));
+    await Notification.insertMany(docs);
+    res.json({ success: true, message: `Notification sent to ${docs.length} users` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/admin/notifications/:id
+ * Admin deletes a broadcast notification from all users
+ */
+export const deleteNotification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const Notification = (await import('../models/Notification')).default;
+    await Notification.deleteMany({ _id: req.params.id });
+    res.json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default { getMembershipPrices, updateMembershipPrices, getStats, getLogs, broadcastNotification, deleteNotification };
 
