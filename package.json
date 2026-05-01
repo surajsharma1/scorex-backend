@@ -47,6 +47,6 @@
     "typescript": "^5.3.3"
   },
   "overrides": {
-    "debug": "4.4.1"
+    "debug": "4.3.7"
   }
 }
