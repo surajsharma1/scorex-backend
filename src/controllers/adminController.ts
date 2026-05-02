@@ -146,13 +146,24 @@ export const getLogs = async (req: Request, res: Response, next: NextFunction) =
  */
 export const broadcastNotification = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, message, link } = req.body;
+    const { title, message, link, audience } = req.body;
     if (!title || !message) {
       return res.status(400).json({ success: false, message: 'Title and message are required' });
     }
-    // Get all user IDs
-    const users = await User.find({}, '_id');
     const Notification = (await import('../models/Notification')).default;
+    let userQuery: any = {};
+    if (audience === 'active') {
+      // Users who logged in within last 30 days
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      userQuery = { lastLogin: { $gte: cutoff } };
+    } else if (audience === 'new') {
+      // Users registered in last 7 days
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      userQuery = { createdAt: { $gte: cutoff } };
+    }
+    const users = await User.find(userQuery, '_id');
     const docs = users.map(u => ({
       user: u._id,
       type: 'system' as const,
@@ -161,8 +172,9 @@ export const broadcastNotification = async (req: Request, res: Response, next: N
       link: link || undefined,
       isRead: false,
     }));
-    await Notification.insertMany(docs);
-    res.json({ success: true, message: `Notification sent to ${docs.length} users` });
+    if (docs.length > 0) await Notification.insertMany(docs);
+    const audienceLabel = audience === 'new' ? 'new users (last 7d)' : audience === 'active' ? 'active users (last 30d)' : 'all users';
+    res.json({ success: true, message: `Notification sent to ${docs.length} ${audienceLabel}` });
   } catch (error) {
     next(error);
   }
