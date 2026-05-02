@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import dns from 'dns';
 import { promisify } from 'util';
 import User from '../models/User';
+import { sendSavedNotificationsToUser } from './adminController';
 import sendEmail from '../utils/emailService';
 
 interface AuthRequest extends Request { user?: any; }
@@ -28,6 +29,8 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) return res.status(400).json({ success: false, message: 'User already exists' });
     const user = await User.create({ username, email, password });
+    // Send any active saved notifications to the new user
+    sendSavedNotificationsToUser(user._id).catch(() => {});
     const token = signToken(user._id.toString());
     res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
   } catch (error) { next(error); }

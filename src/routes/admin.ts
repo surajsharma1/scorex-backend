@@ -63,6 +63,9 @@ router.get('/payments', protect, isAdmin, async (req, res) => {
 });
 
 // ── Admin broadcast notifications ──
+router.get('/notifications/saved', protect, isAdmin, adminController.getSavedNotifications);
+router.post('/notifications/saved', protect, isAdmin, adminController.createSavedNotification);
+router.delete('/notifications/saved/:id', protect, isAdmin, adminController.deleteSavedNotification);
 router.post('/notifications/broadcast', protect, isAdmin, adminController.broadcastNotification);
 router.delete('/notifications/:id', protect, isAdmin, adminController.deleteNotification);
 

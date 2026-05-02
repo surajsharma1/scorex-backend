@@ -23,6 +23,7 @@ import messageRoutes from './routes/messages';
 import paymentRoutes from './routes/payments';
 import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
+import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
 import { startScheduler } from './utils/scheduler';
 
@@ -218,6 +219,7 @@ app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/stats', statsRoutes);
 
 // Serve static overlays

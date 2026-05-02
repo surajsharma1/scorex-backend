@@ -92,6 +92,9 @@ router.get('/payments', auth_1.protect, auth_1.isAdmin, async (req, res) => {
     }
 });
 // ── Admin broadcast notifications ──
+router.get('/notifications/saved', auth_1.protect, auth_1.isAdmin, adminController.getSavedNotifications);
+router.post('/notifications/saved', auth_1.protect, auth_1.isAdmin, adminController.createSavedNotification);
+router.delete('/notifications/saved/:id', auth_1.protect, auth_1.isAdmin, adminController.deleteSavedNotification);
 router.post('/notifications/broadcast', auth_1.protect, auth_1.isAdmin, adminController.broadcastNotification);
 router.delete('/notifications/:id', auth_1.protect, auth_1.isAdmin, adminController.deleteNotification);
 // ── Logs ── Uses the controller which gracefully handles missing log directory

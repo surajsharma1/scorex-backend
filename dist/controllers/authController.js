@@ -9,6 +9,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const dns_1 = __importDefault(require("dns"));
 const util_1 = require("util");
 const User_1 = __importDefault(require("../models/User"));
+const adminController_1 = require("./adminController");
 const emailService_1 = __importDefault(require("../utils/emailService"));
 const signToken = (id) => jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 const resolveMx = (0, util_1.promisify)(dns_1.default.resolveMx);
@@ -36,6 +37,8 @@ const register = async (req, res, next) => {
         if (existingUser)
             return res.status(400).json({ success: false, message: 'User already exists' });
         const user = await User_1.default.create({ username, email, password });
+        // Send any active saved notifications to the new user
+        (0, adminController_1.sendSavedNotificationsToUser)(user._id).catch(() => { });
         const token = signToken(user._id.toString());
         res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
     }

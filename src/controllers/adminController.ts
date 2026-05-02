@@ -5,6 +5,24 @@ import User from '../models/User';
 import Tournament from '../models/Tournament';
 import Match from '../models/Match';
 
+
+/**
+ * Saved (persistent) notifications — sent to all existing users on create,
+ * and automatically given to new users when they register.
+ */
+import mongoose from 'mongoose';
+const SavedNotificationSchema = new mongoose.Schema({
+  title:   { type: String, required: true },
+  message: { type: String, required: true },
+  link:    { type: String },
+  active:  { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+});
+const SavedNotification = mongoose.models.SavedNotification ||
+  mongoose.model('SavedNotification', SavedNotificationSchema);
+
+export { SavedNotification };
+
 const PRICES_FILE = path.join(process.cwd(), 'public', 'membership-prices.json');
 
 const DEFAULT_MEMBERSHIP_PLANS = {
@@ -164,5 +182,67 @@ export const deleteNotification = async (req: Request, res: Response, next: Next
   }
 };
 
-export default { getMembershipPrices, updateMembershipPrices, getStats, getLogs, broadcastNotification, deleteNotification };
+/**
+ * GET /api/v1/admin/notifications/saved
+ * List all saved (persistent) notifications
+ */
+export const getSavedNotifications = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const list = await SavedNotification.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: list });
+  } catch (error) { next(error); }
+};
+
+/**
+ * POST /api/v1/admin/notifications/saved
+ * Create a saved notification — immediately sends to ALL current users
+ * AND will be sent automatically to every new user on registration.
+ */
+export const createSavedNotification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { title, message, link } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message required' });
+    }
+    // 1. Persist it
+    const saved = await SavedNotification.create({ title, message, link: link || undefined });
+    // 2. Broadcast to all current users
+    const Notification = (await import('../models/Notification')).default;
+    const users = await User.find({}, '_id');
+    if (users.length > 0) {
+      await Notification.insertMany(users.map(u => ({
+        user: u._id, type: 'system' as const, title, message, link: link || undefined, isRead: false,
+      })));
+    }
+    res.json({ success: true, message: `Saved & sent to ${users.length} users`, data: saved });
+  } catch (error) { next(error); }
+};
+
+/**
+ * DELETE /api/v1/admin/notifications/saved/:id
+ * Delete a saved notification (stops it being sent to future new users)
+ */
+export const deleteSavedNotification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await SavedNotification.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Saved notification deleted' });
+  } catch (error) { next(error); }
+};
+
+/**
+ * Utility — call this inside register to send all active saved notifications to a new user
+ */
+export const sendSavedNotificationsToUser = async (userId: mongoose.Types.ObjectId) => {
+  try {
+    const Notification = (await import('../models/Notification')).default;
+    const saved = await SavedNotification.find({ active: true });
+    if (saved.length === 0) return;
+    await Notification.insertMany(saved.map(s => ({
+      user: userId, type: 'system' as const,
+      title: s.title, message: s.message, link: s.link, isRead: false,
+    })));
+  } catch { /* silent — don't block registration */ }
+};
+
+export default { getMembershipPrices, updateMembershipPrices, getStats, getLogs, broadcastNotification, deleteNotification, getSavedNotifications, createSavedNotification, deleteSavedNotification, sendSavedNotificationsToUser };
 

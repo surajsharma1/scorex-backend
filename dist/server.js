@@ -59,6 +59,7 @@ const messages_1 = __importDefault(require("./routes/messages"));
 const payments_1 = __importDefault(require("./routes/payments"));
 const users_1 = __importDefault(require("./routes/users"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const notifications_1 = __importDefault(require("./routes/notifications"));
 const stats_1 = __importDefault(require("./routes/stats"));
 const scheduler_1 = require("./utils/scheduler");
 const app = (0, express_1.default)();
@@ -248,6 +249,7 @@ app.use('/api/v1/messages', messages_1.default);
 app.use('/api/v1/payments', payments_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
+app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/stats', stats_1.default);
 // Serve static overlays
 app.use('/overlays', (req, res, next) => {
