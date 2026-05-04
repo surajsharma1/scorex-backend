@@ -14,9 +14,43 @@ const resolveMx = promisify(dns.resolveMx);
 // In-memory reset token store (token → {userId, expiresAt})
 const resetTokens = new Map<string, { userId: string; expiresAt: number }>();
 
+// Blocklist of known disposable / throwaway email providers
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org',
+  'guerrillamail.biz','guerrillamail.de','guerrillamail.info','guerrillamailblock.com',
+  'grr.la','sharklasers.com','guerrillamailblock.com','spam4.me',
+  'tempmail.com','temp-mail.org','temp-mail.io','dispostable.com',
+  'throwam.com','throwam.net','throwaway.email','trashmail.com','trashmail.at',
+  'trashmail.io','trashmail.me','trashmail.net','trashmail.org','trashmail.xyz',
+  'yopmail.com','yopmail.fr','cool.fr.nf','jetable.fr.nf','nospam.ze.tc',
+  'nomail.xl.cx','mega.zik.dj','speed.1s.fr','courriel.fr.nf','moncourrier.fr.nf',
+  'monemail.fr.nf','monmail.fr.nf','fakeinbox.com','fakeinbox.net',
+  'maildrop.cc','spamgourmet.com','spamgourmet.net','spamgourmet.org',
+  'mailnesia.com','mailnull.com','spambox.us','spambox.info','discard.email',
+  'boun.cr','mailexpire.com','spamfree24.org','mailzilla.com','spamfree.eu',
+  '33mail.com','spamherelots.com','spamhere.eu','spamhereplease.com',
+  'filzmail.com','spam.la','thankyou2010.com','thanks2010.com',
+  'ihateyoualot.info','haltospam.com','trashdevil.com','trashdevil.de',
+  'objectmail.com','proxymail.eu','rklips.com','rpbnc.com','safe-mail.net',
+  'safetymail.info','mailnew.com','mailtemp.net','jetable.com','jetable.net',
+  'jetable.org','nospamfor.us','no-spam.ws','hasanmail.ml','spamdecoy.net',
+  'spamfree24.de','spamfree24.eu','spamfree24.info','spamfree24.net',
+  'spamfree24.org','spamfree24.com','spaminmotion.com','spamoff.de',
+  'spamslicer.com','spamspot.com','spamusers.com','tempinbox.com',
+  'tempomail.fr','temporaryemail.net','temporaryforwarding.com','temporaryinbox.com',
+  'tempr.email','throwam.com','tmail.io','tmail.ws','throwam.net',
+  'getairmail.com','inoutmail.de','inoutmail.eu','inoutmail.info','inoutmail.net',
+  'mailbucket.org','dispostable.com','spamgourmet.com',
+  'maildrop.cc','deadaddress.com','filzmail.com'
+]);
+
 async function isEmailDomainValid(email: string): Promise<boolean> {
-  const domain = email.split('@')[1];
+  const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
+  // Block known disposable domains
+  if (DISPOSABLE_DOMAINS.has(domain)) return false;
+  // Block obviously fake patterns like random chars + common tlds
+  if (/^[a-z0-9]{1,4}\.(ml|gq|cf|tk|ga)$/.test(domain)) return false;
   try { const mx = await resolveMx(domain); return mx && mx.length > 0; }
   catch { return false; }
 }
@@ -67,6 +101,61 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     await user.save();
     res.json({ success: true, message: 'Password changed successfully' });
   } catch { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+// Pending Google profiles: tempToken → profile data (expires 10 min)
+const pendingGoogleProfiles = new Map<string, { googleId: string; email: string; fullName: string; expiresAt: number }>();
+
+export const storePendingGoogleProfile = (profile: { googleId: string; email: string; fullName: string }) => {
+  const tempToken = crypto.randomBytes(32).toString('hex');
+  pendingGoogleProfiles.set(tempToken, { ...profile, expiresAt: Date.now() + 10 * 60 * 1000 });
+  return tempToken;
+};
+
+export const completeGoogleProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { tempToken, username, password } = req.body;
+    if (!tempToken || !username || !password) {
+      return res.status(400).json({ success: false, message: 'tempToken, username and password are required' });
+    }
+    if (username.trim().length < 3) return res.status(400).json({ success: false, message: 'Username must be at least 3 characters' });
+    if (password.length < 6) return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+
+    const pending = pendingGoogleProfiles.get(tempToken);
+    if (!pending) return res.status(400).json({ success: false, message: 'Invalid or expired session. Please sign in with Google again.' });
+    if (Date.now() > pending.expiresAt) {
+      pendingGoogleProfiles.delete(tempToken);
+      return res.status(400).json({ success: false, message: 'Session expired. Please sign in with Google again.' });
+    }
+
+    // Check username uniqueness
+    const existingUsername = await User.findOne({ username: username.trim() });
+    if (existingUsername) return res.status(400).json({ success: false, message: 'Username already taken. Please choose another.' });
+
+    // Check if a user already exists with this googleId / email
+    let user = await User.findOne({ $or: [{ googleId: pending.googleId }, { email: pending.email }] });
+    if (user) {
+      // Account exists but they went through complete-profile again — just update and log in
+      user.googleId = pending.googleId;
+      if (!user.password) user.password = password;
+      await user.save();
+    } else {
+      user = await User.create({
+        googleId: pending.googleId,
+        email: pending.email,
+        username: username.trim(),
+        fullName: pending.fullName,
+        password,
+        verified: true,
+      });
+      const { sendSavedNotificationsToUser } = await import('./adminController');
+      sendSavedNotificationsToUser(user._id).catch(() => {});
+    }
+
+    pendingGoogleProfiles.delete(tempToken);
+    const token = signToken(user._id.toString());
+    res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
+  } catch (error) { next(error); }
 };
 
 export const logout = (_req: AuthRequest, res: Response) => res.json({ success: true, message: 'Logged out' });
@@ -158,4 +247,4 @@ export const githubCallback = (req: any, res: Response) => {
   res.redirect(`${getFrontendUrl()}/oauth/callback?token=${token}`);
 };
 
-export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback };
+export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback, completeGoogleProfile, storePendingGoogleProfile };

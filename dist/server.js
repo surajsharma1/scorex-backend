@@ -209,17 +209,26 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             if (!user) {
                 user = await User_1.default.findOne({ email: profile.emails?.[0]?.value });
                 if (user) {
+                    // Existing email account — link Google ID and log in directly
                     user.googleId = profile.id;
                     await user.save();
                 }
                 else {
-                    user = await User_1.default.create({
+                    // Brand-new Google user — store as pending, signal with special error object
+                    const { storePendingGoogleProfile } = await Promise.resolve().then(() => __importStar(require('./controllers/authController')));
+                    const tempToken = storePendingGoogleProfile({
                         googleId: profile.id,
                         email: profile.emails?.[0]?.value,
-                        username: profile.displayName?.replace(/\s/g, '_').toLowerCase() + '_' + Date.now(),
-                        fullName: profile.displayName,
-                        verified: true
+                        fullName: profile.displayName || '',
                     });
+                    // Use a special "error" to carry the redirect info through passport
+                    const pendingInfo = {
+                        needsProfile: true,
+                        tempToken,
+                        email: profile.emails?.[0]?.value,
+                        name: profile.displayName || '',
+                    };
+                    return done(null, false, pendingInfo);
                 }
             }
             done(null, user);

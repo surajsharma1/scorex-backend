@@ -46,8 +46,21 @@ router.post('/login', ac.login);
 router.post('/logout', ac.logout);
 router.post('/forgot-password', ac.forgotPassword);
 router.post('/reset-password/:token', ac.resetPassword);
+router.post('/complete-google-profile', ac.completeGoogleProfile);
 router.get('/google', passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport_1.default.authenticate('google', { failureRedirect: '/login' }), ac.googleCallback);
+router.get('/google/callback', (req, res, next) => {
+    passport_1.default.authenticate('google', { session: false }, (err, user, info) => {
+        if (err)
+            return next(err);
+        if (!user && info?.needsProfile) {
+            // New Google user — redirect to complete-profile page
+            const frontendUrl = (process.env.FRONTEND_URL || 'https://scorex-live.vercel.app').replace(/\/$/, '');
+            return res.redirect(`${frontendUrl}/complete-profile?tempToken=${info.tempToken}&email=${encodeURIComponent(info.email || '')}&name=${encodeURIComponent(info.name || '')}`);
+        }
+        req.user = user || null;
+        next();
+    })(req, res, next);
+}, ac.googleCallback);
 router.get('/me', auth_1.protect, ac.getMe);
 router.put('/change-password', auth_1.protect, ac.changePassword);
 exports.default = router;
