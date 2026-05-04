@@ -55,6 +55,15 @@ async function isEmailDomainValid(email: string): Promise<boolean> {
   catch { return false; }
 }
 
+export const checkEmail = async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') return res.status(400).json({ success: false, valid: false });
+    const isValid = await isEmailDomainValid(email.trim().toLowerCase());
+    res.json({ success: true, valid: isValid });
+  } catch { res.json({ success: true, valid: false }); }
+};
+
 export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { username, email, password } = req.body;
@@ -247,4 +256,4 @@ export const githubCallback = (req: any, res: Response) => {
   res.redirect(`${getFrontendUrl()}/oauth/callback?token=${token}`);
 };
 
-export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback, completeGoogleProfile, storePendingGoogleProfile };
+export default { register, login, getMe, changePassword, logout, forgotPassword, resetPassword, googleCallback, githubCallback, completeGoogleProfile, storePendingGoogleProfile, checkEmail };

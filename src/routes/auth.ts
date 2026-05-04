@@ -4,6 +4,7 @@ import { protect } from '../middleware/auth';
 import * as ac from '../controllers/authController';
 const router = express.Router();
 router.post('/register', ac.register);
+router.post('/check-email', ac.checkEmail);
 router.post('/login', ac.login);
 router.post('/logout', ac.logout);
 router.post('/forgot-password', ac.forgotPassword);

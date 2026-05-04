@@ -42,6 +42,7 @@ const auth_1 = require("../middleware/auth");
 const ac = __importStar(require("../controllers/authController"));
 const router = express_1.default.Router();
 router.post('/register', ac.register);
+router.post('/check-email', ac.checkEmail);
 router.post('/login', ac.login);
 router.post('/logout', ac.logout);
 router.post('/forgot-password', ac.forgotPassword);

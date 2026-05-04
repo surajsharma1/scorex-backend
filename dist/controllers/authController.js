@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.githubCallback = exports.googleCallback = exports.resetPassword = exports.forgotPassword = exports.logout = exports.completeGoogleProfile = exports.storePendingGoogleProfile = exports.changePassword = exports.getMe = exports.login = exports.register = void 0;
+exports.githubCallback = exports.googleCallback = exports.resetPassword = exports.forgotPassword = exports.logout = exports.completeGoogleProfile = exports.storePendingGoogleProfile = exports.changePassword = exports.getMe = exports.login = exports.register = exports.checkEmail = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const dns_1 = __importDefault(require("dns"));
@@ -95,6 +95,19 @@ async function isEmailDomainValid(email) {
         return false;
     }
 }
+const checkEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email || typeof email !== 'string')
+            return res.status(400).json({ success: false, valid: false });
+        const isValid = await isEmailDomainValid(email.trim().toLowerCase());
+        res.json({ success: true, valid: isValid });
+    }
+    catch {
+        res.json({ success: true, valid: false });
+    }
+};
+exports.checkEmail = checkEmail;
 const register = async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
@@ -310,4 +323,4 @@ const githubCallback = (req, res) => {
     res.redirect(`${getFrontendUrl()}/oauth/callback?token=${token}`);
 };
 exports.githubCallback = githubCallback;
-exports.default = { register: exports.register, login: exports.login, getMe: exports.getMe, changePassword: exports.changePassword, logout: exports.logout, forgotPassword: exports.forgotPassword, resetPassword: exports.resetPassword, googleCallback: exports.googleCallback, githubCallback: exports.githubCallback, completeGoogleProfile: exports.completeGoogleProfile, storePendingGoogleProfile: exports.storePendingGoogleProfile };
+exports.default = { register: exports.register, login: exports.login, getMe: exports.getMe, changePassword: exports.changePassword, logout: exports.logout, forgotPassword: exports.forgotPassword, resetPassword: exports.resetPassword, googleCallback: exports.googleCallback, githubCallback: exports.githubCallback, completeGoogleProfile: exports.completeGoogleProfile, storePendingGoogleProfile: exports.storePendingGoogleProfile, checkEmail: exports.checkEmail };
