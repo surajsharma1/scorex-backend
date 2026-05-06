@@ -64,19 +64,14 @@ export const checkEmail = async (req: AuthRequest, res: Response) => {
   } catch { res.json({ success: true, valid: false }); }
 };
 
-export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { username, email, password } = req.body;
-    const isValidDomain = await isEmailDomainValid(email);
-    if (!isValidDomain) return res.status(400).json({ success: false, message: 'Invalid email domain. Please use a real email address.' });
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) return res.status(400).json({ success: false, message: 'User already exists' });
-    const user = await User.create({ username, email, password });
-    // Send any active saved notifications to the new user
-    sendSavedNotificationsToUser(user._id).catch(() => {});
-    const token = signToken(user._id.toString());
-    res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
-  } catch (error) { next(error); }
+export const register = async (_req: AuthRequest, res: Response) => {
+  // Manual email registration is disabled — email cannot be verified without sending a confirmation link.
+  // All new accounts must go through Google OAuth (/api/v1/auth/google) which guarantees a real, verified email.
+  return res.status(403).json({
+    success: false,
+    message: 'Direct registration is disabled. Please sign up using Google to verify your email.',
+    redirectTo: '/register',
+  });
 };
 
 export const login = async (req: AuthRequest, res: Response, next: NextFunction) => {

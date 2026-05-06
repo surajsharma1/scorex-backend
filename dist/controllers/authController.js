@@ -42,7 +42,6 @@ const crypto_1 = __importDefault(require("crypto"));
 const dns_1 = __importDefault(require("dns"));
 const util_1 = require("util");
 const User_1 = __importDefault(require("../models/User"));
-const adminController_1 = require("./adminController");
 const emailService_1 = __importDefault(require("../utils/emailService"));
 const signToken = (id) => jsonwebtoken_1.default.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 const resolveMx = (0, util_1.promisify)(dns_1.default.resolveMx);
@@ -108,24 +107,14 @@ const checkEmail = async (req, res) => {
     }
 };
 exports.checkEmail = checkEmail;
-const register = async (req, res, next) => {
-    try {
-        const { username, email, password } = req.body;
-        const isValidDomain = await isEmailDomainValid(email);
-        if (!isValidDomain)
-            return res.status(400).json({ success: false, message: 'Invalid email domain. Please use a real email address.' });
-        const existingUser = await User_1.default.findOne({ $or: [{ email }, { username }] });
-        if (existingUser)
-            return res.status(400).json({ success: false, message: 'User already exists' });
-        const user = await User_1.default.create({ username, email, password });
-        // Send any active saved notifications to the new user
-        (0, adminController_1.sendSavedNotificationsToUser)(user._id).catch(() => { });
-        const token = signToken(user._id.toString());
-        res.status(201).json({ success: true, token, data: { token, user: { _id: user._id, id: user._id, username: user.username, email: user.email, role: user.role, membershipLevel: user.membershipLevel } } });
-    }
-    catch (error) {
-        next(error);
-    }
+const register = async (_req, res) => {
+    // Manual email registration is disabled — email cannot be verified without sending a confirmation link.
+    // All new accounts must go through Google OAuth (/api/v1/auth/google) which guarantees a real, verified email.
+    return res.status(403).json({
+        success: false,
+        message: 'Direct registration is disabled. Please sign up using Google to verify your email.',
+        redirectTo: '/register',
+    });
 };
 exports.register = register;
 const login = async (req, res, next) => {
