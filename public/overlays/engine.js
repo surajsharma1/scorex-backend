@@ -8,6 +8,7 @@
   var userCfg     = baseConfig.config || {}; 
   var urlParams   = new URLSearchParams(window.location.search);
   var matchId     = urlParams.get('matchId') || baseConfig.matchId;
+  var isDemo      = urlParams.get('demo') === 'true' || urlParams.get('preview') === 'true';
   var apiBaseUrl  = baseConfig.apiBaseUrl || 'https://scorex-backend.onrender.com/api/v1';
   var socketUrl   = apiBaseUrl.replace('/api/v1', '');
 
@@ -336,7 +337,7 @@
   }
 
   function fetchMatch(callback) {
-    if (!matchId) return;
+    if (!matchId || isDemo) return;
     fetch(apiBaseUrl + '/matches/' + matchId, { headers: { Accept: 'application/json' }, cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(json) { var d = json.data || json; if (callback) callback(d); else onData(d); })
@@ -344,7 +345,7 @@
   }
 
   function startPolling() {
-    if (!matchId || pollTimer) return;
+    if (!matchId || pollTimer || isDemo) return;
     pollTimer = setInterval(function() {
       fetch(apiBaseUrl + '/matches/' + matchId, { headers: { Accept: 'application/json' }, cache: 'no-store' })
         .then(function(r) { return r.ok ? r.json() : null; })
@@ -358,6 +359,7 @@
   }
 
   function connectSocket() {
+    if (isDemo) return;
     if (typeof io === 'undefined') { startPolling(); return; }
     socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true });
     socket.on('connect', function() { if (matchId) { socket.emit('joinMatch', matchId); socket.emit('join_match', matchId); }});
@@ -374,6 +376,62 @@
     if (e.data.type === 'OVERLAY_TRIGGER' && e.data.payload) { handleTrigger(e.data.payload, matchData || {}); }
   });
 
+  // ─── DEMO MODE ──────────────────────────────────────────────────────────────
+  // Activated by ?demo=true or ?preview=true in the URL.
+  // Pushes self-contained mock data via postMessage — zero backend calls.
+  // Does NOT interfere with live mode (?matchId=xxx) in any way.
+
+  var DEMO_SCORE = {
+    team1Name: 'MI', team2Name: 'CSK',
+    team1ShortName: 'MI', team2ShortName: 'CSK',
+    teamName: 'MI', teamScore: 213, teamWickets: 4, teamOvers: '19.4',
+    team1Score: 213, team1Wickets: 4, team1Overs: '19.4',
+    team2Score: 187, team2Wickets: 8, team2Overs: '20.0',
+    strikerName: 'R. Sharma', strikerRuns: 82, strikerBalls: 45,
+    strikerFours: 8, strikerSixes: 3,
+    nonStrikerName: 'H. Pandya', nonStrikerRuns: 24, nonStrikerBalls: 12,
+    bowlerName: 'P. Cummins', bowlerRuns: 34, bowlerWickets: 1, bowlerOvers: '3.4',
+    currentBowlerName: 'P. Cummins',
+    target: 214, requiredRuns: 1, remainingBalls: 2,
+    tournamentName: 'SCOREX DEMO', matchDisplayName: 'MI vs CSK',
+    tossWinnerName: 'MUMBAI', tossDecision: 'bat',
+    thisOver: [
+      { raw: '1', runs: 1, isWicket: false, isWide: false, isNoBall: false, isFour: false, isSix: false },
+      { raw: 'W', runs: 0, isWicket: true,  isWide: false, isNoBall: false, isFour: false, isSix: false },
+      { raw: '4', runs: 4, isWicket: false, isWide: false, isNoBall: false, isFour: true,  isSix: false },
+      { raw: '6', runs: 6, isWicket: false, isWide: false, isNoBall: false, isFour: false, isSix: true  },
+      { raw: '\u2022', runs: 0, isWicket: false, isWide: false, isNoBall: false, isFour: false, isSix: false },
+      { raw: '1', runs: 1, isWicket: false, isWide: false, isNoBall: false, isFour: false, isSix: false }
+    ],
+    sponsors: [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }],
+    battingSummary: [
+      { name: 'R. Sharma',  runs: 82, balls: 45, fours: 8, sixes: 3, isOut: false },
+      { name: 'H. Pandya',  runs: 24, balls: 12, fours: 1, sixes: 2, isOut: false },
+      { name: 'S. Yadav',   runs: 18, balls: 10, fours: 2, sixes: 0, isOut: true  },
+      { name: 'R. Jadeja',  runs: 10, balls: 5,  fours: 1, sixes: 0, isOut: true  }
+    ],
+    bowlingSummary: [
+      { name: 'P. Cummins', overs: '3.4', runs: 34, wickets: 1, economy: 9.3 },
+      { name: 'M. Starc',   overs: '4.0', runs: 38, wickets: 1, economy: 9.5 },
+      { name: 'A. Zampa',   overs: '4.0', runs: 28, wickets: 2, economy: 7.0 }
+    ]
+  };
+
+  function initDemo() {
+    // Push mock score immediately so overlay renders with data
+    state = 'LIVE';
+    matchData = DEMO_SCORE;
+    window.postMessage({ type: 'UPDATE_SCORE', data: DEMO_SCORE, raw: DEMO_SCORE, _engineSelf: true }, '*');
+    window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: DEMO_SCORE.sponsors, duration: 6 }, '*');
+    if (typeof window.renderCurrentOver === 'function') {
+      window.renderCurrentOver(DEMO_SCORE.thisOver);
+    }
+  }
+
   function init() { fetchMatch(function(data) { onData(data); }); connectSocket(); startPolling(); }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', isDemo ? initDemo : init);
+  } else {
+    if (isDemo) { initDemo(); } else { init(); }
+  }
 })();
