@@ -383,9 +383,18 @@
   // Returns true if handled, false if the overlay's own native handler should
   // also run (e.g. RESTORE lets the overlay clean up its own score elements).
 
+  // Only level 2 overlays use the shared panel system
+  var _isLevel2 = document.documentElement.getAttribute('data-overlay-level') === '2';
+
   window.sharedHandleTrigger = function (type, data, durationSec) {
     var dur = ((durationSec || 8) * 1000);
     data = data || {};
+
+    // Level 1 overlays: only allow RESTORE to hide any stray panel
+    if (!_isLevel2) {
+      if (type === 'RESTORE') { hidePanel(); }
+      return false;
+    }
 
     switch (type) {
 
