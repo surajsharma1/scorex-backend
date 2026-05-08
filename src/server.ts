@@ -217,6 +217,17 @@ passport.deserializeUser(async (id: string, done) => {
   try { done(null, await User.findById(id)); } catch (e) { done(e, null); }
 });
 
+// ─── No-cache for live data routes ────────────────────────────────────────────
+// Prevents browsers and CDN edges from serving stale scores/match state
+const liveDataNoCache = (_req: any, res: any, next: any) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+};
+app.use('/api/v1/matches', liveDataNoCache);
+app.use('/api/v1/tournaments', liveDataNoCache);
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tournaments', tournamentRoutes);

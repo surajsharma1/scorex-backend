@@ -7,6 +7,7 @@ exports.getLiveMatches = exports.updateMatchStatus = exports.endMatch = exports.
 const Match_1 = __importDefault(require("../models/Match"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Tournament_1 = __importDefault(require("../models/Tournament"));
+const cache_1 = require("../utils/cache");
 const teamPopulateOptions = [
     { path: 'team1', select: 'name shortName logo players', populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' } },
     { path: 'team2', select: 'name shortName logo players', populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' } }
@@ -246,6 +247,11 @@ const addBall = async (req, res, next) => {
                 io.to(`match:${match._id}`).emit('overlayTrigger', { type: 'MATCH_END', data: { winnerTeam: match.winnerName, winMargin: match.resultSummary } });
             }
         }
+        // Invalidate Redis cache so the next REST fetch gets live data
+        if (match.tournamentId) {
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(match.tournamentId.toString())).catch(() => { });
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey()).catch(() => { });
+        }
         res.json({ success: true, data: result, match: match.toObject() });
     }
     catch (error) {
@@ -260,6 +266,10 @@ const undoLastBall = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         await match.undoLastBall();
         await match.populate(teamPopulateOptions);
+        if (match.tournamentId) {
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(match.tournamentId.toString())).catch(() => { });
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey()).catch(() => { });
+        }
         const io = req.app.get('io');
         if (io)
             io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
@@ -276,6 +286,10 @@ const endInnings = async (req, res, next) => {
         if (!match)
             return res.status(404).json({ success: false, message: 'Match not found' });
         await match.endInnings();
+        if (match.tournamentId) {
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(match.tournamentId.toString())).catch(() => { });
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey()).catch(() => { });
+        }
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('inningsEnded', match.toObject());
@@ -297,6 +311,10 @@ const endMatch = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Match not found' });
         await match.endMatch(winnerId, winnerName, resultSummary);
         await match.save();
+        if (match.tournamentId) {
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentKey(match.tournamentId.toString())).catch(() => { });
+            await cache_1.cacheService.del(cache_1.cacheService.getTournamentsListKey()).catch(() => { });
+        }
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('matchEnded', match.toObject());

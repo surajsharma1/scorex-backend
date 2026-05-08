@@ -393,7 +393,9 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
       </head>`);
 
       res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.setHeader('X-Frame-Options', 'ALLOWALL');
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.send(html);
@@ -468,7 +470,9 @@ export const serveOverlay = async (req: Request, res: Response): Promise<void> =
     </head>`);
 
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.setHeader('X-Frame-Options', 'ALLOWALL');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
