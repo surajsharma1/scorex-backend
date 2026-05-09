@@ -61,9 +61,8 @@ const TeamSchema = new mongoose_1.Schema({
 // Indexes
 TeamSchema.index({ tournamentId: 1 });
 TeamSchema.index({ name: 1 });
-// Enforce uniqueness of teamNumber within a tournament (sparse so teams
-// without a tournamentId don't conflict with each other)
-TeamSchema.index({ tournamentId: 1, teamNumber: 1 }, { unique: true, sparse: true, name: 'unique_team_number_per_tournament' });
+// Non-unique index — just for query performance when fetching teams by tournament
+TeamSchema.index({ tournamentId: 1, teamNumber: 1 });
 // ─── Methods ──────────────────────────────────────────────────────────────
 TeamSchema.methods.addPlayer = async function (playerId) {
     if (!this.players.includes(playerId)) {

@@ -30,7 +30,10 @@ const TournamentSchema = new Schema<ITournament>({
 rules: { type: String },
   sponsors: [{ type: String }],
   pointsTable: [Schema.Types.Mixed],
-  bracket: [Schema.Types.Mixed]
+  bracket: [Schema.Types.Mixed],
+  // Atomic counter — incremented each time a team is added to this tournament.
+  // Never reset. Gives each team a unique sequential number scoped to this tournament.
+  _teamCounter: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Indexes
@@ -175,6 +178,9 @@ rules: string;
   pointsTable?: any[];
   bracket?: any[];
 
+  // Internal counter — do not set manually
+  _teamCounter: number;
+
   // Methods
   generateBracket(): Promise<void>;
   calculatePointsTable(): Promise<void>;
@@ -183,4 +189,3 @@ rules: string;
 }
 
 export default mongoose.model<ITournament>('Tournament', TournamentSchema);
-

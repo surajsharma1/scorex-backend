@@ -62,7 +62,10 @@ const TournamentSchema = new mongoose_1.Schema({
     rules: { type: String },
     sponsors: [{ type: String }],
     pointsTable: [mongoose_1.Schema.Types.Mixed],
-    bracket: [mongoose_1.Schema.Types.Mixed]
+    bracket: [mongoose_1.Schema.Types.Mixed],
+    // Atomic counter — incremented each time a team is added to this tournament.
+    // Never reset. Gives each team a unique sequential number scoped to this tournament.
+    _teamCounter: { type: Number, default: 0 }
 }, { timestamps: true });
 // Indexes
 TournamentSchema.index({ organizer: 1 });

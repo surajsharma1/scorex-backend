@@ -1,18 +1,14 @@
 /**
  * teamController.ts
  *
- * ID assignment rules
- * ───────────────────
  * Team number  — sequential within a tournament (1, 2, 3 …).
- *                Assigned atomically via findOneAndUpdate $inc so two
- *                concurrent requests never get the same number.
- *                Stored in Team.teamNumber.
+ *                Assigned via atomic $inc on Tournament._teamCounter so
+ *                two simultaneous requests can never get the same number.
  *
  * Player number — sequential within a team (1, 2, 3 …).
- *                 Assigned atomically via findOneAndUpdate $inc on
- *                 Team.nextPlayerNumber.  The (teamId, playerNumber)
- *                 pair is stored in Player.teamNumbers[] so the same
- *                 player can sit in many teams without any collision.
+ *                 Assigned via atomic $inc on Team.nextPlayerNumber.
+ *                 Stored in Player.teamNumbers[] so a player in multiple
+ *                 teams has an independent number per team.
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -26,18 +22,22 @@ interface AuthRequest extends Request { user?: any; }
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 /**
- * Returns the next sequential team number for a given tournament.
- * Counts existing teams in that tournament and adds 1.
- * Safe for normal usage — teams are never bulk-created in parallel.
+ * Atomically increments Tournament._teamCounter and returns the new value.
+ * Because $inc + findOneAndUpdate is a single atomic MongoDB operation,
+ * two concurrent requests always get different numbers.
  */
 async function nextTeamNumber(tournamentId: mongoose.Types.ObjectId): Promise<number> {
-  const count = await Team.countDocuments({ tournamentId });
-  return count + 1;
+  const updated = await Tournament.findByIdAndUpdate(
+    tournamentId,
+    { $inc: { _teamCounter: 1 } },
+    { new: true }
+  );
+  // If the tournament wasn't found return 1 as a safe fallback
+  return updated?._teamCounter ?? 1;
 }
 
 /**
- * Returns the next sequential player number for a given team.
- * Atomically increments Team.nextPlayerNumber and returns the NEW value.
+ * Atomically increments Team.nextPlayerNumber and returns the new value.
  */
 async function nextPlayerNumber(teamId: mongoose.Types.ObjectId): Promise<number> {
   const updated = await Team.findByIdAndUpdate(
@@ -54,36 +54,23 @@ export const createTeam = async (req: AuthRequest, res: Response, next: NextFunc
   try {
     const { name, shortName, players, captain, tournamentId } = req.body;
 
+    let teamNum = 0;
     let tId: mongoose.Types.ObjectId | undefined;
-    if (tournamentId) tId = new mongoose.Types.ObjectId(tournamentId);
 
-    // Retry loop: if two teams are created at the exact same millisecond the
-    // countDocuments result can be equal, causing a duplicate-key on teamNumber.
-    // We catch that specific error and simply try the next number.
-    let team: any = null;
-    let attempts = 0;
-    while (!team && attempts < 5) {
-      attempts++;
-      const teamNum = tId ? await nextTeamNumber(tId) : 0;
-      try {
-        team = await Team.create({
-          name,
-          shortName,
-          players,
-          captain,
-          tournamentId: tId,
-          teamNumber:   teamNum,
-        });
-      } catch (err: any) {
-        // E11000 = duplicate key — teamNumber collision, retry with fresh count
-        if (err.code === 11000 && err.keyPattern?.teamNumber) continue;
-        throw err; // any other error re-throw immediately
-      }
+    if (tournamentId) {
+      tId = new mongoose.Types.ObjectId(tournamentId);
+      // Atomic increment — guaranteed unique even under concurrent requests
+      teamNum = await nextTeamNumber(tId);
     }
 
-    if (!team) {
-      return res.status(500).json({ success: false, message: 'Could not assign a unique team number after retries' });
-    }
+    const team = await Team.create({
+      name,
+      shortName,
+      players,
+      captain,
+      tournamentId: tId,
+      teamNumber: teamNum,
+    });
 
     if (tId) {
       const tournament = await Tournament.findById(tId);
@@ -101,17 +88,13 @@ export const getTeams = async (req: Request, res: Response, next: NextFunction) 
     const query: any = tournamentId ? { tournamentId } : {};
 
     const teams = await Team.find(query)
-      .populate({
-        path: 'players',
-        select: 'name role jerseyNumber teamNumbers',
-      })
+      .populate({ path: 'players', select: 'name role jerseyNumber teamNumbers' })
       .populate('captain tournamentId', 'name shortName')
       .sort({ teamNumber: 1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
 
     const total = await Team.countDocuments(query);
-
     res.json({
       success: true,
       data: teams,
@@ -123,10 +106,7 @@ export const getTeams = async (req: Request, res: Response, next: NextFunction) 
 export const getTeam = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const team = await Team.findById(req.params.id)
-      .populate({
-        path: 'players',
-        select: 'name role jerseyNumber teamNumbers',
-      })
+      .populate({ path: 'players', select: 'name role jerseyNumber teamNumbers' })
       .populate('captain tournamentId matches', 'name shortName');
 
     if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
@@ -136,14 +116,13 @@ export const getTeam = async (req: Request, res: Response, next: NextFunction) =
 
 export const updateTeam = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Prevent overwriting system-managed fields
-    const { teamNumber, nextPlayerNumber: _, ...safeBody } = req.body;
+    // Never let a client overwrite system-managed counters
+    const { teamNumber, nextPlayerNumber: _npn, ...safeBody } = req.body;
 
-    const team = await Team.findByIdAndUpdate(
-      req.params.id,
-      safeBody,
-      { new: true, runValidators: true }
-    ).populate('players captain');
+    const team = await Team.findByIdAndUpdate(req.params.id, safeBody, {
+      new: true,
+      runValidators: true,
+    }).populate('players captain');
 
     if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
     await team.updateStats();
@@ -162,7 +141,7 @@ export const deleteTeam = async (req: AuthRequest, res: Response, next: NextFunc
 export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const teamId = new mongoose.Types.ObjectId(req.params.id);
-    const team   = await Team.findById(teamId);
+    const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
 
     let player: any;
@@ -170,22 +149,18 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
     if (req.body.playerId) {
       // ── Existing player being added to this team ──
       const pid = new mongoose.Types.ObjectId(req.body.playerId);
-      player    = await Player.findById(pid);
+      player = await Player.findById(pid);
       if (!player) return res.status(404).json({ success: false, message: 'Player not found' });
 
-      // Guard: already on this team
       const alreadyInTeam = team.players.some((p: mongoose.Types.ObjectId) => p.equals(pid));
       if (alreadyInTeam) {
         return res.status(400).json({ success: false, message: 'Player is already in this team' });
       }
 
-      // Assign a new player number for this team membership
       const pNum = await nextPlayerNumber(teamId);
-
-      // Update the player's teamNumbers array
       await Player.findByIdAndUpdate(pid, {
         $push: {
-          teams:       teamId,
+          teams: teamId,
           teamNumbers: { teamId, playerNumber: pNum },
         },
       });
@@ -193,14 +168,13 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
     } else if (req.body.name && req.body.role) {
       // ── Brand-new player being created and added to this team ──
       const pNum = await nextPlayerNumber(teamId);
-
       player = await Player.create({
-        name:         req.body.name,
-        role:         req.body.role,
+        name: req.body.name,
+        role: req.body.role,
         jerseyNumber: req.body.jerseyNumber ? Number(req.body.jerseyNumber) : undefined,
-        isActive:     true,
-        teams:        [teamId],
-        teamNumbers:  [{ teamId, playerNumber: pNum }],
+        isActive: true,
+        teams: [teamId],
+        teamNumbers: [{ teamId, playerNumber: pNum }],
       });
 
     } else {
@@ -210,14 +184,8 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
       });
     }
 
-    // Add to team's players array
     await team.addPlayer(player._id);
-
-    // Return populated team
-    await team.populate({
-      path:   'players',
-      select: 'name role jerseyNumber teamNumbers',
-    });
+    await team.populate({ path: 'players', select: 'name role jerseyNumber teamNumbers' });
     await team.populate('captain', 'name role');
 
     res.json({ success: true, data: team });
@@ -226,16 +194,15 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
 
 export const removePlayer = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const teamId   = new mongoose.Types.ObjectId(req.params.id);
+    const teamId = new mongoose.Types.ObjectId(req.params.id);
     const playerId = new mongoose.Types.ObjectId(req.params.playerId);
 
     const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
 
-    // Remove the team from the player's membership arrays
     await Player.findByIdAndUpdate(playerId, {
       $pull: {
-        teams:       teamId,
+        teams: teamId,
         teamNumbers: { teamId },
       },
     });
