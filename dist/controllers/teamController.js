@@ -27,14 +27,12 @@ const Tournament_1 = __importDefault(require("../models/Tournament"));
 // ─── Helpers ──────────────────────────────────────────────────────────────
 /**
  * Returns the next sequential team number for a given tournament.
- * Uses $inc so the operation is atomic even under concurrency.
+ * Counts existing teams in that tournament and adds 1.
+ * Safe for normal usage — teams are never bulk-created in parallel.
  */
 async function nextTeamNumber(tournamentId) {
-    // We keep a tiny counter document in a "counters" collection, but since
-    // we don't want to add a new model just for that we piggy-back on the
-    // Tournament document itself using $inc on a field we add on the fly.
-    const updated = await Tournament_1.default.findByIdAndUpdate(tournamentId, { $inc: { _teamCounter: 1 } }, { new: true, upsert: false });
-    return updated?._teamCounter ?? 1;
+    const count = await Team_1.default.countDocuments({ tournamentId });
+    return count + 1;
 }
 /**
  * Returns the next sequential player number for a given team.
@@ -48,20 +46,37 @@ async function nextPlayerNumber(teamId) {
 const createTeam = async (req, res, next) => {
     try {
         const { name, shortName, players, captain, tournamentId } = req.body;
-        let teamNum = 0;
         let tId;
-        if (tournamentId) {
+        if (tournamentId)
             tId = new mongoose_1.default.Types.ObjectId(tournamentId);
-            teamNum = await nextTeamNumber(tId);
+        // Retry loop: if two teams are created at the exact same millisecond the
+        // countDocuments result can be equal, causing a duplicate-key on teamNumber.
+        // We catch that specific error and simply try the next number.
+        let team = null;
+        let attempts = 0;
+        while (!team && attempts < 5) {
+            attempts++;
+            const teamNum = tId ? await nextTeamNumber(tId) : 0;
+            try {
+                team = await Team_1.default.create({
+                    name,
+                    shortName,
+                    players,
+                    captain,
+                    tournamentId: tId,
+                    teamNumber: teamNum,
+                });
+            }
+            catch (err) {
+                // E11000 = duplicate key — teamNumber collision, retry with fresh count
+                if (err.code === 11000 && err.keyPattern?.teamNumber)
+                    continue;
+                throw err; // any other error re-throw immediately
+            }
         }
-        const team = await Team_1.default.create({
-            name,
-            shortName,
-            players,
-            captain,
-            tournamentId: tId,
-            teamNumber: teamNum,
-        });
+        if (!team) {
+            return res.status(500).json({ success: false, message: 'Could not assign a unique team number after retries' });
+        }
         if (tId) {
             const tournament = await Tournament_1.default.findById(tId);
             if (tournament)
