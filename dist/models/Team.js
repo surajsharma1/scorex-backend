@@ -41,23 +41,30 @@ const TeamSchema = new mongoose_1.Schema({
     tournamentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tournament', index: true },
     players: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }],
     captain: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' },
+    // Sequential team number scoped to a tournament (assigned by teamController)
+    teamNumber: { type: Number, default: 0 },
+    // Counter used to hand out unique per-team player numbers
+    nextPlayerNumber: { type: Number, default: 0 },
     stats: {
         matchesPlayed: { type: Number, default: 0 },
         matchesWon: { type: Number, default: 0 },
         tournamentWins: { type: Number, default: 0 },
         totalRuns: { type: Number, default: 0 },
-        totalWickets: { type: Number, default: 0 }
+        totalWickets: { type: Number, default: 0 },
     },
     tournamentStats: {
         matchesPlayed: { type: Number, default: 0 },
-        matchesWon: { type: Number, default: 0 }
+        matchesWon: { type: Number, default: 0 },
     },
-    matches: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Match' }]
+    matches: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Match' }],
 }, { timestamps: true });
 // Indexes
 TeamSchema.index({ tournamentId: 1 });
 TeamSchema.index({ name: 1 });
-// Methods
+// Enforce uniqueness of teamNumber within a tournament (sparse so teams
+// without a tournamentId don't conflict with each other)
+TeamSchema.index({ tournamentId: 1, teamNumber: 1 }, { unique: true, sparse: true, name: 'unique_team_number_per_tournament' });
+// ─── Methods ──────────────────────────────────────────────────────────────
 TeamSchema.methods.addPlayer = async function (playerId) {
     if (!this.players.includes(playerId)) {
         this.players.push(playerId);
@@ -65,18 +72,18 @@ TeamSchema.methods.addPlayer = async function (playerId) {
     }
 };
 TeamSchema.methods.removePlayer = async function (playerId) {
-    this.players = this.players.filter(p => !p.equals(playerId));
+    this.players = this.players.filter((p) => !p.equals(playerId));
     await this.save();
 };
 TeamSchema.methods.updateStats = async function () {
-    // Fetch stats from matches (simplified)
     const Match = mongoose_1.default.model('Match');
     const matches = await Match.find({
         $or: [{ team1: this._id }, { team2: this._id }],
-        status: 'completed'
+        status: 'completed',
     });
-    let wins = 0, played = matches.length;
-    matches.forEach(match => {
+    let wins = 0;
+    const played = matches.length;
+    matches.forEach((match) => {
         if (match.winner?.equals(this._id))
             wins++;
     });

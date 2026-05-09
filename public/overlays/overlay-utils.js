@@ -45,9 +45,30 @@ window.normalizeScoreData = function(data) {
   var nonStrikerName = matchObj.nonStrikerName     || '';
   var bowlerName     = matchObj.currentBowlerName  || '';
 
-  var strikerObj     = batsmen.find(function(b){ return b.name === strikerName; })    || {};
-  var nonStrikerObj  = batsmen.find(function(b){ return b.name === nonStrikerName; }) || {};
-  var bowlerObj      = bowlers.find(function(b){ return b.name === bowlerName; })     || {};
+  // Use ObjectId fields (written by our fixed Match.ts) for collision-free stat lookup.
+  // Falls back to name comparison so old match documents without IDs still work.
+  var _sid   = matchObj.strikerId    || null;
+  var _nsid  = matchObj.nonStrikerId || null;
+  var _bowid = matchObj.currentBowlerId || null;
+
+  function _findBat(arr, id, name) {
+    if (id) {
+      var byId = arr.find(function(b){ return b.playerId && b.playerId.toString() === id.toString(); });
+      if (byId) return byId;
+    }
+    return arr.find(function(b){ return b.name === name; }) || null;
+  }
+  function _findBowl(arr, id, name) {
+    if (id) {
+      var byId = arr.find(function(b){ return b.playerId && b.playerId.toString() === id.toString(); });
+      if (byId) return byId;
+    }
+    return arr.find(function(b){ return b.name === name; }) || null;
+  }
+
+  var strikerObj    = _findBat(batsmen,  _sid,   strikerName)    || {};
+  var nonStrikerObj = _findBat(batsmen,  _nsid,  nonStrikerName) || {};
+  var bowlerObj     = _findBowl(bowlers, _bowid, bowlerName)     || {};
 
   var strikerRuns    = Number(resultObj.strikerMatchRuns  != null ? resultObj.strikerMatchRuns  : (strikerObj.runs    || matchObj.strikerRuns    || 0));
   var strikerBalls   = Number(resultObj.strikerMatchBalls != null ? resultObj.strikerMatchBalls : (strikerObj.balls   || matchObj.strikerBalls   || 0));
@@ -103,8 +124,13 @@ window.normalizeScoreData = function(data) {
   var inn2Batting = (inn2.batsmen||[]).map(function(b){ var isRetired = b.outType==='retired_hurt'||b.outType==='retired'; return { name:b.name, runs:b.runs||0, balls:b.balls||0, fours:b.fours||0, sixes:b.sixes||0, isOut: isRetired ? false : (b.isOut||false), outType:b.outType||'' }; });
   var inn2Bowling = (inn2.bowlers||[]).map(function(b){ return { name:b.name, overs:b.balls?(Math.floor(b.balls/6)+'.'+b.balls%6):'0.0', runs:b.runs||0, wickets:b.wickets||0, economy:b.economy||0 }; });
 
-  var team1Players = (matchObj.team1&&matchObj.team1.players ? matchObj.team1.players : []).map(function(p){ return p.name||p; });
-  var team2Players = (matchObj.team2&&matchObj.team2.players ? matchObj.team2.players : []).map(function(p){ return p.name||p; });
+  // Player lists for squads/toss screens — only need names
+  var team1Players = (matchObj.team1&&matchObj.team1.players ? matchObj.team1.players : []).map(function(p){
+    return typeof p === 'string' ? p : (p.name || '');
+  });
+  var team2Players = (matchObj.team2&&matchObj.team2.players ? matchObj.team2.players : []).map(function(p){
+    return typeof p === 'string' ? p : (p.name || '');
+  });
 
   return {
     matchName:       matchObj.name || 'Live Match',

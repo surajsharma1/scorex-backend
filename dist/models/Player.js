@@ -114,6 +114,12 @@ const PlayerSchema = new mongoose_1.Schema({
     points: { type: PointsSchema, default: () => ({}) },
     // Team Association
     teams: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Team' }],
+    // Per-team sequential numbers — one entry per team membership
+    teamNumbers: [{
+            _id: false,
+            teamId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Team', required: true },
+            playerNumber: { type: Number, required: true },
+        }],
     // User Association
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     // Status
@@ -129,6 +135,7 @@ const PlayerSchema = new mongoose_1.Schema({
 // ==========================================
 PlayerSchema.index({ name: 'text' });
 PlayerSchema.index({ teams: 1 });
+PlayerSchema.index({ 'teamNumbers.teamId': 1, 'teamNumbers.playerNumber': 1 }, { unique: true, sparse: true, name: 'unique_player_number_per_team' });
 PlayerSchema.index({ userId: 1 });
 PlayerSchema.index({ role: 1 });
 PlayerSchema.index({ 'points.total': -1 });

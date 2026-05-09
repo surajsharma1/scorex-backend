@@ -74,6 +74,13 @@ export interface IPlayer extends Document {
   
   // Team Association
   teams: mongoose.Types.ObjectId[];
+
+  /**
+   * Per-team sequential player number.
+   * Stored as an array so the same player can belong to multiple teams,
+   * each with their own number. Schema: [{ teamId, playerNumber }]
+   */
+  teamNumbers: Array<{ teamId: mongoose.Types.ObjectId; playerNumber: number }>;
   
   // User Association (if registered on platform)
   userId?: mongoose.Types.ObjectId;
@@ -175,6 +182,13 @@ const PlayerSchema: Schema = new Schema({
   
   // Team Association
   teams: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
+
+  // Per-team sequential numbers — one entry per team membership
+  teamNumbers: [{
+    _id:          false,
+    teamId:       { type: Schema.Types.ObjectId, ref: 'Team', required: true },
+    playerNumber: { type: Number, required: true },
+  }],
   
   // User Association
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -194,6 +208,10 @@ const PlayerSchema: Schema = new Schema({
 
 PlayerSchema.index({ name: 'text' });
 PlayerSchema.index({ teams: 1 });
+PlayerSchema.index(
+  { 'teamNumbers.teamId': 1, 'teamNumbers.playerNumber': 1 },
+  { unique: true, sparse: true, name: 'unique_player_number_per_team' }
+);
 PlayerSchema.index({ userId: 1 });
 PlayerSchema.index({ role: 1 });
 PlayerSchema.index({ 'points.total': -1 });

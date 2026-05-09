@@ -69,7 +69,7 @@ var TossDecision;
 const BatsmanSchema = new mongoose_1.Schema({ playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, name: { type: String, required: true }, runs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, fours: { type: Number, default: 0 }, sixes: { type: Number, default: 0 }, strikeRate: { type: Number, default: 0 }, isOut: { type: Boolean, default: false }, isStriker: { type: Boolean, default: false }, outType: String, outTo: String, outFielder: String, enteredAt: Number }, { _id: false });
 const BowlerSchema = new mongoose_1.Schema({ playerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, name: { type: String, required: true }, overs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, maidens: { type: Number, default: 0 }, runs: { type: Number, default: 0 }, wickets: { type: Number, default: 0 }, economy: { type: Number, default: 0 }, wides: { type: Number, default: 0 }, noBalls: { type: Number, default: 0 } }, { _id: false });
 const InningsSchema = new mongoose_1.Schema({ teamId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, teamName: { type: String, required: true }, status: { type: String, enum: ['in_progress', 'completed'], default: 'in_progress' }, score: { type: Number, default: 0 }, wickets: { type: Number, default: 0 }, overs: { type: Number, default: 0 }, balls: { type: Number, default: 0 }, runRate: { type: Number, default: 0 }, targetScore: Number, requiredRuns: Number, requiredRunRate: Number, extras: { wides: { type: Number, default: 0 }, noBalls: { type: Number, default: 0 }, byes: { type: Number, default: 0 }, legByes: { type: Number, default: 0 }, total: { type: Number, default: 0 } }, batsmen: [BatsmanSchema], bowlers: [BowlerSchema], fallOfWickets: [mongoose_1.Schema.Types.Mixed], ballHistory: [mongoose_1.Schema.Types.Mixed] }, { _id: false });
-const MatchSchema = new mongoose_1.Schema({ name: { type: String, required: true }, tournamentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tournament', index: true }, round: String, matchNumber: Number, team1: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team1Name: { type: String, required: true }, team2: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team2Name: { type: String, required: true }, venue: { type: String, default: 'TBD' }, date: { type: Date, required: true }, time: String, format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' }, maxOvers: { type: Number, default: 20 }, status: { type: String, enum: Object.values(MatchStatus), default: MatchStatus.UPCOMING, index: true }, tossWinner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, tossWinnerName: String, tossDecision: { type: String, enum: Object.values(TossDecision) }, innings: [InningsSchema], currentInnings: { type: Number, default: 1 }, strikerName: { type: String, default: '' }, nonStrikerName: { type: String, default: '' }, currentBowlerName: { type: String, default: '' }, team1Score: { type: Number, default: 0 }, team1Wickets: { type: Number, default: 0 }, team1Overs: { type: Number, default: 0 }, team2Score: { type: Number, default: 0 }, team2Wickets: { type: Number, default: 0 }, team2Overs: { type: Number, default: 0 }, winner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, winnerName: String, resultSummary: String, playerOfMatch: String, scorerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User' }, streamUrl: { type: String, default: '' } }, { timestamps: true });
+const MatchSchema = new mongoose_1.Schema({ name: { type: String, required: true }, tournamentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Tournament', index: true }, round: String, matchNumber: Number, team1: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team1Name: { type: String, required: true }, team2: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team', required: true }, team2Name: { type: String, required: true }, venue: { type: String, default: 'TBD' }, date: { type: Date, required: true }, time: String, format: { type: String, enum: ['T10', 'T20', 'ODI', 'Test', 'Custom'], default: 'T20' }, maxOvers: { type: Number, default: 20 }, status: { type: String, enum: Object.values(MatchStatus), default: MatchStatus.UPCOMING, index: true }, tossWinner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, tossWinnerName: String, tossDecision: { type: String, enum: Object.values(TossDecision) }, innings: [InningsSchema], currentInnings: { type: Number, default: 1 }, strikerName: { type: String, default: '' }, nonStrikerName: { type: String, default: '' }, currentBowlerName: { type: String, default: '' }, team1Score: { type: Number, default: 0 }, team1Wickets: { type: Number, default: 0 }, team1Overs: { type: Number, default: 0 }, team2Score: { type: Number, default: 0 }, team2Wickets: { type: Number, default: 0 }, team2Overs: { type: Number, default: 0 }, winner: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Team' }, winnerName: String, resultSummary: String, playerOfMatch: String, scorerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User' }, streamUrl: { type: String, default: '' }, strikerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, nonStrikerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' }, currentBowlerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'Player' } }, { timestamps: true });
 MatchSchema.index({ tournamentId: 1, status: 1 });
 MatchSchema.index({ status: 1, date: -1 });
 function formatOvers(completedOvers, ballsInOver) { return `${completedOvers}.${ballsInOver}`; }
@@ -84,16 +84,49 @@ MatchSchema.methods.startMatch = async function (data) {
     this.innings = [{
             teamId: new mongoose_1.default.Types.ObjectId(data.battingTeamId), teamName: data.battingTeamName, status: 'in_progress', score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0,
             extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 },
-            batsmen: [{ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: 0 }, { name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 }],
-            bowlers: [{ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }],
+            batsmen: [
+                { playerId: data.strikerId ? new mongoose_1.default.Types.ObjectId(data.strikerId) : undefined, name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: 0 },
+                { playerId: data.nonStrikerId ? new mongoose_1.default.Types.ObjectId(data.nonStrikerId) : undefined, name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 },
+            ],
+            bowlers: [{ playerId: data.bowlerId ? new mongoose_1.default.Types.ObjectId(data.bowlerId) : undefined, name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }],
             fallOfWickets: [], ballHistory: []
         }];
     this.currentInnings = 1;
     this.strikerName = data.striker;
     this.nonStrikerName = data.nonStriker;
     this.currentBowlerName = data.bowler;
+    this.strikerId = data.strikerId ? new mongoose_1.default.Types.ObjectId(data.strikerId) : undefined;
+    this.nonStrikerId = data.nonStrikerId ? new mongoose_1.default.Types.ObjectId(data.nonStrikerId) : undefined;
+    this.currentBowlerId = data.bowlerId ? new mongoose_1.default.Types.ObjectId(data.bowlerId) : undefined;
     await this.save();
 };
+// ── ID-first lookup helpers ───────────────────────────────────────────────
+// Always try playerId first; fall back to name so old data still works.
+function findBatsman(batsmen, id, name) {
+    if (id) {
+        const byId = batsmen.find(b => b.playerId && b.playerId.equals(id) && !b.isOut);
+        if (byId)
+            return byId;
+    }
+    return batsmen.find(b => b.name === name && !b.isOut);
+}
+function findBatsmanAny(batsmen, id, name) {
+    // Like findBatsman but includes out batsmen (needed for undo)
+    if (id) {
+        const byId = batsmen.find(b => b.playerId && b.playerId.equals(id));
+        if (byId)
+            return byId;
+    }
+    return batsmen.find(b => b.name === name);
+}
+function findBowler(bowlers, id, name) {
+    if (id) {
+        const byId = bowlers.find(b => b.playerId && b.playerId.equals(id));
+        if (byId)
+            return byId;
+    }
+    return bowlers.find(b => b.name === name);
+}
 MatchSchema.methods.addBall = async function (data) {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings || innings.status !== 'in_progress')
@@ -118,7 +151,7 @@ MatchSchema.methods.addBall = async function (data) {
         this.markModified('innings');
         await this.save();
         // Find the exact runs the striker has right now
-        const currentStriker = innings.batsmen.find((b) => b.name === this.strikerName);
+        const currentStriker = findBatsman(innings.batsmen, this.strikerId, this.strikerName);
         const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
         const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
         return {
@@ -148,9 +181,23 @@ MatchSchema.methods.addBall = async function (data) {
     let isLegalDelivery = !isWide && !isNoBall;
     let extrasRuns = 0;
     let ballDesc = '';
-    const historyEntry = { over: innings.overs, ball: innings.balls % 6, runs, extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '', wicket: isWicket, outType: data.outType || '', outBatsmanName: data.outBatsmanName || (isWicket ? striker.name : ''), batsmanName: striker.name, bowlerName: this.currentBowlerName, totalBefore: innings.score, wicketsBefore: innings.wickets,
+    const historyEntry = {
+        over: innings.overs, ball: innings.balls % 6, runs,
+        extras: isWide ? 'wide' : isNoBall ? 'nb' : byeRuns > 0 ? 'bye' : legByeRuns > 0 ? 'lb' : '',
+        wicket: isWicket, outType: data.outType || '',
+        outBatsmanName: data.outBatsmanName || (isWicket ? striker.name : ''),
+        batsmanName: striker.name,
+        bowlerName: this.currentBowlerName,
+        totalBefore: innings.score, wicketsBefore: innings.wickets,
         // Snapshot positions BEFORE this ball so undo can restore exactly
-        strikerBefore: this.strikerName, nonStrikerBefore: this.nonStrikerName, bowlerBefore: this.currentBowlerName };
+        strikerBefore: this.strikerName, nonStrikerBefore: this.nonStrikerName, bowlerBefore: this.currentBowlerName,
+        // ID snapshots — used by undo to find the right player even if two players share a name
+        batsmanPlayerId: striker.playerId ? striker.playerId.toString() : undefined,
+        bowlerPlayerId: this.currentBowlerId ? this.currentBowlerId.toString() : undefined,
+        outPlayerId: isWicket && striker.playerId ? striker.playerId.toString() : undefined,
+        strikerIdBefore: this.strikerId ? this.strikerId.toString() : undefined,
+        nonStrikerIdBefore: this.nonStrikerId ? this.nonStrikerId.toString() : undefined,
+    };
     innings.ballHistory.push(historyEntry);
     if (isWide) {
         extrasRuns = 1 + runs + byeRuns + legByeRuns;
@@ -222,7 +269,7 @@ MatchSchema.methods.addBall = async function (data) {
     let needPlayerSelection = false;
     if (isWicket) {
         innings.wickets += 1;
-        const outBatsman = data.outBatsmanName ? innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut) : striker;
+        const outBatsman = data.outBatsmanName ? innings.batsmen.find((b) => b.name === data.outBatsmanName && !b.isOut) ?? striker : striker;
         if (outBatsman) {
             outBatsman.isOut = true;
             outBatsman.outType = data.outType || 'bowled';
@@ -250,23 +297,27 @@ MatchSchema.methods.addBall = async function (data) {
     }
     const runsForRotation = isWide ? runs : (byeRuns || legByeRuns || runs);
     if (runsForRotation % 2 === 1) {
-        const p1 = innings.batsmen.find((b) => b.name === this.strikerName);
-        const p2 = innings.batsmen.find((b) => b.name === this.nonStrikerName);
+        const p1 = findBatsman(innings.batsmen, this.strikerId, this.strikerName);
+        const p2 = findBatsman(innings.batsmen, this.nonStrikerId, this.nonStrikerName);
         if (p1 && p2) {
             p1.isStriker = false;
             p2.isStriker = true;
             this.strikerName = p2.name;
             this.nonStrikerName = p1.name;
+            this.strikerId = p2.playerId;
+            this.nonStrikerId = p1.playerId;
         }
     }
     if (overChanged) {
-        const p1 = innings.batsmen.find((b) => b.name === this.strikerName);
-        const p2 = innings.batsmen.find((b) => b.name === this.nonStrikerName);
+        const p1 = findBatsman(innings.batsmen, this.strikerId, this.strikerName);
+        const p2 = findBatsman(innings.batsmen, this.nonStrikerId, this.nonStrikerName);
         if (p1 && p2) {
             p1.isStriker = false;
             p2.isStriker = true;
             this.strikerName = p2.name;
             this.nonStrikerName = p1.name;
+            this.strikerId = p2.playerId;
+            this.nonStrikerId = p1.playerId;
         }
     }
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
@@ -338,7 +389,7 @@ MatchSchema.methods.addBall = async function (data) {
     }
     this.markModified('innings');
     await this.save();
-    const currentStriker = innings.batsmen.find((b) => b.name === this.strikerName);
+    const currentStriker = findBatsman(innings.batsmen, this.strikerId, this.strikerName);
     const totalFours = innings.batsmen.reduce((sum, b) => sum + (b.fours || 0), 0);
     const totalSixes = innings.batsmen.reduce((sum, b) => sum + (b.sixes || 0), 0);
     return {
@@ -450,7 +501,9 @@ MatchSchema.methods.undoLastBall = async function () {
         if (last.wicket)
             innings.fallOfWickets.pop();
         const outName = last.outBatsmanName || last.batsmanName;
-        const outBatsman = innings.batsmen.find((b) => b.name === outName && b.isOut);
+        const outBatsman = innings.batsmen.find((b) => (last.outPlayerId && b.playerId && b.playerId.toString() === last.outPlayerId)
+            ? b.isOut
+            : b.name === outName && b.isOut);
         if (outBatsman) {
             outBatsman.isOut = false;
             outBatsman.outType = undefined;
@@ -459,7 +512,7 @@ MatchSchema.methods.undoLastBall = async function () {
         }
     }
     // Restore batsman stats
-    const batsman = innings.batsmen.find((b) => b.name === last.batsmanName);
+    const batsman = innings.batsmen.find((b) => last.batsmanPlayerId && b.playerId ? b.playerId.toString() === last.batsmanPlayerId : b.name === last.batsmanName);
     if (batsman && last.extras !== 'wide') {
         if (batsman.balls > 0)
             batsman.balls -= 1;
@@ -471,7 +524,7 @@ MatchSchema.methods.undoLastBall = async function () {
         batsman.strikeRate = batsman.balls > 0 ? parseFloat(((batsman.runs / batsman.balls) * 100).toFixed(1)) : 0;
     }
     // Restore bowler stats
-    const bowler = innings.bowlers.find((b) => b.name === last.bowlerName);
+    const bowler = innings.bowlers.find((b) => last.bowlerPlayerId && b.playerId ? b.playerId.toString() === last.bowlerPlayerId : b.name === last.bowlerName);
     if (bowler) {
         if (last.extras !== 'wide' && last.extras !== 'nb') {
             if (bowler.balls > 0)
@@ -503,7 +556,9 @@ MatchSchema.methods.undoLastBall = async function () {
     }
     // Sync isStriker flags on batsmen array to match restored names
     innings.batsmen.forEach((b) => {
-        b.isStriker = (b.name === this.strikerName);
+        b.isStriker = this.strikerId && b.playerId
+            ? b.playerId.equals(this.strikerId)
+            : b.name === this.strikerName;
     });
     innings.runRate = calcRunRate(innings.score, innings.overs, innings.balls % 6);
     this._updateSummary(innings);
@@ -514,15 +569,23 @@ MatchSchema.methods.selectPlayers = async function (data) {
     const innings = this.innings[this.currentInnings - 1];
     if (!innings)
         throw new Error('No active innings');
+    const sid = data.strikerId ? new mongoose_1.default.Types.ObjectId(data.strikerId) : undefined;
+    const nsid = data.nonStrikerId ? new mongoose_1.default.Types.ObjectId(data.nonStrikerId) : undefined;
+    const bowid = data.bowlerId ? new mongoose_1.default.Types.ObjectId(data.bowlerId) : undefined;
     if (data.striker) {
         this.strikerName = data.striker;
-        const existing = innings.batsmen.find((b) => b.name === data.striker);
+        this.strikerId = sid;
+        // Find by ID first, then fall back to name
+        const existing = findBatsmanAny(innings.batsmen, sid, data.striker);
         if (!existing) {
-            innings.batsmen.push({ name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls });
+            innings.batsmen.push({ playerId: sid, name: data.striker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: true, enteredAt: innings.balls });
         }
         else {
             existing.isStriker = true;
-            // Only clear isOut for retired hurt — dismissed players stay out
+            // Sync name in case it somehow drifted
+            if (sid)
+                existing.playerId = sid;
+            // Only restore if retired hurt — dismissed players stay dismissed
             if (existing.outType === 'retired_hurt' || existing.outType === 'retired') {
                 existing.isOut = false;
                 existing.outType = undefined;
@@ -531,30 +594,40 @@ MatchSchema.methods.selectPlayers = async function (data) {
     }
     if (data.nonStriker) {
         this.nonStrikerName = data.nonStriker;
-        const existing = innings.batsmen.find((b) => b.name === data.nonStriker);
+        this.nonStrikerId = nsid;
+        const existing = findBatsmanAny(innings.batsmen, nsid, data.nonStriker);
         if (!existing) {
-            innings.batsmen.push({ name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls });
+            innings.batsmen.push({ playerId: nsid, name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: innings.balls });
         }
         else {
             existing.isStriker = false;
-            // Only restore if retired hurt (can return to bat)
+            if (nsid)
+                existing.playerId = nsid;
             if (existing.outType === 'retired_hurt' || existing.outType === 'retired') {
                 existing.isOut = false;
                 existing.outType = undefined;
             }
         }
     }
+    // Sync isStriker flags — use ID where available
     innings.batsmen.forEach((b) => {
-        if (b.name === this.strikerName)
-            b.isStriker = true;
-        else
-            b.isStriker = false;
+        if (sid && b.playerId) {
+            b.isStriker = b.playerId.equals(sid);
+        }
+        else {
+            b.isStriker = b.name === this.strikerName;
+        }
     });
     if (data.bowler) {
         this.currentBowlerName = data.bowler;
-        const existing = innings.bowlers.find((b) => b.name === data.bowler);
+        this.currentBowlerId = bowid;
+        const existing = findBowler(innings.bowlers, bowid, data.bowler);
         if (!existing) {
-            innings.bowlers.push({ name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 });
+            innings.bowlers.push({ playerId: bowid, name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 });
+        }
+        else {
+            if (bowid)
+                existing.playerId = bowid;
         }
     }
     this.markModified('innings');
