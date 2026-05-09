@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Tournament from '../models/Tournament';
 import Team from '../models/Team';
 import Match from '../models/Match';
 
-interface AuthRequest extends Request { user?: any; }
 
 export const createTournament = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

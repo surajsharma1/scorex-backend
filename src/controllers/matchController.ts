@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Match from '../models/Match';
 import Team from '../models/Team';
 import Tournament from '../models/Tournament';
 import { cacheService } from '../utils/cache';
 
-interface AuthRequest extends Request { user?: any; }
 
 const teamPopulateOptions = [
   { path: 'team1', select: 'name shortName logo players', populate: { path: 'players', select: 'name role jerseyNumber', model: 'Player' } },

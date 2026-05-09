@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 
-interface AuthRequest extends Request { user?: any; }
 
 export const searchUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -6,10 +6,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Friend from '../models/Friend';
 import User from '../models/User';
 
-interface AuthRequest extends Request { user?: any; }
 
 export const getFriends = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

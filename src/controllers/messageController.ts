@@ -9,10 +9,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Message from '../models/Message';
 import User from '../models/User';
 
-interface AuthRequest extends Request { user?: any; }
 
 // GET /messages/conversations
 export const getConversations = async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -1,11 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import mongoose from 'mongoose';
 import Club from '../models/Club';
 import upload from '../middleware/upload';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
 
 // @desc    Upload club logo
 // @route   POST /api/v1/clubs/:clubId/upload-logo

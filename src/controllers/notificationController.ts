@@ -7,9 +7,9 @@
  */
 
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Notification from '../models/Notification';
 
-interface AuthRequest extends Request { user?: any; }
 
 export const getNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

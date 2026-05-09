@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import dns from 'dns';
@@ -7,7 +8,6 @@ import User from '../models/User';
 import { sendSavedNotificationsToUser } from './adminController';
 import sendEmail from '../utils/emailService';
 
-interface AuthRequest extends Request { user?: any; }
 const signToken = (id: string) => jwt.sign({ id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
 const resolveMx = promisify(dns.resolveMx);
 

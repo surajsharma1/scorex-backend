@@ -9,11 +9,11 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
 
-interface AuthRequest extends Request { user?: any; }
 
 const MEMBERSHIP_PLANS = {
   basic:   { name: 'Basic',   price: 9,  duration: 30, level: 1, features: ['Basic overlays', 'Standard support'] },

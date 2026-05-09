@@ -12,12 +12,12 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import mongoose from 'mongoose';
 import Team from '../models/Team';
 import Player from '../models/Player';
 import Tournament from '../models/Tournament';
 
-interface AuthRequest extends Request { user?: any; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

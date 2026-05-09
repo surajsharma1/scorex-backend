@@ -15,6 +15,7 @@
  */
 
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 import fs from 'fs';
@@ -23,7 +24,6 @@ import Overlay from '../models/Overlay';
 import Match from '../models/Match';
 import User from '../models/User';
 
-interface AuthRequest extends Request { user?: any; }
 
 const getBaseUrl = () => process.env.API_BASE_URL || 'https://scorex-backend.onrender.com/api/v1';
 

@@ -6,9 +6,9 @@
  */
 
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import Bracket from '../models/Bracket';
 
-interface AuthRequest extends Request { user?: any; }
 
 export const getBrackets = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

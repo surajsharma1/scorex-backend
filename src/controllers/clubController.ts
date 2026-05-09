@@ -1,12 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import mongoose from 'mongoose';
 import Club from '../models/Club';
 import User from '../models/User';
 import { createNotification, notifyClubMembers, notifyClubOwnerAndViceLeaders } from '../utils/notificationUtils';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
 
 // @desc    Get all clubs
 // @route   GET /api/v1/clubs
