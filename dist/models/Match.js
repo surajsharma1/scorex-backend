@@ -200,7 +200,8 @@ MatchSchema.methods.addBall = async function (data) {
     };
     innings.ballHistory.push(historyEntry);
     if (isWide) {
-        extrasRuns = 1 + runs + byeRuns + legByeRuns;
+        const widePenalty = data.noPenalty ? 0 : 1;
+        extrasRuns = widePenalty + runs + byeRuns + legByeRuns;
         innings.extras.wides += 1;
         innings.extras.total += extrasRuns;
         innings.score += extrasRuns;
@@ -208,16 +209,17 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.runs += extrasRuns;
             bowler.wides += 1;
         }
-        ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}`;
+        ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}${widePenalty === 0 ? ' (no penalty)' : ''}`;
         isLegalDelivery = false;
     }
     else if (isNoBall) {
-        extrasRuns = 1;
+        const nbPenalty = data.noPenalty ? 0 : 1;
+        extrasRuns = nbPenalty;
         innings.extras.noBalls += 1;
-        innings.extras.total += 1 + runs + byeRuns + legByeRuns;
-        innings.score += 1 + runs + byeRuns + legByeRuns;
+        innings.extras.total += nbPenalty + runs + byeRuns + legByeRuns;
+        innings.score += nbPenalty + runs + byeRuns + legByeRuns;
         if (bowler) {
-            bowler.runs += 1 + runs;
+            bowler.runs += nbPenalty + runs;
             bowler.noBalls += 1;
         }
         if (runs > 0) {
@@ -228,7 +230,7 @@ MatchSchema.methods.addBall = async function (data) {
                 striker.sixes += 1;
         }
         striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0;
-        ballDesc = `NB${runs > 0 ? `+${runs}` : ''}`;
+        ballDesc = `NB${runs > 0 ? `+${runs}` : ''}${nbPenalty === 0 ? ' (no penalty)' : ''}`;
         isLegalDelivery = false;
     }
     else if (byeRuns > 0) {
@@ -407,8 +409,8 @@ MatchSchema.methods.addBall = async function (data) {
         matchEnded,
         needPlayerSelection: needPlayerSelection && !matchEnded,
         // --- NEW TRIGGER DATA ---
-        isFour: runs === 4 && isLegalDelivery,
-        isSix: runs === 6 && isLegalDelivery,
+        isFour: runs === 4 && (isLegalDelivery || isWide || isNoBall),
+        isSix: runs === 6 && (isLegalDelivery || isWide || isNoBall),
         isWicket: isWicket,
         outBatsmanName: isWicket ? (data.outBatsmanName || striker.name) : undefined,
         completedOverNumber: overChanged ? innings.overs : undefined,
