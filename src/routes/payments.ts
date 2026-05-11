@@ -16,4 +16,8 @@ router.post('/razorpay-order', protect, paymentController.createRazorpayOrder);
 router.post('/verify-razorpay-payment', protect, paymentController.verifyRazorpayPayment);
 router.get('/history', protect as any, paymentController.getPaymentHistory);
 
+
+// ── Promo code validation ─────────────────────────────────────────────────────
+router.post('/validate-promo', protect, validatePromoCode);
+
 export default router;

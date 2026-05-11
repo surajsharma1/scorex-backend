@@ -97,4 +97,10 @@ router.get('/logs/:filename', protect, isAdmin, async (req, res) => {
   }
 });
 
+
+// ── Promo Codes ──────────────────────────────────────────────────────────────
+router.get('/promo-codes', protect, isAdmin, promoController.listPromoCodes);
+router.post('/promo-codes', protect, isAdmin, promoController.createPromoCode);
+router.delete('/promo-codes/:id', protect, isAdmin, promoController.deletePromoCode);
+
 export default router;
