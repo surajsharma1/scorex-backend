@@ -76,17 +76,35 @@ export const deleteTournament = async (req: AuthRequest, res: Response, next: Ne
 
     const tid = tournamentDoc._id;
 
-    // ✅ FIX: was { tournament: tid } — field is tournamentId
+    // 1. Find all teams in this tournament first (needed to cascade-delete players)
+    const teams = await Team.find({ tournamentId: tid }).select('_id');
+    const teamIds = teams.map(t => t._id);
+
+    // 2. Delete all players that belong exclusively to these teams
+    //    (players whose entire teams[] array is a subset of teamIds)
+    const Player = (await import('../models/Player')).default;
+    if (teamIds.length > 0) {
+      await Player.deleteMany({ teams: { $in: teamIds } });
+    }
+
+    // 3. Delete all teams in this tournament
+    await Team.deleteMany({ tournamentId: tid });
+
+    // 4. Delete all matches linked to this tournament
     await Match.deleteMany({ tournamentId: tid });
 
-    // ✅ Also clean up overlays and teams linked to this tournament
+    // 5. Delete overlays linked to this tournament
     const Overlay = (await import('../models/Overlay')).default;
     await Overlay.deleteMany({ tournament: tid });
 
-    await Team.deleteMany({ tournament: tid });
+    // 6. Delete brackets linked to this tournament
+    const Bracket = (await import('../models/Bracket')).default;
+    await Bracket.deleteMany({ tournament: tid });
+
+    // 7. Finally delete the tournament itself
     await Tournament.findByIdAndDelete(tid);
 
-    res.json({ success: true, message: 'Tournament and all associated data deleted' });
+    res.json({ success: true, message: 'Tournament and all associated data deleted successfully' });
   } catch (error) { next(error); }
 };
 export const generateBracket = async (req: AuthRequest, res: Response, next: NextFunction) => {
