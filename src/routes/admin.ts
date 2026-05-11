@@ -1,3 +1,4 @@
+import * as promoController from '../controllers/promoController';
 import express from 'express';
 import { isAdmin, protect } from '../middleware/auth';
 import * as adminController from '../controllers/adminController';

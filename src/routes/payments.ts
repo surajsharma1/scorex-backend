@@ -1,3 +1,4 @@
+import { validatePromoCode } from '../controllers/promoController';
 import express from 'express';
 import { protect } from '../middleware/auth';
 import paymentController from '../controllers/paymentController';

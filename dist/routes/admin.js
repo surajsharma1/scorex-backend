@@ -36,6 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const promoController = __importStar(require("../controllers/promoController"));
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const adminController = __importStar(require("../controllers/adminController"));
@@ -122,4 +123,8 @@ router.get('/logs/:filename', auth_1.protect, auth_1.isAdmin, async (req, res) =
         res.status(404).json({ message: 'Log file not found' });
     }
 });
+// ── Promo Codes ──────────────────────────────────────────────────────────────
+router.get('/promo-codes', auth_1.protect, auth_1.isAdmin, promoController.listPromoCodes);
+router.post('/promo-codes', auth_1.protect, auth_1.isAdmin, promoController.createPromoCode);
+router.delete('/promo-codes/:id', auth_1.protect, auth_1.isAdmin, promoController.deletePromoCode);
 exports.default = router;
