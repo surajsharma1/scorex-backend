@@ -201,7 +201,15 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
       innings.fallOfWickets.push({ wicket: innings.wickets, score: innings.score, overs: formatOvers(innings.overs, innings.balls % 6), batsman: outBatsman.name, bowler: this.currentBowlerName });
       if (bowler && data.outType !== 'run_out') bowler.wickets += 1;
     }
-    ballDesc += ' W'; needPlayerSelection = innings.wickets < 10;
+    ballDesc += ' W';
+    // Count how many non-retired-out dismissed batsmen there are. If there
+    // are still un-dismissed players who haven't batted yet, selection is needed.
+    // We use wickets < (total players - 1) to guard the last man standing case.
+    // If the innings has reached all-out we do NOT prompt for player selection.
+    const totalBatsmen = innings.batsmen.length; // batsmen entered so far
+    const dismissedCount = innings.batsmen.filter((b: IBatsman) => b.isOut && b.outType !== 'retired_hurt' && b.outType !== 'retired').length;
+    // needPlayerSelection only if at least one replacement can come in
+    needPlayerSelection = innings.wickets < 10;
   }
 
   let overChanged = false;

@@ -134,7 +134,8 @@ export const selectPlayers = async (req: AuthRequest, res: Response, next: NextF
       if (strikerChanged) emitBatsmanAnim(prevStriker, req.body.striker);
       if (nonStrikerChanged) emitBatsmanAnim(prevNonStriker, req.body.nonStriker);
     }
-    res.json({ success: true, message: 'Players selected' });
+    await match.populate(teamPopulateOptions);
+    res.json({ success: true, message: 'Players selected', data: match.toObject() });
   } catch (error) { next(error); }
 };
 
@@ -149,29 +150,20 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     let inningsEnded = result.inningsEnded;
     let matchEnded = result.matchEnded;
 
-    // Automatic "All Out" check
+    // Automatic "All Out" check — addBall handles the standard 10-wicket case internally.
+    // This block catches any edge-case where the innings didn't auto-end (e.g. race condition).
     const currentInningsData = match.innings?.[match.currentInnings - 1];
-    const battingTeam = match.currentInnings === 1 ? match.team1 : match.team2;
-    const maxWickets = (battingTeam?.players?.length > 1 ? battingTeam.players.length : 11) - 1;
+    const STD_MAX_WICKETS = 10;
 
-    if (!inningsEnded && currentInningsData && currentInningsData.wickets >= maxWickets) {
+    if (!inningsEnded && !matchEnded && currentInningsData && currentInningsData.status !== 'completed' && currentInningsData.wickets >= STD_MAX_WICKETS) {
         await match.endInnings();
+        await match.populate(teamPopulateOptions);
         inningsEnded = true;
         result.inningsEnded = true;
         result.ballDescription += ' (All Out)';
-        
         if (match.currentInnings === 2) {
             matchEnded = true;
             result.matchEnded = true;
-            const inn1Score = match.innings[0].score;
-            const inn2Score = match.innings[1].score;
-            if (inn1Score > inn2Score) {
-                await match.endMatch(match.team1._id, match.team1.name, `${match.team1.name} won by ${inn1Score - inn2Score} runs`);
-            } else if (inn2Score > inn1Score) {
-                await match.endMatch(match.team2._id, match.team2.name, `${match.team2.name} won by ${maxWickets - match.innings[1].wickets + 1} wickets`);
-            } else {
-                await match.endMatch(null, 'DRAW', 'Match Tied');
-            }
         }
         await match.save();
     }
@@ -247,7 +239,7 @@ export const undoLastBall = async (req: AuthRequest, res: Response, next: NextFu
     }
     const io = req.app.get('io');
     if (io) io.to(`match:${match._id}`).emit('scoreUpdate', { match: match.toObject(), result: null });
-    res.json({ success: true, message: 'Last ball undone', data: match });
+    res.json({ success: true, message: 'Last ball undone', data: match.toObject() });
   } catch (error) { next(error); }
 };
 

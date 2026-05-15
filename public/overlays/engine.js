@@ -53,9 +53,17 @@
   var decisionPending   = false;
   var pollTimer         = null;
 
+  // Detect overlay level from HTML attribute — lvl1 = only FOUR/SIX/WICKET, lvl2 = all animations
+  var _overlayLevel = parseInt(
+    (document.documentElement.getAttribute('data-overlay-level') || '2'), 10
+  );
+  var _LVL1_ONLY = { 'FOUR':1, 'SIX':1, 'WICKET':1, 'WICKET_SWITCH':1, 'RESTORE':1, 'VS_SCREEN':1, 'SHOW_TOSS':1 };
+
   function dispatch(type, data, duration) {
-    var payload = { type: type, data: data || {}, duration: duration || 0 };
-    console.log('[Engine] DISPATCH:', type);
+    // Level 1 overlays don't have a WICKET_SWITCH template — map it to WICKET
+    var t = (_overlayLevel === 1 && type === 'WICKET_SWITCH') ? 'WICKET' : type;
+    var payload = { type: t, data: data || {}, duration: duration || 0 };
+    console.log('[Engine] DISPATCH:', t, '(lvl=' + _overlayLevel + ')');
     window.postMessage({ type: 'OVERLAY_TRIGGER', payload: payload, _engineSelf: true }, '*');
   }
 
@@ -80,6 +88,9 @@
   }
 
   function queueAnimation(type, data, duration, then) {
+    // Level 1 overlays only handle their built-in animation types
+    if (_overlayLevel === 1 && !_LVL1_ONLY[type]) return;
+
     if (type === 'NEW_BOWLER' || type === 'BATSMAN_CHANGE' || type === 'WICKET_SWITCH') {
       var summaryIdx = animQueue.findIndex(function(a) { return a.type.indexOf('CARD') !== -1; });
       if (summaryIdx !== -1) {
@@ -107,12 +118,12 @@
         state = 'SQUADS';
         dispatch('SHOW_SQUADS', { team1Name: t1n, team2Name: t2n, team1Players: t1p, team2Players: t2p });
         
-        setTimeout(function() { 
-          state = 'LIVE'; dispatch('RESTORE', {}); 
+        setTimeout(function() {
+          state = 'LIVE';
           if (cfg.showInningIntro) {
-            var _fireIntro = function() {
+            var _enqueueIntro = function() {
               var d = matchData || flat;
-              dispatch('START_INNINGS_INTRO', {
+              queueAnimation('START_INNINGS_INTRO', {
                 striker:    d.strikerName        || '',
                 nonStriker: d.nonStrikerName      || '',
                 bowler:     d.currentBowlerName   || d.bowlerName || ''
@@ -120,26 +131,30 @@
             };
             var d0 = matchData || flat;
             if (d0.strikerName && (d0.currentBowlerName || d0.bowlerName)) {
-              _fireIntro();
+              _enqueueIntro();
             } else {
               var introAttempts = 0;
               var waitIntro = setInterval(function() {
                 introAttempts++;
                 var d = matchData || flat;
-                if ((d.strikerName && (d.currentBowlerName || d.bowlerName)) || introAttempts >= 15) {
+                if ((d.strikerName && (d.currentBowlerName || d.bowlerName)) || introAttempts >= 30) {
                   clearInterval(waitIntro);
-                  _fireIntro();
+                  _enqueueIntro();
                 }
               }, 1000);
             }
+          } else {
+            dispatch('RESTORE', {});
           }
         }, cfg.squadDuration * 1000);
-      } else { 
-        state = 'LIVE'; dispatch('RESTORE', {}); 
+      } else {
+        state = 'LIVE';
+        // After toss ends, trigger inning intro via queue — tossing anim already ran for
+        // cfg.tossDuration seconds so the queue fires intro right after.
         if (cfg.showInningIntro) {
-          var _fireIntro2 = function() {
+          var _enqueueIntro2 = function() {
             var d = matchData || flat;
-            dispatch('START_INNINGS_INTRO', {
+            queueAnimation('START_INNINGS_INTRO', {
               striker:    d.strikerName        || '',
               nonStriker: d.nonStrikerName      || '',
               bowler:     d.currentBowlerName   || d.bowlerName || ''
@@ -147,18 +162,20 @@
           };
           var d1 = matchData || flat;
           if (d1.strikerName && (d1.currentBowlerName || d1.bowlerName)) {
-            _fireIntro2();
+            _enqueueIntro2();
           } else {
             var introAttempts2 = 0;
             var waitIntro2 = setInterval(function() {
               introAttempts2++;
               var d = matchData || flat;
-              if ((d.strikerName && (d.currentBowlerName || d.bowlerName)) || introAttempts2 >= 15) {
+              if ((d.strikerName && (d.currentBowlerName || d.bowlerName)) || introAttempts2 >= 30) {
                 clearInterval(waitIntro2);
-                _fireIntro2();
+                _enqueueIntro2();
               }
             }, 1000);
           }
+        } else {
+          dispatch('RESTORE', {});
         }
       }
     }, cfg.tossDuration * 1000);
@@ -329,8 +346,14 @@
         })();
         break;
 
-      case 'RESTORE':          
-        decisionPending = false; isPlayingAnim = false; animQueue = []; dispatch('RESTORE', {}); break;
+      case 'RESTORE':
+        // Manual RESTORE (scorer button) wipes the queue. Auto RESTORE (after anim ends) does not.
+        decisionPending = false;
+        isPlayingAnim = false;
+        if (data && data.isManual) { animQueue = []; }
+        dispatch('RESTORE', {});
+        setTimeout(processQueue, 50);
+        break;
 
       default:                 dispatch(t, richData, dur);
     }
