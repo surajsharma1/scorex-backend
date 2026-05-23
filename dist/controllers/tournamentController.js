@@ -40,6 +40,9 @@ exports.getPointsTable = exports.getTournamentMatches = exports.startTournament 
 const Tournament_1 = __importDefault(require("../models/Tournament"));
 const Team_1 = __importDefault(require("../models/Team"));
 const Match_1 = __importDefault(require("../models/Match"));
+const Player_1 = __importDefault(require("../models/Player"));
+const Overlay_1 = __importDefault(require("../models/Overlay"));
+const Bracket_1 = __importDefault(require("../models/Bracket"));
 const createTournament = async (req, res, next) => {
     try {
         const isAdmin = req.user?.role === 'admin';
@@ -127,27 +130,71 @@ const deleteTournament = async (req, res, next) => {
         if (!tournamentDoc)
             return res.status(404).json({ success: false, message: 'Not found or unauthorized' });
         const tid = tournamentDoc._id;
-        // 1. Find all teams in this tournament first (needed to cascade-delete players)
-        const teams = await Team_1.default.find({ tournamentId: tid }).select('_id');
-        const teamIds = teams.map(t => t._id);
-        // 2. Delete all players that belong exclusively to these teams
-        //    (players whose entire teams[] array is a subset of teamIds)
-        const Player = (await Promise.resolve().then(() => __importStar(require('../models/Player')))).default;
-        if (teamIds.length > 0) {
-            await Player.deleteMany({ teams: { $in: teamIds } });
+        const errors = [];
+        // 1. Find all matches in this tournament (needed for overlay cascade)
+        let matchIds = [];
+        try {
+            const matchDocs = await Match_1.default.find({ tournamentId: tid }).select('_id');
+            matchIds = matchDocs.map(m => m._id);
         }
-        // 3. Delete all teams in this tournament
-        await Team_1.default.deleteMany({ tournamentId: tid });
-        // 4. Delete all matches linked to this tournament
-        await Match_1.default.deleteMany({ tournamentId: tid });
-        // 5. Delete overlays linked to this tournament
-        const Overlay = (await Promise.resolve().then(() => __importStar(require('../models/Overlay')))).default;
-        await Overlay.deleteMany({ tournament: tid });
-        // 6. Delete brackets linked to this tournament
-        const Bracket = (await Promise.resolve().then(() => __importStar(require('../models/Bracket')))).default;
-        await Bracket.deleteMany({ tournament: tid });
-        // 7. Finally delete the tournament itself
+        catch (e) {
+            errors.push(`match lookup: ${e.message}`);
+        }
+        // 2. Find all teams in this tournament (needed for player cascade)
+        let teamIds = [];
+        try {
+            const teamDocs = await Team_1.default.find({ tournamentId: tid }).select('_id');
+            teamIds = teamDocs.map(t => t._id);
+        }
+        catch (e) {
+            errors.push(`team lookup: ${e.message}`);
+        }
+        // 3. Delete all players that belong to any of these teams
+        if (teamIds.length > 0) {
+            try {
+                await Player_1.default.deleteMany({ teams: { $in: teamIds } });
+            }
+            catch (e) {
+                errors.push(`player delete: ${e.message}`);
+            }
+        }
+        // 4. Delete all teams in this tournament
+        try {
+            await Team_1.default.deleteMany({ tournamentId: tid });
+        }
+        catch (e) {
+            errors.push(`team delete: ${e.message}`);
+        }
+        // 5. Delete all matches in this tournament
+        try {
+            await Match_1.default.deleteMany({ tournamentId: tid });
+        }
+        catch (e) {
+            errors.push(`match delete: ${e.message}`);
+        }
+        // 6. Delete overlays linked to this tournament (by tournament field OR by match)
+        try {
+            const overlayQuery = { $or: [{ tournament: tid }] };
+            if (matchIds.length > 0) {
+                overlayQuery.$or.push({ match: { $in: matchIds } });
+            }
+            await Overlay_1.default.deleteMany(overlayQuery);
+        }
+        catch (e) {
+            errors.push(`overlay delete: ${e.message}`);
+        }
+        // 7. Delete brackets linked to this tournament
+        try {
+            await Bracket_1.default.deleteMany({ tournament: tid });
+        }
+        catch (e) {
+            errors.push(`bracket delete: ${e.message}`);
+        }
+        // 8. Finally delete the tournament itself
         await Tournament_1.default.findByIdAndDelete(tid);
+        if (errors.length > 0) {
+            console.warn('[deleteTournament] Completed with partial errors:', errors);
+        }
         res.json({ success: true, message: 'Tournament and all associated data deleted successfully' });
     }
     catch (error) {
