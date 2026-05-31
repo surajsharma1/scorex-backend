@@ -494,6 +494,8 @@
     const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
     
     safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
+    if ($('sq-t1-name') && d.team1Name) $('sq-t1-name').textContent = d.team1Name;
+    if ($('sq-t2-name') && d.team2Name) $('sq-t2-name').textContent = d.team2Name;
     safeSet('bat-team', t1); safeSet('bowl-team', t2);
     
     safeSet('score', d.team1Score ?? d.teamScore, 0);
@@ -571,6 +573,17 @@
 
   window.addEventListener('message', function(e) {
     if (!e.data) return;
+    if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
+      const track = document.getElementById('sponsor-track');
+      if (track) {
+        const spons = e.data.sponsors.length > 0 ? e.data.sponsors : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
+        const doubled = [...spons, ...spons];
+        track.innerHTML = doubled.map(s =>
+          `<span class="sponsor-item">${s.name}${s.tagline ? ' <span style="opacity:0.65;font-weight:400">\u2014 '+s.tagline+'</span>' : ''}</span>`
+        ).join('');
+      }
+      return;
+    }
     if (e.data.type === 'UPDATE_SCORE' && e.data.data) { processData(e.data.data); return; }
     if (e.data.type !== 'OVERLAY_TRIGGER' || !e.data.payload) return;
     
@@ -696,6 +709,8 @@
         restoreToLive();
         hideBaseUI(); 
         safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
+        if ($('sq-t1-name') && data.team1Name) $('sq-t1-name').textContent = data.team1Name;
+        if ($('sq-t2-name') && data.team2Name) $('sq-t2-name').textContent = data.team2Name;
         
         if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
         if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');

@@ -432,6 +432,8 @@
     const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
     
     safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
+    if ($('sq-t1-name') && d.team1Name) $('sq-t1-name').textContent = d.team1Name;
+    if ($('sq-t2-name') && d.team2Name) $('sq-t2-name').textContent = d.team2Name;
     safeSet('bat-team', t1); safeSet('bowl-team', t2);
     
     // Use battingTeam context-aware fields from overlay-utils (handles inn1/inn2 correctly)
@@ -514,8 +516,8 @@
     if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
       const track = $('sponsor-track');
       if (track) {
-        const spons = e.data.sponsors.filter(s => s && s.name);
-        if (spons.length === 0) { track.innerHTML = ''; return; }
+        const rawSpons = e.data.sponsors.filter(s => s && s.name);
+        const spons = rawSpons.length > 0 ? rawSpons : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
         // Duplicate items for seamless infinite loop
         const items = [...spons, ...spons].map(s =>
           `<span class="sponsor-item"><span>${s.name}</span>${s.tagline ? `<span style="opacity:0.7;font-weight:400"> — ${s.tagline}</span>` : ''}</span>`
@@ -645,6 +647,8 @@
         restoreToLive();
         hideBaseUI(); 
         safeSet('squads-toss-header', data.text || 'TOSS COMPLETED');
+        if ($('sq-t1-name') && data.team1Name) $('sq-t1-name').textContent = data.team1Name;
+        if ($('sq-t2-name') && data.team2Name) $('sq-t2-name').textContent = data.team2Name;
         safeSet('sq-t1-name', data.team1Name || (data.team1ShortName || 'TEAM 1'));
         safeSet('sq-t2-name', data.team2Name || (data.team2ShortName || 'TEAM 2'));
         

@@ -152,7 +152,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
     runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
     targetScore: innings.targetScore, ballDescription: data.retired ? `Retired Hurt (${data.outBatsmanName})` : `+${data.penalty} Penalty`, 
-    overChanged: false, inningsEnded: innings.wickets >= 10, matchEnded: false, needPlayerSelection: !!data.retired,
+    overChanged: false, inningsEnded: innings.wickets >= Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1)), matchEnded: false, needPlayerSelection: !!data.retired,
     isFour: false, isSix: false, isWicket: false, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
     completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
     totalFours,
@@ -162,7 +162,12 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
 
   const runs = data.runs || 0; const isWide = data.wide || false; const isNoBall = data.noBall || false; const byeRuns = data.bye || 0; const legByeRuns = data.legBye || 0; const isWicket = data.wicket || false;
   const strikerIdx = innings.batsmen.findIndex((b: IBatsman) => b.isStriker && !b.isOut);
-  const bowlerIdx = innings.bowlers.findIndex((b: IBowler) => b.name === this.currentBowlerName);
+  // Find bowler by ID first (handles duplicate names), then fall back to name
+  const bowlerIdxById = this.currentBowlerId
+    ? innings.bowlers.findIndex((b: IBowler) => b.playerId && b.playerId.equals(this.currentBowlerId!))
+    : -1;
+  const bowlerIdx = bowlerIdxById >= 0 ? bowlerIdxById
+    : innings.bowlers.findIndex((b: IBowler) => b.name === this.currentBowlerName);
   if (strikerIdx === -1) throw new Error('No striker found');
   const striker = innings.batsmen[strikerIdx]; const bowler = bowlerIdx >= 0 ? innings.bowlers[bowlerIdx] : null;
 
@@ -255,7 +260,9 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   let inningsEnded = false; let matchEnded = false;
   const chaseComplete = this.currentInnings === 2 && innings.targetScore && innings.score >= innings.targetScore;
   
-  if (innings.wickets >= 10 || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
+  // End innings when: all batsmen in this team are out (capped at 10), overs used up, or chase complete
+  const maxWickets = Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1));
+  if (innings.wickets >= maxWickets || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
     innings.status = 'completed'; inningsEnded = true;
     if (this.currentInnings === 2 || chaseComplete) {
         matchEnded = true;
@@ -453,8 +460,15 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
     this.strikerName = last.strikerBefore;
     this.nonStrikerName = last.nonStrikerBefore || '';
   }
+  // Restore player IDs so ID-based lookups (bowler duplicate-name fix) stay correct
+  if (last.strikerIdBefore)    this.strikerId    = new mongoose.Types.ObjectId(last.strikerIdBefore);
+  if (last.nonStrikerIdBefore) this.nonStrikerId = new mongoose.Types.ObjectId(last.nonStrikerIdBefore);
   if (last.bowlerBefore) {
     this.currentBowlerName = last.bowlerBefore;
+  }
+  // Restore bowler ID — critical when two bowlers share the same name
+  if (last.bowlerPlayerId) {
+    this.currentBowlerId = new mongoose.Types.ObjectId(last.bowlerPlayerId);
   }
 
   // Sync isStriker flags on batsmen array to match restored names

@@ -188,7 +188,8 @@ const addBall = async (req, res, next) => {
         // Automatic "All Out" check — addBall handles the standard 10-wicket case internally.
         // This block catches any edge-case where the innings didn't auto-end (e.g. race condition).
         const currentInningsData = match.innings?.[match.currentInnings - 1];
-        const STD_MAX_WICKETS = 10;
+        // Dynamic cap: min(10, batsmen-1) so small squads end when all out, 10 is always the ceiling
+        const STD_MAX_WICKETS = Math.min(10, Math.max(1, (currentInningsData?.batsmen?.length || 11) - 1));
         if (!inningsEnded && !matchEnded && currentInningsData && currentInningsData.status !== 'completed' && currentInningsData.wickets >= STD_MAX_WICKETS) {
             await match.endInnings();
             await match.populate(teamPopulateOptions);
