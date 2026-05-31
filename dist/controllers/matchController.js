@@ -157,6 +157,16 @@ const selectPlayers = async (req, res, next) => {
                 emitBatsmanAnim(prevStriker, req.body.striker);
             if (nonStrikerChanged)
                 emitBatsmanAnim(prevNonStriker, req.body.nonStriker);
+            // Always broadcast a scoreUpdate so the overlay scoreboard reflects the current
+            // innings state — this is critical when innings 2 begins and the scoreboard
+            // must reset to 0/0 rather than staying on the innings-1 final score.
+            io.to(`match:${match._id}`).emit('scoreUpdate', {
+                match: match.toObject(),
+                result: null,
+                activeTrigger: null,
+                battingSummary: [],
+                bowlingSummary: [],
+            });
         }
         await match.populate(teamPopulateOptions);
         res.json({ success: true, message: 'Players selected', data: match.toObject() });
