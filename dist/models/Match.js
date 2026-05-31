@@ -160,7 +160,7 @@ MatchSchema.methods.addBall = async function (data) {
             score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6),
             runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate,
             targetScore: innings.targetScore, ballDescription: data.retired ? `Retired Hurt (${data.outBatsmanName})` : `+${data.penalty} Penalty`,
-            overChanged: false, inningsEnded: innings.wickets >= Math.min(1, Math.max(10, (innings.batsmen.length || 11) - 1)), matchEnded: false, needPlayerSelection: !!data.retired,
+            overChanged: false, inningsEnded: innings.wickets >= Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1)), matchEnded: false, needPlayerSelection: !!data.retired,
             isFour: false, isSix: false, isWicket: false, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
             completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
             totalFours,

@@ -165,7 +165,7 @@ export const addBall = async (req: AuthRequest, res: Response, next: NextFunctio
     // This block catches any edge-case where the innings didn't auto-end (e.g. race condition).
     const currentInningsData = match.innings?.[match.currentInnings - 1];
     // Dynamic cap: min(10, batsmen-1) so small squads end when all out, 10 is always the ceiling
-    const STD_MAX_WICKETS = Math.min(1, Math.max(10, (currentInningsData?.batsmen?.length || 11) - 1));
+    const STD_MAX_WICKETS = Math.min(10, Math.max(1, (currentInningsData?.batsmen?.length || 11) - 1));
 
     if (!inningsEnded && !matchEnded && currentInningsData && currentInningsData.status !== 'completed' && currentInningsData.wickets >= STD_MAX_WICKETS) {
         await match.endInnings();
