@@ -121,10 +121,11 @@ function findBatsmanAny(batsmen, id, name) {
 }
 function findBowler(bowlers, id, name) {
     if (id) {
-        const byId = bowlers.find(b => b.playerId && b.playerId.equals(id));
-        if (byId)
-            return byId;
+        // When an ID is supplied, match ONLY by ID — never fall back to name.
+        // This prevents two players who share the same name from being merged.
+        return bowlers.find(b => b.playerId && b.playerId.equals(id));
     }
+    // No ID supplied (legacy data) — fall back to name
     return bowlers.find(b => b.name === name);
 }
 MatchSchema.methods.addBall = async function (data) {
@@ -202,6 +203,9 @@ MatchSchema.methods.addBall = async function (data) {
         outPlayerId: isWicket && striker.playerId ? striker.playerId.toString() : undefined,
         strikerIdBefore: this.strikerId ? this.strikerId.toString() : undefined,
         nonStrikerIdBefore: this.nonStrikerId ? this.nonStrikerId.toString() : undefined,
+        // Exact runs charged to the bowler for this delivery (includes wide/nb penalty).
+        // Populated AFTER scoring logic runs — see the line below after push.
+        bowlerRunsCharged: 0,
     };
     innings.ballHistory.push(historyEntry);
     if (isWide) {
@@ -214,6 +218,7 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.runs += extrasRuns;
             bowler.wides += 1;
         }
+        historyEntry.bowlerRunsCharged = extrasRuns;
         ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}${widePenalty === 0 ? ' (no penalty)' : ''}`;
         isLegalDelivery = false;
     }
@@ -227,6 +232,7 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.runs += nbPenalty + runs;
             bowler.noBalls += 1;
         }
+        historyEntry.bowlerRunsCharged = nbPenalty + runs;
         if (runs > 0) {
             striker.runs += runs;
             if (runs === 4)
@@ -271,6 +277,7 @@ MatchSchema.methods.addBall = async function (data) {
             bowler.runs += runs;
             bowler.balls += 1;
         }
+        historyEntry.bowlerRunsCharged = runs;
         ballDesc = runs === 0 ? '•' : String(runs);
     }
     let needPlayerSelection = false;
@@ -539,17 +546,32 @@ MatchSchema.methods.undoLastBall = async function () {
             batsman.sixes -= 1;
         batsman.strikeRate = batsman.balls > 0 ? parseFloat(((batsman.runs / batsman.balls) * 100).toFixed(1)) : 0;
     }
-    // Restore bowler stats
-    const bowler = innings.bowlers.find((b) => last.bowlerPlayerId && b.playerId ? b.playerId.toString() === last.bowlerPlayerId : b.name === last.bowlerName);
+    // Restore bowler stats — find by ID first to avoid merging duplicate-name bowlers
+    const bowler = innings.bowlers.find((b) => last.bowlerPlayerId && b.playerId
+        ? b.playerId.toString() === last.bowlerPlayerId
+        : b.name === last.bowlerName);
     if (bowler) {
-        if (last.extras !== 'wide' && last.extras !== 'nb') {
+        // Reverse runs: use the exact amount charged to the bowler (includes wide/nb penalty)
+        const runsToReverse = typeof last.bowlerRunsCharged === 'number' ? last.bowlerRunsCharged : last.runs;
+        bowler.runs = Math.max(0, bowler.runs - runsToReverse);
+        if (last.extras === 'wide') {
+            if (bowler.wides > 0)
+                bowler.wides -= 1;
+        }
+        else if (last.extras === 'nb') {
+            if (bowler.noBalls > 0)
+                bowler.noBalls -= 1;
+            if (bowler.balls > 0)
+                bowler.balls -= 1; // nb counts as a delivery for bowler balls
+            bowler.overs = Math.floor(bowler.balls / 6);
+        }
+        else {
             if (bowler.balls > 0)
                 bowler.balls -= 1;
             bowler.overs = Math.floor(bowler.balls / 6);
         }
         if (last.wicket && bowler.wickets > 0)
             bowler.wickets -= 1;
-        bowler.runs -= last.runs;
         bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
     }
     // Restore extras

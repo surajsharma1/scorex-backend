@@ -192,7 +192,14 @@
       // Overlays that have an initSponsors() ignore this; overlays that rely on
       // this event (the 5 broken Enterprise ones) use it to populate the ticker.
       var rawSponsors = flat.sponsors || [];
-      var sponsorsToSend = rawSponsors.length > 0 ? rawSponsors : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
+      // Normalize: tournament sponsors may be plain strings or {name,tagline} objects
+      var normalizedSponsors = rawSponsors.map(function(s) {
+        if (typeof s === 'string') return { name: s, tagline: '' };
+        return { name: s.name || String(s), tagline: s.tagline || '' };
+      }).filter(function(s) { return s.name; });
+      var sponsorsToSend = normalizedSponsors.length > 0
+        ? normalizedSponsors
+        : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
       window.postMessage({ type: 'UPDATE_SPONSORS', sponsors: sponsorsToSend }, '*');
       if (typeof window.renderCurrentOver === 'function') window.renderCurrentOver(flat.thisOver || []);
 

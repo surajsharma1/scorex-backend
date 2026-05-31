@@ -37,15 +37,17 @@ async function nextTeamNumber(tournamentId: mongoose.Types.ObjectId): Promise<nu
 }
 
 /**
- * Atomically increments Team.nextPlayerNumber and returns the new value.
+ * Returns the next player number for a team.
+ * Uses jersey number if provided; otherwise counts current active members + 1.
+ * This is gap-free: deleting player #4 means the next player gets #4, not #5.
  */
-async function nextPlayerNumber(teamId: mongoose.Types.ObjectId): Promise<number> {
-  const updated = await Team.findByIdAndUpdate(
-    teamId,
-    { $inc: { nextPlayerNumber: 1 } },
-    { new: true }
-  );
-  return updated?.nextPlayerNumber ?? 1;
+async function nextPlayerNumber(teamId: mongoose.Types.ObjectId, jerseyNumber?: number): Promise<number> {
+  // If a jersey number was explicitly supplied by the user, honour it
+  if (jerseyNumber !== undefined && jerseyNumber > 0) return jerseyNumber;
+  // Otherwise assign the next sequential slot: current player count + 1
+  // Count players that currently have a teamNumber entry for this team
+  const count = await Player.countDocuments({ 'teamNumbers.teamId': teamId });
+  return count + 1;
 }
 
 // ─── Controllers ──────────────────────────────────────────────────────────
@@ -167,7 +169,7 @@ export const addPlayer = async (req: AuthRequest, res: Response, next: NextFunct
 
     } else if (req.body.name && req.body.role) {
       // ── Brand-new player being created and added to this team ──
-      const pNum = await nextPlayerNumber(teamId);
+      const pNum = await nextPlayerNumber(teamId, req.body.jerseyNumber ? Number(req.body.jerseyNumber) : undefined);
       player = await Player.create({
         name: req.body.name,
         role: req.body.role,

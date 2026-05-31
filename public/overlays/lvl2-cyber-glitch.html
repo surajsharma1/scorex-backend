@@ -545,7 +545,8 @@
     if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
       const track = document.getElementById('sponsor-track');
       if (track) {
-        const spons = e.data.sponsors.length > 0 ? e.data.sponsors : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
+        const rawArr = e.data.sponsors.map(s => typeof s === 'string' ? { name: s, tagline: '' } : s).filter(s => s && s.name);
+        const spons = rawArr.length > 0 ? rawArr : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
         const doubled = [...spons, ...spons];
         track.innerHTML = doubled.map(s =>
           `<span class="sponsor-item">${s.name}${s.tagline ? ' <span style="opacity:0.65;font-weight:400">\u2014 '+s.tagline+'</span>' : ''}</span>`

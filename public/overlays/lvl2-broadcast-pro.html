@@ -516,8 +516,8 @@
     if (e.data.type === 'UPDATE_SPONSORS' && Array.isArray(e.data.sponsors)) {
       const track = $('sponsor-track');
       if (track) {
-        const rawSpons = e.data.sponsors.filter(s => s && s.name);
-        const spons = rawSpons.length > 0 ? rawSpons : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
+        const rawArr = e.data.sponsors.map(s => typeof s === 'string' ? { name: s, tagline: '' } : s).filter(s => s && s.name);
+        const spons = rawArr.length > 0 ? rawArr : [{ name: 'SCOREX', tagline: 'Live Cricket Scoring' }];
         // Duplicate items for seamless infinite loop
         const items = [...spons, ...spons].map(s =>
           `<span class="sponsor-item"><span>${s.name}</span>${s.tagline ? `<span style="opacity:0.7;font-weight:400"> — ${s.tagline}</span>` : ''}</span>`

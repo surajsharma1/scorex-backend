@@ -119,9 +119,11 @@ function findBatsmanAny(batsmen: IBatsman[], id: mongoose.Types.ObjectId | undef
 }
 function findBowler(bowlers: IBowler[], id: mongoose.Types.ObjectId | undefined, name: string): IBowler | undefined {
   if (id) {
-    const byId = bowlers.find(b => b.playerId && b.playerId.equals(id));
-    if (byId) return byId;
+    // When an ID is supplied, match ONLY by ID — never fall back to name.
+    // This prevents two players who share the same name from being merged.
+    return bowlers.find(b => b.playerId && b.playerId.equals(id));
   }
+  // No ID supplied (legacy data) — fall back to name
   return bowlers.find(b => b.name === name);
 }
 
@@ -188,14 +190,17 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     outPlayerId:      isWicket && striker.playerId ? striker.playerId.toString() : undefined,
     strikerIdBefore:  this.strikerId   ? this.strikerId.toString()   : undefined,
     nonStrikerIdBefore: this.nonStrikerId ? this.nonStrikerId.toString() : undefined,
+    // Exact runs charged to the bowler for this delivery (includes wide/nb penalty).
+    // Populated AFTER scoring logic runs — see the line below after push.
+    bowlerRunsCharged: 0,
   };
   innings.ballHistory.push(historyEntry);
 
-  if (isWide) { const widePenalty = data.noPenalty ? 0 : 1; extrasRuns = widePenalty + runs + byeRuns + legByeRuns; innings.extras.wides += 1; innings.extras.total += extrasRuns; innings.score += extrasRuns; if (bowler) { bowler.runs += extrasRuns; bowler.wides += 1; } ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}${widePenalty === 0 ? ' (no penalty)' : ''}`; isLegalDelivery = false;
-  } else if (isNoBall) { const nbPenalty = data.noPenalty ? 0 : 1; extrasRuns = nbPenalty; innings.extras.noBalls += 1; innings.extras.total += nbPenalty + runs + byeRuns + legByeRuns; innings.score += nbPenalty + runs + byeRuns + legByeRuns; if (bowler) { bowler.runs += nbPenalty + runs; bowler.noBalls += 1; } if (runs > 0) { striker.runs += runs; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; } striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0; ballDesc = `NB${runs > 0 ? `+${runs}` : ''}${nbPenalty === 0 ? ' (no penalty)' : ''}`; isLegalDelivery = false; 
+  if (isWide) { const widePenalty = data.noPenalty ? 0 : 1; extrasRuns = widePenalty + runs + byeRuns + legByeRuns; innings.extras.wides += 1; innings.extras.total += extrasRuns; innings.score += extrasRuns; if (bowler) { bowler.runs += extrasRuns; bowler.wides += 1; } historyEntry.bowlerRunsCharged = extrasRuns; ballDesc = `Wide${runs > 0 ? `+${runs}` : ''}${widePenalty === 0 ? ' (no penalty)' : ''}`; isLegalDelivery = false;
+  } else if (isNoBall) { const nbPenalty = data.noPenalty ? 0 : 1; extrasRuns = nbPenalty; innings.extras.noBalls += 1; innings.extras.total += nbPenalty + runs + byeRuns + legByeRuns; innings.score += nbPenalty + runs + byeRuns + legByeRuns; if (bowler) { bowler.runs += nbPenalty + runs; bowler.noBalls += 1; } historyEntry.bowlerRunsCharged = nbPenalty + runs; if (runs > 0) { striker.runs += runs; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; } striker.strikeRate = striker.balls > 0 ? parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)) : 0; ballDesc = `NB${runs > 0 ? `+${runs}` : ''}${nbPenalty === 0 ? ' (no penalty)' : ''}`; isLegalDelivery = false; 
   } else if (byeRuns > 0) { extrasRuns = byeRuns; innings.extras.byes += byeRuns; innings.extras.total += byeRuns; innings.score += byeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `B${byeRuns}`;
   } else if (legByeRuns > 0) { extrasRuns = legByeRuns; innings.extras.legByes += legByeRuns; innings.extras.total += legByeRuns; innings.score += legByeRuns; striker.balls += 1; if (bowler) bowler.balls += 1; ballDesc = `LB${legByeRuns}`;
-  } else { innings.score += runs; striker.runs += runs; striker.balls += 1; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; striker.strikeRate = parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)); if (bowler) { bowler.runs += runs; bowler.balls += 1; } ballDesc = runs === 0 ? '•' : String(runs); }
+  } else { innings.score += runs; striker.runs += runs; striker.balls += 1; if (runs === 4) striker.fours += 1; if (runs === 6) striker.sixes += 1; striker.strikeRate = parseFloat(((striker.runs / striker.balls) * 100).toFixed(1)); if (bowler) { bowler.runs += runs; bowler.balls += 1; } historyEntry.bowlerRunsCharged = runs; ballDesc = runs === 0 ? '•' : String(runs); }
 
   let needPlayerSelection = false;
   if (isWicket) {
@@ -436,15 +441,27 @@ MatchSchema.methods.undoLastBall = async function(): Promise<void> {
     batsman.strikeRate = batsman.balls > 0 ? parseFloat(((batsman.runs / batsman.balls) * 100).toFixed(1)) : 0;
   }
 
-  // Restore bowler stats
-  const bowler = innings.bowlers.find((b: IBowler) => last.bowlerPlayerId && b.playerId ? b.playerId.toString() === last.bowlerPlayerId : b.name === last.bowlerName);
+  // Restore bowler stats — find by ID first to avoid merging duplicate-name bowlers
+  const bowler = innings.bowlers.find((b: IBowler) =>
+    last.bowlerPlayerId && b.playerId
+      ? b.playerId.toString() === last.bowlerPlayerId
+      : b.name === last.bowlerName
+  );
   if (bowler) {
-    if (last.extras !== 'wide' && last.extras !== 'nb') {
+    // Reverse runs: use the exact amount charged to the bowler (includes wide/nb penalty)
+    const runsToReverse = typeof last.bowlerRunsCharged === 'number' ? last.bowlerRunsCharged : last.runs;
+    bowler.runs = Math.max(0, bowler.runs - runsToReverse);
+    if (last.extras === 'wide') {
+      if (bowler.wides > 0) bowler.wides -= 1;
+    } else if (last.extras === 'nb') {
+      if (bowler.noBalls > 0) bowler.noBalls -= 1;
+      if (bowler.balls > 0) bowler.balls -= 1; // nb counts as a delivery for bowler balls
+      bowler.overs = Math.floor(bowler.balls / 6);
+    } else {
       if (bowler.balls > 0) bowler.balls -= 1;
       bowler.overs = Math.floor(bowler.balls / 6);
     }
     if (last.wicket && bowler.wickets > 0) bowler.wickets -= 1;
-    bowler.runs -= last.runs;
     bowler.economy = bowler.overs > 0 ? parseFloat((bowler.runs / bowler.overs).toFixed(2)) : 0;
   }
 
