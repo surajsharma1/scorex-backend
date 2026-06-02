@@ -476,6 +476,7 @@
 
   </div>
 
+
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/overlay-handlers.js"></script>
@@ -511,7 +512,7 @@
   const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
 
 // 🚀 REPLACE THE OLD triggerAutoShrink WITH THIS ULTRA-FAST VERSION
-  const triggerAutoShrink = () => {
+const triggerAutoShrink = () => {
     requestAnimationFrame(() => {
       document.querySelectorAll('.fit-text').forEach(el => {
         // Reset to default CSS size first
@@ -539,8 +540,8 @@
     const t1 = d.team1ShortName || (d.team1Name || 'T1').substring(0,4).toUpperCase();
     const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
     
-    safeSet('vs-team1', t1); safeSet('vs-team2', t2);
-    safeSet('bat-team', t1); 
+    safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
+    safeSet('bat-team', t1); safeSet('bowl-team', t2);
     
     safeSet('score', d.team1Score ?? d.teamScore, 0);
     safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
@@ -561,7 +562,7 @@
 
   // Inject Sponsors dynamically to ticker
   (function initSponsors() {
-    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: 'FLAWLESS SVG EDITION'}];
+    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: '2024 LIGHT BROADCAST'}];
     const track = $('sponsor-track');
     if (!track) return;
     track.innerHTML = sponsors.map(sp => `<span style="margin-right:40px;">${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}</span>`).join('');
@@ -581,32 +582,51 @@
     if (!el || !bowlers) return;
     el.innerHTML = bowlers.map(b => {
       const isAct = (b.name === curBowler);
-      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--svg-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:#ef4444;">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
     }).join('');
   };
 
   const hideBaseUI = () => {
-    $('scoreboard-container').classList.add('base-ui-hide');
-    $('intro-cards-wrapper').classList.add('base-ui-hide');
-    $('side-card-wrapper').classList.add('base-ui-hide');
+    $('scoreboard-container').classList.add('base-ui-hide-bottom');
+    $('sponsor-bar').classList.add('base-ui-hide-bottom');
+    $('target-bar').classList.add('base-ui-hide-bottom');
+    $('intro-cards-wrapper').classList.add('base-ui-hide-bottom');
+    $('side-card-wrapper').classList.add('base-ui-hide-bottom');
   };
 
   const showBaseUI = () => {
-    $('scoreboard-container').classList.remove('base-ui-hide');
-    $('intro-cards-wrapper').classList.remove('base-ui-hide');
-    $('side-card-wrapper').classList.remove('base-ui-hide');
+    $('scoreboard-container').classList.remove('base-ui-hide-bottom');
+    $('sponsor-bar').classList.remove('base-ui-hide-bottom');
+    $('target-bar').classList.remove('base-ui-hide-bottom');
+    $('intro-cards-wrapper').classList.remove('base-ui-hide-bottom');
+    $('side-card-wrapper').classList.remove('base-ui-hide-bottom');
   };
 
-  function showActionAnim(id, duration) {
-    remCls('anim-four','fire'); remCls('anim-six','fire'); remCls('anim-wicket','fire');
+  function fireIslandEvent(title, text, duration) {
     clearTimeout(actionTimer);
-    addCls(id, 'fire');
-    actionTimer = setTimeout(() => remCls(id, 'fire'), duration);
+    const wrap = $('dynamic-island-wrapper');
+    const box = $('big-box-island');
+    
+    safeSet('island-title', title);
+    safeSet('island-text', text);
+    
+    wrap.classList.remove('hide');
+    wrap.classList.add('show');
+    box.classList.add('expand');
+    triggerAutoShrink();
+
+    actionTimer = setTimeout(() => {
+      box.classList.remove('expand');
+      setTimeout(() => { wrap.classList.remove('show'); wrap.classList.add('hide'); }, 600);
+    }, duration);
   }
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
+    
+    $('dynamic-island-wrapper').classList.remove('show');
+    $('dynamic-island-wrapper').classList.add('hide');
+    $('big-box-island').classList.remove('expand');
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -618,7 +638,6 @@
     const sb = $('scoreboard-container');
     if (sb) { sb.classList.remove('state-vs'); sb.classList.add('state-live'); }
     $('toss-msg-container').style.opacity = '0';
-    $('event-layer').classList.remove('decision-blur');
     showBaseUI();
   }
 
@@ -632,18 +651,18 @@
     const fl = $('fullscreen-layer');
 
     switch (t.type) {
-      case 'FOUR': showActionAnim('anim-four', DURATIONS.event); break;
-      case 'SIX': showActionAnim('anim-six', DURATIONS.event); break;
+      case 'FOUR': fireIslandEvent('BOUNDARY', 'FOUR!', DURATIONS.event); break;
+      case 'SIX': fireIslandEvent('MAXIMUM', 'SIX!', DURATIONS.event); break;
       
       case 'WICKET':
       case 'WICKET_SWITCH':
-        showActionAnim('anim-wicket', DURATIONS.event);
+        fireIslandEvent('WICKET', 'OUT!', DURATIONS.event);
         if (data.outName) {
           $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
           
           $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
-          $('sw-out-badge').style.background = 'var(--svg-red)';
-          $('sw-out-block').style.borderLeftColor = 'var(--svg-red)';
+          $('sw-out-badge').className = 'sb-badge red';
+          $('sw-out-block').className = 'switch-block switch-out';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Substitution');
@@ -666,8 +685,10 @@
           $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
           
           $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
+          $('sw-out-badge').className = 'sb-badge';
           $('sw-out-badge').style.background = '#64748b';
-          $('sw-out-block').style.borderLeftColor = '#64748b';
+          $('sw-out-block').className = 'switch-block';
+          $('sw-out-block').style.borderLeft = '12px solid #64748b';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Retired');
@@ -685,8 +706,10 @@
           setTimeout(() => {
               remCls('side-card-wrapper', 'active-side');
               setTimeout(() => {
-                  $('sw-out-badge').style.background = 'var(--svg-red)';
-                  $('sw-out-block').style.borderLeftColor = 'var(--svg-red)';
+                  $('sw-out-badge').style.background = '';
+                  $('sw-out-badge').className = 'sb-badge red';
+                  $('sw-out-block').style.borderLeft = '';
+                  $('sw-out-block').className = 'switch-block switch-out';
               }, 500);
           }, DURATIONS.event);
         }
@@ -698,7 +721,7 @@
         $('profile-card').classList.add('active'); $('switch-card').classList.remove('active');
         
         const isBat = t.type === 'BATSMAN_PROFILE';
-        const badgeColor = isBat ? 'var(--svg-blue)' : 'var(--svg-red)';
+        const badgeColor = isBat ? '#3b82f6' : '#ef4444';
         
         $('pc-badge').style.background = badgeColor;
         $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
@@ -708,15 +731,15 @@
             safeSet('pc-name', nameStat ? nameStat.value : (data.bowler || data.name || 'PROFILE'));
             const otherStats = data.stats.filter(s => s.label !== 'BATSMAN' && s.label !== 'BOWLER');
             $('pc-stats-container').innerHTML = otherStats.map(s => 
-                `<div class="pc-row"><span class="pc-lbl">${s.label}</span><span class="pc-val">${s.value}</span></div>`
+                `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:${badgeColor};">${s.value}</span></div>`
             ).join('');
         } else {
             safeSet('pc-name', data.bowler || data.name || 'BOWLER');
             $('pc-stats-container').innerHTML = `
-                <div class="pc-row"><span class="pc-lbl">OVERS</span><span class="pc-val">${data.overs||'0.0'}</span></div>
-                <div class="pc-row"><span class="pc-lbl">MAIDENS</span><span class="pc-val">${data.maidens||'0'}</span></div>
-                <div class="pc-row"><span class="pc-lbl">RUNS</span><span class="pc-val">${data.runs||'0'}</span></div>
-                <div class="pc-row"><span class="pc-lbl">WICKETS</span><span class="pc-val">${data.wickets||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val" style="color:${badgeColor};">${data.overs||'0.0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val" style="color:${badgeColor};">${data.maidens||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val" style="color:${badgeColor};">${data.runs||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val" style="color:${badgeColor};">${data.wickets||'0'}</span></div>
             `;
         }
         
@@ -729,20 +752,15 @@
       case 'DECISION_PENDING':
         decisionPendingState = (data && data.active !== false);
         // sharedHandleTrigger NOT called here — dispatch() already fires anim-decision natively
-        if (decisionPendingState) { 
-            $('event-layer').classList.add('decision-blur'); 
-            addCls('anim-decision', 'layer-show'); 
-        } else { 
-            $('event-layer').classList.remove('decision-blur'); 
-            remCls('anim-decision', 'layer-show'); 
-        }
+        if (decisionPendingState) { fireIslandEvent('THIRD UMPIRE', 'PENDING...', 999999); }
+        else { restoreToLive(); }
         break;
 
       case 'VS_SCREEN':
       case 'SHOW_VS_SCREEN':
         restoreToLive();
-        if(data.team1) safeSet('vs-team1', data.team1);
-        if(data.team2) safeSet('vs-team2', data.team2);
+        if(data.team1) safeSet('vs-t1', data.team1);
+        if(data.team2) safeSet('vs-t2', data.team2);
         $('scoreboard-container').classList.remove('state-live'); $('scoreboard-container').classList.add('state-vs');
         $('toss-msg-container').style.opacity = '0';
         break;
@@ -752,8 +770,8 @@
         hideBaseUI(); 
         safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
         
-        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--svg-blue); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
-        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--svg-blue); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#3b82f6; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#ef4444; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
         
         fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
         $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show');
@@ -769,10 +787,7 @@
         break;
 
       case '50_RUNS': case '100_RUNS':
-        safeSet('ms-text', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`);
-        addCls('anim-milestone', 'fire');
-        triggerAutoShrink();
-        setTimeout(() => remCls('anim-milestone', 'fire'), DURATIONS.milestone);
+        fireIslandEvent('MILESTONE', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`, DURATIONS.milestone);
         break;
 
       case 'BATTING_CARD': case 'BOWLING_CARD': case 'BOTH_CARDS':
