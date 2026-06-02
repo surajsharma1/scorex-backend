@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -115,6 +148,20 @@ const selectPlayers = async (req, res, next) => {
         const prevBatsmen = JSON.parse(JSON.stringify(prevInn?.batsmen || []));
         const prevBowlers = JSON.parse(JSON.stringify(prevInn?.bowlers || []));
         await match.selectPlayers(req.body);
+        // Update _wicketLimit now that we know the exact squad size.
+        // A team with N players can lose at most min(10, N-1) wickets before all-out.
+        const activeInn = match.innings?.[match.currentInnings - 1];
+        if (activeInn && activeInn.status === 'in_progress') {
+            let squadSize = 0;
+            try {
+                const teamId = activeInn.teamId;
+                const teamDoc = await (await Promise.resolve().then(() => __importStar(require('../models/Team')))).default.findById(teamId).select('players');
+                squadSize = teamDoc?.players?.length || 0;
+            }
+            catch (_) { }
+            activeInn._wicketLimit = squadSize >= 2 ? Math.min(10, squadSize - 1) : 10;
+            await match.save();
+        }
         const io = req.app.get('io');
         if (io) {
             io.to(`match:${match._id}`).emit('playersSelected', { striker: match.strikerName, nonStriker: match.nonStrikerName, bowler: match.currentBowlerName });
@@ -188,8 +235,8 @@ const addBall = async (req, res, next) => {
         // Automatic "All Out" check — addBall handles the standard 10-wicket case internally.
         // This block catches any edge-case where the innings didn't auto-end (e.g. race condition).
         const currentInningsData = match.innings?.[match.currentInnings - 1];
-        // Dynamic cap: min(10, batsmen-1) so small squads end when all out, 10 is always the ceiling
-        const STD_MAX_WICKETS = Math.min(10, Math.max(1, (currentInningsData?.batsmen?.length || 11) - 1));
+        // Use the innings-level wicket limit (set from squad size at match start, capped at 10)
+        const STD_MAX_WICKETS = currentInningsData?._wicketLimit ?? 10;
         if (!inningsEnded && !matchEnded && currentInningsData && currentInningsData.status !== 'completed' && currentInningsData.wickets >= STD_MAX_WICKETS) {
             await match.endInnings();
             await match.populate(teamPopulateOptions);

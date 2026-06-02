@@ -13,7 +13,9 @@ export enum TossDecision { BAT = 'bat', BOWL = 'bowl' }
 export interface IBatsman { playerId?: mongoose.Types.ObjectId; name: string; runs: number; balls: number; fours: number; sixes: number; strikeRate: number; isOut: boolean; isStriker: boolean; outType?: string; outTo?: string; outFielder?: string; enteredAt?: number; }
 export interface IBowler { playerId?: mongoose.Types.ObjectId; name: string; overs: number; balls: number; maidens: number; runs: number; wickets: number; economy: number; wides: number; noBalls: number; }
 export interface IFallOfWicket { wicket: number; score: number; overs: string; batsman: string; bowler?: string; }
-export interface IInnings { teamId: mongoose.Types.ObjectId; teamName: string; status: 'in_progress' | 'completed'; score: number; wickets: number; overs: number; balls: number; runRate: number; targetScore?: number; requiredRuns?: number; requiredRunRate?: number; extras: { wides: number; noBalls: number; byes: number; legByes: number; total: number; }; batsmen: IBatsman[]; bowlers: IBowler[]; fallOfWickets: IFallOfWicket[]; ballHistory: Array<any>; }
+export interface IInnings {
+  _wicketLimit: number; teamId: mongoose.Types.ObjectId; teamName: string; status: 'in_progress' | 'completed'; score: number; wickets: number; overs: number; balls: number; runRate: number; targetScore?: number; requiredRuns?: number; requiredRunRate?: number; extras: { wides: number; noBalls: number; byes: number; legByes: number; total: number; }; batsmen: IBatsman[]; bowlers: IBowler[]; fallOfWickets: IFallOfWicket[]; ballHistory: Array<any>; 
+}
 
 export interface IMatch extends Document {
   name: string; tournamentId?: mongoose.Types.ObjectId; round?: string; matchNumber?: number; team1: any; team1Name: string; team2: any; team2Name: string; venue: string; date: Date; time?: string; format: 'T10' | 'T20' | 'ODI' | 'Test' | 'Custom'; maxOvers: number; status: MatchStatus; tossWinner?: mongoose.Types.ObjectId; tossWinnerName?: string; tossDecision?: TossDecision; innings: IInnings[]; currentInnings: number; strikerName: string; nonStrikerName: string; currentBowlerName: string; team1Score: number; team1Wickets: number; team1Overs: number; team2Score: number; team2Wickets: number; team2Overs: number; winner?: mongoose.Types.ObjectId; winnerName?: string; resultSummary?: string; playerOfMatch?: string; scorerId?: mongoose.Types.ObjectId; streamUrl?: string; createdAt: Date; updatedAt: Date;
@@ -154,7 +156,7 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
     score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6), 
     runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate, 
     targetScore: innings.targetScore, ballDescription: data.retired ? `Retired Hurt (${data.outBatsmanName})` : `+${data.penalty} Penalty`, 
-    overChanged: false, inningsEnded: innings.wickets >= Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1)), matchEnded: false, needPlayerSelection: !!data.retired,
+    overChanged: false, inningsEnded: innings.wickets >= innings._wicketLimit, matchEnded: false, needPlayerSelection: !!data.retired,
     isFour: false, isSix: false, isWicket: false, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
     completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
     totalFours,
@@ -265,9 +267,9 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
   let inningsEnded = false; let matchEnded = false;
   const chaseComplete = this.currentInnings === 2 && innings.targetScore && innings.score >= innings.targetScore;
   
-  // End innings when: all batsmen in this team are out (capped at 10), overs used up, or chase complete
-  const maxWickets = Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1));
-  if (innings.wickets >= maxWickets || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
+  // End innings when: all batsmen out (limit set from squad size at innings start, max 10),
+  // overs used up, or chase complete.
+  if (innings.wickets >= innings._wicketLimit || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
     innings.status = 'completed'; inningsEnded = true;
     if (this.currentInnings === 2 || chaseComplete) {
         matchEnded = true;
@@ -314,7 +316,8 @@ MatchSchema.methods.addBall = async function(data: AddBallData): Promise<ScoreUp
         this.innings.push({
             teamId: new mongoose.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
             score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
-            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
+            _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
         } as any);
         this.currentInnings = 2;
         this.strikerName = '';
@@ -381,7 +384,8 @@ MatchSchema.methods.endInnings = async function(): Promise<void> {
     this.innings.push({
       teamId: new mongoose.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
       score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
-      extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+      extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
+      _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
     } as any);
     this.currentInnings = 2; this.strikerName = ''; this.nonStrikerName = ''; this.currentBowlerName = '';
   }

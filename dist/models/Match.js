@@ -160,7 +160,7 @@ MatchSchema.methods.addBall = async function (data) {
             score: innings.score, wickets: innings.wickets, overs: formatOvers(innings.overs, innings.balls % 6),
             runRate: innings.runRate, requiredRuns: innings.requiredRuns, requiredRunRate: innings.requiredRunRate,
             targetScore: innings.targetScore, ballDescription: data.retired ? `Retired Hurt (${data.outBatsmanName})` : `+${data.penalty} Penalty`,
-            overChanged: false, inningsEnded: innings.wickets >= Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1)), matchEnded: false, needPlayerSelection: !!data.retired,
+            overChanged: false, inningsEnded: innings.wickets >= innings._wicketLimit, matchEnded: false, needPlayerSelection: !!data.retired,
             isFour: false, isSix: false, isWicket: false, outBatsmanName: data.retired ? data.outBatsmanName : undefined,
             completedOverNumber: undefined, strikerMatchRuns: currentStriker ? currentStriker.runs : 0, strikerMatchBalls: currentStriker ? currentStriker.balls : 0,
             totalFours,
@@ -351,9 +351,9 @@ MatchSchema.methods.addBall = async function (data) {
     let inningsEnded = false;
     let matchEnded = false;
     const chaseComplete = this.currentInnings === 2 && innings.targetScore && innings.score >= innings.targetScore;
-    // End innings when: all batsmen in this team are out (capped at 10), overs used up, or chase complete
-    const maxWickets = Math.min(10, Math.max(1, (innings.batsmen.length || 11) - 1));
-    if (innings.wickets >= maxWickets || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
+    // End innings when: all batsmen out (limit set from squad size at innings start, max 10),
+    // overs used up, or chase complete.
+    if (innings.wickets >= innings._wicketLimit || innings.balls >= (this.maxOvers * 6) || chaseComplete) {
         innings.status = 'completed';
         inningsEnded = true;
         if (this.currentInnings === 2 || chaseComplete) {
@@ -402,7 +402,8 @@ MatchSchema.methods.addBall = async function (data) {
             this.innings.push({
                 teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
                 score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
-                extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+                extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
+                _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
             });
             this.currentInnings = 2;
             this.strikerName = '';
@@ -481,7 +482,8 @@ MatchSchema.methods.endInnings = async function () {
         this.innings.push({
             teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
             score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
-            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: []
+            extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
+            _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
         });
         this.currentInnings = 2;
         this.strikerName = '';
