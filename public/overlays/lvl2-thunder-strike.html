@@ -411,7 +411,6 @@
 
   </div>
 
-
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/overlay-handlers.js"></script>
@@ -446,23 +445,18 @@
   const addCls  = (id, cls) => { const e=$(id); if(e) e.classList.add(cls); };
   const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
 
-// 🚀 REPLACE THE OLD triggerAutoShrink WITH THIS ULTRA-FAST VERSION
-const triggerAutoShrink = () => {
+  // 🚀 OPTIMIZED MATHEMATICAL AUTO-SHRINK (ZERO LAG)
+  const triggerAutoShrink = () => {
     requestAnimationFrame(() => {
       document.querySelectorAll('.fit-text').forEach(el => {
-        // Reset to default CSS size first
         el.style.fontSize = ''; 
-        
         const parent = el.parentElement;
         const scrollW = el.scrollWidth;
         const clientW = parent.clientWidth;
         
-        // If the text is wider than its container, calculate exact shrink ratio
         if (scrollW > clientW && clientW > 0) {
           const currentSize = parseFloat(window.getComputedStyle(el).fontSize);
           const ratio = clientW / scrollW;
-          
-          // Apply ratio with a 2% safety buffer, minimum size 10px
           const newSize = Math.max(10, currentSize * ratio * 0.98); 
           el.style.fontSize = newSize + 'px';
         }
@@ -476,14 +470,21 @@ const triggerAutoShrink = () => {
     const t2 = d.team2ShortName || (d.team2Name || 'T2').substring(0,4).toUpperCase();
     
     safeSet('vs-t1', d.team1Name); safeSet('vs-t2', d.team2Name);
-    safeSet('bat-team', t1); safeSet('bowl-team', t2);
+    safeSet('bat-team', t1);
     
     safeSet('score', d.team1Score ?? d.teamScore, 0);
     safeSet('wickets', d.team1Wickets ?? d.teamWickets, 0);
     safeSet('overs', d.team1Overs ?? d.teamOvers, '0.0');
 
     curBowler = d.bowlerName || 'Bowler';
-    safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0); safeSet('b-ov', d.bowlerOvers, '0.0');
+    safeSet('bowler', curBowler); safeSet('b-wkts', d.bowlerWickets, 0); safeSet('b-runs', d.bowlerRuns, 0);
+    
+    if (d.target > 0) {
+        $('sb-target-bar').style.display = 'flex';
+        safeSet('equation-text', `NEED ${d.target - (d.team1Score ?? d.teamScore)} FROM ${d.ballsRemaining||0}`);
+    } else {
+        $('sb-target-bar').style.display = 'none';
+    }
 
     curStriker = d.strikerName || 'Striker';
     safeSet('striker', curStriker); safeSet('s-runs', d.strikerRuns, 0); safeSet('s-balls', d.strikerBalls, 0);
@@ -497,7 +498,7 @@ const triggerAutoShrink = () => {
 
   // Inject Sponsors dynamically to ticker
   (function initSponsors() {
-    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: '2024 LIGHT BROADCAST'}];
+    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: 'ULTRA PERFORMANCE'}];
     const track = $('sponsor-track');
     if (!track) return;
     track.innerHTML = sponsors.map(sp => `<span style="margin-right:40px;">${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}</span>`).join('');
@@ -517,63 +518,49 @@ const triggerAutoShrink = () => {
     if (!el || !bowlers) return;
     el.innerHTML = bowlers.map(b => {
       const isAct = (b.name === curBowler);
-      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:#ef4444;">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--up-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
     }).join('');
   };
 
-  const hideBaseUI = () => {
-    $('scoreboard-container').classList.add('base-ui-hide-bottom');
-    $('sponsor-bar').classList.add('base-ui-hide-bottom');
-    $('target-bar').classList.add('base-ui-hide-bottom');
-    $('intro-cards-wrapper').classList.add('base-ui-hide-bottom');
-    $('side-card-wrapper').classList.add('base-ui-hide-bottom');
-  };
+  // ROBUST FUNCTION TO PREVENT TAB OVERLAP
+  function hideAllTabs() {
+    ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { 
+        const e = $(id); 
+        if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }
+    });
+  }
 
-  const showBaseUI = () => {
-    $('scoreboard-container').classList.remove('base-ui-hide-bottom');
-    $('sponsor-bar').classList.remove('base-ui-hide-bottom');
-    $('target-bar').classList.remove('base-ui-hide-bottom');
-    $('intro-cards-wrapper').classList.remove('base-ui-hide-bottom');
-    $('side-card-wrapper').classList.remove('base-ui-hide-bottom');
-  };
+  function hideRightStageModals() {
+    if($('intro-cards-wrapper')) { $('intro-cards-wrapper').classList.remove('stage-show'); $('intro-cards-wrapper').classList.add('stage-hide'); }
+    if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-show'); $('side-card-wrapper').classList.add('stage-hide'); }
+    if($('fullscreen-layer')) { $('fullscreen-layer').classList.remove('stage-show'); $('fullscreen-layer').classList.add('stage-hide'); }
+    hideAllTabs();
+  }
 
-  function fireIslandEvent(title, text, duration) {
+  function showActionAnim(id, duration) {
+    remCls('anim-four','fire'); remCls('anim-six','fire'); remCls('anim-wicket','fire');
     clearTimeout(actionTimer);
-    const wrap = $('dynamic-island-wrapper');
-    const box = $('big-box-island');
-    
-    safeSet('island-title', title);
-    safeSet('island-text', text);
-    
-    wrap.classList.remove('hide');
-    wrap.classList.add('show');
-    box.classList.add('expand');
-    triggerAutoShrink();
-
+    addCls(id, 'fire');
     actionTimer = setTimeout(() => {
-      box.classList.remove('expand');
-      setTimeout(() => { wrap.classList.remove('show'); wrap.classList.add('hide'); }, 600);
+        remCls(id, 'fire');
     }, duration);
   }
 
   function restoreToLive() {
-    clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
+    decisionPendingState = false;
+    clearInterval(endMatchInterval);
+    clearTimeout(actionTimer);
+    clearTimeout(breakTimer);
+
+    ['anim-four','anim-six','anim-wicket'].forEach(id => remCls(id, 'fire'));
+    ['anim-decision','anim-milestone'].forEach(id => { remCls(id, 'fire'); remCls(id, 'stage-show'); addCls(id, 'stage-hide'); });
     
-    $('dynamic-island-wrapper').classList.remove('show');
-    $('dynamic-island-wrapper').classList.add('hide');
-    $('big-box-island').classList.remove('expand');
-    
-    const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
-    ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
-    
-    remCls('intro-cards-wrapper', 'active-intro');
-    remCls('side-card-wrapper', 'active-side');
+    hideRightStageModals();
     ['switch-card','profile-card'].forEach(id => remCls(id, 'active'));
 
-    const sb = $('scoreboard-container');
+    const sb = $('sidebar');
     if (sb) { sb.classList.remove('state-vs'); sb.classList.add('state-live'); }
-    $('toss-msg-container').style.opacity = '0';
-    showBaseUI();
+    if($('toss-msg-container')) $('toss-msg-container').style.opacity = '0';
   }
 
   window.addEventListener('message', function(e) {
@@ -586,65 +573,89 @@ const triggerAutoShrink = () => {
     const fl = $('fullscreen-layer');
 
     switch (t.type) {
-      case 'FOUR': fireIslandEvent('BOUNDARY', 'FOUR!', DURATIONS.event); break;
-      case 'SIX': fireIslandEvent('MAXIMUM', 'SIX!', DURATIONS.event); break;
+      case 'FOUR': showActionAnim('anim-four', DURATIONS.event); break;
+      case 'SIX': showActionAnim('anim-six', DURATIONS.event); break;
       
       case 'WICKET':
       case 'WICKET_SWITCH':
-        fireIslandEvent('WICKET', 'OUT!', DURATIONS.event);
+        showActionAnim('anim-wicket', DURATIONS.event);
         if (data.outName) {
-          $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
+          if($('switch-card')) $('switch-card').classList.add('active'); 
+          if($('profile-card')) $('profile-card').classList.remove('active');
           
-          $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
-          $('sw-out-badge').className = 'sb-badge red';
-          $('sw-out-block').className = 'switch-block switch-out';
+          if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--up-red)';
+          if($('sw-out-badge')) $('sw-out-badge').style.color = 'var(--up-white)';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--up-red)';
+          
+          if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+          if($('sw-in-badge')) $('sw-in-badge').style.background = 'var(--up-blue)';
+          if($('sw-in-badge')) $('sw-in-badge').style.color = 'var(--up-white)';
+          if($('sw-in-block')) $('sw-in-block').style.borderLeftColor = 'var(--up-blue)';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Substitution');
           safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
           
           if (data.inName) {
-            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
-            if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
-            else { $('sw-in-stats-row').classList.add('hide'); }
-            $('sw-in-block').style.display = 'flex';
-          } else { $('sw-in-block').style.display = 'none'; }
-          addCls('side-card-wrapper', 'active-side');
+            safeSet('sw-in-name', data.inName); 
+            if (data.inRuns !== undefined) { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
+                safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
+            } else { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.add('hide'); 
+            }
+            if($('sw-in-block')) $('sw-in-block').style.display = 'flex';
+          } else { 
+            if($('sw-in-block')) $('sw-in-block').style.display = 'none'; 
+          }
+          
+          if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-hide'); $('side-card-wrapper').classList.add('stage-show'); }
           triggerAutoShrink();
-          setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+          setTimeout(() => { if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-show'); $('side-card-wrapper').classList.add('stage-hide'); } }, DURATIONS.event);
         }
         break;
 
       case 'BATSMAN_CHANGE':
         if (data.outName) {
-          $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
+          if($('switch-card')) $('switch-card').classList.add('active'); 
+          if($('profile-card')) $('profile-card').classList.remove('active');
           
-          $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
-          $('sw-out-badge').className = 'sb-badge';
-          $('sw-out-badge').style.background = '#64748b';
-          $('sw-out-block').className = 'switch-block';
-          $('sw-out-block').style.borderLeft = '12px solid #64748b';
+          if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--text-sub)';
+          if($('sw-out-badge')) $('sw-out-badge').style.color = 'var(--up-white)';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--text-sub)';
           
+          if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+          if($('sw-in-badge')) $('sw-in-badge').style.background = 'var(--up-blue)';
+          if($('sw-in-badge')) $('sw-in-badge').style.color = 'var(--up-white)';
+          if($('sw-in-block')) $('sw-in-block').style.borderLeftColor = 'var(--up-blue)';
+
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Retired');
           safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
           
           if (data.inName) {
-            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
-            if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
-            else { $('sw-in-stats-row').classList.add('hide'); }
-            $('sw-in-block').style.display = 'flex';
-          } else { $('sw-in-block').style.display = 'none'; }
+            safeSet('sw-in-name', data.inName); 
+            if (data.inRuns !== undefined) { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
+                safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
+            } else { 
+                if($('sw-in-stats-row')) $('sw-in-stats-row').classList.add('hide'); 
+            }
+            if($('sw-in-block')) $('sw-in-block').style.display = 'flex';
+          } else { 
+            if($('sw-in-block')) $('sw-in-block').style.display = 'none'; 
+          }
           
-          addCls('side-card-wrapper', 'active-side');
+          if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-hide'); $('side-card-wrapper').classList.add('stage-show'); }
           triggerAutoShrink();
           setTimeout(() => {
-              remCls('side-card-wrapper', 'active-side');
+              if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-show'); $('side-card-wrapper').classList.add('stage-hide'); }
               setTimeout(() => {
-                  $('sw-out-badge').style.background = '';
-                  $('sw-out-badge').className = 'sb-badge red';
-                  $('sw-out-block').style.borderLeft = '';
-                  $('sw-out-block').className = 'switch-block switch-out';
+                  if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--up-red)';
+                  if($('sw-out-badge')) $('sw-out-badge').style.color = 'var(--up-white)';
+                  if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--up-red)';
               }, 500);
           }, DURATIONS.event);
         }
@@ -653,42 +664,53 @@ const triggerAutoShrink = () => {
       case 'NEW_BOWLER':
       case 'BOWLER_PROFILE':
       case 'BATSMAN_PROFILE': {
-        $('profile-card').classList.add('active'); $('switch-card').classList.remove('active');
+        if($('profile-card')) $('profile-card').classList.add('active'); 
+        if($('switch-card')) $('switch-card').classList.remove('active');
         
         const isBat = t.type === 'BATSMAN_PROFILE';
-        const badgeColor = isBat ? '#3b82f6' : '#ef4444';
+        const badgeColor = isBat ? 'var(--up-blue)' : 'var(--up-navy)';
         
-        $('pc-badge').style.background = badgeColor;
-        $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
+        if($('pc-badge')) {
+            $('pc-badge').style.background = badgeColor;
+            $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
+            $('profile-card').style.borderTopColor = badgeColor;
+        }
         
         if (data.stats && data.stats.length > 0) {
             const nameStat = data.stats.find(s => s.label === 'BATSMAN' || s.label === 'BOWLER');
             safeSet('pc-name', nameStat ? nameStat.value : (data.bowler || data.name || 'PROFILE'));
             const otherStats = data.stats.filter(s => s.label !== 'BATSMAN' && s.label !== 'BOWLER');
-            $('pc-stats-container').innerHTML = otherStats.map(s => 
-                `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:${badgeColor};">${s.value}</span></div>`
-            ).join('');
+            if($('pc-stats-container')) {
+                $('pc-stats-container').innerHTML = otherStats.map(s => 
+                    `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:${badgeColor};">${s.value}</span></div>`
+                ).join('');
+            }
         } else {
             safeSet('pc-name', data.bowler || data.name || 'BOWLER');
-            $('pc-stats-container').innerHTML = `
-                <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val" style="color:${badgeColor};">${data.overs||'0.0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val" style="color:${badgeColor};">${data.maidens||'0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val" style="color:${badgeColor};">${data.runs||'0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val" style="color:${badgeColor};">${data.wickets||'0'}</span></div>
-            `;
+            if($('pc-stats-container')) {
+                $('pc-stats-container').innerHTML = `
+                    <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val" style="color:${badgeColor};">${data.overs||'0.0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val" style="color:${badgeColor};">${data.maidens||'0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val" style="color:${badgeColor};">${data.runs||'0'}</span></div>
+                    <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val" style="color:${badgeColor};">${data.wickets||'0'}</span></div>
+                `;
+            }
         }
         
-        addCls('side-card-wrapper', 'active-side');
+        if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-hide'); $('side-card-wrapper').classList.add('stage-show'); }
         triggerAutoShrink();
-        setTimeout(() => remCls('side-card-wrapper', 'active-side'), DURATIONS.event);
+        setTimeout(() => { if($('side-card-wrapper')) { $('side-card-wrapper').classList.remove('stage-show'); $('side-card-wrapper').classList.add('stage-hide'); } }, DURATIONS.event);
         break;
       }
 
       case 'DECISION_PENDING':
         decisionPendingState = (data && data.active !== false);
         // sharedHandleTrigger NOT called here — dispatch() already fires anim-decision natively
-        if (decisionPendingState) { fireIslandEvent('THIRD UMPIRE', 'PENDING...', 999999); }
-        else { restoreToLive(); }
+        if (decisionPendingState) {
+            if($('anim-decision')) { $('anim-decision').classList.remove('stage-hide'); $('anim-decision').classList.add('stage-show'); addCls('anim-decision', 'fire'); }
+        } else {
+            if($('anim-decision')) { $('anim-decision').classList.remove('stage-show'); $('anim-decision').classList.add('stage-hide'); remCls('anim-decision', 'fire'); }
+        }
         break;
 
       case 'VS_SCREEN':
@@ -696,69 +718,80 @@ const triggerAutoShrink = () => {
         restoreToLive();
         if(data.team1) safeSet('vs-t1', data.team1);
         if(data.team2) safeSet('vs-t2', data.team2);
-        $('scoreboard-container').classList.remove('state-live'); $('scoreboard-container').classList.add('state-vs');
-        $('toss-msg-container').style.opacity = '0';
+        if($('sidebar')) {
+            $('sidebar').classList.remove('state-live'); 
+            $('sidebar').classList.add('state-vs');
+        }
+        if($('toss-msg-container')) $('toss-msg-container').style.opacity = '0';
         break;
 
+      case 'SHOW_SQUADS':
       case 'SHOW_TOSS':
         restoreToLive();
-        hideBaseUI(); 
-        safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
+        hideRightStageModals(); 
+        hideAllTabs();
+        safeSet('squads-toss-header', data.text || (t.type === 'SHOW_TOSS' ? 'TOSS COMPLETED' : 'PLAYING XI')); 
         
-        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#3b82f6; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
-        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#ef4444; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team1Players && $('sq-t1-list')) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--up-blue); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team2Players && $('sq-t2-list')) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--up-navy); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
         
-        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
-        $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show');
+        if(fl) { fl.classList.remove('stage-hide'); fl.classList.add('stage-show'); }
+        if($('squads-tab')) { $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show'); }
         triggerAutoShrink();
-        setTimeout(() => restoreToLive(), DURATIONS.toss);
+        setTimeout(() => restoreToLive(), t.type === 'SHOW_TOSS' ? DURATIONS.toss : (DURATIONS.squad || 12000));
         break;
 
       case 'START_INNINGS_INTRO':
         safeSet('intro-striker', data.striker); safeSet('intro-nonstriker', data.nonStriker); safeSet('intro-bowler', data.bowler);
-        addCls('intro-cards-wrapper', 'active-intro');
+        if($('intro-cards-wrapper')) { $('intro-cards-wrapper').classList.remove('stage-hide'); $('intro-cards-wrapper').classList.add('stage-show'); }
         triggerAutoShrink();
-        setTimeout(() => remCls('intro-cards-wrapper', 'active-intro'), DURATIONS.intro);
+        setTimeout(() => { if($('intro-cards-wrapper')) { $('intro-cards-wrapper').classList.remove('stage-show'); $('intro-cards-wrapper').classList.add('stage-hide'); } }, DURATIONS.intro);
         break;
 
       case '50_RUNS': case '100_RUNS':
-        fireIslandEvent('MILESTONE', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`, DURATIONS.milestone);
+        safeSet('ms-text', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`);
+        if($('anim-milestone')) { $('anim-milestone').classList.remove('stage-hide'); $('anim-milestone').classList.add('stage-show'); addCls('anim-milestone', 'fire'); }
+        triggerAutoShrink();
+        setTimeout(() => { if($('anim-milestone')) { $('anim-milestone').classList.remove('stage-show'); $('anim-milestone').classList.add('stage-hide'); remCls('anim-milestone', 'fire'); } }, DURATIONS.milestone);
         break;
 
       case 'BATTING_CARD': case 'BOWLING_CARD': case 'BOTH_CARDS':
         restoreToLive(); 
-        hideBaseUI();
-        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
-        $('summary-tab').classList.remove('tab-hide'); $('summary-tab').classList.add('tab-show');
+        hideRightStageModals();
+        hideAllTabs();
+        if(fl) { fl.classList.remove('stage-hide'); fl.classList.add('stage-show'); }
+        if($('summary-tab')) { $('summary-tab').classList.remove('tab-hide'); $('summary-tab').classList.add('tab-show'); }
         safeSet('sum-header', 'CURRENT SUMMARY');
         
-        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') { $('sum-bat-col').style.display = 'flex'; if (data.batsmen) renderBat(data.batsmen); } else { $('sum-bat-col').style.display = 'none'; }
-        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') { $('sum-bowl-col').style.display = 'flex'; if (data.bowlers) renderBowl(data.bowlers); } else { $('sum-bowl-col').style.display = 'none'; }
+        if (t.type === 'BATTING_CARD' || t.type === 'BOTH_CARDS') { if($('sum-bat-col')) $('sum-bat-col').style.display = 'flex'; if (data.batsmen) renderBat(data.batsmen); } else { if($('sum-bat-col')) $('sum-bat-col').style.display = 'none'; }
+        if (t.type === 'BOWLING_CARD' || t.type === 'BOTH_CARDS') { if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'flex'; if (data.bowlers) renderBowl(data.bowlers); } else { if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'none'; }
         triggerAutoShrink();
         break;
 
       case 'INNINGS_BREAK':
         restoreToLive(); 
-        hideBaseUI();
-        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
-        $('target-tab').classList.remove('tab-hide'); $('target-tab').classList.add('tab-show');
+        hideRightStageModals();
+        hideAllTabs();
+        if(fl) { fl.classList.remove('stage-hide'); fl.classList.add('stage-show'); }
+        if($('target-tab')) { $('target-tab').classList.remove('tab-hide'); $('target-tab').classList.add('tab-show'); }
         safeSet('target-score', data.targetScore || data.target || 0); safeSet('target-team', data.chasingTeam || 'TEAM 2');
         breakTimer = setTimeout(() => restoreToLive(), DURATIONS.inningsBreak);
         break;
 
       case 'MATCH_END':
         restoreToLive(); 
-        hideBaseUI();
-        fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
+        hideRightStageModals();
+        hideAllTabs();
+        if(fl) { fl.classList.remove('stage-hide'); fl.classList.add('stage-show'); }
         const winTab = $('winner-tab'); 
-        winTab.classList.remove('tab-hide'); winTab.classList.add('tab-show');
+        if(winTab) { winTab.classList.remove('tab-hide'); winTab.classList.add('tab-show'); }
         safeSet('win-team', data.winnerTeam || 'MATCH CONCLUDED'); safeSet('win-margin', data.winMargin || '');
         triggerAutoShrink();
         
         setTimeout(() => {
-          winTab.classList.remove('tab-show'); winTab.classList.add('tab-hide');
+          hideAllTabs();
           const sumTab = $('summary-tab'); 
-          sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show');
+          if(sumTab) { sumTab.classList.remove('tab-hide'); sumTab.classList.add('tab-show'); }
           
           let currentTeamIdx = 1;
           clearInterval(endMatchInterval);
@@ -767,7 +800,8 @@ const triggerAutoShrink = () => {
              const tm = currentTeamIdx === 1 ? data.team1 : data.team2;
              if (tm) {
                  safeSet('sum-header', (tm.name||'') + ' INNINGS');
-                 $('sum-bat-col').style.display = 'flex'; $('sum-bowl-col').style.display = 'flex';
+                 if($('sum-bat-col')) $('sum-bat-col').style.display = 'flex'; 
+                 if($('sum-bowl-col')) $('sum-bowl-col').style.display = 'flex';
                  renderBat(tm.batsmen); renderBowl(tm.bowlers);
                  triggerAutoShrink();
              }
@@ -777,8 +811,8 @@ const triggerAutoShrink = () => {
           if(data.team1) flip();
           
           endMatchInterval = setInterval(() => {
-             sumTab.style.opacity = '0';
-             setTimeout(() => { flip(); sumTab.style.opacity = '1'; }, 400);
+             if(sumTab) sumTab.style.opacity = '0';
+             setTimeout(() => { flip(); if(sumTab) sumTab.style.opacity = '1'; }, 400);
           }, DURATIONS.matchEndSwitch);
 
         }, DURATIONS.matchEndSwitch);

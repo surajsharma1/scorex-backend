@@ -461,8 +461,7 @@
 
   </div>
 
-  
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
 <script src="/overlays/overlay-handlers.js"></script>
       <script src="/overlays/engine.js"></script>
@@ -497,7 +496,7 @@
   const remCls  = (id, cls) => { const e=$(id); if(e) e.classList.remove(cls); };
 
 // 🚀 REPLACE THE OLD triggerAutoShrink WITH THIS ULTRA-FAST VERSION
-const triggerAutoShrink = () => {
+  const triggerAutoShrink = () => {
     requestAnimationFrame(() => {
       document.querySelectorAll('.fit-text').forEach(el => {
         // Reset to default CSS size first
@@ -547,7 +546,7 @@ const triggerAutoShrink = () => {
 
   // Inject Sponsors dynamically to ticker
   (function initSponsors() {
-    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: '2024 LIGHT BROADCAST'}];
+    const sponsors = cfg.sponsors || [{name: 'SCOREX.LIVE', tagline: '3D GOLDEN BULLION'}];
     const track = $('sponsor-track');
     if (!track) return;
     track.innerHTML = sponsors.map(sp => `<span style="margin-right:40px;">${sp.name} ${sp.tagline ? ' | ' + sp.tagline : ''}</span>`).join('');
@@ -572,46 +571,31 @@ const triggerAutoShrink = () => {
   };
 
   const hideBaseUI = () => {
-    $('scoreboard-container').classList.add('base-ui-hide-bottom');
-    $('sponsor-bar').classList.add('base-ui-hide-bottom');
-    $('target-bar').classList.add('base-ui-hide-bottom');
-    $('intro-cards-wrapper').classList.add('base-ui-hide-bottom');
-    $('side-card-wrapper').classList.add('base-ui-hide-bottom');
+    $('scoreboard-container').classList.add('base-ui-hide');
+    $('sponsor-bar').classList.add('base-ui-hide');
+    $('target-bar').classList.add('base-ui-hide');
+    $('intro-cards-wrapper').classList.add('base-ui-hide');
+    $('side-card-wrapper').classList.add('base-ui-hide');
   };
 
   const showBaseUI = () => {
-    $('scoreboard-container').classList.remove('base-ui-hide-bottom');
-    $('sponsor-bar').classList.remove('base-ui-hide-bottom');
-    $('target-bar').classList.remove('base-ui-hide-bottom');
-    $('intro-cards-wrapper').classList.remove('base-ui-hide-bottom');
-    $('side-card-wrapper').classList.remove('base-ui-hide-bottom');
+    $('scoreboard-container').classList.remove('base-ui-hide');
+    $('sponsor-bar').classList.remove('base-ui-hide');
+    $('target-bar').classList.remove('base-ui-hide');
+    $('intro-cards-wrapper').classList.remove('base-ui-hide');
+    $('side-card-wrapper').classList.remove('base-ui-hide');
   };
 
-  function fireIslandEvent(title, text, duration) {
+  function showActionAnim(id, duration) {
+    remCls('anim-four','fire'); remCls('anim-six','fire'); remCls('anim-wicket','fire');
     clearTimeout(actionTimer);
-    const wrap = $('dynamic-island-wrapper');
-    const box = $('big-box-island');
-    
-    safeSet('island-title', title);
-    safeSet('island-text', text);
-    
-    wrap.classList.remove('hide');
-    wrap.classList.add('show');
-    box.classList.add('expand');
-    triggerAutoShrink();
-
-    actionTimer = setTimeout(() => {
-      box.classList.remove('expand');
-      setTimeout(() => { wrap.classList.remove('show'); wrap.classList.add('hide'); }, 600);
-    }, duration);
+    addCls(id, 'fire');
+    actionTimer = setTimeout(() => remCls(id, 'fire'), duration);
   }
 
   function restoreToLive() {
     clearInterval(endMatchInterval); clearTimeout(actionTimer); clearTimeout(breakTimer);
-    
-    $('dynamic-island-wrapper').classList.remove('show');
-    $('dynamic-island-wrapper').classList.add('hide');
-    $('big-box-island').classList.remove('expand');
+    ['anim-four','anim-six','anim-wicket','anim-decision','anim-milestone'].forEach(id => remCls(id, 'fire'));
     
     const fl = $('fullscreen-layer'); if (fl) { fl.classList.remove('layer-show'); fl.classList.add('layer-hide'); }
     ['squads-tab','target-tab','winner-tab','summary-tab'].forEach(id => { const e = $(id); if (e) { e.classList.remove('tab-show'); e.classList.add('tab-hide'); }});
@@ -636,18 +620,17 @@ const triggerAutoShrink = () => {
     const fl = $('fullscreen-layer');
 
     switch (t.type) {
-      case 'FOUR': fireIslandEvent('BOUNDARY', 'FOUR!', DURATIONS.event); break;
-      case 'SIX': fireIslandEvent('MAXIMUM', 'SIX!', DURATIONS.event); break;
+      case 'FOUR': showActionAnim('anim-four', DURATIONS.event); break;
+      case 'SIX': showActionAnim('anim-six', DURATIONS.event); break;
       
       case 'WICKET':
       case 'WICKET_SWITCH':
-        fireIslandEvent('WICKET', 'OUT!', DURATIONS.event);
+        showActionAnim('anim-wicket', DURATIONS.event);
         if (data.outName) {
           $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
           
           $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
-          $('sw-out-badge').className = 'sb-badge red';
-          $('sw-out-block').className = 'switch-block switch-out';
+          $('sw-out-badge').style.background = '#ef4444';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Substitution');
@@ -670,10 +653,7 @@ const triggerAutoShrink = () => {
           $('switch-card').classList.add('active'); $('profile-card').classList.remove('active');
           
           $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
-          $('sw-out-badge').className = 'sb-badge';
           $('sw-out-badge').style.background = '#64748b';
-          $('sw-out-block').className = 'switch-block';
-          $('sw-out-block').style.borderLeft = '12px solid #64748b';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Retired');
@@ -691,10 +671,7 @@ const triggerAutoShrink = () => {
           setTimeout(() => {
               remCls('side-card-wrapper', 'active-side');
               setTimeout(() => {
-                  $('sw-out-badge').style.background = '';
-                  $('sw-out-badge').className = 'sb-badge red';
-                  $('sw-out-block').style.borderLeft = '';
-                  $('sw-out-block').className = 'switch-block switch-out';
+                  $('sw-out-badge').style.background = '#ef4444';
               }, 500);
           }, DURATIONS.event);
         }
@@ -706,9 +683,11 @@ const triggerAutoShrink = () => {
         $('profile-card').classList.add('active'); $('switch-card').classList.remove('active');
         
         const isBat = t.type === 'BATSMAN_PROFILE';
-        const badgeColor = isBat ? '#3b82f6' : '#ef4444';
+        const badgeColor = isBat ? 'var(--gold-main)' : '#ef4444';
+        const textColor = isBat ? '#000' : '#fff';
         
         $('pc-badge').style.background = badgeColor;
+        $('pc-badge').style.color = textColor;
         $('pc-badge').innerText = isBat ? 'BATSMAN' : (t.type === 'NEW_BOWLER' ? 'NEW BOWLER' : 'BOWLER');
         
         if (data.stats && data.stats.length > 0) {
@@ -716,15 +695,15 @@ const triggerAutoShrink = () => {
             safeSet('pc-name', nameStat ? nameStat.value : (data.bowler || data.name || 'PROFILE'));
             const otherStats = data.stats.filter(s => s.label !== 'BATSMAN' && s.label !== 'BOWLER');
             $('pc-stats-container').innerHTML = otherStats.map(s => 
-                `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val" style="color:${badgeColor};">${s.value}</span></div>`
+                `<div class="ppc-row"><span class="ppc-lbl">${s.label}</span><span class="ppc-val">${s.value}</span></div>`
             ).join('');
         } else {
             safeSet('pc-name', data.bowler || data.name || 'BOWLER');
             $('pc-stats-container').innerHTML = `
-                <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val" style="color:${badgeColor};">${data.overs||'0.0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val" style="color:${badgeColor};">${data.maidens||'0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val" style="color:${badgeColor};">${data.runs||'0'}</span></div>
-                <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val" style="color:${badgeColor};">${data.wickets||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">OVERS</span><span class="ppc-val">${data.overs||'0.0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">MAIDENS</span><span class="ppc-val">${data.maidens||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">RUNS</span><span class="ppc-val">${data.runs||'0'}</span></div>
+                <div class="ppc-row"><span class="ppc-lbl">WICKETS</span><span class="ppc-val">${data.wickets||'0'}</span></div>
             `;
         }
         
@@ -736,9 +715,8 @@ const triggerAutoShrink = () => {
 
       case 'DECISION_PENDING':
         decisionPendingState = (data && data.active !== false);
+        if (decisionPendingState) addCls('anim-decision', 'fire'); else remCls('anim-decision', 'fire');
         // sharedHandleTrigger NOT called here — dispatch() already fires anim-decision natively
-        if (decisionPendingState) { fireIslandEvent('THIRD UMPIRE', 'PENDING...', 999999); }
-        else { restoreToLive(); }
         break;
 
       case 'VS_SCREEN':
@@ -755,8 +733,8 @@ const triggerAutoShrink = () => {
         hideBaseUI(); 
         safeSet('squads-toss-header', data.text || 'TOSS COMPLETED'); 
         
-        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#3b82f6; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
-        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:#ef4444; font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team1Players) $('sq-t1-list').innerHTML = data.team1Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
+        if (data.team2Players) $('sq-t2-list').innerHTML = data.team2Players.slice(0,11).map(p => `<div class="squad-item"><div class="fit-container"><span class="fit-text">${p.name}</span></div><span style="color:var(--text-sub); font-size:2vh; margin-left:10px;">${p.role||''}</span></div>`).join('');
         
         fl.classList.remove('layer-hide'); fl.classList.add('layer-show');
         $('squads-tab').classList.remove('tab-hide'); $('squads-tab').classList.add('tab-show');
@@ -772,7 +750,10 @@ const triggerAutoShrink = () => {
         break;
 
       case '50_RUNS': case '100_RUNS':
-        fireIslandEvent('MILESTONE', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`, DURATIONS.milestone);
+        safeSet('ms-text', `${data.playerName || curStriker} - ${data.runs || (t.type==='50_RUNS'?50:100)}`);
+        addCls('anim-milestone', 'fire');
+        triggerAutoShrink();
+        setTimeout(() => remCls('anim-milestone', 'fire'), DURATIONS.milestone);
         break;
 
       case 'BATTING_CARD': case 'BOWLING_CARD': case 'BOTH_CARDS':

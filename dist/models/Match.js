@@ -89,8 +89,7 @@ MatchSchema.methods.startMatch = async function (data) {
                 { playerId: data.nonStrikerId ? new mongoose_1.default.Types.ObjectId(data.nonStrikerId) : undefined, name: data.nonStriker, runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0, isOut: false, isStriker: false, enteredAt: 0 },
             ],
             bowlers: [{ playerId: data.bowlerId ? new mongoose_1.default.Types.ObjectId(data.bowlerId) : undefined, name: data.bowler, overs: 0, balls: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 }],
-            fallOfWickets: [], ballHistory: [],
-            _wicketLimit: 10, // refined by selectPlayers once squad is confirmed
+            fallOfWickets: [], ballHistory: []
         }];
     this.currentInnings = 1;
     this.strikerName = data.striker;
@@ -404,7 +403,7 @@ MatchSchema.methods.addBall = async function (data) {
                 teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
                 score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
                 extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
-                _wicketLimit: 10, // refined by selectPlayers
+                _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
             });
             this.currentInnings = 2;
             this.strikerName = '';
@@ -484,7 +483,7 @@ MatchSchema.methods.endInnings = async function () {
             teamId: new mongoose_1.default.Types.ObjectId(secondBattingTeamId), teamName: secondBattingTeamName, status: 'in_progress',
             score: 0, wickets: 0, overs: 0, balls: 0, runRate: 0, targetScore: target, requiredRuns: target, requiredRunRate: 0,
             extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, total: 0 }, batsmen: [], bowlers: [], fallOfWickets: [], ballHistory: [],
-            _wicketLimit: 10, // refined by selectPlayers
+            _wicketLimit: Math.min(10, Math.max(2, (this.innings[0]?.batsmen?.length || 11) - 1))
         });
         this.currentInnings = 2;
         this.strikerName = '';
