@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html data-overlay-level="2" lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ScoreX - Neon Hex Engine</title>
@@ -393,8 +393,9 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/overlays/overlay-utils.js"></script>
-<script src="/overlays/engine.js"></script>
 <script src="/overlays/overlay-handlers.js"></script>
+      <script src="/overlays/engine.js"></script>
+
 <script>
 (function() {
   'use strict';
@@ -592,7 +593,7 @@
           safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
           
           if (data.inName) {
-            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
             else { $('sw-in-stats-row').classList.add('hide'); }
             $('sw-in-block').style.display = 'flex';
@@ -616,7 +617,7 @@
           safeSet('sw-out-score', data.outScore || `${data.outRuns||0} (${data.outBalls||0})`);
           
           if (data.inName) {
-            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            safeSet('sw-in-name', data.inName); $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { $('sw-in-stats-row').classList.remove('hide'); safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); }
             else { $('sw-in-stats-row').classList.add('hide'); }
             $('sw-in-block').style.display = 'flex';

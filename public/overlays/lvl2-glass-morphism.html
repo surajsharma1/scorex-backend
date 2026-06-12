@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html data-overlay-level="2" lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ScoreX - Titanium 3D Command Center</title>
@@ -541,7 +541,7 @@
     if (!el || !bowlers) return;
     el.innerHTML = bowlers.map(b => {
       const isAct = (b.name === curBowler);
-      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--c-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
+      return `<tr class="${isAct ? 'active-row' : ''}"><td><div class="fit-container"><span class="hl-text fit-text">${b.name} ${isAct?'*':''}</span></div></td><td>${b.overs}</td><td>${b.maidens||0}</td><td>${b.runs}</td><td style="color:var(--t-red);">${b.wickets !== undefined ? b.wickets : (b.wkts||0)}</td><td>${b.econ||b.economy||0}</td></tr>`;
     }).join('');
   };
 
@@ -622,8 +622,8 @@
           if($('profile-card')) $('profile-card').classList.remove('active');
           
           if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUB OUT' : 'OUT';
-          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-red)';
-          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-red)';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--t-red)';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--t-red)';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Substitution');
@@ -631,7 +631,7 @@
           
           if (data.inName) {
             safeSet('sw-in-name', data.inName); 
-            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { 
                 if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
                 safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
@@ -654,8 +654,8 @@
           if($('profile-card')) $('profile-card').classList.remove('active');
           
           if($('sw-out-badge')) $('sw-out-badge').innerText = data.isSub ? 'SUBSTITUTE' : 'RETIRED';
-          if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-slate)';
-          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-slate)';
+          if($('sw-out-badge')) $('sw-out-badge').style.background = '#64748b';
+          if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = '#64748b';
           
           safeSet('sw-out-name', data.outName);
           safeSet('sw-out-desc', data.howOut || 'Retired');
@@ -663,7 +663,7 @@
           
           if (data.inName) {
             safeSet('sw-in-name', data.inName); 
-            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { 
                 if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
                 safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
@@ -680,8 +680,8 @@
           setTimeout(() => {
               remCls('side-card-wrapper', 'active-side');
               setTimeout(() => {
-                  if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--c-red)';
-                  if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--c-red)';
+                  if($('sw-out-badge')) $('sw-out-badge').style.background = 'var(--t-red)';
+                  if($('sw-out-block')) $('sw-out-block').style.borderLeftColor = 'var(--t-red)';
               }, 500);
           }, DURATIONS.event);
         }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html data-overlay-level="2" lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ScoreX - IPL 3D Block Command Center (RGB Split)</title>
@@ -623,7 +623,7 @@
           
           if (data.inName) {
             safeSet('sw-in-name', data.inName); 
-            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { 
                 if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
                 safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
@@ -655,7 +655,7 @@
           
           if (data.inName) {
             safeSet('sw-in-name', data.inName); 
-            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'IN';
+            if($('sw-in-badge')) $('sw-in-badge').innerText = data.isSub ? 'SUB IN' : 'NEW BAT';
             if (data.inRuns !== undefined) { 
                 if($('sw-in-stats-row')) $('sw-in-stats-row').classList.remove('hide'); 
                 safeSet('sw-in-r', data.inRuns); safeSet('sw-in-b', data.inBalls); 
